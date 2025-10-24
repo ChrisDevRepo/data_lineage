@@ -137,3 +137,189 @@ Special handling for different record types:
 
 ### Table Hints
 Procedures commonly use `with (nolock)` for read operations to avoid blocking
+
+## Data Lineage Analysis Tools
+
+This repository includes autonomous data lineage tools for reverse-engineering SQL dependencies.
+
+### Autonomous Lineage Engine
+
+**Location**: `autonomous_lineage.py`
+
+**Purpose**: Automatically generates complete data lineage from any database object (table, view, or stored procedure) by analyzing SQL code.
+
+**Usage**:
+```bash
+python3 autonomous_lineage.py <object_name>
+```
+
+**Examples**:
+```bash
+# Analyze a table
+python3 autonomous_lineage.py CadenceBudgetData
+
+# Analyze a stored procedure
+python3 autonomous_lineage.py spLoadEmployeeContractUtilization_Aggregations
+
+# With full schema qualification
+python3 autonomous_lineage.py CONSUMPTION_ClinOpsFinance.CadenceBudgetData
+```
+
+**Output Files**:
+- `{object}_lineage.json` - Complete lineage in strict JSON format (see JSON_FORMAT_SPECIFICATION.md)
+- `{object}_confidence.json` - Analysis quality report with confidence scores
+
+**Key Features**:
+- **Fully Autonomous**: No manual approvals required
+- **Hybrid Analysis**: Combines regex parsing + AI analysis for complex SQL patterns
+- **Circular Dependency Tracking**: Detects when SPs both read and write to the same table
+- **Confidence Scoring**: Provides reliability metrics for each detected dependency
+- **Validation**: Cross-checks all dependencies against actual codebase
+- **Logging Exclusion**: Automatically filters out logging objects (ADMIN.Logs, dbo.LogMessage, dbo.spLastRowCount)
+
+### JSON Lineage Format (Version 2.0)
+
+Each object in the lineage has:
+```json
+{
+  "id": "node_0",
+  "name": "ObjectName",
+  "schema": "SchemaName",
+  "object_type": "Table|View|StoredProcedure",
+  "inputs": ["node_1", "node_2"],
+  "outputs": ["node_3", "node_4"]
+}
+```
+
+**Lineage Rules**:
+
+**Stored Procedures**:
+- `inputs`: Tables/views it READS from (FROM, JOIN clauses)
+- `outputs`: Tables it WRITES to (INSERT, UPDATE, SELECT INTO, MERGE, TRUNCATE)
+
+**Tables**:
+- `inputs`: Stored procedures that WRITE to it
+- `outputs`: Always empty `[]`
+
+**Views**:
+- `inputs`: Tables/views it READS from
+- `outputs`: Always empty `[]`
+
+**Circular Dependencies**:
+A stored procedure can appear in both `inputs` and `outputs` of a table when it both creates and reads from that table within the same execution.
+
+**Complete Specification**: See `JSON_FORMAT_SPECIFICATION.md` for detailed format documentation.
+
+### Architecture Components
+
+The lineage engine consists of modular components:
+
+**Parsers** (`parsers/`):
+- `sql_parser_enhanced.py` - Regex-based SQL parsing with confidence scoring
+- `dependency_extractor.py` - Extracts all SQL dependency types
+
+**AI Analyzer** (`ai_analyzer/`):
+- `sql_complexity_detector.py` - Detects complex patterns needing AI review
+- `ai_sql_parser.py` - Handles MERGE, CTEs, dynamic SQL, PIVOT/UNPIVOT
+- `confidence_scorer.py` - Combines regex + AI results with weighted confidence
+
+**Validators** (`validators/`):
+- `dependency_validator.py` - Verifies objects exist in codebase
+- `iterative_refiner.py` - Uses Grep/Glob to find missing dependencies
+
+**Output** (`output/`):
+- `json_formatter.py` - Generates strict JSON format
+- `confidence_reporter.py` - Creates analysis quality reports
+
+### Common Lineage Patterns
+
+**1. Source Tables**: Tables with no inputs (no SP writes to them)
+```json
+{
+  "id": "node_1",
+  "name": "HrContractAttendance",
+  "schema": "CONSUMPTION_ClinOpsFinance",
+  "object_type": "Table",
+  "inputs": [],
+  "outputs": []
+}
+```
+
+**2. ETL Stored Procedures**: Read from source tables, write to target tables
+```json
+{
+  "id": "node_0",
+  "name": "spLoadCadenceBudgetData",
+  "schema": "CONSUMPTION_ClinOpsFinance",
+  "object_type": "StoredProcedure",
+  "inputs": ["node_1", "node_2"],    // Source tables
+  "outputs": ["node_3"]               // Target table
+}
+```
+
+**3. Views**: Read from tables, don't write
+```json
+{
+  "id": "node_2",
+  "name": "vFull_Departmental_Map_ActivePrima",
+  "schema": "CONSUMPTION_ClinOpsFinance",
+  "object_type": "View",
+  "inputs": ["node_4", "node_5"],    // Base tables
+  "outputs": []
+}
+```
+
+**4. Target Tables**: Written to by SPs
+```json
+{
+  "id": "node_3",
+  "name": "CadenceBudgetData",
+  "schema": "CONSUMPTION_ClinOpsFinance",
+  "object_type": "Table",
+  "inputs": ["node_0"],              // SP that creates it
+  "outputs": []
+}
+```
+
+**5. Circular Dependencies**: SP both reads and writes same table
+```json
+{
+  "id": "node_0",
+  "name": "spLoadEmployeeContractUtilization_Aggregations",
+  "schema": "CONSUMPTION_ClinOpsFinance",
+  "object_type": "StoredProcedure",
+  "inputs": ["node_3"],              // Reads from EmployeeContractFTE_Monthly
+  "outputs": ["node_3"]              // Also writes to it (CIRCULAR!)
+}
+```
+
+### Performance Characteristics
+
+- **Simple objects** (1-10 dependencies): ~5-10 seconds
+- **Complex objects** (50+ dependencies): ~20-30 seconds
+- **Large dependency trees** (100+ objects): ~30-60 seconds
+
+The engine automatically handles:
+- CTEs (Common Table Expressions)
+- Temp tables (unwrapped to source tables)
+- Dynamic SQL (basic pattern detection)
+- MERGE statements
+- Complex joins and subqueries
+- Cross-schema dependencies
+
+### Troubleshooting Lineage Analysis
+
+**Low Confidence Scores** (< 0.7):
+- Review uncertain dependencies in confidence report
+- Check for dynamic SQL or complex patterns
+- Consider manual verification of flagged dependencies
+
+**Invalid Dependencies**:
+- May indicate temp tables created at runtime
+- Could reference objects in external databases
+- Check if object names are dynamically constructed
+
+**Missing Objects**:
+- Object may be created via `SELECT INTO` within a stored procedure
+- Analyze the stored procedure that creates it instead
+- Use the confidence report to identify creation source
