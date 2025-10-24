@@ -1,0 +1,432 @@
+{
+  "diagram_metadata": {
+    "title": "Data Lineage: FTE Pipeline (Clean Layout)",
+    "target_object": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_AverageFTE_Monthly_RankDetailAggregation",
+    "generated_date": "2025-10-24",
+    "output_filename": "billable_efficiency_fte_lineage_v4_no_boxes",
+    "output_format": "png",
+    "direction": "LR",
+    "use_cluster_boxes": false,
+    "total_objects": 26,
+    "total_relationships": 22,
+    "problematic_flows": 2
+  },
+  "object_inventory": [
+    {
+      "name": "Full_Departmental_Map",
+      "full_name": "DBO.Full_Departmental_Map",
+      "type": "table",
+      "schema": "DBO",
+      "shape": "Action"
+    },
+    {
+      "name": "MonthlyAverageCurrencyExchangeRate",
+      "full_name": "CONSUMPTION_PRIMA.MonthlyAverageCurrencyExchangeRate",
+      "type": "table",
+      "schema": "CONSUMPTION_PRIMA",
+      "shape": "Action"
+    },
+    {
+      "name": "FactLaborCostForEarnedValue",
+      "full_name": "CONSUMPTION_POWERBI.FactLaborCostForEarnedValue",
+      "type": "table",
+      "schema": "CONSUMPTION_POWERBI",
+      "shape": "Action"
+    },
+    {
+      "name": "HrContractAttendance",
+      "full_name": "CONSUMPTION_ClinOpsFinance.HrContractAttendance",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "vFull_Departmental_Map_ActivePrima",
+      "full_name": "CONSUMPTION_ClinOpsFinance.vFull_Departmental_Map_ActivePrima",
+      "type": "view",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Delay"
+    },
+    {
+      "name": "DateRanges_PM",
+      "full_name": "CONSUMPTION_ClinOpsFinance.DateRanges_PM",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "CURRENCY",
+      "full_name": "CONSUMPTION_ClinOpsFinance.CURRENCY",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "CadenceBudgetData_Post",
+      "full_name": "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_Post",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "spLoadEmployeeContractUtilization_Aggregations",
+      "full_name": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "type": "stored_procedure",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Preparation"
+    },
+    {
+      "name": "EmployeeAttendanceExpectedHoursUtilization_Monthly",
+      "full_name": "CONSUMPTION_ClinOpsFinance.EmployeeAttendanceExpectedHoursUtilization_Monthly",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "EmployeeContractFTE_Monthly",
+      "full_name": "CONSUMPTION_ClinOpsFinance.EmployeeContractFTE_Monthly",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "AverageContractFTE_Monthly",
+      "full_name": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "AverageContractFTE_Monthly_RankDetail",
+      "full_name": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly_RankDetail",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "spLoadFactLaborCostForEarnedValue_Post",
+      "full_name": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Post",
+      "type": "stored_procedure",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Preparation"
+    },
+    {
+      "name": "FactLaborCostForEarnedValue_Post",
+      "full_name": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_Post",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "spLoadCadenceBudget_Aggregations",
+      "full_name": "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_Aggregations",
+      "type": "stored_procedure",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Preparation"
+    },
+    {
+      "name": "CadenceBudgetData_BillableEfficiency_RankDetail",
+      "full_name": "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_BillableEfficiency_RankDetail",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "spLoadFactLaborCostForEarnedValue_Aggregations",
+      "full_name": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Aggregations",
+      "type": "stored_procedure",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Preparation"
+    },
+    {
+      "name": "FactLaborCostForEarnedValue_RankDetaillAggregation",
+      "full_name": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankDetaillAggregation",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "BillableEfficiency_Productivity_RankDetailAggregation",
+      "full_name": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    },
+    {
+      "name": "BillableEfficiency_Productivity_AverageFTE_Monthly_RankDetailAggregation",
+      "full_name": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_AverageFTE_Monthly_RankDetailAggregation",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "shape": "Action"
+    }
+  ],
+  "schema_distribution": {
+    "DBO": {
+      "count": 1,
+      "edge_color": "firebrick",
+      "objects": ["Full_Departmental_Map"]
+    },
+    "CONSUMPTION_PRIMA": {
+      "count": 1,
+      "edge_color": "darkorange",
+      "objects": ["MonthlyAverageCurrencyExchangeRate"]
+    },
+    "CONSUMPTION_POWERBI": {
+      "count": 1,
+      "edge_color": "darkgreen",
+      "objects": ["FactLaborCostForEarnedValue"]
+    },
+    "CONSUMPTION_ClinOpsFinance": {
+      "count": 23,
+      "edge_color": "darkblue",
+      "objects": [
+        "HrContractAttendance",
+        "vFull_Departmental_Map_ActivePrima",
+        "DateRanges_PM",
+        "CURRENCY",
+        "CadenceBudgetData_Post",
+        "spLoadEmployeeContractUtilization_Aggregations",
+        "EmployeeAttendanceExpectedHoursUtilization_Monthly",
+        "EmployeeContractFTE_Monthly",
+        "AverageContractFTE_Monthly",
+        "AverageContractFTE_Monthly_RankDetail",
+        "spLoadFactLaborCostForEarnedValue_Post",
+        "FactLaborCostForEarnedValue_Post",
+        "spLoadCadenceBudget_Aggregations",
+        "CadenceBudgetData_BillableEfficiency_RankDetail",
+        "spLoadFactLaborCostForEarnedValue_Aggregations",
+        "FactLaborCostForEarnedValue_RankDetaillAggregation",
+        "BillableEfficiency_Productivity_RankDetailAggregation",
+        "BillableEfficiency_Productivity_AverageFTE_Monthly_RankDetailAggregation"
+      ]
+    }
+  },
+  "relationships": [
+    {
+      "source": "DBO.Full_Departmental_Map",
+      "target": "CONSUMPTION_ClinOpsFinance.vFull_Departmental_Map_ActivePrima",
+      "edge_color": "firebrick",
+      "edge_style": "solid",
+      "label": "DBO"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.HrContractAttendance",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.DateRanges_PM",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.vFull_Departmental_Map_ActivePrima",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "edge_color": "red",
+      "edge_style": "dashed",
+      "label": "ISSUE",
+      "problematic": true
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.EmployeeAttendanceExpectedHoursUtilization_Monthly",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.EmployeeContractFTE_Monthly",
+      "edge_color": "red",
+      "edge_style": "dashed",
+      "label": "ISSUE",
+      "problematic": true
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.EmployeeContractFTE_Monthly",
+      "target": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly",
+      "target": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly_RankDetail",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_POWERBI.FactLaborCostForEarnedValue",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Post",
+      "edge_color": "darkgreen",
+      "edge_style": "solid",
+      "label": "POWERBI"
+    },
+    {
+      "source": "CONSUMPTION_PRIMA.MonthlyAverageCurrencyExchangeRate",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Post",
+      "edge_color": "darkorange",
+      "edge_style": "solid",
+      "label": "PRIMA"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Post",
+      "target": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_Post",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_Post",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Aggregations",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankDetaillAggregation",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_Post",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_Aggregations",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.CURRENCY",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_Aggregations",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_BillableEfficiency_RankDetail",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankDetaillAggregation",
+      "target": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_BillableEfficiency_RankDetail",
+      "target": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly_RankDetail",
+      "target": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation",
+      "edge_color": "darkblue",
+      "edge_style": "solid"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation",
+      "target": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_AverageFTE_Monthly_RankDetailAggregation",
+      "edge_color": "darkblue",
+      "edge_style": "solid",
+      "penwidth": "2.5"
+    }
+  ],
+  "problematic_flows": [
+    {
+      "flow_id": 1,
+      "source": "CONSUMPTION_ClinOpsFinance.vFull_Departmental_Map_ActivePrima",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "issue": "View dependency causing performance bottleneck or data quality issue"
+    },
+    {
+      "flow_id": 2,
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.EmployeeContractFTE_Monthly",
+      "issue": "Problematic aggregation or data transformation logic"
+    }
+  ],
+  "pipeline_structure": {
+    "total_layers": 5,
+    "layers": [
+      {
+        "layer": "External Sources",
+        "objects": [
+          "DBO.Full_Departmental_Map",
+          "CONSUMPTION_PRIMA.MonthlyAverageCurrencyExchangeRate",
+          "CONSUMPTION_POWERBI.FactLaborCostForEarnedValue"
+        ]
+      },
+      {
+        "layer": "Internal Sources",
+        "objects": [
+          "CONSUMPTION_ClinOpsFinance.HrContractAttendance",
+          "CONSUMPTION_ClinOpsFinance.DateRanges_PM",
+          "CONSUMPTION_ClinOpsFinance.CURRENCY",
+          "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_Post",
+          "CONSUMPTION_ClinOpsFinance.vFull_Departmental_Map_ActivePrima"
+        ]
+      },
+      {
+        "layer": "Transform Layer 1",
+        "objects": [
+          "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+          "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Post",
+          "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_Aggregations"
+        ]
+      },
+      {
+        "layer": "Transform Layer 2",
+        "objects": [
+          "CONSUMPTION_ClinOpsFinance.EmployeeAttendanceExpectedHoursUtilization_Monthly",
+          "CONSUMPTION_ClinOpsFinance.EmployeeContractFTE_Monthly",
+          "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly",
+          "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly_RankDetail",
+          "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_Post",
+          "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Aggregations",
+          "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankDetaillAggregation",
+          "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_BillableEfficiency_RankDetail"
+        ]
+      },
+      {
+        "layer": "Final Aggregation",
+        "objects": [
+          "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation",
+          "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_AverageFTE_Monthly_RankDetailAggregation"
+        ]
+      }
+    ]
+  },
+  "visual_configuration": {
+    "use_cluster_boxes": false,
+    "edge_coloring_strategy": "schema_based",
+    "shape_mapping": {
+      "table": "Action (rounded rectangle)",
+      "view": "Delay (elongated hexagon)",
+      "stored_procedure": "Preparation (hexagon)"
+    },
+    "edge_color_legend": {
+      "firebrick": "DBO schema flows",
+      "darkorange": "CONSUMPTION_PRIMA schema flows",
+      "darkgreen": "CONSUMPTION_POWERBI schema flows",
+      "darkblue": "CONSUMPTION_ClinOpsFinance schema flows",
+      "red_dashed": "Problematic data flows (known issues)"
+    }
+  },
+  "statistics": {
+    "total_objects": 26,
+    "by_type": {
+      "table": 18,
+      "view": 1,
+      "stored_procedure": 4
+    },
+    "by_schema": {
+      "DBO": 1,
+      "CONSUMPTION_PRIMA": 1,
+      "CONSUMPTION_POWERBI": 1,
+      "CONSUMPTION_ClinOpsFinance": 23
+    },
+    "total_edges": 22,
+    "problematic_edges": 2,
+    "cross_schema_edges": 3
+  }
+}

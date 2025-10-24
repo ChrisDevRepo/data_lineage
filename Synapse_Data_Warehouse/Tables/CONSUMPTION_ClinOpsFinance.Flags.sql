@@ -1,0 +1,13 @@
+﻿CREATE TABLE [CONSUMPTION_ClinOpsFinance].Flags
+(
+  RowID SMALLINT
+  ,[Country] NVARCHAR(100)
+  ,[Symbol] VARCHAR(5)
+  ,FlagUrl VARCHAR(400)
+)
+WITH
+(
+	DISTRIBUTION = REPLICATE,
+	CLUSTERED INDEX (Country)
+)
+GO 

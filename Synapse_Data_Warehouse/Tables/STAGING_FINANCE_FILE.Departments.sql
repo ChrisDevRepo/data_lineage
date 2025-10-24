@@ -1,0 +1,8 @@
+﻿CREATE TABLE [STAGING_FINANCE_FILE].[Departments] (
+    [DeptID]        VARCHAR (6)   NULL,
+    [DeptNameLong]  VARCHAR (250) NULL,
+    [DeptNameShort] VARCHAR (250) NULL,
+    [DeptNameMed]   VARCHAR (100) NULL
+)
+WITH (CLUSTERED COLUMNSTORE INDEX, DISTRIBUTION = ROUND_ROBIN);
+

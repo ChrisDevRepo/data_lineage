@@ -1,0 +1,52 @@
+CREATE TABLE [CONSUMPTION_ClinOpsFinance].[EmployeeContractUtilization]
+(
+	[Employee_Id] [int] NULL,
+	[ContractId] [int] NULL,
+	[ContractHistoryStartDate] [date] NULL,
+	[ContractHistoryEndDate] [date] NULL,
+	[FULL_NAME] [varchar](102) NULL,
+	[EmployeeCountryId] [int] NULL,
+	[EmployeeCountryCode] [varchar](2) NULL,
+	[OFFICE_COUNTRY_NAME] [varchar](100) NULL,
+	[DepartmentId] [int] NULL,
+	[DEPARTMENT] [varchar](100) NULL,
+	[POSITION_ID] [int] NULL,
+	[POSITION] [varchar](100) NULL,
+	[TIME_FRAME_ID] [int] NULL,
+	[TIME_FRAME] [nvarchar](200) NULL,
+	[FTE] [float] NULL,
+	[BILLABLE_ID] [int] NULL,
+	[BILLABILITY] [nvarchar](200) NULL,
+	[ContractHoursPerWeek] [float] NULL,
+	[CountryHoursPerWeek] [float] NULL,
+	[TsProjectCode] [nvarchar](80) NULL,
+	[TsCountryId] [int] NULL,
+	[Date] [date] NULL,
+	[TsTitle] [varchar](100) NULL,
+	[TsPosition] [varchar](100) NULL,
+	[isBillable] [varchar](3) NULL,
+	[TitleOrPositionToUse] [varchar](100) NULL,
+	[DurationInHours] [decimal](38, 6) NOT NULL,
+	[DurationInMinutes] [int] NOT NULL,
+	[NonBillableDurationInMinutes] [int] NOT NULL,
+	[BillableDraftDurationInMinutes] [int] NOT NULL,
+	[BillableSubmittedDurationInMinutes] [int] NOT NULL,
+	[BillableApprovedDurationInMinutes] [int] NOT NULL,
+	[IsHoliday] [int] NOT NULL,
+	[IsVacation] [int] NOT NULL,
+	[IsSickLeave] [numeric](10, 1) NOT NULL,
+	[IsDayOff] [int] NOT NULL,
+	[IsBusinessTrip] [int] NOT NULL,
+	[IsWeekend] [int] NOT NULL,
+	[IsDismiss] [int] NOT NULL,
+	[Attendance] [varchar](38) NULL,
+	[IsLongTermLeave] [int] NOT NULL,
+	[ContractClassName] [nvarchar](200) NULL,
+	[ContractClassType] [varchar](10) NULL
+)
+WITH
+(
+	DISTRIBUTION = HASH ( [Employee_Id],[OFFICE_COUNTRY_NAME],[DEPARTMENT],[Date] ),
+	CLUSTERED COLUMNSTORE INDEX
+)
+GO

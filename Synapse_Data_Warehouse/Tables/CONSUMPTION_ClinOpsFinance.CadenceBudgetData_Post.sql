@@ -1,0 +1,72 @@
+CREATE TABLE [CONSUMPTION_ClinOpsFinance].[CadenceBudgetData_Post]
+(
+	[CadenceBudgetData_PostKey] [bigint] IDENTITY(1,1) NOT NULL,
+	[CadenceBudget_LaborCost_PrimaUtilization_JuncKey] [bigint] NOT NULL,
+	[Year] [int] NOT NULL,
+	[Month] [int] NOT NULL,
+	[Project Name] [nvarchar](100) NULL,
+	[Project Currency Code] [nvarchar](3) NULL,
+	[Project Currency Name] [nvarchar](3) NULL,
+	[Service] [nvarchar](255) NULL,
+	[Task Code] [nvarchar](50) NULL,
+	[Task] [nvarchar](255) NULL,
+	[Task Country] [nvarchar](255) NULL,
+	[Part Order Index] [int] NULL,
+	[Segment Order Index] [int] NULL,
+	[Function Code] [nvarchar](50) NULL,
+	[Function] [nvarchar](255) NULL,
+	[Function Country] [nvarchar](255) NULL,
+	[CadenceDepartmentId] [int] NULL,
+	[CadenceDepartmentName] [nvarchar](255) NULL,
+	[PrimaHrDepartmentId] [int] NULL,
+	[PrimaDepartmentName] [nvarchar](255) NULL,
+	[PrimaGlobalCountryId] [int] NULL,
+	[PrimaGlobalCountryName] [nvarchar](255) NULL,
+	[Unit type] [nvarchar](100) NULL,
+	[Currency] [nvarchar](10) NULL,
+	[RecordUpdateType] [nvarchar](255) NULL,
+	[SUM Function Planned Total Cost Adjusted] [decimal](19,4) NULL,
+	[SUM Function Planned Total Hours] [decimal](19,4) NULL,
+	[Function CurrentRate Adjusted] [decimal](19,4) NULL,
+	[SUM Task Planned Total Units] [decimal](19,4) NULL,
+	[SUM Task Approved Total Units] [decimal](19,4) NULL,
+	[SUM Function TimeSheet Actual Total Hours] [decimal](19,4) NULL,
+	[Total SUM Function TimeSheet Actual Total Hours] [decimal](19,4) NULL,
+	[Original Actual Total Hours (Allocated)] [decimal](19,4) NULL,
+	[Earned Value (Budget)] [decimal](19,4) NULL,
+	[Actual Total Hours (Allocated)] [decimal](19,4) NULL,
+	[Earned Value (50% Direct allocation)] [decimal](19,4) NULL,
+	[Non-allocated Earned Value] [decimal](19,4) NULL,
+	[Total Indirect Earned Value (Task)] [decimal](19,4) NULL,
+	[TS hours proportion] [decimal](19,4) NULL,
+	[Actual Cost Proportion] [decimal](19,4) NULL,
+	[Earned Value (Indirect allocation)] [decimal](19,4) NULL,
+	[Earned Value (Total Allocated)] [decimal](19,4) NULL,
+	[Actual Cost of Work Performed] [decimal](19,4) NULL,
+	[Billable Efficiency] [decimal](19,4) NULL,
+-- New Version-2 columns
+	[Earned Value (Direct allocation) Version-2] [decimal](19,4) NULL,
+	[Non-allocated Earned Value Version-2] [decimal](19,4) NULL,
+	[Total Indirect Earned Value (Task) Version-2] [decimal](19,4) NULL,
+	[Actual Cost (Allocated) Proportion] [decimal](19,4) NULL,
+	[Earned Value (Indirect allocation) Version-2] [decimal](19,4) NULL,
+	[Earned Value (Total Allocated) Version-2] [decimal](19,4) NULL,
+	[Billable Efficiency Version-2] [decimal](19,4) NULL,
+
+	[KEY] [nvarchar](255) NULL,
+	[KEY_wo_Currency] [nvarchar](255) NULL,
+	[Opportunity ID] [nvarchar](100) NULL,
+	[Department] [nvarchar](255) NULL,
+	[BomDateId] [int] NULL,
+	[Archived project ref Id] [bigint] NULL,
+	[CREATED_AT] [datetime] NOT NULL,
+	[UPDATED_AT] [datetime] NOT NULL
+)
+WITH
+(
+	DISTRIBUTION = HASH ( [Year],[Month],[PrimaDepartmentName],[PrimaGlobalCountryName],[Currency] ),
+	CLUSTERED COLUMNSTORE INDEX
+)
+GO
+
+

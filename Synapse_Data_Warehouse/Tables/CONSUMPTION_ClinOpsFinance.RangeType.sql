@@ -1,0 +1,11 @@
+﻿CREATE TABLE [CONSUMPTION_ClinOpsFinance].RangeType
+(
+  RangeTypeID SMALLINT
+  ,RangeCloseType VARCHAR(50)
+)
+WITH
+(
+	DISTRIBUTION = REPLICATE,
+	CLUSTERED INDEX (RangeTypeID)
+)
+GO

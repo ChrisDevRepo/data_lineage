@@ -1,0 +1,375 @@
+{
+  "diagram_title": "Data Lineage: BillableEfficiency FTE Aggregation Pipeline",
+  "target_object": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_AverageFTE_Monthly_RankDetailAggregation",
+  "generation_timestamp": "2025-10-24T05:59:00Z",
+  "purpose": "Identify and visualize double-counting in FTE aggregation metrics caused by department mapping issues",
+
+  "configuration": {
+    "direction": "LR",
+    "output_filename": "billable_efficiency_fte_lineage",
+    "highlight_issues": true,
+    "group_by_schema": true,
+    "output_format": "png",
+    "title": "Data Lineage: BillableEfficiency FTE Aggregation Pipeline"
+  },
+
+  "schema_colors": {
+    "CONSUMPTION_ClinOpsFinance": "#4285F4",
+    "CONSUMPTION_POWERBI": "#34A853",
+    "CONSUMPTION_PRIMA": "#FBBC04",
+    "DBO": "#EA4335"
+  },
+
+  "object_inventory": [
+    {
+      "name": "DBO.Full_Departmental_Map",
+      "type": "table",
+      "schema": "DBO",
+      "layer": 0,
+      "description": "Base department mapping table"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.vFull_Departmental_Map_ActivePrima",
+      "type": "view",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 0,
+      "description": "Department mapping view (1:M relationship)",
+      "problematic": true
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.HrContractAttendance",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 0,
+      "description": "Employee contract and attendance source data"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.DateRanges_PM",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 0,
+      "description": "Date dimension with rank-based ranges"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.CURRENCY",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 0,
+      "description": "Currency dimension (CHF, GBP, USD, EUR)"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_Post",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 0,
+      "description": "Cadence budget data (post-processing)"
+    },
+    {
+      "name": "CONSUMPTION_POWERBI.FactLaborCostForEarnedValue",
+      "type": "table",
+      "schema": "CONSUMPTION_POWERBI",
+      "layer": 0,
+      "description": "Labor cost fact table (clean source)"
+    },
+    {
+      "name": "CONSUMPTION_PRIMA.MonthlyAverageCurrencyExchangeRate",
+      "type": "table",
+      "schema": "CONSUMPTION_PRIMA",
+      "layer": 0,
+      "description": "Currency exchange rates"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "type": "stored_procedure",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 1,
+      "description": "FTE aggregation procedure (contains department mapping issue)",
+      "problematic": true
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.EmployeeAttendanceExpectedHoursUtilization_Monthly",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 1,
+      "description": "Monthly employee attendance aggregation"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.EmployeeContractFTE_Monthly",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 1,
+      "description": "Monthly FTE by employee (INFLATED due to dept mapping)",
+      "problematic": true
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 1,
+      "description": "Average FTE aggregations (carries forward inflation)",
+      "problematic": true
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly_RankDetail",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 1,
+      "description": "FTE with rank detail (carries forward inflation)",
+      "problematic": true
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Post",
+      "type": "stored_procedure",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 2,
+      "description": "Labor cost post-processing (CLEAN)"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_Post",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 2,
+      "description": "Post-processed labor cost (CLEAN)"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_Aggregations",
+      "type": "stored_procedure",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 3,
+      "description": "Budget aggregation procedure (CLEAN)"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_BillableEfficiency_RankDetail",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 3,
+      "description": "Budget with billable efficiency and rank detail (CLEAN)"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Aggregations",
+      "type": "stored_procedure",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 4,
+      "description": "Labor cost aggregation procedure (CLEAN)"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankDetaillAggregation",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 4,
+      "description": "Labor cost rank detail aggregation (CLEAN)"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 4,
+      "description": "Billable efficiency and productivity aggregation (CLEAN labor cost)"
+    },
+    {
+      "name": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_AverageFTE_Monthly_RankDetailAggregation",
+      "type": "table",
+      "schema": "CONSUMPTION_ClinOpsFinance",
+      "layer": 5,
+      "description": "FINAL TARGET: Contains clean labor cost + inflated FTE metrics",
+      "problematic": true
+    }
+  ],
+
+  "relationships": [
+    {
+      "source": "DBO.Full_Departmental_Map",
+      "target": "CONSUMPTION_ClinOpsFinance.vFull_Departmental_Map_ActivePrima",
+      "type": "read",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.HrContractAttendance",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "type": "read",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.vFull_Departmental_Map_ActivePrima",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "type": "join",
+      "problematic": true,
+      "issue": "1:M department mapping without PrimaDepartmentCount division"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.DateRanges_PM",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "type": "join",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.EmployeeAttendanceExpectedHoursUtilization_Monthly",
+      "type": "insert",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.EmployeeContractFTE_Monthly",
+      "type": "insert",
+      "problematic": true,
+      "issue": "Creates inflated MonthlyFTEAggSUM values"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.EmployeeContractFTE_Monthly",
+      "target": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly",
+      "type": "aggregate",
+      "problematic": true,
+      "issue": "Carries forward inflated FTE values"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly",
+      "target": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly_RankDetail",
+      "type": "join",
+      "problematic": true,
+      "issue": "Carries forward inflated FTE values"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.DateRanges_PM",
+      "target": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly_RankDetail",
+      "type": "join",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_POWERBI.FactLaborCostForEarnedValue",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Post",
+      "type": "read",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Post",
+      "target": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_Post",
+      "type": "insert",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_Post",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_Aggregations",
+      "type": "read",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.DateRanges_PM",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_Aggregations",
+      "type": "join",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_BillableEfficiency_RankDetail",
+      "type": "insert",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_Post",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Aggregations",
+      "type": "read",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.DateRanges_PM",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Aggregations",
+      "type": "join",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankDetaillAggregation",
+      "type": "insert",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation",
+      "type": "insert",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_BillableEfficiency_RankDetail",
+      "target": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation",
+      "type": "join",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "type": "read",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.AverageContractFTE_Monthly_RankDetail",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "type": "read",
+      "problematic": true,
+      "issue": "Brings inflated FTE values into final table"
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.CURRENCY",
+      "target": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "type": "cross_join",
+      "problematic": false
+    },
+    {
+      "source": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "target": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_AverageFTE_Monthly_RankDetailAggregation",
+      "type": "insert",
+      "problematic": true,
+      "issue": "Final table contains mixed data: clean labor cost + inflated FTE"
+    }
+  ],
+
+  "statistics": {
+    "total_objects": 21,
+    "total_relationships": 25,
+    "problematic_objects": 6,
+    "problematic_relationships": 6,
+    "schemas": 4,
+    "layers": 6
+  },
+
+  "identified_issues": [
+    {
+      "issue_id": 1,
+      "severity": "CRITICAL",
+      "location": "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations (Lines 46-47, 77-78, 98-99)",
+      "description": "Department mapping JOIN without PrimaDepartmentCount division",
+      "impact": "MonthlyFTEAggSUM (Fully Billable) and MonthlyFTEAggSUM (Partially Billable) inflated by factor of PrimaDepartmentCount",
+      "affected_attributes": [
+        "MonthlyFTEAggSUM (Fully Billable)",
+        "MonthlyFTEAggSUM (Partially Billable)"
+      ],
+      "root_cause": "1:M relationship in vFull_Departmental_Map_ActivePrima used with DISTINCT but without proportional allocation"
+    }
+  ],
+
+  "clean_paths": [
+    {
+      "path_name": "Labor Cost Path",
+      "description": "FactLaborCostForEarnedValue (POWERBI) -> spLoadFactLaborCostForEarnedValue_Post -> FactLaborCostForEarnedValue_Post -> spLoadFactLaborCostForEarnedValue_Aggregations -> BillableEfficiency_Productivity_RankDetailAggregation -> Final Target",
+      "status": "CLEAN - No department mapping issues"
+    },
+    {
+      "path_name": "Budget Path",
+      "description": "CadenceBudgetData_Post -> spLoadCadenceBudget_Aggregations -> CadenceBudgetData_BillableEfficiency_RankDetail -> BillableEfficiency_Productivity_RankDetailAggregation -> Final Target",
+      "status": "CLEAN - Correctly uses PrimaDepartmentCount in spLoadCadenceBudgetData"
+    }
+  ],
+
+  "versions": [
+    {
+      "version": 1,
+      "filename": "billable_efficiency_fte_lineage.png",
+      "notes": "Initial generation with all objects and relationships"
+    },
+    {
+      "version": 2,
+      "filename": "billable_efficiency_fte_lineage_v2.png",
+      "notes": "Improved layout with clear separation of clean vs problematic paths, color-coded clusters"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "diagram_title": "Data Lineage: BillableEfficiency FTE Pipeline (Clean Layout)",
+  "target_object": "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_AverageFTE_Monthly_RankDetailAggregation",
+  "generation_timestamp": "2025-10-24T06:11:00Z",
+  "configuration": {
+    "direction": "LR",
+    "output_filename": "billable_efficiency_fte_lineage_v3_clean",
+    "output_format": "png",
+    "highlight_issues": true,
+    "group_by_schema": true,
+    "show_layer_clusters": false,
+    "show_object_type_clusters": false,
+    "show_object_names_in_nodes": true
+  },
+  "schema_colors": {
+    "DBO": "#EA4335",
+    "CONSUMPTION_ClinOpsFinance": "#4285F4",
+    "CONSUMPTION_POWERBI": "#34A853",
+    "CONSUMPTION_PRIMA": "#FBBC04"
+  },
+  "object_inventory": {
+    "total_objects": 26,
+    "tables": 17,
+    "views": 1,
+    "stored_procedures": 4,
+    "by_schema": {
+      "DBO": 1,
+      "CONSUMPTION_ClinOpsFinance": 21,
+      "CONSUMPTION_POWERBI": 1,
+      "CONSUMPTION_PRIMA": 1
+    }
+  },
+  "relationships": {
+    "total_edges": 27,
+    "problematic_flows": 2,
+    "problematic_edges": [
+      "CONSUMPTION_ClinOpsFinance.vFull_Departmental_Map_ActivePrima -> CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations",
+      "CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations -> CONSUMPTION_ClinOpsFinance.EmployeeContractFTE_Monthly"
+    ]
+  },
+  "styling_requirements_met": {
+    "no_blue_object_type_boxes": true,
+    "no_outer_layer_boxes": true,
+    "only_schema_clusters": true,
+    "object_names_inside_shapes": true,
+    "objects_directly_in_schemas": true
+  }
+}
