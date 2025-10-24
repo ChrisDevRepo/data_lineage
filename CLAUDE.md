@@ -8,10 +8,24 @@ This repository contains SQL scripts for an Azure Synapse Analytics data warehou
 
 ## Repository Structure
 
-All database objects are located in `Synapse_Data_Warehouse/` with three main directories:
-- `Stored Procedures/` - ETL and data processing procedures
-- `Tables/` - Table definitions
-- `Views/` - View definitions
+```
+ws-psidwh/
+├── Synapse_Data_Warehouse/       # Azure Synapse SQL objects
+│   ├── Stored Procedures/        # ETL and data processing procedures
+│   ├── Tables/                   # Table definitions
+│   └── Views/                    # View definitions
+│
+├── scripts/                      # Lineage analysis scripts
+│   └── autonomous_lineage.py     # Main autonomous lineage engine
+│
+├── ai_analyzer/                  # AI-assisted SQL analysis modules
+├── parsers/                      # SQL parsing modules
+├── validators/                   # Dependency validation modules
+├── output/                       # Output formatting modules (internal)
+├── lineage_output/              # Generated lineage results (JSON files)
+├── docs/                        # Documentation
+└── CLAUDE.md                    # This file
+```
 
 ## Schema Architecture
 
@@ -144,29 +158,36 @@ This repository includes autonomous data lineage tools for reverse-engineering S
 
 ### Autonomous Lineage Engine
 
-**Location**: `autonomous_lineage.py`
+**Location**: `scripts/main.py`
 
 **Purpose**: Automatically generates complete data lineage from any database object (table, view, or stored procedure) by analyzing SQL code.
 
 **Usage**:
 ```bash
-python3 autonomous_lineage.py <object_name>
+# From repository root
+python3 scripts/main.py <object_name>
 ```
 
 **Examples**:
 ```bash
 # Analyze a table
-python3 autonomous_lineage.py CadenceBudgetData
+python3 scripts/main.py CadenceBudgetData
 
 # Analyze a stored procedure
-python3 autonomous_lineage.py spLoadEmployeeContractUtilization_Aggregations
+python3 scripts/main.py spLoadEmployeeContractUtilization_Aggregations
 
 # With full schema qualification
-python3 autonomous_lineage.py CONSUMPTION_ClinOpsFinance.CadenceBudgetData
+python3 scripts/main.py CONSUMPTION_ClinOpsFinance.CadenceBudgetData
 ```
 
-**Output Files**:
-- `{object}_lineage.json` - Complete lineage in strict JSON format (see JSON_FORMAT_SPECIFICATION.md)
+**Testing**:
+```bash
+# Run unit tests to validate lineage structure
+python3 tests/test_bidirectional_graph.py
+```
+
+**Output Files** (saved to `lineage_output/` folder):
+- `{object}_lineage.json` - Complete lineage in strict JSON format (see docs/JSON_FORMAT_SPECIFICATION.md)
 - `{object}_confidence.json` - Analysis quality report with confidence scores
 
 **Key Features**:
@@ -191,7 +212,7 @@ Each object in the lineage has:
 }
 ```
 
-**Lineage Rules**:
+**Lineage Rules (Bidirectional Graph)**:
 
 **Stored Procedures**:
 - `inputs`: Tables/views it READS from (FROM, JOIN clauses)
@@ -199,14 +220,16 @@ Each object in the lineage has:
 
 **Tables**:
 - `inputs`: Stored procedures that WRITE to it
-- `outputs`: Always empty `[]`
+- `outputs`: Stored procedures/views that READ from it ✅ **(NEW: Creates bidirectional graph)**
 
 **Views**:
 - `inputs`: Tables/views it READS from
-- `outputs`: Always empty `[]`
+- `outputs`: Stored procedures/views that READ from it ✅ **(NEW: Creates bidirectional graph)**
 
 **Circular Dependencies**:
-A stored procedure can appear in both `inputs` and `outputs` of a table when it both creates and reads from that table within the same execution.
+A stored procedure can appear in both `inputs` and `outputs` of a table when it both reads from and writes to that table within the same execution.
+
+**Graph Visualization Ready**: The bidirectional structure allows direct import into D3.js, Graphviz, Neo4j, Cytoscape, and other graph visualization tools.
 
 **Complete Specification**: See `JSON_FORMAT_SPECIFICATION.md` for detailed format documentation.
 

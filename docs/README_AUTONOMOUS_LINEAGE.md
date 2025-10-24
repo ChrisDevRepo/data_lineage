@@ -21,7 +21,7 @@ The Autonomous Data Lineage Engine is a fully automated system for reverse engin
 ```
 User Input (Table/View/Procedure Name)
     ↓
-[Main Orchestrator] - autonomous_lineage.py
+[Main Orchestrator] - scripts/main.py
     ↓
     ├─→ [Enhanced SQL Parser] - Regex-based parsing with confidence scoring
     ├─→ [Dependency Extractor] - Extracts all SQL dependency types
@@ -46,23 +46,23 @@ No installation required. All components are pure Python 3 with no external depe
 ### Basic Usage
 
 ```bash
-python3 autonomous_lineage.py <object_name>
+python3 scripts/main.py <object_name>
 ```
 
 ### Examples
 
 ```bash
 # Analyze a table
-python3 autonomous_lineage.py CadenceBudgetData
+python3 scripts/main.py CadenceBudgetData
 
 # Analyze with full schema qualification
-python3 autonomous_lineage.py CONSUMPTION_ClinOpsFinance.CadenceBudgetData
+python3 scripts/main.py CONSUMPTION_ClinOpsFinance.CadenceBudgetData
 
 # Analyze a stored procedure
-python3 autonomous_lineage.py spLoadEmployeeContractUtilization_Aggregations
+python3 scripts/main.py spLoadEmployeeContractUtilization_Aggregations
 
 # Specify custom Synapse directory
-python3 autonomous_lineage.py CadenceBudgetData --synapse-dir /path/to/Synapse_Data_Warehouse
+python3 scripts/main.py CadenceBudgetData --synapse-dir /path/to/Synapse_Data_Warehouse
 ```
 
 ## Output Format
@@ -246,7 +246,7 @@ $ python reverse_engineer_lineage.py CadenceBudgetData
 # No validation
 ```
 
-### New Approach (`autonomous_lineage.py`)
+### New Approach (`scripts/main.py`)
 
 ✅ Fully autonomous (no manual steps)
 ✅ Hybrid regex + AI parsing
@@ -257,7 +257,7 @@ $ python reverse_engineer_lineage.py CadenceBudgetData
 
 **Example Run:**
 ```bash
-$ python autonomous_lineage.py CadenceBudgetData
+$ python scripts/main.py CadenceBudgetData
 🔍 Building lineage...
   Analyzing: 72 objects
 🔍 Refining lineage...
@@ -276,7 +276,7 @@ Outputs:
 
 **Command:**
 ```bash
-python3 autonomous_lineage.py CadenceBudgetData
+python3 scripts/main.py CadenceBudgetData
 ```
 
 **Results:**
@@ -298,7 +298,7 @@ python3 autonomous_lineage.py CadenceBudgetData
 
 **Command:**
 ```bash
-python3 autonomous_lineage.py CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations
+python3 scripts/main.py CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Aggregations
 ```
 
 **Results:**

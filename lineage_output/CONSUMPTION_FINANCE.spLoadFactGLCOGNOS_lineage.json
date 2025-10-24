@@ -1,0 +1,2708 @@
+[
+  {
+    "id": "node_0",
+    "name": "spLoadFactGLCOGNOS",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_1",
+      "node_10",
+      "node_11",
+      "node_2",
+      "node_3",
+      "node_4",
+      "node_5",
+      "node_6",
+      "node_7",
+      "node_8",
+      "node_9"
+    ],
+    "outputs": [
+      "node_1"
+    ]
+  },
+  {
+    "id": "node_1",
+    "name": "FactGLCognos",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_0"
+    ],
+    "outputs": [
+      "node_0"
+    ]
+  },
+  {
+    "id": "node_2",
+    "name": "DimAccount",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_47"
+    ],
+    "outputs": [
+      "node_0",
+      "node_47"
+    ]
+  },
+  {
+    "id": "node_3",
+    "name": "DimCompany",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_13"
+    ],
+    "outputs": [
+      "node_0",
+      "node_13",
+      "node_35",
+      "node_63"
+    ]
+  },
+  {
+    "id": "node_4",
+    "name": "DimDepartment",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_68"
+    ],
+    "outputs": [
+      "node_0",
+      "node_63",
+      "node_68"
+    ]
+  },
+  {
+    "id": "node_5",
+    "name": "DimPosition",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_81"
+    ],
+    "outputs": [
+      "node_0",
+      "node_81"
+    ]
+  },
+  {
+    "id": "node_6",
+    "name": "DimMonthFinance",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_0",
+      "node_63"
+    ]
+  },
+  {
+    "id": "node_7",
+    "name": "DimConsType",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_14"
+    ],
+    "outputs": [
+      "node_0",
+      "node_14"
+    ]
+  },
+  {
+    "id": "node_8",
+    "name": "DimActuality",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_41"
+    ],
+    "outputs": [
+      "node_0",
+      "node_41"
+    ]
+  },
+  {
+    "id": "node_9",
+    "name": "DimCurrency",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_24"
+    ],
+    "outputs": [
+      "node_0",
+      "node_24",
+      "node_63"
+    ]
+  },
+  {
+    "id": "node_10",
+    "name": "DimAccountDetailsCognos",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_25"
+    ],
+    "outputs": [
+      "node_0",
+      "node_25"
+    ]
+  },
+  {
+    "id": "node_11",
+    "name": "GLCognosData",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_39"
+    ],
+    "outputs": [
+      "node_0",
+      "node_39"
+    ]
+  },
+  {
+    "id": "node_12",
+    "name": "spLoadSAPSalesDetailsHistory",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_82",
+      "node_83",
+      "node_84"
+    ],
+    "outputs": [
+      "node_82",
+      "node_84"
+    ]
+  },
+  {
+    "id": "node_13",
+    "name": "spLoadDimCompany",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_3",
+      "node_85",
+      "node_86"
+    ],
+    "outputs": [
+      "node_3"
+    ]
+  },
+  {
+    "id": "node_14",
+    "name": "spLoadDimConsType",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_7",
+      "node_87"
+    ],
+    "outputs": [
+      "node_7"
+    ]
+  },
+  {
+    "id": "node_15",
+    "name": "spLoadFactSAPSalesSponsorRiskRetainerQuarterly",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_88",
+      "node_89",
+      "node_90",
+      "node_91"
+    ],
+    "outputs": [
+      "node_88"
+    ]
+  },
+  {
+    "id": "node_16",
+    "name": "spLoadSAPSalesSummary",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_92",
+      "node_93",
+      "node_94"
+    ],
+    "outputs": [
+      "node_92"
+    ]
+  },
+  {
+    "id": "node_17",
+    "name": "spLoadFactSAPSalesSponsorRiskInterestQuarterly",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_90",
+      "node_91",
+      "node_95",
+      "node_96"
+    ],
+    "outputs": [
+      "node_96"
+    ]
+  },
+  {
+    "id": "node_18",
+    "name": "spLoadSAPSalesSummaryMetrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_100",
+      "node_92",
+      "node_97",
+      "node_98",
+      "node_99"
+    ],
+    "outputs": [
+      "node_97"
+    ]
+  },
+  {
+    "id": "node_19",
+    "name": "spLoadEmployeeContractUtilization_Post",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_101",
+      "node_102",
+      "node_103",
+      "node_104",
+      "node_105"
+    ],
+    "outputs": [
+      "node_105"
+    ]
+  },
+  {
+    "id": "node_20",
+    "name": "spLoadMonthlyTaskTaskCountry",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_106",
+      "node_107",
+      "node_108"
+    ],
+    "outputs": [
+      "node_107",
+      "node_108"
+    ]
+  },
+  {
+    "id": "node_21",
+    "name": "spLoadCadenceOutOfScopeRecords",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_109",
+      "node_110"
+    ],
+    "outputs": [
+      "node_110"
+    ]
+  },
+  {
+    "id": "node_22",
+    "name": "spLoadCadenceBudget_LaborCost_PrimaUtilization_Junc",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_111",
+      "node_112",
+      "node_113",
+      "node_114",
+      "node_90"
+    ],
+    "outputs": [
+      "node_114"
+    ]
+  },
+  {
+    "id": "node_23",
+    "name": "spLoadFactSAPSalesRetainerDetails",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_115",
+      "node_116",
+      "node_117",
+      "node_118",
+      "node_89",
+      "node_90"
+    ],
+    "outputs": [
+      "node_89"
+    ]
+  },
+  {
+    "id": "node_24",
+    "name": "spLoadDimCurrency",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_119",
+      "node_9"
+    ],
+    "outputs": [
+      "node_9"
+    ]
+  },
+  {
+    "id": "node_25",
+    "name": "spLoadDimAccountDetailsCognos",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_10",
+      "node_120",
+      "node_121"
+    ],
+    "outputs": [
+      "node_10",
+      "node_121"
+    ]
+  },
+  {
+    "id": "node_26",
+    "name": "spLoadSAPSalesDetailsMetrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_122",
+      "node_123",
+      "node_82",
+      "node_97",
+      "node_99"
+    ],
+    "outputs": [
+      "node_122"
+    ]
+  },
+  {
+    "id": "node_27",
+    "name": "spLoadHrContractAttendance",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_124",
+      "node_125",
+      "node_126",
+      "node_127",
+      "node_128",
+      "node_129",
+      "node_130",
+      "node_131",
+      "node_132",
+      "node_133",
+      "node_90"
+    ],
+    "outputs": [
+      "node_133"
+    ]
+  },
+  {
+    "id": "node_28",
+    "name": "spLoadSAPSalesSummaryHistory",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_134",
+      "node_98"
+    ],
+    "outputs": [
+      "node_98"
+    ]
+  },
+  {
+    "id": "node_29",
+    "name": "spLoadCountryReallocateTS",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_135",
+      "node_136"
+    ],
+    "outputs": [
+      "node_136"
+    ]
+  },
+  {
+    "id": "node_30",
+    "name": "spLoadFactLaborCostForEarnedValue_1",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_113",
+      "node_137",
+      "node_138"
+    ],
+    "outputs": [
+      "node_113"
+    ]
+  },
+  {
+    "id": "node_31",
+    "name": "spLoadMonthlyAverageCurrencyExchangeRate",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_139",
+      "node_140"
+    ],
+    "outputs": [
+      "node_139"
+    ]
+  },
+  {
+    "id": "node_32",
+    "name": "spLoadArAnalyticsMetrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_116",
+      "node_117",
+      "node_118",
+      "node_141",
+      "node_142",
+      "node_143",
+      "node_144",
+      "node_90",
+      "node_91"
+    ],
+    "outputs": [
+      "node_144"
+    ]
+  },
+  {
+    "id": "node_33",
+    "name": "spLoadDateRangeDetails",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_145",
+      "node_146",
+      "node_147",
+      "node_148"
+    ],
+    "outputs": [
+      "node_147",
+      "node_148"
+    ]
+  },
+  {
+    "id": "node_34",
+    "name": "spLoadFactLaborCostForEarnedValue_2",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_113",
+      "node_139"
+    ],
+    "outputs": [
+      "node_113"
+    ]
+  },
+  {
+    "id": "node_35",
+    "name": "spLoadFactAgingSAP",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_149",
+      "node_150",
+      "node_151",
+      "node_3"
+    ],
+    "outputs": [
+      "node_149"
+    ]
+  },
+  {
+    "id": "node_36",
+    "name": "spLoadDimCustomersProjects",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_116",
+      "node_117",
+      "node_118",
+      "node_97"
+    ],
+    "outputs": [
+      "node_118"
+    ]
+  },
+  {
+    "id": "node_37",
+    "name": "spLoadFinalCountryReallocateTS_NoCountry",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_152",
+      "node_153"
+    ],
+    "outputs": [
+      "node_153"
+    ]
+  },
+  {
+    "id": "node_38",
+    "name": "spLoadDimProjects",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_117",
+      "node_97"
+    ],
+    "outputs": [
+      "node_117"
+    ]
+  },
+  {
+    "id": "node_39",
+    "name": "spLoadGLCognosData",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_11",
+      "node_154",
+      "node_155"
+    ],
+    "outputs": [
+      "node_11",
+      "node_155"
+    ]
+  },
+  {
+    "id": "node_40",
+    "name": "spLoadTaskAndFunctionData",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_135",
+      "node_156",
+      "node_157"
+    ],
+    "outputs": [
+      "node_135"
+    ]
+  },
+  {
+    "id": "node_41",
+    "name": "spLoadDimActuality",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_158",
+      "node_8"
+    ],
+    "outputs": [
+      "node_8"
+    ]
+  },
+  {
+    "id": "node_42",
+    "name": "spLoadQuarterRanges",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_143",
+      "node_90",
+      "node_91"
+    ],
+    "outputs": [
+      "node_91"
+    ]
+  },
+  {
+    "id": "node_43",
+    "name": "spLoadReconciliation_Case4.5",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_135",
+      "node_159"
+    ],
+    "outputs": [
+      "node_159"
+    ]
+  },
+  {
+    "id": "node_44",
+    "name": "spLoadEmployeeContractUtilization",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_101",
+      "node_133",
+      "node_160"
+    ],
+    "outputs": [
+      "node_101"
+    ]
+  },
+  {
+    "id": "node_45",
+    "name": "spLoadCadenceExtractTaskCountry",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_109",
+      "node_157"
+    ],
+    "outputs": [
+      "node_157"
+    ]
+  },
+  {
+    "id": "node_46",
+    "name": "spLoadSAPSalesDetails",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_123",
+      "node_161",
+      "node_162"
+    ],
+    "outputs": [
+      "node_123"
+    ]
+  },
+  {
+    "id": "node_47",
+    "name": "spLoadDimAccount",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_163",
+      "node_2"
+    ],
+    "outputs": [
+      "node_2"
+    ]
+  },
+  {
+    "id": "node_48",
+    "name": "spLoadArAnalyticsDetailMetrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_122",
+      "node_143",
+      "node_144",
+      "node_164",
+      "node_90"
+    ],
+    "outputs": [
+      "node_164"
+    ]
+  },
+  {
+    "id": "node_49",
+    "name": "spLoadArAnalyticsMetricsQuarterlyGlobal",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_122",
+      "node_141",
+      "node_142",
+      "node_143",
+      "node_165",
+      "node_166",
+      "node_90",
+      "node_91"
+    ],
+    "outputs": [
+      "node_165"
+    ]
+  },
+  {
+    "id": "node_50",
+    "name": "spLoadFinalCountryReallocateTS_Case1",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_136",
+      "node_152",
+      "node_153"
+    ],
+    "outputs": [
+      "node_153"
+    ]
+  },
+  {
+    "id": "node_51",
+    "name": "spLoadFactSAPSalesInterestSummary",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_116",
+      "node_167",
+      "node_90",
+      "node_95"
+    ],
+    "outputs": [
+      "node_95"
+    ]
+  },
+  {
+    "id": "node_52",
+    "name": "spLoadFactLaborCostForEarnedValue",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_137",
+      "node_168",
+      "node_169",
+      "node_170"
+    ],
+    "outputs": [
+      "node_168"
+    ]
+  },
+  {
+    "id": "node_53",
+    "name": "spLoadCadenceCase0Data",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_106",
+      "node_153",
+      "node_171"
+    ],
+    "outputs": [
+      "node_106",
+      "node_171"
+    ]
+  },
+  {
+    "id": "node_54",
+    "name": "spLoadCadenceBudgetData",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_108",
+      "node_109",
+      "node_110",
+      "node_138",
+      "node_139",
+      "node_172",
+      "node_173",
+      "node_174",
+      "node_175",
+      "node_176"
+    ],
+    "outputs": [
+      "node_174",
+      "node_176"
+    ]
+  },
+  {
+    "id": "node_55",
+    "name": "spLoadFinalCountryReallocateTS_Case2",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_136",
+      "node_152",
+      "node_153"
+    ],
+    "outputs": [
+      "node_153"
+    ]
+  },
+  {
+    "id": "node_56",
+    "name": "spLoadFactAggregatedLaborCost",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_113",
+      "node_177"
+    ],
+    "outputs": [
+      "node_177"
+    ]
+  },
+  {
+    "id": "node_57",
+    "name": "spLoadReconciliation_Case5-6",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_159",
+      "node_173",
+      "node_178"
+    ],
+    "outputs": [
+      "node_173",
+      "node_178"
+    ]
+  },
+  {
+    "id": "node_58",
+    "name": "spLoadFinalCountryReallocateTS_Case4",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_136",
+      "node_152",
+      "node_153"
+    ],
+    "outputs": [
+      "node_153"
+    ]
+  },
+  {
+    "id": "node_59",
+    "name": "spLoadCadenceBudget_LaborCost_PrimaContractUtilization_Junc",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_101",
+      "node_102",
+      "node_113",
+      "node_176",
+      "node_179",
+      "node_90"
+    ],
+    "outputs": [
+      "node_102"
+    ]
+  },
+  {
+    "id": "node_60",
+    "name": "spLoadEnrollmentPlanSitesHistory",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_180",
+      "node_181"
+    ],
+    "outputs": [
+      "node_180"
+    ]
+  },
+  {
+    "id": "node_61",
+    "name": "spLoadDimCompanyKoncern",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_182",
+      "node_85"
+    ],
+    "outputs": [
+      "node_182"
+    ]
+  },
+  {
+    "id": "node_62",
+    "name": "spLoadSAPSalesInterestSummaryMetrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_100",
+      "node_167",
+      "node_92",
+      "node_97"
+    ],
+    "outputs": [
+      "node_167"
+    ]
+  },
+  {
+    "id": "node_63",
+    "name": "spLoadFactGLSAP",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_183",
+      "node_184",
+      "node_185",
+      "node_3",
+      "node_4",
+      "node_6",
+      "node_9"
+    ],
+    "outputs": [
+      "node_183"
+    ]
+  },
+  {
+    "id": "node_64",
+    "name": "spLoadFinalCountryReallocateTS_Case3",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_136",
+      "node_153"
+    ],
+    "outputs": [
+      "node_153"
+    ]
+  },
+  {
+    "id": "node_65",
+    "name": "spGetEventDates",
+    "schema": "CONSUMPTION_PRIMAREPORTING_PARALLEL",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_186",
+      "node_187",
+      "node_188",
+      "node_189",
+      "node_190"
+    ],
+    "outputs": []
+  },
+  {
+    "id": "node_66",
+    "name": "spLoadSAPSalesRetainerDetailsMetrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_115",
+      "node_122",
+      "node_142"
+    ],
+    "outputs": [
+      "node_115"
+    ]
+  },
+  {
+    "id": "node_67",
+    "name": "spLoadCadenceBudgetData_Post",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_102",
+      "node_176",
+      "node_191"
+    ],
+    "outputs": [
+      "node_191"
+    ]
+  },
+  {
+    "id": "node_68",
+    "name": "spLoadDimDepartment",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_192",
+      "node_193",
+      "node_4"
+    ],
+    "outputs": [
+      "node_193",
+      "node_4"
+    ]
+  },
+  {
+    "id": "node_69",
+    "name": "spLoadDimCustomers",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_116",
+      "node_122",
+      "node_97"
+    ],
+    "outputs": [
+      "node_116"
+    ]
+  },
+  {
+    "id": "node_70",
+    "name": "spLoadFact_SAP_Sales_Details",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_116",
+      "node_117",
+      "node_118",
+      "node_122",
+      "node_141",
+      "node_90"
+    ],
+    "outputs": [
+      "node_141"
+    ]
+  },
+  {
+    "id": "node_71",
+    "name": "spLoadFactSAPSalesSponsorRiskSnapshot",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_118",
+      "node_122",
+      "node_141",
+      "node_142",
+      "node_194",
+      "node_90"
+    ],
+    "outputs": [
+      "node_194"
+    ]
+  },
+  {
+    "id": "node_72",
+    "name": "spLoadCadenceExtractFunctionLocation",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_109",
+      "node_156",
+      "node_195"
+    ],
+    "outputs": [
+      "node_156"
+    ]
+  },
+  {
+    "id": "node_73",
+    "name": "spLoadFactLaborCostForEarnedValue_Post",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_102",
+      "node_113",
+      "node_179",
+      "node_196",
+      "node_90"
+    ],
+    "outputs": [
+      "node_196"
+    ]
+  },
+  {
+    "id": "node_74",
+    "name": "spLoadSiteEvents_DurationByDayPlanned",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_197",
+      "node_198"
+    ],
+    "outputs": [
+      "node_197"
+    ]
+  },
+  {
+    "id": "node_75",
+    "name": "spLoadSiteEvents_DurationByDay",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_198",
+      "node_199",
+      "node_200"
+    ],
+    "outputs": [
+      "node_199"
+    ]
+  },
+  {
+    "id": "node_76",
+    "name": "spLoadDateRangeMonthClose_Config",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_179"
+    ],
+    "outputs": [
+      "node_179"
+    ]
+  },
+  {
+    "id": "node_77",
+    "name": "spLoadMonthlyTaskTaskCountryGlobalNoCountry",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_106",
+      "node_107",
+      "node_172"
+    ],
+    "outputs": [
+      "node_107",
+      "node_172"
+    ]
+  },
+  {
+    "id": "node_78",
+    "name": "spLoadDimAccountDetailsSAP",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_184",
+      "node_201",
+      "node_202"
+    ],
+    "outputs": [
+      "node_184",
+      "node_202"
+    ]
+  },
+  {
+    "id": "node_79",
+    "name": "spLoadFact_SAP_Sales_Summary",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_116",
+      "node_117",
+      "node_118",
+      "node_143",
+      "node_90",
+      "node_97"
+    ],
+    "outputs": [
+      "node_143"
+    ]
+  },
+  {
+    "id": "node_80",
+    "name": "spLoadNoCountryReallocateTS",
+    "schema": "STAGING_CADENCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_135",
+      "node_152"
+    ],
+    "outputs": [
+      "node_152"
+    ]
+  },
+  {
+    "id": "node_81",
+    "name": "spLoadDimPosition",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "StoredProcedure",
+    "inputs": [
+      "node_203",
+      "node_204",
+      "node_5"
+    ],
+    "outputs": [
+      "node_204",
+      "node_5"
+    ]
+  },
+  {
+    "id": "node_82",
+    "name": "SAP_Sales_Details_History",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_12"
+    ],
+    "outputs": [
+      "node_12",
+      "node_26"
+    ]
+  },
+  {
+    "id": "node_83",
+    "name": "SAP_Sales_Details_History",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_12"
+    ]
+  },
+  {
+    "id": "node_84",
+    "name": "SAP_Sales_details_History",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_12"
+    ],
+    "outputs": [
+      "node_12"
+    ]
+  },
+  {
+    "id": "node_85",
+    "name": "t_Company_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_13",
+      "node_61"
+    ]
+  },
+  {
+    "id": "node_86",
+    "name": "DimCountry",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_13"
+    ]
+  },
+  {
+    "id": "node_87",
+    "name": "t_ConsType_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_14"
+    ]
+  },
+  {
+    "id": "node_88",
+    "name": "FactSAPSalesSponsorRiskRetainerQuarterly",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_15"
+    ],
+    "outputs": [
+      "node_15"
+    ]
+  },
+  {
+    "id": "node_89",
+    "name": "FactSAPSalesRetainerDetails",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_23"
+    ],
+    "outputs": [
+      "node_15",
+      "node_23"
+    ]
+  },
+  {
+    "id": "node_90",
+    "name": "DimDate",
+    "schema": "dbo",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_15",
+      "node_17",
+      "node_22",
+      "node_23",
+      "node_27",
+      "node_32",
+      "node_42",
+      "node_48",
+      "node_49",
+      "node_51",
+      "node_59",
+      "node_70",
+      "node_71",
+      "node_73",
+      "node_79"
+    ]
+  },
+  {
+    "id": "node_91",
+    "name": "QuarterRanges",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_42"
+    ],
+    "outputs": [
+      "node_15",
+      "node_17",
+      "node_32",
+      "node_42",
+      "node_49"
+    ]
+  },
+  {
+    "id": "node_92",
+    "name": "SAP_Sales_Summary",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_16"
+    ],
+    "outputs": [
+      "node_16",
+      "node_18",
+      "node_62"
+    ]
+  },
+  {
+    "id": "node_93",
+    "name": "SAP_Sales_Summary",
+    "schema": "STAGING_FINANCE_SAP",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_16"
+    ]
+  },
+  {
+    "id": "node_94",
+    "name": "SAP_Sales_Summary",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_16"
+    ]
+  },
+  {
+    "id": "node_95",
+    "name": "FactSAPSalesInterestSummary",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_51"
+    ],
+    "outputs": [
+      "node_17",
+      "node_51"
+    ]
+  },
+  {
+    "id": "node_96",
+    "name": "FactSAPSalesSponsorRiskInterestQuarterly",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_17"
+    ],
+    "outputs": [
+      "node_17"
+    ]
+  },
+  {
+    "id": "node_97",
+    "name": "SAP_Sales_Summary_Metrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_18"
+    ],
+    "outputs": [
+      "node_18",
+      "node_26",
+      "node_36",
+      "node_38",
+      "node_62",
+      "node_69",
+      "node_79"
+    ]
+  },
+  {
+    "id": "node_98",
+    "name": "SAP_Sales_Summary_History",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_28"
+    ],
+    "outputs": [
+      "node_18",
+      "node_28"
+    ]
+  },
+  {
+    "id": "node_99",
+    "name": "SAP_Tcurr",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_18",
+      "node_26"
+    ]
+  },
+  {
+    "id": "node_100",
+    "name": "udfGetDataFilterColumnValue",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_18",
+      "node_62"
+    ]
+  },
+  {
+    "id": "node_101",
+    "name": "EmployeeContractUtilization",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_44"
+    ],
+    "outputs": [
+      "node_19",
+      "node_44",
+      "node_59"
+    ]
+  },
+  {
+    "id": "node_102",
+    "name": "CadenceBudget_LaborCost_PrimaContractUtilization_Junc",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_59"
+    ],
+    "outputs": [
+      "node_19",
+      "node_59",
+      "node_67",
+      "node_73"
+    ]
+  },
+  {
+    "id": "node_103",
+    "name": "vFull_Departmental_Map_ActivePrima",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "View",
+    "inputs": [
+      "node_170",
+      "node_205"
+    ],
+    "outputs": [
+      "node_19"
+    ]
+  },
+  {
+    "id": "node_104",
+    "name": "dimDate",
+    "schema": "dbo",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_19"
+    ]
+  },
+  {
+    "id": "node_105",
+    "name": "EmployeeContractUtilization_Post",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_19"
+    ],
+    "outputs": [
+      "node_19"
+    ]
+  },
+  {
+    "id": "node_106",
+    "name": "CadenceCase0Data",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_53"
+    ],
+    "outputs": [
+      "node_20",
+      "node_53",
+      "node_77"
+    ]
+  },
+  {
+    "id": "node_107",
+    "name": "AggregatedCountryTotals",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_20",
+      "node_77"
+    ],
+    "outputs": [
+      "node_20",
+      "node_77"
+    ]
+  },
+  {
+    "id": "node_108",
+    "name": "MonthlyTaskTaskCountry",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_20"
+    ],
+    "outputs": [
+      "node_20",
+      "node_54"
+    ]
+  },
+  {
+    "id": "node_109",
+    "name": "CadenceExtract",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_21",
+      "node_45",
+      "node_54",
+      "node_72"
+    ]
+  },
+  {
+    "id": "node_110",
+    "name": "CadenceOutOfScopeRecords",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_21"
+    ],
+    "outputs": [
+      "node_21",
+      "node_54"
+    ]
+  },
+  {
+    "id": "node_111",
+    "name": "CadenceBudgetData",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_22"
+    ]
+  },
+  {
+    "id": "node_112",
+    "name": "EmployeeUtilization",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_22"
+    ]
+  },
+  {
+    "id": "node_113",
+    "name": "FactLaborCostForEarnedValue",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "Table",
+    "inputs": [
+      "node_30",
+      "node_34"
+    ],
+    "outputs": [
+      "node_22",
+      "node_30",
+      "node_34",
+      "node_56",
+      "node_59",
+      "node_73"
+    ]
+  },
+  {
+    "id": "node_114",
+    "name": "CadenceBudget_LaborCost_PrimaUtilization_Junc",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_22"
+    ],
+    "outputs": [
+      "node_22"
+    ]
+  },
+  {
+    "id": "node_115",
+    "name": "SAP_Sales_Retainer_Details_Metrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_66"
+    ],
+    "outputs": [
+      "node_23",
+      "node_66"
+    ]
+  },
+  {
+    "id": "node_116",
+    "name": "DimCustomers",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_69"
+    ],
+    "outputs": [
+      "node_23",
+      "node_32",
+      "node_36",
+      "node_51",
+      "node_69",
+      "node_70",
+      "node_79"
+    ]
+  },
+  {
+    "id": "node_117",
+    "name": "DimProjects",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_38"
+    ],
+    "outputs": [
+      "node_23",
+      "node_32",
+      "node_36",
+      "node_38",
+      "node_70",
+      "node_79"
+    ]
+  },
+  {
+    "id": "node_118",
+    "name": "DimCustomersProjects",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_36"
+    ],
+    "outputs": [
+      "node_23",
+      "node_32",
+      "node_36",
+      "node_70",
+      "node_71",
+      "node_79"
+    ]
+  },
+  {
+    "id": "node_119",
+    "name": "t_Currency_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_24"
+    ]
+  },
+  {
+    "id": "node_120",
+    "name": "COGNOS_Template_SubAccounts_Raw",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_25"
+    ]
+  },
+  {
+    "id": "node_121",
+    "name": "COGNOS_Template_SubAccounts",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [
+      "node_25"
+    ],
+    "outputs": [
+      "node_25"
+    ]
+  },
+  {
+    "id": "node_122",
+    "name": "SAP_Sales_Details_Metrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_26"
+    ],
+    "outputs": [
+      "node_26",
+      "node_48",
+      "node_49",
+      "node_66",
+      "node_69",
+      "node_70",
+      "node_71"
+    ]
+  },
+  {
+    "id": "node_123",
+    "name": "SAP_Sales_Details",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_46"
+    ],
+    "outputs": [
+      "node_26",
+      "node_46"
+    ]
+  },
+  {
+    "id": "node_124",
+    "name": "HrEmployeeContractHistory",
+    "schema": "CONSUMPTION_PrimaReporting",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_27"
+    ]
+  },
+  {
+    "id": "node_125",
+    "name": "HrLeaveTracker",
+    "schema": "CONSUMPTION_Prima",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_27"
+    ]
+  },
+  {
+    "id": "node_126",
+    "name": "GlobalHolidays",
+    "schema": "CONSUMPTION_Prima",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_27"
+    ]
+  },
+  {
+    "id": "node_127",
+    "name": "GlobalCountries",
+    "schema": "CONSUMPTION_Prima",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_27"
+    ]
+  },
+  {
+    "id": "node_128",
+    "name": "HrMaternity",
+    "schema": "CONSUMPTION_Prima",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_27"
+    ]
+  },
+  {
+    "id": "node_129",
+    "name": "SiteEvents",
+    "schema": "CONSUMPTION_Prima",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_27"
+    ]
+  },
+  {
+    "id": "node_130",
+    "name": "Sites",
+    "schema": "CONSUMPTION_Prima",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_27"
+    ]
+  },
+  {
+    "id": "node_131",
+    "name": "Projects",
+    "schema": "CONSUMPTION_PrimaReporting",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_27"
+    ]
+  },
+  {
+    "id": "node_132",
+    "name": "HrEmployees",
+    "schema": "CONSUMPTION_Prima",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_27"
+    ]
+  },
+  {
+    "id": "node_133",
+    "name": "HrContractAttendance",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_27"
+    ],
+    "outputs": [
+      "node_27",
+      "node_44"
+    ]
+  },
+  {
+    "id": "node_134",
+    "name": "SAP_Sales_Summary_History",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_28"
+    ]
+  },
+  {
+    "id": "node_135",
+    "name": "TaskAndFunctionData",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_40"
+    ],
+    "outputs": [
+      "node_29",
+      "node_40",
+      "node_43",
+      "node_80"
+    ]
+  },
+  {
+    "id": "node_136",
+    "name": "CountryReallocateTS",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_29"
+    ],
+    "outputs": [
+      "node_29",
+      "node_50",
+      "node_55",
+      "node_58",
+      "node_64"
+    ]
+  },
+  {
+    "id": "node_137",
+    "name": "vFactLaborCost",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_30",
+      "node_52"
+    ]
+  },
+  {
+    "id": "node_138",
+    "name": "Full_Departmental_Map",
+    "schema": "dbo",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_30",
+      "node_54"
+    ]
+  },
+  {
+    "id": "node_139",
+    "name": "MonthlyAverageCurrencyExchangeRate",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [
+      "node_31"
+    ],
+    "outputs": [
+      "node_31",
+      "node_34",
+      "node_54"
+    ]
+  },
+  {
+    "id": "node_140",
+    "name": "GlobalCurrencyRates",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_31"
+    ]
+  },
+  {
+    "id": "node_141",
+    "name": "Fact_SAP_Sales_Details",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_70"
+    ],
+    "outputs": [
+      "node_32",
+      "node_49",
+      "node_70",
+      "node_71"
+    ]
+  },
+  {
+    "id": "node_142",
+    "name": "DataFilters",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_32",
+      "node_49",
+      "node_66",
+      "node_71"
+    ]
+  },
+  {
+    "id": "node_143",
+    "name": "Fact_SAP_Sales_Summary",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_79"
+    ],
+    "outputs": [
+      "node_32",
+      "node_42",
+      "node_48",
+      "node_49",
+      "node_79"
+    ]
+  },
+  {
+    "id": "node_144",
+    "name": "ArAnalyticsMetrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_32"
+    ],
+    "outputs": [
+      "node_32",
+      "node_48"
+    ]
+  },
+  {
+    "id": "node_145",
+    "name": "DateRanges_PM",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "View",
+    "inputs": [
+      "node_148"
+    ],
+    "outputs": [
+      "node_33"
+    ]
+  },
+  {
+    "id": "node_146",
+    "name": "RangeType",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_33"
+    ]
+  },
+  {
+    "id": "node_147",
+    "name": "Ranges",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_33"
+    ],
+    "outputs": [
+      "node_33"
+    ]
+  },
+  {
+    "id": "node_148",
+    "name": "DateRanges",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_33"
+    ],
+    "outputs": [
+      "node_145",
+      "node_33"
+    ]
+  },
+  {
+    "id": "node_149",
+    "name": "FactAgingSAP",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_35"
+    ],
+    "outputs": [
+      "node_35"
+    ]
+  },
+  {
+    "id": "node_150",
+    "name": "DimDateFinance",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_35"
+    ]
+  },
+  {
+    "id": "node_151",
+    "name": "ZFIV_DWH_AGING",
+    "schema": "STAGING_FINANCE_SAP",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_35"
+    ]
+  },
+  {
+    "id": "node_152",
+    "name": "NoCountryReallocateTS",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_80"
+    ],
+    "outputs": [
+      "node_37",
+      "node_50",
+      "node_55",
+      "node_58",
+      "node_80"
+    ]
+  },
+  {
+    "id": "node_153",
+    "name": "FinalCountryReallocateTS",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_37",
+      "node_50",
+      "node_55",
+      "node_58",
+      "node_64"
+    ],
+    "outputs": [
+      "node_37",
+      "node_50",
+      "node_53",
+      "node_55",
+      "node_58",
+      "node_64"
+    ]
+  },
+  {
+    "id": "node_154",
+    "name": "v_CCR2PowerBI_facts",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_39"
+    ]
+  },
+  {
+    "id": "node_155",
+    "name": "GLCognosData_HC100500",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [
+      "node_39"
+    ],
+    "outputs": [
+      "node_39"
+    ]
+  },
+  {
+    "id": "node_156",
+    "name": "CadenceExtractFunctionLocation",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_72"
+    ],
+    "outputs": [
+      "node_40",
+      "node_72"
+    ]
+  },
+  {
+    "id": "node_157",
+    "name": "CadenceExtractTaskCountry",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_45"
+    ],
+    "outputs": [
+      "node_40",
+      "node_45"
+    ]
+  },
+  {
+    "id": "node_158",
+    "name": "t_Actuality_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_41"
+    ]
+  },
+  {
+    "id": "node_159",
+    "name": "ReconciliationPopulation",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_43"
+    ],
+    "outputs": [
+      "node_43",
+      "node_57"
+    ]
+  },
+  {
+    "id": "node_160",
+    "name": "TsDurationForAllEmployees",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_44"
+    ]
+  },
+  {
+    "id": "node_161",
+    "name": "SAP_Sales_Details",
+    "schema": "STAGING_FINANCE_SAP",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_46"
+    ]
+  },
+  {
+    "id": "node_162",
+    "name": "SAP_Sales_Details",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_46"
+    ]
+  },
+  {
+    "id": "node_163",
+    "name": "t_Account_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_47"
+    ]
+  },
+  {
+    "id": "node_164",
+    "name": "ArAnalyticsDetailMetrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_48"
+    ],
+    "outputs": [
+      "node_48"
+    ]
+  },
+  {
+    "id": "node_165",
+    "name": "ArAnalyticsMetricsQuarterlyGlobal",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_49"
+    ],
+    "outputs": [
+      "node_49"
+    ]
+  },
+  {
+    "id": "node_166",
+    "name": "COGNOS_PowerBIFacts",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_49"
+    ]
+  },
+  {
+    "id": "node_167",
+    "name": "SAP_Sales_Interest_Summary_Metrics",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_62"
+    ],
+    "outputs": [
+      "node_51",
+      "node_62"
+    ]
+  },
+  {
+    "id": "node_168",
+    "name": "FactLaborCostForEarnedValue",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_52"
+    ],
+    "outputs": [
+      "node_52"
+    ]
+  },
+  {
+    "id": "node_169",
+    "name": "HrDepartmentToFinanceSalSysMap",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_52"
+    ]
+  },
+  {
+    "id": "node_170",
+    "name": "HrDepartments",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_103",
+      "node_52"
+    ]
+  },
+  {
+    "id": "node_171",
+    "name": "FinalCountryReallocateTSAggregatedData",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_53"
+    ],
+    "outputs": [
+      "node_53"
+    ]
+  },
+  {
+    "id": "node_172",
+    "name": "MonthlyTaskTaskCountryGlobalNoCountry",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_77"
+    ],
+    "outputs": [
+      "node_54",
+      "node_77"
+    ]
+  },
+  {
+    "id": "node_173",
+    "name": "ReconciliationEV",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_57"
+    ],
+    "outputs": [
+      "node_54",
+      "node_57"
+    ]
+  },
+  {
+    "id": "node_174",
+    "name": "DepartmenMapping",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_54"
+    ],
+    "outputs": [
+      "node_54"
+    ]
+  },
+  {
+    "id": "node_175",
+    "name": "GlobalCountries",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_54"
+    ]
+  },
+  {
+    "id": "node_176",
+    "name": "CadenceBudgetData",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_54"
+    ],
+    "outputs": [
+      "node_54",
+      "node_59",
+      "node_67"
+    ]
+  },
+  {
+    "id": "node_177",
+    "name": "FactAggregatedLaborCost",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "Table",
+    "inputs": [
+      "node_56"
+    ],
+    "outputs": [
+      "node_56"
+    ]
+  },
+  {
+    "id": "node_178",
+    "name": "ReconciliationCalc",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_57"
+    ],
+    "outputs": [
+      "node_57"
+    ]
+  },
+  {
+    "id": "node_179",
+    "name": "DateRangeMonthClose_Config",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_76"
+    ],
+    "outputs": [
+      "node_59",
+      "node_73",
+      "node_76"
+    ]
+  },
+  {
+    "id": "node_180",
+    "name": "EnrollmentPlanSitesHistory",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [
+      "node_60"
+    ],
+    "outputs": [
+      "node_60"
+    ]
+  },
+  {
+    "id": "node_181",
+    "name": "EnrollmentPlanSites",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_60"
+    ]
+  },
+  {
+    "id": "node_182",
+    "name": "DimCompanyKoncern",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_61"
+    ],
+    "outputs": [
+      "node_61"
+    ]
+  },
+  {
+    "id": "node_183",
+    "name": "FactGLSAP",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_63"
+    ],
+    "outputs": [
+      "node_63"
+    ]
+  },
+  {
+    "id": "node_184",
+    "name": "DimAccountDetailsSAP",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_78"
+    ],
+    "outputs": [
+      "node_63",
+      "node_78"
+    ]
+  },
+  {
+    "id": "node_185",
+    "name": "SAP_PowerBI_FACT",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_63"
+    ]
+  },
+  {
+    "id": "node_186",
+    "name": "Sites",
+    "schema": "CONSUMPTION_PRIMA_PARALLEL",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_65"
+    ]
+  },
+  {
+    "id": "node_187",
+    "name": "projectevents",
+    "schema": "CONSUMPTION_PRIMAREPORTING_PARALLEL",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_65"
+    ]
+  },
+  {
+    "id": "node_188",
+    "name": "SiteEvents",
+    "schema": "CONSUMPTION_PRIMAREPORTING_PARALLEL",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_65"
+    ]
+  },
+  {
+    "id": "node_189",
+    "name": "SubjectEvents",
+    "schema": "CONSUMPTION_PRIMAREPORTING_PARALLEL",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_65"
+    ]
+  },
+  {
+    "id": "node_190",
+    "name": "subjectevents",
+    "schema": "CONSUMPTION_PRIMAREPORTING_PARALLEL",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_65"
+    ]
+  },
+  {
+    "id": "node_191",
+    "name": "CadenceBudgetData_Post",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_67"
+    ],
+    "outputs": [
+      "node_67"
+    ]
+  },
+  {
+    "id": "node_192",
+    "name": "Departments_Raw",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_68"
+    ]
+  },
+  {
+    "id": "node_193",
+    "name": "Departments",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [
+      "node_68"
+    ],
+    "outputs": [
+      "node_68"
+    ]
+  },
+  {
+    "id": "node_194",
+    "name": "FactSAPSalesSponsorRiskSnapshot",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [
+      "node_71"
+    ],
+    "outputs": [
+      "node_71"
+    ]
+  },
+  {
+    "id": "node_195",
+    "name": "CadenceRates",
+    "schema": "STAGING_CADENCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_72"
+    ]
+  },
+  {
+    "id": "node_196",
+    "name": "FactLaborCostForEarnedValue_Post",
+    "schema": "CONSUMPTION_ClinOpsFinance",
+    "object_type": "Table",
+    "inputs": [
+      "node_73"
+    ],
+    "outputs": [
+      "node_73"
+    ]
+  },
+  {
+    "id": "node_197",
+    "name": "SiteEvents_DurationByDayPlanned",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [
+      "node_74"
+    ],
+    "outputs": [
+      "node_74"
+    ]
+  },
+  {
+    "id": "node_198",
+    "name": "SiteEvents",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_74",
+      "node_75"
+    ]
+  },
+  {
+    "id": "node_199",
+    "name": "SiteEvents_DurationByDay",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [
+      "node_75"
+    ],
+    "outputs": [
+      "node_75"
+    ]
+  },
+  {
+    "id": "node_200",
+    "name": "SiteEvents",
+    "schema": "consumption_PrimaReporting",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_75"
+    ]
+  },
+  {
+    "id": "node_201",
+    "name": "SAP_Template_IncomeStatement_Raw",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_78"
+    ]
+  },
+  {
+    "id": "node_202",
+    "name": "SAP_Template_IncomeStatement",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [
+      "node_78"
+    ],
+    "outputs": [
+      "node_78"
+    ]
+  },
+  {
+    "id": "node_203",
+    "name": "Positions_Raw",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_81"
+    ]
+  },
+  {
+    "id": "node_204",
+    "name": "Positions",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [
+      "node_81"
+    ],
+    "outputs": [
+      "node_81"
+    ]
+  },
+  {
+    "id": "node_205",
+    "name": "Full_Departmental_Map",
+    "schema": "DBO",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [
+      "node_103"
+    ]
+  }
+]

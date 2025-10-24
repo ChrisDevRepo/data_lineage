@@ -93,13 +93,15 @@ class JSONFormatter:
                     dep_schema = "dbo"
                     dep_name = dep_key
 
-                dep_node_id = self.get_or_create_node_id(dep_schema, dep_name)
-                input_ids.append(dep_node_id)
+                # Verify the dependency exists in lineage_graph
+                if dep_key in lineage_graph:
+                    dep_node_id = self.get_or_create_node_id(dep_schema, dep_name)
+                    input_ids.append(dep_node_id)
 
             # Remove duplicates and sort
             input_ids = sorted(list(set(input_ids)))
 
-            # Get output node IDs (for stored procedures)
+            # Get output node IDs
             output_ids = []
             for out_key in obj_info.get('outputs', []):
                 out_parts = out_key.split('.', 1)
@@ -109,8 +111,10 @@ class JSONFormatter:
                     out_schema = "dbo"
                     out_name = out_key
 
-                out_node_id = self.get_or_create_node_id(out_schema, out_name)
-                output_ids.append(out_node_id)
+                # Verify the output exists in lineage_graph
+                if out_key in lineage_graph:
+                    out_node_id = self.get_or_create_node_id(out_schema, out_name)
+                    output_ids.append(out_node_id)
 
             # Remove duplicates and sort
             output_ids = sorted(list(set(output_ids)))

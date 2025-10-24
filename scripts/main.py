@@ -21,6 +21,9 @@ from pathlib import Path
 from typing import Dict, List, Set
 from collections import defaultdict, deque
 
+# Add parent directory to path so imports work from scripts/ folder
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 # Import all components
 from parsers.sql_parser_enhanced import EnhancedSQLParser, ParsedSQLObject
 from parsers.dependency_extractor import DependencyExtractor
@@ -60,30 +63,29 @@ class AutonomousLineageEngine:
         self.to_process: deque = deque()
         self.processed: Set[str] = set()
 
-    def find_object_file(self, schema: str, object_name: str) -> tuple[Path, str]:
+    def find_object_file(self, schema: str, object_name: str) -> tuple[Path | None, str | None]:
         """
         Find the SQL file for an object.
+
+        Args:
+            schema: Schema name (e.g., 'CONSUMPTION_FINANCE')
+            object_name: Object name (e.g., 'FactGLCognos')
 
         Returns:
             Tuple of (file_path, object_type) or (None, None) if not found
         """
-        # Try tables
-        for ext in ['sql']:
-            table_file = self.tables_dir / f"{schema}.{object_name}.{ext}"
-            if table_file.exists():
-                return table_file, "Table"
+        # Define search locations with their corresponding object types
+        search_locations = [
+            (self.tables_dir, "Table"),
+            (self.views_dir, "View"),
+            (self.procedures_dir, "StoredProcedure")
+        ]
 
-        # Try views
-        for ext in ['sql']:
-            view_file = self.views_dir / f"{schema}.{object_name}.{ext}"
-            if view_file.exists():
-                return view_file, "View"
-
-        # Try stored procedures
-        for ext in ['sql']:
-            proc_file = self.procedures_dir / f"{schema}.{object_name}.{ext}"
-            if proc_file.exists():
-                return proc_file, "StoredProcedure"
+        # Search for the object file in each location
+        for directory, obj_type in search_locations:
+            file_path = directory / f"{schema}.{object_name}.sql"
+            if file_path.exists():
+                return file_path, obj_type
 
         return None, None
 
@@ -193,17 +195,19 @@ class AutonomousLineageEngine:
 
     def fix_table_dependencies(self):
         """
-        Fix table dependencies: Tables should list SPs that write to them, not what they read from.
+        Fix table inputs: Tables should list SPs that write to them.
 
         Current state after parsing:
         - SP: dependencies = tables it reads from ✓
         - Table: dependencies = [] (empty) ✗
 
         Correct state:
-        - SP: dependencies = tables/views it reads from ✓
-        - Table: dependencies = SPs that write to it ✓
+        - SP: dependencies (inputs) = tables/views it reads from ✓
+        - Table: dependencies (inputs) = SPs that write to it ✓
+
+        This creates the "inputs" direction of the bidirectional graph.
         """
-        print("\n🔧 Fixing table dependencies...")
+        print("\n🔧 Fixing table inputs (dependencies)...")
 
         # Build a reverse map: table -> list of SPs that write to it
         table_writers = defaultdict(list)
@@ -241,7 +245,7 @@ class AutonomousLineageEngine:
 
                         table_writers[target_key].append(obj_key)
 
-        # Now update table dependencies
+        # Now update table dependencies (inputs)
         tables_updated = 0
         for obj_key, obj_info in self.lineage_graph.items():
             if obj_info['object_type'] == 'Table':
@@ -250,10 +254,10 @@ class AutonomousLineageEngine:
                     obj_info['dependencies'] = table_writers[obj_key]
                     tables_updated += 1
                 else:
-                    # No writers found, keep empty
+                    # No writers found - this is a source table
                     obj_info['dependencies'] = []
 
-        # Also filter out logging objects from SP dependencies
+        # Filter out logging objects from SP/View dependencies
         for obj_key, obj_info in self.lineage_graph.items():
             if obj_info['object_type'] in ['StoredProcedure', 'View']:
                 # Filter out logging objects
@@ -287,8 +291,69 @@ class AutonomousLineageEngine:
         for key in logging_keys_to_remove:
             del self.lineage_graph[key]
 
-        print(f"  ✓ Updated {tables_updated} tables with their writer SPs")
+        print(f"  ✓ Updated {tables_updated} tables with their writer SPs (inputs)")
         print(f"  ✓ Removed {len(logging_keys_to_remove)} logging objects")
+
+    def fix_table_outputs(self):
+        """
+        Fix table/view outputs: Tables and views should list SPs/Views that READ from them.
+
+        This creates the "outputs" direction of the bidirectional graph, completing the
+        edge relationships for proper graph visualization.
+
+        After this method:
+        - Table/View: outputs = SPs/Views that read from it ✓
+        - SP: outputs = tables it writes to (already set in analyze_object) ✓
+
+        Handles circular dependencies: A SP can appear in both inputs and outputs of a table
+        when it both reads from and writes to the same table.
+        """
+        print("\n🔧 Fixing table/view outputs...")
+
+        # Build a map: table/view -> list of SPs/Views that read from it
+        table_readers = defaultdict(list)
+
+        for obj_key, obj_info in self.lineage_graph.items():
+            if obj_info['object_type'] in ['StoredProcedure', 'View']:
+                # Get objects this SP/View reads from (its dependencies/inputs)
+                for dep_key in obj_info.get('dependencies', []):
+                    # Check if dependency exists in graph
+                    if dep_key in self.lineage_graph:
+                        dep_obj = self.lineage_graph[dep_key]
+                        # Only add to readers if it's a Table or View
+                        if dep_obj['object_type'] in ['Table', 'View']:
+                            table_readers[dep_key].append(obj_key)
+
+        # Update table/view outputs
+        objects_updated = 0
+        for obj_key, obj_info in self.lineage_graph.items():
+            if obj_info['object_type'] in ['Table', 'View']:
+                if obj_key in table_readers:
+                    # Remove duplicates while preserving order
+                    obj_info['outputs'] = list(dict.fromkeys(table_readers[obj_key]))
+                    objects_updated += 1
+                else:
+                    # No readers found - this is a terminal/unused object
+                    obj_info['outputs'] = []
+
+        # Validate circular dependencies and log them
+        circular_deps = []
+        for obj_key, obj_info in self.lineage_graph.items():
+            if obj_info['object_type'] == 'Table':
+                inputs = set(obj_info.get('dependencies', []))
+                outputs = set(obj_info.get('outputs', []))
+                # Check if any SP both reads from and writes to this table
+                circular_sps = inputs.intersection(outputs)
+                if circular_sps:
+                    circular_deps.append((obj_key, circular_sps))
+
+        print(f"  ✓ Updated {objects_updated} tables/views with their reader SPs/Views (outputs)")
+        if circular_deps:
+            print(f"  ℹ Found {len(circular_deps)} tables with circular dependencies:")
+            for table_key, sps in circular_deps[:5]:  # Show first 5
+                print(f"    - {table_key}: {', '.join(list(sps)[:3])}")
+            if len(circular_deps) > 5:
+                print(f"    ... and {len(circular_deps) - 5} more")
 
     def _extract_write_targets(self, content: str) -> List[str]:
         """Extract tables that are written to (INSERT, UPDATE, SELECT INTO, MERGE, TRUNCATE)."""
@@ -358,8 +423,7 @@ class AutonomousLineageEngine:
 
         print(f"\n✓ Initial analysis complete: {len(self.lineage_graph)} objects found")
 
-        # Post-process: Fix table dependencies (reverse the relationship)
-        self.fix_table_dependencies()
+        # NOTE: Dependency fixing moved to generate_output() after external objects are added
 
     def validate_lineage(self):
         """Validate all dependencies in the lineage graph."""
@@ -425,6 +489,14 @@ class AutonomousLineageEngine:
                     self.analyze_object(new_dep.schema, new_dep.object_name)
                     refinement_count += 1
 
+        # CRITICAL: Process any new objects added to queue during refinement
+        # This ensures their dependencies are also analyzed recursively
+        while self.to_process:
+            schema, obj_name = self.to_process.popleft()
+            if f"{schema}.{obj_name}" not in self.processed:
+                self.analyze_object(schema, obj_name)
+                refinement_count += 1
+
         if refinement_count > 0:
             print(f"  ✓ Found {refinement_count} additional dependencies")
         else:
@@ -455,6 +527,7 @@ class AutonomousLineageEngine:
 
         # Add missing objects to lineage graph as stubs
         missing_objects = validation_results.get('missing_objects', [])
+        external_added = 0
         for missing_obj in missing_objects:
             if missing_obj not in self.lineage_graph:
                 parts = missing_obj.split('.', 1)
@@ -475,8 +548,20 @@ class AutonomousLineageEngine:
                     'exists_in_repo': False,
                     'is_external': True
                 }
+                external_added += 1
 
-        # Format as JSON (now includes missing objects)
+        # CRITICAL: Now that ALL objects are in the graph (including external),
+        # fix the bidirectional edges. This must happen AFTER all objects are added.
+        print(f"\n🔧 Building bidirectional graph structure...")
+        print(f"  Total objects in graph: {len(self.lineage_graph)}")
+
+        # Step 1: Fix table inputs (SPs that write to them)
+        self.fix_table_dependencies()
+
+        # Step 2: Fix table/view outputs (SPs that read from them)
+        self.fix_table_outputs()
+
+        # Format as JSON (all objects present, all edges bidirectional)
         json_nodes = self.json_formatter.format_lineage(self.lineage_graph, target_object)
 
         # Validate format
@@ -484,9 +569,13 @@ class AutonomousLineageEngine:
             print("  ✗ JSON format validation failed!")
             return
 
+        # Create output directory if it doesn't exist
+        output_dir = Path("lineage_output")
+        output_dir.mkdir(exist_ok=True)
+
         # Write JSON output
-        output_file = f"{target_object}_lineage.json"
-        self.json_formatter.write_json(json_nodes, output_file)
+        output_file = output_dir / f"{target_object}_lineage.json"
+        self.json_formatter.write_json(json_nodes, str(output_file))
         print(f"  ✓ JSON lineage: {output_file}")
 
         # Generate confidence report
@@ -500,8 +589,8 @@ class AutonomousLineageEngine:
         )
 
         # Write confidence report
-        confidence_file = f"{target_object}_confidence.json"
-        self.reporter.write_report(report, confidence_file)
+        confidence_file = output_dir / f"{target_object}_confidence.json"
+        self.reporter.write_report(report, str(confidence_file))
         print(f"  ✓ Confidence report: {confidence_file}")
 
         # Print summary
