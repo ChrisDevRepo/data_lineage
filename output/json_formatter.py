@@ -11,7 +11,10 @@ Format:
     "name": "ObjectName",
     "schema": "SchemaName",
     "object_type": "Table|View|StoredProcedure",
-    "inputs": ["node_1", "node_2"]
+    "description": "",
+    "data_model_type": "Dimension|Fact|Other",
+    "inputs": ["node_1", "node_2"],
+    "outputs": ["node_3", "node_4"]
   }
 ]
 """
@@ -27,6 +30,32 @@ class JSONFormatter:
     def __init__(self):
         self.node_id_counter = 0
         self.object_to_node_id: Dict[str, str] = {}
+
+    def classify_data_model_type(self, object_name: str, object_type: str) -> str:
+        """
+        Classify the data model type based on object name patterns.
+
+        Args:
+            object_name: Name of the object (e.g., "DimCustomers", "FactOrders")
+            object_type: Type of object ("Table", "View", "StoredProcedure")
+
+        Returns:
+            One of: "Dimension", "Fact", "Other"
+        """
+        # Only classify tables and views
+        if object_type not in ["Table", "View"]:
+            return "Other"
+
+        # Check for dimension tables (starts with "Dim")
+        if object_name.startswith("Dim"):
+            return "Dimension"
+
+        # Check for fact tables (starts with "Fact")
+        if object_name.startswith("Fact"):
+            return "Fact"
+
+        # Default to Other for staging tables, junction tables, etc.
+        return "Other"
 
     def generate_node_id(self) -> str:
         """Generate a unique node ID."""
@@ -119,12 +148,17 @@ class JSONFormatter:
             # Remove duplicates and sort
             output_ids = sorted(list(set(output_ids)))
 
-            # Create node
+            # Get object type
+            object_type = obj_info.get('object_type', 'Table')
+
+            # Create node with new fields
             node = {
                 "id": node_id,
                 "name": obj_name,
                 "schema": schema,
-                "object_type": obj_info.get('object_type', 'Table'),
+                "object_type": object_type,
+                "description": "",  # Empty by default, can be populated manually
+                "data_model_type": self.classify_data_model_type(obj_name, object_type),
                 "inputs": input_ids,
                 "outputs": output_ids
             }
@@ -161,13 +195,14 @@ class JSONFormatter:
             True if valid, False otherwise
         """
         required_fields = {'id', 'name', 'schema', 'object_type', 'inputs', 'outputs'}
+        optional_fields = {'description', 'data_model_type', 'exists_in_repo', 'is_external'}
 
         for node in nodes:
             # Check required fields
             if not all(field in node for field in required_fields):
                 return False
 
-            # Check types
+            # Check types for required fields
             if not isinstance(node['id'], str):
                 return False
             if not isinstance(node['name'], str):
@@ -181,8 +216,17 @@ class JSONFormatter:
             if not isinstance(node['outputs'], list):
                 return False
 
+            # Check optional fields if present
+            if 'description' in node and not isinstance(node['description'], str):
+                return False
+            if 'data_model_type' in node:
+                if not isinstance(node['data_model_type'], str):
+                    return False
+                if node['data_model_type'] not in ['Dimension', 'Fact', 'Other']:
+                    return False
+
             # Check object_type values
-            if node['object_type'] not in ['Table', 'View', 'StoredProcedure']:
+            if node['object_type'] not in ['Table', 'View', 'Stored Procedure']:
                 return False
 
             # Check inputs are strings

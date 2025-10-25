@@ -78,7 +78,7 @@ class AutonomousLineageEngine:
         search_locations = [
             (self.tables_dir, "Table"),
             (self.views_dir, "View"),
-            (self.procedures_dir, "StoredProcedure")
+            (self.procedures_dir, "Stored Procedure")
         ]
 
         # Search for the object file in each location
@@ -164,7 +164,7 @@ class AutonomousLineageEngine:
 
         # Extract outputs (for stored procedures only)
         output_keys = []
-        if object_type == "StoredProcedure":
+        if object_type == "Stored Procedure":
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
                 content = f.read()
             output_keys = self._extract_write_targets(content)
@@ -213,7 +213,7 @@ class AutonomousLineageEngine:
         table_writers = defaultdict(list)
 
         for obj_key, obj_info in self.lineage_graph.items():
-            if obj_info['object_type'] == 'StoredProcedure':
+            if obj_info['object_type'] == 'Stored Procedure':
                 # Parse the SP to find tables it writes to
                 parts = obj_key.split('.', 1)
                 if len(parts) == 2:
@@ -259,7 +259,7 @@ class AutonomousLineageEngine:
 
         # Filter out logging objects from SP/View dependencies
         for obj_key, obj_info in self.lineage_graph.items():
-            if obj_info['object_type'] in ['StoredProcedure', 'View']:
+            if obj_info['object_type'] in ['Stored Procedure', 'View']:
                 # Filter out logging objects
                 filtered_deps = []
                 for dep_key in obj_info.get('dependencies', []):
@@ -314,7 +314,7 @@ class AutonomousLineageEngine:
         table_readers = defaultdict(list)
 
         for obj_key, obj_info in self.lineage_graph.items():
-            if obj_info['object_type'] in ['StoredProcedure', 'View']:
+            if obj_info['object_type'] in ['Stored Procedure', 'View']:
                 # Get objects this SP/View reads from (its dependencies/inputs)
                 for dep_key in obj_info.get('dependencies', []):
                     # Check if dependency exists in graph

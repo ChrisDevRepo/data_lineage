@@ -198,7 +198,7 @@ python3 tests/test_bidirectional_graph.py
 - **Validation**: Cross-checks all dependencies against actual codebase
 - **Logging Exclusion**: Automatically filters out logging objects (ADMIN.Logs, dbo.LogMessage, dbo.spLastRowCount)
 
-### JSON Lineage Format (Version 2.0)
+### JSON Lineage Format (Version 2.1)
 
 Each object in the lineage has:
 ```json
@@ -206,11 +206,20 @@ Each object in the lineage has:
   "id": "node_0",
   "name": "ObjectName",
   "schema": "SchemaName",
-  "object_type": "Table|View|StoredProcedure",
+  "object_type": "Table|View|Stored Procedure",
+  "description": "",
+  "data_model_type": "Dimension|Fact|Other",
   "inputs": ["node_1", "node_2"],
   "outputs": ["node_3", "node_4"]
 }
 ```
+
+**New Fields (Version 2.1)**:
+- `description`: Optional field for documenting the object's purpose (empty by default)
+- `data_model_type`: Automatically classified based on object name:
+  - `"Dimension"` - Objects starting with "Dim" (e.g., DimCustomers, DimAccount)
+  - `"Fact"` - Objects starting with "Fact" (e.g., FactGLCognos, FactOrders)
+  - `"Other"` - All other objects (stored procedures, views, staging tables)
 
 **Lineage Rules (Bidirectional Graph)**:
 
