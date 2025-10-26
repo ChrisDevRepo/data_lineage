@@ -3,11 +3,6 @@
   "parsed_objects": 16,
   "coverage": 18.8,
   "by_object_type": {
-    "Table": {
-      "total": 68,
-      "parsed": 0,
-      "coverage": 0.0
-    },
     "Stored Procedure": {
       "total": 16,
       "parsed": 16,
@@ -17,6 +12,11 @@
       "total": 1,
       "parsed": 0,
       "coverage": 0.0
+    },
+    "Table": {
+      "total": 68,
+      "parsed": 0,
+      "coverage": 0.0
     }
   },
   "by_primary_source": {
@@ -24,9 +24,9 @@
     "dual_parser": 2
   },
   "object_type_counts": {
-    "Table": 68,
     "Stored Procedure": 16,
-    "View": 1
+    "View": 1,
+    "Table": 68
   },
   "confidence_statistics": {
     "average": 0.6812500096857548,

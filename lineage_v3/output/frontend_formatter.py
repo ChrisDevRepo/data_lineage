@@ -128,9 +128,13 @@ class FrontendFormatter:
                 if out_id in self.object_id_to_node_id
             ]
             
-            # Get confidence for description
+            # Get confidence for description (only for Stored Procedures)
             confidence = node['provenance']['confidence']
-            description = f"Confidence: {confidence:.2f}"
+            if node['object_type'] == 'Stored Procedure':
+                description = f"Confidence: {confidence:.2f}"
+            else:
+                # Tables and Views don't need confidence in description
+                description = ""
             
             # Classify data model type
             data_model_type = self._classify_data_model_type(

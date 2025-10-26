@@ -181,14 +181,28 @@ class InternalFormatter:
         object_map = {}
         for obj in objects:
             object_id = obj['object_id']
-            
-            # Get dependency metadata (if available, otherwise default to unparsed)
-            dep_meta = dependencies.get(object_id, {
-                'primary_source': 'unparsed',
-                'confidence': 0.0,
-                'inputs': [],
-                'outputs': []
-            })
+            object_type = obj['object_type']
+
+            # Get dependency metadata (if available, otherwise use defaults)
+            if object_id in dependencies:
+                dep_meta = dependencies[object_id]
+            else:
+                # Tables and Views exist in metadata → confidence 1.0
+                # Stored Procedures not parsed → confidence 0.0
+                if object_type in ['Table', 'View']:
+                    dep_meta = {
+                        'primary_source': 'metadata',
+                        'confidence': 1.0,
+                        'inputs': [],
+                        'outputs': []
+                    }
+                else:  # Stored Procedure not parsed
+                    dep_meta = {
+                        'primary_source': 'unparsed',
+                        'confidence': 0.0,
+                        'inputs': [],
+                        'outputs': []
+                    }
 
             # Use object_type directly (already human-readable)
             object_type = obj['object_type']
