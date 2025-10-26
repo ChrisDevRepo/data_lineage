@@ -341,6 +341,102 @@ Uses string representation of `object_id` for React Flow compatibility:
 
 **Note:** IDs are string-cast object_ids (e.g., "1986106116") not sequential node_X format
 
+---
+
+## Frontend/Backend Integration
+
+### How They Work Together
+
+**Backend (lineage_v3/):** Extracts lineage from Synapse → Generates JSON
+**Frontend (frontend/):** Loads JSON → Renders interactive graph with React Flow
+
+### Critical Requirement: Bidirectional Graph
+
+**Why React Flow Needs Both Directions:**
+
+React Flow renders edges (connections) between nodes. For an edge from **Table A** to **Stored Procedure B**:
+
+```
+Table A (source) ----→ SP B (target)
+```
+
+React Flow needs **ONE of these** to render the edge:
+1. **Forward reference:** Table A knows "SP B reads from me" (`Table A.outputs = [SP B]`)
+2. **Backward reference:** SP B knows "I read from Table A" (`SP B.inputs = [Table A]`)
+
+**Problem if only backward reference exists:**
+- SP B says `inputs = [Table A]` ✅
+- Table A says `outputs = []` ❌
+- **Result:** React Flow may not render edge, or Table A appears isolated
+
+**Solution:** Step 7 (Reverse Lookup) populates **both directions**:
+- SP B: `inputs = [Table A]` (from parser)
+- Table A: `outputs = [SP B]` (from reverse lookup)
+
+### Example: DimCountry → vFactLaborCost
+
+**Before Step 7 (Reverse Lookup):**
+```json
+{
+  "id": "718625603",
+  "name": "DimCountry",
+  "outputs": []  // ❌ Isolated! Frontend can't render edge
+}
+
+{
+  "id": "846626059",
+  "name": "vFactLaborCost",
+  "inputs": ["718625603"]  // ✅ View knows it reads DimCountry
+}
+```
+
+**After Step 7 (Reverse Lookup):**
+```json
+{
+  "id": "718625603",
+  "name": "DimCountry",
+  "outputs": ["846626059"]  // ✅ Table knows View reads it
+}
+
+{
+  "id": "846626059",
+  "name": "vFactLaborCost",
+  "inputs": ["718625603"]  // ✅ View knows it reads DimCountry
+}
+```
+
+**Result:** React Flow can now render edge: DimCountry → vFactLaborCost
+
+### Pipeline Implementation (Step 7)
+
+**Location:** [lineage_v3/main.py](lineage_v3/main.py) - Step 7
+
+**Logic:**
+1. Scan all parsed objects (SPs, Views) for their `inputs` and `outputs`
+2. For each Table/View referenced:
+   - If SP/View reads FROM it → Add SP/View to Table.outputs
+   - If SP writes TO it → Add SP to Table.inputs
+3. Update `lineage_metadata` with bidirectional references
+
+**Statistics:** 22 Tables/Views updated with reverse dependencies (current dataset)
+
+### Confidence Display
+
+**Tables/Views:**
+- Show "Confidence: 1.00" in `description` field
+- They exist in metadata (no parsing uncertainty)
+
+**Stored Procedures:**
+- Show actual confidence: "Confidence: 0.50" to "Confidence: 0.95"
+- Variable based on parser success
+
+**Frontend Usage:**
+- Can color-code nodes by confidence
+- Can filter/highlight low-confidence objects
+- Can show warnings for isolated nodes
+
+---
+
 ### Bidirectional Graph Model
 
 **Stored Procedures:**

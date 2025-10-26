@@ -29,7 +29,9 @@
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      350624292
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -41,7 +43,9 @@
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      382624406
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -77,7 +81,10 @@
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      398624463,
+      414624520
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -89,7 +96,9 @@
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      430624577
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -113,7 +122,9 @@
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      446624634
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -245,7 +256,9 @@
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      510624862
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -257,8 +270,8 @@
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Stored Procedure",
     "inputs": [
-      46623209,
-      1986106116
+      1986106116,
+      46623209
     ],
     "outputs": [
       1986106116
@@ -288,8 +301,8 @@
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Stored Procedure",
     "inputs": [
-      62623266,
-      2018106230
+      2018106230,
+      62623266
     ],
     "outputs": [
       2018106230
@@ -335,8 +348,8 @@
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Stored Procedure",
     "inputs": [
-      2066106401,
-      126623494
+      126623494,
+      2066106401
     ],
     "outputs": [
       2066106401
@@ -352,8 +365,8 @@
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Stored Procedure",
     "inputs": [
-      158623608,
-      2082106458
+      2082106458,
+      158623608
     ],
     "outputs": [
       2082106458
@@ -398,16 +411,16 @@
     "object_type": "Stored Procedure",
     "inputs": [
       606625204,
-      2034106287,
-      1986106116,
-      2130106629,
-      2098106515,
+      2146106686,
       2114106572,
+      2082106458,
+      2130106629,
       2066106401,
       2002106173,
+      1986106116,
       2018106230,
-      2146106686,
-      2082106458
+      2098106515,
+      2034106287
     ],
     "outputs": [
       2130106629
@@ -426,8 +439,8 @@
       334624235
     ],
     "outputs": [
-      30623152,
-      2146106686
+      2146106686,
+      30623152
     ],
     "provenance": {
       "primary_source": "parser",
@@ -487,7 +500,9 @@
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -498,8 +513,13 @@
     "name": "FactLaborCostForEarnedValue",
     "schema": "CONSUMPTION_POWERBI",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      574625090,
+      590625147
+    ],
+    "outputs": [
+      590625147
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -511,7 +531,9 @@
     "schema": "CONSUMPTION_PRIMA",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      590625147
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -561,7 +583,9 @@
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      846626059
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -585,7 +609,9 @@
     "schema": "dbo",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      574625090
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -645,7 +671,9 @@
     "schema": "CONSUMPTION_PRIMA",
     "object_type": "Table",
     "inputs": [],
-    "outputs": [],
+    "outputs": [
+      846626059
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -963,8 +991,13 @@
     "name": "DimAccount",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      350624292
+    ],
+    "outputs": [
+      350624292,
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -975,8 +1008,13 @@
     "name": "DimAccountDetailsCognos",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      366624349
+    ],
+    "outputs": [
+      846626059,
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -987,8 +1025,13 @@
     "name": "DimActuality",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      382624406
+    ],
+    "outputs": [
+      382624406,
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -999,8 +1042,13 @@
     "name": "DimCompany",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      398624463
+    ],
+    "outputs": [
+      846626059,
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -1023,8 +1071,13 @@
     "name": "DimConsType",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      430624577
+    ],
+    "outputs": [
+      430624577,
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -1035,8 +1088,13 @@
     "name": "DimCurrency",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      446624634
+    ],
+    "outputs": [
+      446624634,
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -1047,8 +1105,13 @@
     "name": "DimDepartment",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      462624691
+    ],
+    "outputs": [
+      846626059,
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -1059,8 +1122,12 @@
     "name": "DimPosition",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      478624748
+    ],
+    "outputs": [
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -1071,8 +1138,13 @@
     "name": "FactGLCognos",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      494624805
+    ],
+    "outputs": [
+      846626059,
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0
@@ -1083,8 +1155,12 @@
     "name": "GLCognosData",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "inputs": [],
-    "outputs": [],
+    "inputs": [
+      510624862
+    ],
+    "outputs": [
+      494624805
+    ],
     "provenance": {
       "primary_source": "metadata",
       "confidence": 1.0

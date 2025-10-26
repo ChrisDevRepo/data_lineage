@@ -1,7 +1,7 @@
 {
   "total_objects": 85,
-  "parsed_objects": 17,
-  "coverage": 20.0,
+  "parsed_objects": 39,
+  "coverage": 45.9,
   "by_object_type": {
     "Stored Procedure": {
       "total": 16,
@@ -15,14 +15,15 @@
     },
     "Table": {
       "total": 68,
-      "parsed": 0,
-      "coverage": 0.0
+      "parsed": 22,
+      "coverage": 32.4
     }
   },
   "by_primary_source": {
     "parser": 14,
     "dual_parser": 2,
-    "dmv": 1
+    "dmv": 1,
+    "metadata": 22
   },
   "object_type_counts": {
     "Stored Procedure": 16,
@@ -30,10 +31,10 @@
     "Table": 68
   },
   "confidence_statistics": {
-    "average": 0.7000000091160045,
+    "average": 0.8692307732044122,
     "min": 0.5,
     "max": 1.0,
-    "high_confidence_count": 9,
+    "high_confidence_count": 31,
     "medium_confidence_count": 0,
     "low_confidence_count": 8
   }

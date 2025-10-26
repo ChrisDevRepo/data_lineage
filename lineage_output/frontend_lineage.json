@@ -27,7 +27,9 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "350624292"
+    ]
   },
   {
     "id": "62623266",
@@ -37,7 +39,9 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "382624406"
+    ]
   },
   {
     "id": "78623323",
@@ -67,7 +71,10 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "398624463",
+      "414624520"
+    ]
   },
   {
     "id": "126623494",
@@ -77,7 +84,9 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "430624577"
+    ]
   },
   {
     "id": "142623551",
@@ -97,7 +106,9 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "446624634"
+    ]
   },
   {
     "id": "174623665",
@@ -207,7 +218,9 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "510624862"
+    ]
   },
   {
     "id": "350624292",
@@ -419,7 +432,9 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "494624805"
+    ]
   },
   {
     "id": "622625261",
@@ -428,8 +443,13 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Fact",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "574625090",
+      "590625147"
+    ],
+    "outputs": [
+      "590625147"
+    ]
   },
   {
     "id": "638625318",
@@ -439,7 +459,9 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "590625147"
+    ]
   },
   {
     "id": "654625375",
@@ -481,7 +503,9 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "846626059"
+    ]
   },
   {
     "id": "734625660",
@@ -501,7 +525,9 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "574625090"
+    ]
   },
   {
     "id": "766625774",
@@ -551,7 +577,9 @@
     "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
-    "outputs": []
+    "outputs": [
+      "846626059"
+    ]
   },
   {
     "id": "846626059",
@@ -817,8 +845,13 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "350624292"
+    ],
+    "outputs": [
+      "350624292",
+      "494624805"
+    ]
   },
   {
     "id": "2002106173",
@@ -827,8 +860,13 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "366624349"
+    ],
+    "outputs": [
+      "494624805",
+      "846626059"
+    ]
   },
   {
     "id": "2018106230",
@@ -837,8 +875,13 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "382624406"
+    ],
+    "outputs": [
+      "382624406",
+      "494624805"
+    ]
   },
   {
     "id": "2034106287",
@@ -847,8 +890,13 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "398624463"
+    ],
+    "outputs": [
+      "494624805",
+      "846626059"
+    ]
   },
   {
     "id": "2050106344",
@@ -867,8 +915,13 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "430624577"
+    ],
+    "outputs": [
+      "430624577",
+      "494624805"
+    ]
   },
   {
     "id": "2082106458",
@@ -877,8 +930,13 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "446624634"
+    ],
+    "outputs": [
+      "446624634",
+      "494624805"
+    ]
   },
   {
     "id": "2098106515",
@@ -887,8 +945,13 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "462624691"
+    ],
+    "outputs": [
+      "494624805",
+      "846626059"
+    ]
   },
   {
     "id": "2114106572",
@@ -897,8 +960,12 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "478624748"
+    ],
+    "outputs": [
+      "494624805"
+    ]
   },
   {
     "id": "2130106629",
@@ -907,8 +974,13 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Fact",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "494624805"
+    ],
+    "outputs": [
+      "494624805",
+      "846626059"
+    ]
   },
   {
     "id": "2146106686",
@@ -917,7 +989,11 @@
     "object_type": "Table",
     "description": "Confidence: 1.00",
     "data_model_type": "Other",
-    "inputs": [],
-    "outputs": []
+    "inputs": [
+      "510624862"
+    ],
+    "outputs": [
+      "494624805"
+    ]
   }
 ]

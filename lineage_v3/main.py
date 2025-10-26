@@ -345,13 +345,68 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
                 click.echo("⚠️  No stored procedures found to parse")
                 click.echo()
 
-            # Step 6-7: AI Fallback & Merge (Skip for now - Phase 5)
+            # Step 6: AI Fallback (Skip for now - Phase 5)
             click.echo()
             click.echo("=" * 70)
-            click.echo("Step 6-7: AI Fallback & Merge (Skipped)")
+            click.echo("Step 6: AI Fallback (Skipped)")
             click.echo("=" * 70)
             click.echo("⚠️  AI Fallback deferred to Phase 5")
-            click.echo("📋 Continuing with output generation using parsed data")
+            click.echo()
+
+            # Step 7: Bidirectional Graph (Reverse Lookup)
+            click.echo("=" * 70)
+            click.echo("Step 7: Build Bidirectional Graph (Reverse Lookup)")
+            click.echo("=" * 70)
+
+            # Get all parsed objects (SPs and Views)
+            parsed_objects = db.query("""
+                SELECT object_id, inputs, outputs
+                FROM lineage_metadata
+                WHERE inputs IS NOT NULL OR outputs IS NOT NULL
+            """)
+
+            # Build reverse lookup map
+            reverse_inputs = {}  # object_id -> list of objects that READ from it
+            reverse_outputs = {}  # object_id -> list of objects that WRITE to it
+
+            import json
+            for row in parsed_objects:
+                obj_id, inputs_json, outputs_json = row
+
+                # Parse inputs (objects this reads FROM)
+                if inputs_json:
+                    inputs = json.loads(inputs_json)
+                    for input_id in inputs:
+                        # input_id is read BY obj_id
+                        if input_id not in reverse_inputs:
+                            reverse_inputs[input_id] = []
+                        reverse_inputs[input_id].append(obj_id)
+
+                # Parse outputs (objects this writes TO)
+                if outputs_json:
+                    outputs = json.loads(outputs_json)
+                    for output_id in outputs:
+                        # output_id is written BY obj_id
+                        if output_id not in reverse_outputs:
+                            reverse_outputs[output_id] = []
+                        reverse_outputs[output_id].append(obj_id)
+
+            # Update Tables/Views with reverse dependencies
+            tables_updated = 0
+            for table_id, readers in reverse_inputs.items():
+                # This table is read by these objects
+                # Table.outputs should contain the readers
+                db.update_metadata(
+                    object_id=table_id,
+                    modify_date=None,  # Don't update modify_date
+                    primary_source='metadata',
+                    confidence=1.0,
+                    inputs=reverse_outputs.get(table_id, []),  # Objects that WRITE to this table
+                    outputs=readers  # Objects that READ from this table
+                )
+                tables_updated += 1
+
+            click.echo(f"✅ Updated {tables_updated} Tables/Views with reverse dependencies")
             click.echo()
 
             # Step 8: Generate output JSON files
