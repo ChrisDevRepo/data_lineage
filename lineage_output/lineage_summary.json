@@ -20,8 +20,8 @@
     }
   },
   "by_primary_source": {
-    "dual_parser": 2,
-    "parser": 14
+    "parser": 14,
+    "dual_parser": 2
   },
   "object_type_counts": {
     "Stored Procedure": 16,
