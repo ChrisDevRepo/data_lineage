@@ -1,8 +1,11 @@
-# Vibecoding — Optimized Lineage Parser Specification (v2.1)
+# Vibecoding — Data Lineage Parser Specification
 
-**Version:** 2.1
+**Specification Version:** 2.1
+**Parser Version:** 2.0
 **Date:** 2025-10-26
 **Status:** Updated with frontend compatibility, incremental load support, and Microsoft Agent Framework integration
+
+**Note:** This specification (v2.1) describes the Vibecoding Lineage Parser v2.0. The folder name `lineage_v3` refers to the third iteration of development, but the product version is v2.0.
 
 ## 1. Objective
 

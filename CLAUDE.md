@@ -22,7 +22,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains:
 1. **Azure Synapse Data Warehouse** - SQL scripts for stored procedures, tables, and views
-2. **Vibecoding Lineage Parser v3** - DMV-first data lineage extraction system
+2. **Vibecoding Lineage Parser v2.0** - DMV-first data lineage extraction system
+
+**Version Note:** The parser is version **2.0** (folder name `lineage_v3` refers to the third development iteration, not the product version).
 
 The codebase supports finance, clinical operations, and reporting workloads across multiple schemas.
 
@@ -35,7 +37,7 @@ ws-psidwh/
 │   ├── Tables/                   # Table definitions
 │   └── Views/                    # View definitions
 │
-├── lineage_v3/                   # 🆕 Lineage Parser v3 (Current)
+├── lineage_v3/                   # 🆕 Lineage Parser v2.0 (folder name is v3 for historical reasons)
 │   ├── main.py                   # CLI entry point
 │   ├── extractor/                # DMV → Parquet exporter (dev only)
 │   ├── core/                     # DuckDB engine
@@ -58,7 +60,7 @@ ws-psidwh/
 ├── docs/                         # Documentation
 ├── .env.template                 # Environment config template
 ├── requirements.txt              # Python dependencies
-├── lineage_specs_v2.md           # v3 specification (v2.1)
+├── lineage_specs.md              # Parser v2.0 specification (spec v2.1)
 └── CLAUDE.md                     # This file
 ```
 
@@ -117,13 +119,13 @@ The data warehouse uses a layered architecture with distinct schemas for differe
 
 ---
 
-## Vibecoding Lineage Parser v3 🆕
+## Vibecoding Lineage Parser v2.0
 
 ### Overview
 
 **Version:** 3.0.0
 **Status:** In Development (Phase 1 Complete)
-**Specification:** See [lineage_specs_v2.md](lineage_specs_v2.md) (v2.1)
+**Specification:** See [lineage_specs.md](lineage_specs.md) (spec v2.1)
 
 A DMV-first data lineage extraction system that consumes Parquet snapshots of Synapse metadata and produces JSON-based dependency graphs.
 
@@ -149,9 +151,9 @@ A DMV-first data lineage extraction system that consumes Parquet snapshots of Sy
     (int object_ids)           (string node_ids)            (coverage stats)
 ```
 
-### Key Differences: v2 → v3
+### Key Differences: v1 (Deprecated) → v2.0 (Current)
 
-| Aspect | v2 (Deprecated) | v3 (Current) |
+| Aspect | v1 (Deprecated) | v2.0 (Current) |
 |--------|----------------|--------------|
 | **Data Source** | File-based (`.sql` files) | DMV-based (Parquet snapshots) |
 | **Primary Key** | String `"schema.object_name"` | Integer `object_id` |
@@ -398,7 +400,7 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 
 ## Common Development Commands
 
-### Lineage Parser v3
+### Lineage Parser v2.0
 
 ```bash
 # Validate environment
