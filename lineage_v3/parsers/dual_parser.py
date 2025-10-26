@@ -242,32 +242,57 @@ class DualParser(QualityAwareParser):
         agreement: Dict[str, float]
     ) -> Tuple[Set[str], Set[str], float, str]:
         """
-        Determine final result based on consensus logic.
+        Determine final result based on consensus logic between two parsers.
+
+        **Strategy:**
+        Uses Jaccard similarity (intersection / union) to measure parser agreement.
+        When parsers disagree, uses regex baseline quality to pick the better result.
+
+        **Scenarios:**
+        1. High agreement (≥90%): Both parsers found same tables → Confidence 0.95
+        2. Moderate agreement (≥70%): Mostly agree → Confidence 0.85
+        3. Low agreement (<70%): Pick parser with better regex match → Confidence 0.50-0.85
+        4. Both poor quality: Use union, flag for AI → Confidence 0.50
+
+        Args:
+            sqlglot_sources: Tables found by SQLGlot (FROM/JOIN)
+            sqlglot_targets: Tables found by SQLGlot (INSERT/UPDATE/MERGE)
+            lineage_sources: Tables found by SQLLineage (FROM/JOIN)
+            lineage_targets: Tables found by SQLLineage (INSERT/UPDATE/MERGE)
+            quality_check: SQLGlot quality metrics vs regex baseline
+            agreement: Jaccard similarity scores between parsers
 
         Returns:
-            (final_sources, final_targets, confidence, decision)
+            Tuple of (final_sources, final_targets, confidence, decision)
+            - final_sources: Set of source table names (schema.table)
+            - final_targets: Set of target table names (schema.table)
+            - confidence: 0.5-0.95 based on agreement level
+            - decision: 'high_agreement' | 'moderate_agreement' | 'sqlglot_preferred' |
+                       'sqllineage_preferred' | 'low_agreement_needs_ai'
         """
         overall_agreement = agreement['overall_agreement']
 
-        # Scenario 1: High agreement (≥90%)
+        # Scenario 1: High agreement (≥90%) - Both parsers found nearly identical tables
         if overall_agreement >= 0.90:
             # Both parsers agree - use union to capture everything
+            # Example: SQLGlot=[A,B], SQLLineage=[A,B,C] → Union=[A,B,C]
             final_sources = sqlglot_sources | lineage_sources
             final_targets = sqlglot_targets | lineage_targets
             confidence = 0.95  # Highest confidence - dual validation
             decision = 'high_agreement'
 
-        # Scenario 2: Moderate agreement (≥70%)
+        # Scenario 2: Moderate agreement (≥70%) - Parsers mostly agree
         elif overall_agreement >= 0.70:
             # Parsers mostly agree - use union but slightly less confident
+            # Example: SQLGlot=[A,B,C], SQLLineage=[A,B,D] → Union=[A,B,C,D] (66% match)
             final_sources = sqlglot_sources | lineage_sources
             final_targets = sqlglot_targets | lineage_targets
             confidence = 0.85
             decision = 'moderate_agreement'
 
-        # Scenario 3: Low agreement - need to pick one
+        # Scenario 3: Low agreement (<70%) - Need to pick the better parser
         else:
-            # Use quality check to decide which parser to trust
+            # Use regex baseline quality to decide which parser to trust
             sqlglot_quality = quality_check.get('overall_match', 0.0)
 
             # Calculate SQLLineage quality (compare to regex baseline)
@@ -281,23 +306,27 @@ class DualParser(QualityAwareParser):
 
             # Pick parser with better regex match
             if lineage_quality > sqlglot_quality:
+                # SQLLineage matched regex baseline better
                 final_sources = lineage_sources
                 final_targets = lineage_targets
                 confidence = 0.75
                 decision = 'sqllineage_preferred'
             else:
+                # SQLGlot matched regex baseline better (or tied)
                 final_sources = sqlglot_sources
                 final_targets = sqlglot_targets
-                # Use SQLGlot's quality-based confidence
+                # Use SQLGlot's quality-based confidence (0.5-0.85)
                 confidence = self._determine_confidence(quality_check)
                 decision = 'sqlglot_preferred'
 
-            # If both are poor quality, flag for AI
+            # Scenario 4: Both parsers have poor quality (<75% match to regex)
+            # This indicates complex SQL that neither parser handled well
             if sqlglot_quality < 0.75 and lineage_quality < 0.75:
-                # Use union to capture everything, let AI validate
+                # Use union to capture everything, let AI validate in Phase 5
+                # Example: Complex dynamic SQL, nested CTEs, etc.
                 final_sources = sqlglot_sources | lineage_sources
                 final_targets = sqlglot_targets | lineage_targets
-                confidence = 0.5
+                confidence = 0.5  # Low confidence - AI review required
                 decision = 'low_agreement_needs_ai'
 
         return final_sources, final_targets, confidence, decision
