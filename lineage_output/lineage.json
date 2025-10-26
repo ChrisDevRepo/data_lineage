@@ -257,8 +257,8 @@
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Stored Procedure",
     "inputs": [
-      1986106116,
-      46623209
+      46623209,
+      1986106116
     ],
     "outputs": [
       1986106116
@@ -288,8 +288,8 @@
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Stored Procedure",
     "inputs": [
-      2018106230,
-      62623266
+      62623266,
+      2018106230
     ],
     "outputs": [
       2018106230
@@ -335,8 +335,8 @@
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Stored Procedure",
     "inputs": [
-      126623494,
-      2066106401
+      2066106401,
+      126623494
     ],
     "outputs": [
       2066106401
@@ -398,16 +398,16 @@
     "object_type": "Stored Procedure",
     "inputs": [
       606625204,
+      2034106287,
+      1986106116,
       2130106629,
       2098106515,
-      2066106401,
-      2082106458,
-      2018106230,
-      1986106116,
-      2146106686,
-      2002106173,
       2114106572,
-      2034106287
+      2066106401,
+      2002106173,
+      2018106230,
+      2146106686,
+      2082106458
     ],
     "outputs": [
       2130106629
@@ -470,8 +470,8 @@
     "schema": "CONSUMPTION_POWERBI",
     "object_type": "Stored Procedure",
     "inputs": [
-      622625261,
-      638625318
+      638625318,
+      622625261
     ],
     "outputs": [
       622625261
@@ -656,10 +656,17 @@
     "name": "vFactLaborCost",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "View",
-    "inputs": [],
+    "inputs": [
+      718625603,
+      830626002,
+      2002106173,
+      2034106287,
+      2098106515,
+      2130106629
+    ],
     "outputs": [],
     "provenance": {
-      "primary_source": "metadata",
+      "primary_source": "dmv",
       "confidence": 1.0
     }
   },

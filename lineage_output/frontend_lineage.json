@@ -4,7 +4,7 @@
     "name": "DimDate",
     "schema": "dbo",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -14,7 +14,7 @@
     "name": "GLCognosData_HC100500",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -24,7 +24,7 @@
     "name": "t_Account_filter",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -34,7 +34,7 @@
     "name": "t_Actuality_filter",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -44,7 +44,7 @@
     "name": "t_Cal_per",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -54,7 +54,7 @@
     "name": "t_ClosingVersion_filter",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -64,7 +64,7 @@
     "name": "t_Company_filter",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -74,7 +74,7 @@
     "name": "t_ConsType_filter",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -84,7 +84,7 @@
     "name": "t_ContributionVersion_filter",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -94,7 +94,7 @@
     "name": "t_Currency_filter",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -104,7 +104,7 @@
     "name": "t_dim",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -114,7 +114,7 @@
     "name": "t_Form_filter",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -124,7 +124,7 @@
     "name": "t_params",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -134,7 +134,7 @@
     "name": "t_perakt_0",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -144,7 +144,7 @@
     "name": "t_xdbyy_ytd",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -154,7 +154,7 @@
     "name": "t_xdbyy_ytd_0",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -164,7 +164,7 @@
     "name": "t_xdbyy_ytd_0_red",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -174,7 +174,7 @@
     "name": "t_xdbyy_ytd_h",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -184,7 +184,7 @@
     "name": "t_xdbyy_ytd_ptd",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -194,7 +194,7 @@
     "name": "t_xdbyy_ytd_ptd_h",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -204,7 +204,7 @@
     "name": "v_CCR2PowerBI_facts",
     "schema": "STAGING_FINANCE_COGNOS",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -416,7 +416,7 @@
     "name": "DimMonthFinance",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -426,7 +426,7 @@
     "name": "FactLaborCostForEarnedValue",
     "schema": "CONSUMPTION_POWERBI",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Fact",
     "inputs": [],
     "outputs": []
@@ -436,7 +436,7 @@
     "name": "MonthlyAverageCurrencyExchangeRate",
     "schema": "CONSUMPTION_PRIMA",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -446,7 +446,7 @@
     "name": "Positions",
     "schema": "STAGING_FINANCE_FILE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -456,7 +456,7 @@
     "name": "Positions_Raw",
     "schema": "STAGING_FINANCE_FILE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -478,7 +478,7 @@
     "name": "DimCountry",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -488,7 +488,7 @@
     "name": "FactAggregatedLaborCost",
     "schema": "CONSUMPTION_POWERBI",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Fact",
     "inputs": [],
     "outputs": []
@@ -498,7 +498,7 @@
     "name": "Full_Departmental_Map",
     "schema": "dbo",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -508,7 +508,7 @@
     "name": "COGNOS_Template_SubAccounts",
     "schema": "STAGING_FINANCE_FILE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -518,7 +518,7 @@
     "name": "COGNOS_Template_SubAccounts_Raw",
     "schema": "STAGING_FINANCE_FILE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -528,7 +528,7 @@
     "name": "Departments",
     "schema": "STAGING_FINANCE_FILE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -538,7 +538,7 @@
     "name": "Departments_Raw",
     "schema": "STAGING_FINANCE_FILE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -548,7 +548,7 @@
     "name": "GlobalCountries",
     "schema": "CONSUMPTION_PRIMA",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -558,9 +558,16 @@
     "name": "vFactLaborCost",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "View",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
-    "inputs": [],
+    "inputs": [
+      "718625603",
+      "830626002",
+      "2002106173",
+      "2034106287",
+      "2098106515",
+      "2130106629"
+    ],
     "outputs": []
   },
   {
@@ -568,7 +575,7 @@
     "name": "Logs",
     "schema": "ADMIN",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -588,7 +595,7 @@
     "name": "COGNOS_Account",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -598,7 +605,7 @@
     "name": "COGNOS_Actuality",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -608,7 +615,7 @@
     "name": "COGNOS_ClosingVersion",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -618,7 +625,7 @@
     "name": "COGNOS_Company",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -628,7 +635,7 @@
     "name": "COGNOS_ConsType",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -638,7 +645,7 @@
     "name": "COGNOS_ContributionVersion",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -648,7 +655,7 @@
     "name": "COGNOS_Currency",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -658,7 +665,7 @@
     "name": "COGNOS_Currency_Conversion",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -668,7 +675,7 @@
     "name": "COGNOS_Form",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -678,7 +685,7 @@
     "name": "COGNOS_PowerBIFacts",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -688,7 +695,7 @@
     "name": "COGNOS_t_Cal_per",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -698,7 +705,7 @@
     "name": "COGNOS_t_dim",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -708,7 +715,7 @@
     "name": "COGNOS_t_params",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -718,7 +725,7 @@
     "name": "COGNOS_t_perakt_0",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -728,7 +735,7 @@
     "name": "COGNOS_t_xdbyy_ytd",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -738,7 +745,7 @@
     "name": "COGNOS_t_xdbyy_ytd_0",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -748,7 +755,7 @@
     "name": "COGNOS_t_xdbyy_ytd_0_red",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -758,7 +765,7 @@
     "name": "COGNOS_t_xdbyy_ytd_h",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -768,7 +775,7 @@
     "name": "COGNOS_t_xdbyy_ytd_ptd",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -778,7 +785,7 @@
     "name": "COGNOS_t_xdbyy_ytd_ptd_h",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -788,7 +795,7 @@
     "name": "COGNOS_Template_SubAccounts",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -798,7 +805,7 @@
     "name": "COGNOS_v_CCR2PowerBI_facts",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []
@@ -808,7 +815,7 @@
     "name": "DimAccount",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -818,7 +825,7 @@
     "name": "DimAccountDetailsCognos",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -828,7 +835,7 @@
     "name": "DimActuality",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -838,7 +845,7 @@
     "name": "DimCompany",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -848,7 +855,7 @@
     "name": "DimCompanyKoncern",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -858,7 +865,7 @@
     "name": "DimConsType",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -868,7 +875,7 @@
     "name": "DimCurrency",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -878,7 +885,7 @@
     "name": "DimDepartment",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -888,7 +895,7 @@
     "name": "DimPosition",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Dimension",
     "inputs": [],
     "outputs": []
@@ -898,7 +905,7 @@
     "name": "FactGLCognos",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Fact",
     "inputs": [],
     "outputs": []
@@ -908,7 +915,7 @@
     "name": "GLCognosData",
     "schema": "CONSUMPTION_FINANCE",
     "object_type": "Table",
-    "description": "",
+    "description": "Confidence: 1.00",
     "data_model_type": "Other",
     "inputs": [],
     "outputs": []

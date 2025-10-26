@@ -171,13 +171,65 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
                 return
 
             # Step 2-3: Build baseline from DMV dependencies and query logs
-            # TODO: Implement Steps 2-3 (DMV baseline + query log enhancement)
             click.echo()
             click.echo("=" * 70)
-            click.echo("Step 2-3: DMV Dependencies & Query Logs")
+            click.echo("Step 2: Load DMV Dependencies (Views)")
             click.echo("=" * 70)
-            click.echo("⚠️  DMV baseline extraction not yet implemented")
-            click.echo("📋 Coming in integration phase")
+
+            # Load DMV dependencies for Views
+            views_with_dmv = db.query("""
+                SELECT DISTINCT
+                    d.referencing_object_id,
+                    o.object_name,
+                    o.modify_date
+                FROM dependencies d
+                JOIN objects o ON d.referencing_object_id = o.object_id
+                WHERE o.object_type = 'View'
+            """)
+
+            if views_with_dmv:
+                click.echo(f"📊 Loading DMV dependencies for {len(views_with_dmv)} View(s)...")
+
+                for view in views_with_dmv:
+                    view_id, view_name, modify_date = view
+
+                    # Get all dependencies for this view
+                    deps = db.query("""
+                        SELECT
+                            referenced_object_id,
+                            referenced_schema_name,
+                            referenced_entity_name
+                        FROM dependencies
+                        WHERE referencing_object_id = ?
+                    """, [view_id])
+
+                    # Extract input object_ids (tables/views this view reads from)
+                    inputs = [dep[0] for dep in deps if dep[0] is not None]
+
+                    # Views don't write (no outputs), only read
+                    outputs = []
+
+                    # Store in lineage_metadata
+                    db.update_metadata(
+                        object_id=view_id,
+                        modify_date=modify_date,
+                        primary_source='dmv',
+                        confidence=1.0,
+                        inputs=inputs,
+                        outputs=outputs
+                    )
+
+                click.echo(f"✅ Loaded DMV dependencies for {len(views_with_dmv)} View(s)")
+            else:
+                click.echo("ℹ️  No Views with DMV dependencies found")
+
+            click.echo()
+
+            # Step 3: Query logs (still TODO)
+            click.echo("=" * 70)
+            click.echo("Step 3: Query Logs (Skipped)")
+            click.echo("=" * 70)
+            click.echo("⚠️  Query log enhancement deferred")
             click.echo()
 
             # Step 4: Detect gaps
