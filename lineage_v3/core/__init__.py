@@ -10,3 +10,8 @@ Modules:
     - gap_detector: Step 4 - Detect unresolved stored procedures
     - lineage_merger: Step 7 - Merge all sources and build bidirectional graph
 """
+
+from .duckdb_workspace import DuckDBWorkspace
+from .gap_detector import GapDetector
+
+__all__ = ['DuckDBWorkspace', 'GapDetector']

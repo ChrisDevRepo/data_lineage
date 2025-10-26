@@ -1,14 +1,14 @@
 # Vibecoding Lineage Parser v3 - Documentation
 
 **Version:** 3.0.0
-**Status:** In Development (Phase 1 Complete)
+**Status:** Phase 4 Complete (SQLGlot Parser Operational)
 **Last Updated:** 2025-10-26
 
 ---
 
 ## Quick Links
 
-- **Main Specification:** [../lineage_specs_v2.md](../lineage_specs_v2.md) (v2.1)
+- **Main Specification:** [../lineage_specs.md](../lineage_specs.md) (v2.1)
 - **Project Guide:** [../CLAUDE.md](../CLAUDE.md)
 - **Environment Setup:** [../.env.template](../.env.template)
 - **Requirements:** [../requirements.txt](../requirements.txt)
@@ -22,23 +22,30 @@
 2. [Quick Start](#quick-start)
 3. [Environment Configuration](#environment-configuration)
 
-### Architecture
-4. [System Architecture](ARCHITECTURE.md) - Coming Soon
-5. [Data Flow](DATA_FLOW.md) - Coming Soon
-6. [Confidence Model](CONFIDENCE_MODEL.md) - Coming Soon
+### Component Documentation ✅
+4. [Production DMV Extractor](../lineage_v3/extractor/README.md) - Phase 2 Complete
+5. [Core Engine (DuckDB)](../lineage_v3/core/README.md) - Phase 3 Complete
+6. [DuckDB Schema Reference](DUCKDB_SCHEMA.md) - Complete database schema
+7. [Phase 3 Completion Summary](PHASE_3_COMPLETE.md) - Phase 3 implementation details
+8. [SQLGlot Parser](../lineage_v3/parsers/README.md) - Phase 4 Complete
+9. [Phase 4 Completion Summary](PHASE_4_COMPLETE.md) - Phase 4 implementation details
+10. [Parser Validation Findings](PARSER_VALIDATION_FINDINGS.md) - Detailed production validation analysis
 
-### Usage
-7. [CLI Reference](CLI_REFERENCE.md) - Coming Soon
-8. [Parquet Schema](PARQUET_SCHEMA.md) - Coming Soon
-9. [JSON Output Format](JSON_OUTPUT_FORMAT.md) - Coming Soon
+### Architecture (Coming Soon)
+11. [System Architecture](ARCHITECTURE.md) - Phase 5+
+12. [Data Flow](DATA_FLOW.md) - Phase 5+
+13. [Confidence Model](CONFIDENCE_MODEL.md) - Phase 5+
 
-### Development
-10. [Development Guide](DEVELOPMENT_GUIDE.md) - Coming Soon
-11. [Testing Guide](TESTING_GUIDE.md) - Coming Soon
-12. [Contributing](CONTRIBUTING.md) - Coming Soon
+### Usage (Coming Soon)
+14. [CLI Reference](CLI_REFERENCE.md) - Phase 6+
+15. [JSON Output Format](JSON_OUTPUT_FORMAT.md) - Phase 6+
+
+### Development (Coming Soon)
+16. [Development Guide](DEVELOPMENT_GUIDE.md) - Phase 8+
+17. [Testing Guide](TESTING_GUIDE.md) - Phase 8+
 
 ### Legacy Documentation
-- [v2 Archived Docs](../deprecated/) - Old v2 implementation
+- [v2 Archived Docs](../deprecated/) - Old v1/v2 implementation
 
 ---
 

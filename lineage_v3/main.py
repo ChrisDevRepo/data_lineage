@@ -102,7 +102,12 @@ def extract(output, timestamp):
     is_flag=True,
     help='Skip query log analysis (Step 3)'
 )
-def run(parquet, output, full_refresh, format, skip_query_logs):
+@click.option(
+    '--workspace',
+    default='lineage_workspace.duckdb',
+    help='Path to DuckDB workspace file'
+)
+def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
     """
     Run lineage analysis on Parquet snapshots.
 
@@ -122,20 +127,165 @@ def run(parquet, output, full_refresh, format, skip_query_logs):
     click.echo(f"📁 Output directory: {output}")
     click.echo(f"🔄 Mode: {'Full Refresh' if full_refresh else 'Incremental'}")
     click.echo(f"📊 Format: {format}")
+    click.echo(f"💾 Workspace: {workspace}")
+    click.echo()
 
-    # TODO: Import and run pipeline
-    # from lineage_v3.core import run_pipeline
-    # run_pipeline(parquet, output, full_refresh, format, skip_query_logs)
+    try:
+        # Import core engine
+        from lineage_v3.core import DuckDBWorkspace
 
-    click.echo("\n⚠️  Pipeline not yet implemented - Coming in Phase 3+")
-    click.echo("📋 Next steps:")
-    click.echo("   1. Implement Helper Extractor (Phase 2)")
-    click.echo("   2. Implement Core Engine (Phase 3)")
-    click.echo("   3. Implement Parser (Phase 4)")
-    click.echo("   4. Implement AI Fallback (Phase 5)")
-    click.echo("   5. Implement Output Formatters (Phase 6)")
+        # Step 1: Initialize DuckDB workspace and load Parquet files
+        click.echo("=" * 70)
+        click.echo("Step 1: Ingest Parquet files into DuckDB")
+        click.echo("=" * 70)
 
-    sys.exit(1)
+        with DuckDBWorkspace(workspace_path=workspace) as db:
+            # Load Parquet files
+            row_counts = db.load_parquet(parquet, full_refresh=full_refresh)
+
+            click.echo(f"✅ Loaded Parquet files:")
+            for table, count in row_counts.items():
+                if count > 0:
+                    click.echo(f"   - {table}: {count:,} rows")
+                else:
+                    click.echo(f"   - {table}: (skipped)")
+
+            # Get workspace stats
+            stats = db.get_stats()
+            click.echo()
+            click.echo(f"📊 Workspace Statistics:")
+            click.echo(f"   - Total objects: {stats.get('objects_count', 0):,}")
+            click.echo(f"   - Dependencies: {stats.get('dependencies_count', 0):,}")
+            click.echo(f"   - Definitions: {stats.get('definitions_count', 0):,}")
+            click.echo(f"   - Metadata cache: {stats.get('lineage_metadata_count', 0):,}")
+            click.echo()
+
+            # Get objects to parse
+            objects_to_parse = db.get_objects_to_parse(full_refresh=full_refresh)
+            click.echo(f"🔍 Objects requiring analysis: {len(objects_to_parse):,}")
+
+            if not objects_to_parse:
+                click.echo()
+                click.echo("✅ All objects up to date! Nothing to parse.")
+                click.echo("💡 Use --full-refresh to force re-parsing.")
+                return
+
+            # Step 2-3: Build baseline from DMV dependencies and query logs
+            # TODO: Implement Steps 2-3 (DMV baseline + query log enhancement)
+            click.echo()
+            click.echo("=" * 70)
+            click.echo("Step 2-3: DMV Dependencies & Query Logs")
+            click.echo("=" * 70)
+            click.echo("⚠️  DMV baseline extraction not yet implemented")
+            click.echo("📋 Coming in integration phase")
+            click.echo()
+
+            # Step 4: Detect gaps
+            click.echo("=" * 70)
+            click.echo("Step 4: Detect Gaps (Missing Dependencies)")
+            click.echo("=" * 70)
+
+            from lineage_v3.core import GapDetector
+            gap_detector = GapDetector(db)
+
+            gaps = gap_detector.detect_gaps()
+            click.echo(f"🔍 Found {len(gaps):,} objects with missing dependencies")
+
+            if gaps:
+                # Show sample gaps
+                sample_count = min(5, len(gaps))
+                click.echo(f"📋 Sample gaps (showing {sample_count}):")
+                for i, gap in enumerate(gaps[:sample_count]):
+                    click.echo(f"   {i+1}. {gap['schema_name']}.{gap['object_name']} ({gap['object_type']})")
+
+                if len(gaps) > sample_count:
+                    click.echo(f"   ... and {len(gaps) - sample_count} more")
+
+            # Show gap statistics
+            gap_stats = gap_detector.get_gap_statistics()
+            click.echo()
+            click.echo(f"📊 Gap Statistics:")
+            click.echo(f"   - Total objects: {gap_stats['total_objects']:,}")
+            click.echo(f"   - Parsed: {gap_stats['parsed_objects']:,}")
+            click.echo(f"   - Gaps: {gap_stats['total_gaps']:,} ({gap_stats['gap_percentage']:.1f}%)")
+            click.echo()
+
+            # Step 5: Run SQLGlot parser on gaps
+            if gaps:
+                click.echo("=" * 70)
+                click.echo("Step 5: SQLGlot Parser (Fill Gaps)")
+                click.echo("=" * 70)
+
+                from lineage_v3.parsers import SQLGlotParser
+                parser = SQLGlotParser(db)
+
+                parsed_count = 0
+                failed_count = 0
+
+                click.echo(f"🔄 Parsing {len(gaps):,} objects...")
+
+                for i, gap in enumerate(gaps):
+                    try:
+                        # Parse object
+                        result = parser.parse_object(gap['object_id'])
+
+                        # Update metadata if parsing succeeded
+                        if result['confidence'] > 0:
+                            db.update_metadata(
+                                object_id=result['object_id'],
+                                modify_date=gap['modify_date'],
+                                primary_source='parser',
+                                confidence=result['confidence'],
+                                inputs=result['inputs'],
+                                outputs=result['outputs']
+                            )
+                            parsed_count += 1
+
+                            # Show progress every 10 objects
+                            if (i + 1) % 10 == 0:
+                                click.echo(f"   Progress: {i + 1}/{len(gaps)} objects parsed...")
+
+                        else:
+                            failed_count += 1
+
+                    except Exception as e:
+                        click.echo(f"   ⚠️  Failed to parse {gap['schema_name']}.{gap['object_name']}: {e}")
+                        failed_count += 1
+
+                click.echo()
+                click.echo(f"✅ SQLGlot parsing complete:")
+                click.echo(f"   - Successfully parsed: {parsed_count:,}")
+                click.echo(f"   - Failed: {failed_count:,}")
+
+                # Show parser statistics
+                parser_stats = parser.get_parse_statistics()
+                click.echo(f"   - Success rate: {parser_stats['success_rate']:.1f}%")
+                click.echo()
+
+            # TODO: Implement remaining steps
+            click.echo("=" * 70)
+            click.echo("⚠️  Remaining steps not yet implemented")
+            click.echo("=" * 70)
+            click.echo("📋 Next phases:")
+            click.echo("   - Step 6: AI Fallback (Phase 5)")
+            click.echo("   - Step 7: Merge all sources")
+            click.echo("   - Step 8: Generate output JSON (Phase 6)")
+            click.echo()
+            click.echo("✅ Phase 4 (SQLGlot Parser) - COMPLETE")
+            click.echo("   - Gap detector implemented")
+            click.echo("   - SQLGlot AST parser working")
+            click.echo("   - Metadata tracking functional")
+            click.echo(f"   - Workspace saved to: {workspace}")
+
+    except FileNotFoundError as e:
+        click.echo(f"\n❌ Error: {e}", err=True)
+        click.echo("💡 Ensure Parquet files exist in the specified directory", err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f"\n❌ Unexpected error: {e}", err=True)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
 
 
 @cli.command()

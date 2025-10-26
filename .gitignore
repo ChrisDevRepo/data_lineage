@@ -36,3 +36,7 @@ parquet_snapshots/*.parquet
 
 # Lineage output (optional - uncomment if you don't want to track lineage results)
 # lineage_output/*.json
+
+# Testing results (query log validation)
+testing/query_log_validation/results/*.json
+testing/query_log_validation/results/*.md
