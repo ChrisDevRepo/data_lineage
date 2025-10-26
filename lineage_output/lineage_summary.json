@@ -1,0 +1,39 @@
+{
+  "total_objects": 85,
+  "parsed_objects": 16,
+  "coverage": 18.8,
+  "by_object_type": {
+    "Stored Procedure": {
+      "total": 16,
+      "parsed": 16,
+      "coverage": 100.0
+    },
+    "View": {
+      "total": 1,
+      "parsed": 0,
+      "coverage": 0.0
+    },
+    "Table": {
+      "total": 68,
+      "parsed": 0,
+      "coverage": 0.0
+    }
+  },
+  "by_primary_source": {
+    "dual_parser": 2,
+    "parser": 14
+  },
+  "object_type_counts": {
+    "Stored Procedure": 16,
+    "View": 1,
+    "Table": 68
+  },
+  "confidence_statistics": {
+    "average": 0.6812500096857548,
+    "min": 0.5,
+    "max": 0.949999988079071,
+    "high_confidence_count": 8,
+    "medium_confidence_count": 0,
+    "low_confidence_count": 8
+  }
+}

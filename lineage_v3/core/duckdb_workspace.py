@@ -74,6 +74,50 @@ class DuckDBWorkspace:
         )
     """
 
+    # Schema for parser comparison logs
+    SCHEMA_PARSER_COMPARISON = """
+        CREATE TABLE IF NOT EXISTS parser_comparison_log (
+            object_id INTEGER,
+            object_name TEXT,
+            schema_name TEXT,
+            object_type TEXT,
+            parse_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+            -- Regex baseline (expected counts)
+            regex_sources_expected INTEGER,
+            regex_targets_expected INTEGER,
+
+            -- SQLGlot parser results
+            sqlglot_sources_found INTEGER,
+            sqlglot_targets_found INTEGER,
+            sqlglot_confidence REAL,
+            sqlglot_quality_match REAL,
+
+            -- SQLLineage parser results (if dual-parser used)
+            sqllineage_sources_found INTEGER,
+            sqllineage_targets_found INTEGER,
+            sqllineage_quality_match REAL,
+
+            -- Dual-parser decision
+            dual_parser_agreement REAL,
+            dual_parser_decision TEXT,
+
+            -- Final result
+            final_sources_count INTEGER,
+            final_targets_count INTEGER,
+            final_confidence REAL,
+            final_source TEXT,  -- 'sqlglot', 'sqllineage', 'dual_parser', 'ai'
+
+            -- AI fallback (if used)
+            ai_used BOOLEAN DEFAULT FALSE,
+            ai_sources_found INTEGER,
+            ai_targets_found INTEGER,
+            ai_confidence REAL,
+
+            PRIMARY KEY (object_id, parse_timestamp)
+        )
+    """
+
     def __init__(self, workspace_path: Optional[str] = None, read_only: bool = False):
         """
         Initialize DuckDB workspace.
@@ -129,6 +173,9 @@ class DuckDBWorkspace:
 
         # Create lineage_results table
         self.connection.execute(self.SCHEMA_LINEAGE_RESULTS)
+
+        # Create parser_comparison_log table
+        self.connection.execute(self.SCHEMA_PARSER_COMPARISON)
 
     def load_parquet(
         self,

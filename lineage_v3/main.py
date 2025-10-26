@@ -210,72 +210,170 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
             click.echo(f"   - Gaps: {gap_stats['total_gaps']:,} ({gap_stats['gap_percentage']:.1f}%)")
             click.echo()
 
-            # Step 5: Run SQLGlot parser on gaps
-            if gaps:
-                click.echo("=" * 70)
-                click.echo("Step 5: SQLGlot Parser (Fill Gaps)")
-                click.echo("=" * 70)
+            # Step 5: Parse ALL Stored Procedures with Dual-Parser
+            click.echo("=" * 70)
+            click.echo("Step 5: Dual-Parser (Parse ALL Stored Procedures)")
+            click.echo("=" * 70)
 
-                from lineage_v3.parsers import SQLGlotParser
-                parser = SQLGlotParser(db)
+            # Get ALL stored procedures (not just gaps)
+            all_sps = db.query("""
+                SELECT object_id, schema_name, object_name, modify_date
+                FROM objects
+                WHERE object_type = 'Stored Procedure'
+                ORDER BY schema_name, object_name
+            """)
+
+            click.echo(f"🔄 Parsing {len(all_sps):,} stored procedures with dual-parser...")
+            click.echo()
+
+            if all_sps:
+                from lineage_v3.parsers import DualParser
+                dual_parser = DualParser(db)
 
                 parsed_count = 0
                 failed_count = 0
+                high_confidence_count = 0
+                medium_confidence_count = 0
+                low_confidence_count = 0
 
-                click.echo(f"🔄 Parsing {len(gaps):,} objects...")
-
-                for i, gap in enumerate(gaps):
+                for i, sp in enumerate(all_sps):
                     try:
-                        # Parse object
-                        result = parser.parse_object(gap['object_id'])
+                        # Parse with dual-parser
+                        result = dual_parser.parse_object(sp[0])  # sp[0] = object_id
 
-                        # Update metadata if parsing succeeded
-                        if result['confidence'] > 0:
-                            db.update_metadata(
-                                object_id=result['object_id'],
-                                modify_date=gap['modify_date'],
-                                primary_source='parser',
-                                confidence=result['confidence'],
-                                inputs=result['inputs'],
-                                outputs=result['outputs']
-                            )
+                        # Persist result to lineage_metadata
+                        db.update_metadata(
+                            object_id=sp[0],
+                            modify_date=sp[3],  # sp[3] = modify_date
+                            primary_source=result.get('source', 'dual_parser'),
+                            confidence=result['confidence'],
+                            inputs=result.get('inputs', []),
+                            outputs=result.get('outputs', [])
+                        )
+
+                        # Categorize by confidence
+                        if result['confidence'] >= 0.85:
                             parsed_count += 1
-
-                            # Show progress every 10 objects
-                            if (i + 1) % 10 == 0:
-                                click.echo(f"   Progress: {i + 1}/{len(gaps)} objects parsed...")
-
+                            high_confidence_count += 1
+                        elif result['confidence'] >= 0.75:
+                            parsed_count += 1
+                            medium_confidence_count += 1
+                        elif result['confidence'] >= 0.50:
+                            parsed_count += 1
+                            low_confidence_count += 1
                         else:
                             failed_count += 1
 
+                        # Show progress every 5 objects
+                        if (i + 1) % 5 == 0 or (i + 1) == len(all_sps):
+                            click.echo(f"   Progress: {i + 1}/{len(all_sps)} SPs parsed...")
+
                     except Exception as e:
-                        click.echo(f"   ⚠️  Failed to parse {gap['schema_name']}.{gap['object_name']}: {e}")
+                        click.echo(f"   ⚠️  Failed to parse {sp[1]}.{sp[2]}: {e}")
                         failed_count += 1
 
                 click.echo()
-                click.echo(f"✅ SQLGlot parsing complete:")
-                click.echo(f"   - Successfully parsed: {parsed_count:,}")
-                click.echo(f"   - Failed: {failed_count:,}")
-
-                # Show parser statistics
-                parser_stats = parser.get_parse_statistics()
-                click.echo(f"   - Success rate: {parser_stats['success_rate']:.1f}%")
+                click.echo(f"✅ Dual-parser complete:")
+                click.echo(f"   - Total SPs: {len(all_sps):,}")
+                click.echo(f"   - Successfully parsed: {parsed_count:,} ({parsed_count/len(all_sps)*100:.1f}%)")
+                click.echo(f"     • High confidence (≥0.85): {high_confidence_count:,}")
+                click.echo(f"     • Medium confidence (0.75-0.84): {medium_confidence_count:,}")
+                click.echo(f"     • Low confidence (0.50-0.74): {low_confidence_count:,}")
+                click.echo(f"   - Failed (need AI): {failed_count:,} ({failed_count/len(all_sps)*100:.1f}%)")
                 click.echo()
 
-            # TODO: Implement remaining steps
-            click.echo("=" * 70)
-            click.echo("⚠️  Remaining steps not yet implemented")
-            click.echo("=" * 70)
-            click.echo("📋 Next phases:")
-            click.echo("   - Step 6: AI Fallback (Phase 5)")
-            click.echo("   - Step 7: Merge all sources")
-            click.echo("   - Step 8: Generate output JSON (Phase 6)")
+                # Show dual-parser statistics
+                if hasattr(dual_parser, 'stats'):
+                    click.echo(f"📊 Dual-Parser Decision Breakdown:")
+                    for decision, count in dual_parser.stats.items():
+                        if count > 0:
+                            click.echo(f"   - {decision}: {count}")
+                    click.echo()
+            else:
+                click.echo("⚠️  No stored procedures found to parse")
+                click.echo()
+
+            # Step 6-7: AI Fallback & Merge (Skip for now - Phase 5)
             click.echo()
-            click.echo("✅ Phase 4 (SQLGlot Parser) - COMPLETE")
-            click.echo("   - Gap detector implemented")
-            click.echo("   - SQLGlot AST parser working")
-            click.echo("   - Metadata tracking functional")
-            click.echo(f"   - Workspace saved to: {workspace}")
+            click.echo("=" * 70)
+            click.echo("Step 6-7: AI Fallback & Merge (Skipped)")
+            click.echo("=" * 70)
+            click.echo("⚠️  AI Fallback deferred to Phase 5")
+            click.echo("📋 Continuing with output generation using parsed data")
+            click.echo()
+
+            # Step 8: Generate output JSON files
+            click.echo("=" * 70)
+            click.echo("Step 8: Generate Output JSON Files")
+            click.echo("=" * 70)
+
+            from lineage_v3.output import InternalFormatter, FrontendFormatter, SummaryFormatter
+
+            # Generate internal lineage.json
+            if format in ['internal', 'both']:
+                internal_formatter = InternalFormatter(db)
+                internal_stats = internal_formatter.generate(
+                    output_path=f"{output}/lineage.json"
+                )
+                click.echo(f"✅ lineage.json generated")
+                click.echo(f"   - {internal_stats['total_nodes']:,} nodes")
+                click.echo(f"   - {internal_stats['output_file']}")
+                click.echo()
+
+            # Generate summary (always)
+            summary_formatter = SummaryFormatter(db)
+            summary = summary_formatter.generate(
+                output_path=f"{output}/lineage_summary.json"
+            )
+            click.echo(f"✅ lineage_summary.json generated")
+            click.echo(f"   - Coverage: {summary['coverage']:.1f}%")
+            click.echo(f"   - Total objects: {summary['total_objects']:,}")
+            click.echo(f"   - Parsed objects: {summary['parsed_objects']:,}")
+            click.echo()
+
+            # Generate frontend lineage.json
+            if format in ['frontend', 'both']:
+                # Load internal lineage first
+                import json
+                from pathlib import Path
+                internal_file = Path(f"{output}/lineage.json")
+                if internal_file.exists():
+                    with open(internal_file, 'r') as f:
+                        internal_lineage = json.load(f)
+                else:
+                    # Generate temporary internal format
+                    internal_formatter = InternalFormatter(db)
+                    internal_stats = internal_formatter.generate(
+                        output_path=f"{output}/lineage.json"
+                    )
+                    with open(f"{output}/lineage.json", 'r') as f:
+                        internal_lineage = json.load(f)
+
+                frontend_formatter = FrontendFormatter(db)
+                frontend_stats = frontend_formatter.generate(
+                    internal_lineage,
+                    output_path=f"{output}/frontend_lineage.json"
+                )
+                click.echo(f"✅ frontend_lineage.json generated")
+                click.echo(f"   - {frontend_stats['total_nodes']:,} nodes")
+                click.echo(f"   - {frontend_stats['output_file']}")
+                click.echo()
+
+            click.echo("=" * 70)
+            click.echo("✅ Phase 4 & 6 COMPLETE")
+            click.echo("=" * 70)
+            click.echo("📊 Completed:")
+            click.echo("   - Phase 4: SQLGlot Parser & Dual-Parser")
+            click.echo("   - Phase 6: Output Generation")
+            click.echo()
+            click.echo("📁 Output files:")
+            click.echo(f"   - {output}/lineage.json (internal format)")
+            click.echo(f"   - {output}/frontend_lineage.json (React Flow format)")
+            click.echo(f"   - {output}/lineage_summary.json (coverage stats)")
+            click.echo()
+            click.echo(f"💾 Workspace saved to: {workspace}")
+            click.echo()
+            click.echo("📋 Phase 5 (AI Fallback) - Deferred to next rollout")
 
     except FileNotFoundError as e:
         click.echo(f"\n❌ Error: {e}", err=True)

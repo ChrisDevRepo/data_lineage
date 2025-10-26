@@ -1,20 +1,254 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Data Lineage Visualizer - Frontend
 
-# Run and deploy your AI Studio app
+**Interactive React application for visualizing Azure Synapse data lineage**
 
-This contains everything you need to run your app locally.
+[![React](https://img.shields.io/badge/React-19.2.0-blue.svg)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-6.2.0-purple.svg)](https://vitejs.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8.2-blue.svg)](https://www.typescriptlang.org/)
+[![Azure Ready](https://img.shields.io/badge/Azure-Free%20Tier%20Ready-0078D4.svg)](https://azure.microsoft.com/)
 
-View your app in AI Studio: https://ai.studio/apps/drive/19XtFeyWUHvmtVIns_yNP9LEs5iyaomwy
+---
 
-## Run Locally
+## 🚀 Quick Start
 
-**Prerequisites:**  Node.js
+### Running in VSCode Devcontainer (Current Environment)
 
+```bash
+# 1. Install dependencies (first time only)
+npm install
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+# 2. Start development server
+npm run dev
+```
+
+**Opens at:** `http://localhost:3000`
+
+**That's it!** Node.js and npm are already installed in your devcontainer.
+
+---
+
+## 📁 Project Structure
+
+```
+frontend/
+├── 📚 docs/                          # All documentation
+│   ├── FRONTEND_ARCHITECTURE.md      # Complete app architecture
+│   ├── LOCAL_DEVELOPMENT.md          # Development guide
+│   ├── DEPLOYMENT_AZURE.md           # Azure deployment guide
+│   ├── INTEGRATION.md                # Backend integration patterns
+│   └── README_COMPLETE.md            # Full setup summary
+│
+├── 🚀 deploy/                        # Deployment configuration
+│   ├── web.config                    # Azure IIS config (Windows)
+│   ├── startup.sh                    # PM2 startup (Linux)
+│   └── .deployment                   # Azure deployment settings
+│
+├── 🎨 components/                    # React components
+│   ├── CustomNode.tsx                # Graph node renderer
+│   ├── Toolbar.tsx                   # Top toolbar with filters
+│   ├── Legend.tsx                    # Schema color legend
+│   ├── InteractiveTracePanel.tsx     # Lineage tracing panel
+│   ├── ImportDataModal.tsx           # Data import/editor
+│   ├── InfoModal.tsx                 # Help/info modal
+│   └── NotificationSystem.tsx        # Toast notifications
+│
+├── 🪝 hooks/                         # Custom React hooks
+│   ├── useGraphology.ts              # Graph construction
+│   ├── useInteractiveTrace.ts        # Lineage tracing logic
+│   ├── useDataFiltering.ts           # Filter & search logic
+│   └── useNotifications.ts           # Notification system
+│
+├── 🛠️ utils/                         # Utilities
+│   ├── layout.ts                     # Dagre graph layout
+│   └── data.ts                       # Sample data generator
+│
+├── App.tsx                           # Main application component
+├── index.tsx                         # React entry point
+├── index.html                        # HTML template
+├── types.ts                          # TypeScript type definitions
+├── constants.ts                      # App constants
+├── package.json                      # Dependencies & scripts
+├── vite.config.ts                    # Vite configuration
+├── tsconfig.json                     # TypeScript config
+└── .env.local                        # Environment variables
+```
+
+---
+
+## 📚 Documentation
+
+**Start here based on what you need:**
+
+| Document | Read When |
+|----------|-----------|
+| **[docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md)** | Daily development, running locally |
+| **[docs/FRONTEND_ARCHITECTURE.md](docs/FRONTEND_ARCHITECTURE.md)** | Understanding the codebase, onboarding |
+| **[docs/INTEGRATION.md](docs/INTEGRATION.md)** | Connecting to Python backend |
+| **[docs/DEPLOYMENT_AZURE.md](docs/DEPLOYMENT_AZURE.md)** | Deploying to Azure Web App |
+| **[docs/README_COMPLETE.md](docs/README_COMPLETE.md)** | Complete setup summary |
+
+---
+
+## 🎯 Common Tasks
+
+### Development
+
+```bash
+# Start dev server with hot reload
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Type check without building
+npm run type-check
+
+# Clean build artifacts
+npm run clean
+```
+
+### Azure Deployment
+
+```bash
+# Build and prepare for Azure deployment
+npm run build:azure
+
+# Create deployment package (deploy.zip)
+npm run deploy:zip
+
+# Then deploy using Azure CLI:
+# az webapp deployment source config-zip \
+#   --resource-group <rg> --name <app> --src deploy.zip
+```
+
+See **[docs/DEPLOYMENT_AZURE.md](docs/DEPLOYMENT_AZURE.md)** for complete deployment instructions.
+
+---
+
+## 🔗 Backend Integration
+
+The frontend loads lineage data from JSON files generated by the Python backend:
+
+```bash
+# Terminal 1: Generate lineage data (from project root)
+cd /workspaces/ws-psidwh
+python lineage_v3/main.py run --parquet parquet_snapshots/
+# Creates: lineage_output/frontend_lineage.json
+
+# Terminal 2: Start frontend
+cd frontend
+npm run dev
+
+# In browser: Click "Import Data" → Upload frontend_lineage.json
+```
+
+See **[docs/INTEGRATION.md](docs/INTEGRATION.md)** for all integration patterns.
+
+---
+
+## 🎨 Features
+
+- ✅ **Interactive Graph Visualization** - Zoom, pan, drag nodes
+- ✅ **Lineage Tracing** - Upstream/downstream dependency exploration
+- ✅ **Smart Filtering** - By schema, object type, data model
+- ✅ **Search** - Find objects with autocomplete
+- ✅ **Multiple Views** - Detail view (objects) & Schema view (aggregated)
+- ✅ **Data Import** - Load custom JSON with validation
+- ✅ **SVG Export** - Export graphs for documentation
+- ✅ **Responsive UI** - Works on desktop and tablets
+
+---
+
+## 🛠️ Technology Stack
+
+| Category | Technology | Version |
+|----------|-----------|---------|
+| **Framework** | React | 19.2.0 |
+| **Build Tool** | Vite | 6.2.0 |
+| **Language** | TypeScript | 5.8.2 |
+| **Visualization** | ReactFlow | 11.11.4 |
+| **Graph Engine** | Graphology | 0.25.4 |
+| **Layout** | Dagre | 0.8.5 |
+| **Styling** | Tailwind CSS | 3.x (CDN) |
+
+---
+
+## ☁️ Azure Deployment
+
+This app is **optimized for Azure Web App Free Tier**:
+
+| Metric | Free Tier | This App | Status |
+|--------|-----------|----------|--------|
+| Disk Space | 1 GB | ~2-5 MB | ✅ <1% usage |
+| Bandwidth | 165 MB/day | ~500 KB/load | ✅ ~330 users/day |
+| CPU Time | 60 min/day | Client-side only | ✅ No server CPU |
+| Cost | $0/month | Static SPA | ✅ FREE! |
+
+**Read more:** [docs/DEPLOYMENT_AZURE.md](docs/DEPLOYMENT_AZURE.md)
+
+---
+
+## 🐛 Troubleshooting
+
+### Port already in use
+
+```bash
+# Kill process on port 3000
+lsof -ti:3000 | xargs kill -9
+
+# Or use different port
+npm run dev -- --port 3001
+```
+
+### Module not found
+
+```bash
+# Reinstall dependencies
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### Clear Vite cache
+
+```bash
+npm run clean
+npm run dev
+```
+
+**More help:** See troubleshooting sections in:
+- [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md#troubleshooting)
+- [docs/DEPLOYMENT_AZURE.md](docs/DEPLOYMENT_AZURE.md#troubleshooting)
+
+---
+
+## 📖 Learn More
+
+- **Architecture deep dive:** [docs/FRONTEND_ARCHITECTURE.md](docs/FRONTEND_ARCHITECTURE.md)
+- **Component breakdown:** [docs/FRONTEND_ARCHITECTURE.md#component-breakdown](docs/FRONTEND_ARCHITECTURE.md#component-breakdown)
+- **Data flow:** [docs/FRONTEND_ARCHITECTURE.md#data-flow](docs/FRONTEND_ARCHITECTURE.md#data-flow)
+- **Performance tips:** [docs/FRONTEND_ARCHITECTURE.md#performance-considerations](docs/FRONTEND_ARCHITECTURE.md#performance-considerations)
+
+---
+
+## 🤝 Contributing
+
+This frontend is part of the **Vibecoding Lineage Parser v3.0** project.
+
+**Main repository:** `/workspaces/ws-psidwh/`
+**Backend:** `lineage_v3/` (Python)
+**Frontend:** `frontend/` (React)
+
+See the main [CLAUDE.md](../CLAUDE.md) for complete project documentation.
+
+---
+
+## 📄 License
+
+Internal Vibecoding project - see main repository for license details.
+
+---
+
+**Built with ❤️ using React + Vite + TypeScript**

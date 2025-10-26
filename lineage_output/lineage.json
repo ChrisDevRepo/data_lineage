@@ -1,0 +1,1086 @@
+[
+  {
+    "id": 14623095,
+    "name": "DimDate",
+    "schema": "dbo",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 30623152,
+    "name": "GLCognosData_HC100500",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 46623209,
+    "name": "t_Account_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 62623266,
+    "name": "t_Actuality_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 78623323,
+    "name": "t_Cal_per",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 94623380,
+    "name": "t_ClosingVersion_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 110623437,
+    "name": "t_Company_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 126623494,
+    "name": "t_ConsType_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 142623551,
+    "name": "t_ContributionVersion_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 158623608,
+    "name": "t_Currency_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 174623665,
+    "name": "t_dim",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 190623722,
+    "name": "t_Form_filter",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 206623779,
+    "name": "t_params",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 222623836,
+    "name": "t_perakt_0",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 238623893,
+    "name": "t_xdbyy_ytd",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 254623950,
+    "name": "t_xdbyy_ytd_0",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 270624007,
+    "name": "t_xdbyy_ytd_0_red",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 286624064,
+    "name": "t_xdbyy_ytd_h",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 302624121,
+    "name": "t_xdbyy_ytd_ptd",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 318624178,
+    "name": "t_xdbyy_ytd_ptd_h",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 334624235,
+    "name": "v_CCR2PowerBI_facts",
+    "schema": "STAGING_FINANCE_COGNOS",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 350624292,
+    "name": "spLoadDimAccount",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [
+      1986106116,
+      46623209
+    ],
+    "outputs": [
+      1986106116
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.8500000238418579
+    }
+  },
+  {
+    "id": 366624349,
+    "name": "spLoadDimAccountDetailsCognos",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [],
+    "outputs": [
+      2002106173
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.5
+    }
+  },
+  {
+    "id": 382624406,
+    "name": "spLoadDimActuality",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [
+      2018106230,
+      62623266
+    ],
+    "outputs": [
+      2018106230
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.8500000238418579
+    }
+  },
+  {
+    "id": 398624463,
+    "name": "spLoadDimCompany",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [
+      110623437
+    ],
+    "outputs": [
+      2034106287
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.5
+    }
+  },
+  {
+    "id": 414624520,
+    "name": "spLoadDimCompanyKoncern",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [
+      110623437
+    ],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.5
+    }
+  },
+  {
+    "id": 430624577,
+    "name": "spLoadDimConsType",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [
+      2066106401,
+      126623494
+    ],
+    "outputs": [
+      2066106401
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.8500000238418579
+    }
+  },
+  {
+    "id": 446624634,
+    "name": "spLoadDimCurrency",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [
+      2082106458,
+      158623608
+    ],
+    "outputs": [
+      2082106458
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.8500000238418579
+    }
+  },
+  {
+    "id": 462624691,
+    "name": "spLoadDimDepartment",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [],
+    "outputs": [
+      2098106515
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.5
+    }
+  },
+  {
+    "id": 478624748,
+    "name": "spLoadDimPosition",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [],
+    "outputs": [
+      2114106572
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.5
+    }
+  },
+  {
+    "id": 494624805,
+    "name": "spLoadFactGLCOGNOS",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [
+      2066106401,
+      2130106629,
+      2018106230,
+      2098106515,
+      2082106458,
+      2002106173,
+      2034106287,
+      2146106686,
+      1986106116,
+      606625204,
+      2114106572
+    ],
+    "outputs": [
+      2130106629
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.8500000238418579
+    }
+  },
+  {
+    "id": 510624862,
+    "name": "spLoadGLCognosData",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Stored Procedure",
+    "inputs": [
+      334624235
+    ],
+    "outputs": [
+      2146106686,
+      30623152
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.5
+    }
+  },
+  {
+    "id": 558625033,
+    "name": "spLoadFactAggregatedLaborCost",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "Stored Procedure",
+    "inputs": [],
+    "outputs": [
+      734625660
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.5
+    }
+  },
+  {
+    "id": 574625090,
+    "name": "spLoadFactLaborCostForEarnedValue_1",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "Stored Procedure",
+    "inputs": [
+      750625717
+    ],
+    "outputs": [
+      622625261
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.5
+    }
+  },
+  {
+    "id": 590625147,
+    "name": "spLoadFactLaborCostForEarnedValue_2",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "Stored Procedure",
+    "inputs": [
+      622625261,
+      638625318
+    ],
+    "outputs": [
+      622625261
+    ],
+    "provenance": {
+      "primary_source": "parser",
+      "confidence": 0.8500000238418579
+    }
+  },
+  {
+    "id": 606625204,
+    "name": "DimMonthFinance",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 622625261,
+    "name": "FactLaborCostForEarnedValue",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 638625318,
+    "name": "MonthlyAverageCurrencyExchangeRate",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 654625375,
+    "name": "Positions",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 670625432,
+    "name": "Positions_Raw",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 686625489,
+    "name": "LogMessage",
+    "schema": "dbo",
+    "object_type": "Stored Procedure",
+    "inputs": [],
+    "outputs": [
+      862626116
+    ],
+    "provenance": {
+      "primary_source": "dual_parser",
+      "confidence": 0.8500000238418579
+    }
+  },
+  {
+    "id": 718625603,
+    "name": "DimCountry",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 734625660,
+    "name": "FactAggregatedLaborCost",
+    "schema": "CONSUMPTION_POWERBI",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 750625717,
+    "name": "Full_Departmental_Map",
+    "schema": "dbo",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 766625774,
+    "name": "COGNOS_Template_SubAccounts",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 782625831,
+    "name": "COGNOS_Template_SubAccounts_Raw",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 798625888,
+    "name": "Departments",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 814625945,
+    "name": "Departments_Raw",
+    "schema": "STAGING_FINANCE_FILE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 830626002,
+    "name": "GlobalCountries",
+    "schema": "CONSUMPTION_PRIMA",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 846626059,
+    "name": "vFactLaborCost",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "View",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 862626116,
+    "name": "Logs",
+    "schema": "ADMIN",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 878626173,
+    "name": "spLastRowCount",
+    "schema": "dbo",
+    "object_type": "Stored Procedure",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "dual_parser",
+      "confidence": 0.949999988079071
+    }
+  },
+  {
+    "id": 1634104862,
+    "name": "COGNOS_Account",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1650104919,
+    "name": "COGNOS_Actuality",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1666104976,
+    "name": "COGNOS_ClosingVersion",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1682105033,
+    "name": "COGNOS_Company",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1698105090,
+    "name": "COGNOS_ConsType",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1714105147,
+    "name": "COGNOS_ContributionVersion",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1730105204,
+    "name": "COGNOS_Currency",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1746105261,
+    "name": "COGNOS_Currency_Conversion",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1762105318,
+    "name": "COGNOS_Form",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1778105375,
+    "name": "COGNOS_PowerBIFacts",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1794105432,
+    "name": "COGNOS_t_Cal_per",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1810105489,
+    "name": "COGNOS_t_dim",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1826105546,
+    "name": "COGNOS_t_params",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1842105603,
+    "name": "COGNOS_t_perakt_0",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1858105660,
+    "name": "COGNOS_t_xdbyy_ytd",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1874105717,
+    "name": "COGNOS_t_xdbyy_ytd_0",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1890105774,
+    "name": "COGNOS_t_xdbyy_ytd_0_red",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1906105831,
+    "name": "COGNOS_t_xdbyy_ytd_h",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1922105888,
+    "name": "COGNOS_t_xdbyy_ytd_ptd",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1938105945,
+    "name": "COGNOS_t_xdbyy_ytd_ptd_h",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1954106002,
+    "name": "COGNOS_Template_SubAccounts",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1970106059,
+    "name": "COGNOS_v_CCR2PowerBI_facts",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 1986106116,
+    "name": "DimAccount",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 2002106173,
+    "name": "DimAccountDetailsCognos",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 2018106230,
+    "name": "DimActuality",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 2034106287,
+    "name": "DimCompany",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 2050106344,
+    "name": "DimCompanyKoncern",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 2066106401,
+    "name": "DimConsType",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 2082106458,
+    "name": "DimCurrency",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 2098106515,
+    "name": "DimDepartment",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 2114106572,
+    "name": "DimPosition",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 2130106629,
+    "name": "FactGLCognos",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  },
+  {
+    "id": 2146106686,
+    "name": "GLCognosData",
+    "schema": "CONSUMPTION_FINANCE",
+    "object_type": "Table",
+    "inputs": [],
+    "outputs": [],
+    "provenance": {
+      "primary_source": "unparsed",
+      "confidence": 0.0
+    }
+  }
+]

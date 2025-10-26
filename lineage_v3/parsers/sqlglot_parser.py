@@ -17,6 +17,7 @@ from sqlglot import exp
 import logging
 
 from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
+from lineage_v3.utils.validators import validate_object_id, sanitize_identifier
 
 
 # Configure logging
@@ -139,10 +140,13 @@ class SQLGlotParser:
         Returns:
             DDL text or None if not found
         """
+        # Validate object_id (defense in depth)
+        validated_id = validate_object_id(object_id)
+
         query = f"""
         SELECT definition
         FROM definitions
-        WHERE object_id = {object_id}
+        WHERE object_id = {validated_id}
         """
 
         results = self.workspace.query(query)
@@ -382,6 +386,14 @@ class SQLGlotParser:
                 continue
 
             schema, obj_name = parts
+
+            # Sanitize identifiers (defense in depth)
+            try:
+                schema = sanitize_identifier(schema)
+                obj_name = sanitize_identifier(obj_name)
+            except ValueError as e:
+                logger.warning(f"Invalid identifier: {e}")
+                continue
 
             # Query workspace for object_id
             query = f"""

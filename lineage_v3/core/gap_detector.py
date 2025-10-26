@@ -12,6 +12,7 @@ Date: 2025-10-26
 
 from typing import List, Dict, Any, Optional
 from .duckdb_workspace import DuckDBWorkspace
+from ..utils.validators import validate_object_type
 
 
 class GapDetector:
@@ -79,7 +80,9 @@ class GapDetector:
 
         # Add object_type filter if specified
         if object_type is not None:
-            query += f"\n    AND o.object_type = '{object_type}'"
+            # Validate to prevent SQL injection (defense in depth)
+            validated_type = validate_object_type(object_type)
+            query += f"\n    AND o.object_type = '{validated_type}'"
 
         query += "\nORDER BY o.schema_name, o.object_name"
 

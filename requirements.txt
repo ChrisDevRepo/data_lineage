@@ -29,6 +29,9 @@ sqlalchemy>=2.0.44               # Latest: 2.0.44 (Oct 2025) - Python 3.14 suppo
 sqlglot>=27.28.1                 # Latest: 27.28.1 (Oct 2025) - Supports 31 SQL dialects
                                  # Used for T-SQL AST traversal and dependency extraction
 
+sqllineage>=1.5.3                # Latest: 1.5.3 - Multi-parser lineage extraction (sqlfluff + sqlparse)
+                                 # Used for dual-parser cross-validation to improve accuracy
+
 # ------------------------------------------------------------------------------
 # Microsoft Agent Framework & Azure AI
 # ------------------------------------------------------------------------------
