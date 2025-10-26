@@ -87,12 +87,12 @@ class FrontendFormatter:
         return stats
     
     def _assign_node_ids(self, internal_lineage: List[Dict[str, Any]]):
-        """Map object_ids to node_X string IDs for React Flow."""
-        for idx, node in enumerate(internal_lineage):
+        """Map object_ids to string IDs (string cast of object_id)."""
+        for node in internal_lineage:
             object_id = node['id']
             if object_id not in self.object_id_to_node_id:
-                # Use node_X format (X is sequential index)
-                node_id = f"node_{idx}"
+                # Use string representation of actual object_id from database
+                node_id = str(object_id)
                 self.object_id_to_node_id[object_id] = node_id
     
     def _transform_to_frontend(
@@ -146,14 +146,14 @@ class FrontendFormatter:
                 'object_type': node['object_type'],
                 'description': description,
                 'data_model_type': data_model_type,
-                'inputs': sorted(input_node_ids),  # String sorting is fine for node_X format
-                'outputs': sorted(output_node_ids)
+                'inputs': sorted(input_node_ids, key=lambda x: int(x)),
+                'outputs': sorted(output_node_ids, key=lambda x: int(x))
             }
 
             frontend_nodes.append(frontend_node)
 
-        # Sort by node_id (node_0, node_1, node_2, ...)
-        frontend_nodes.sort(key=lambda n: int(n['id'].replace('node_', '')))
+        # Sort by object_id (now string representation of integer)
+        frontend_nodes.sort(key=lambda n: int(n['id']))
         
         return frontend_nodes
     

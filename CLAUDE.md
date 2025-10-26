@@ -324,20 +324,22 @@ Uses integer `object_id` from `sys.objects` as primary key:
 
 #### Frontend Format (`frontend_lineage.json`)
 
-Uses string `node_X` format for React Flow compatibility:
+Uses string representation of `object_id` for React Flow compatibility:
 
 ```json
 {
-  "id": "node_0",
+  "id": "1986106116",
   "name": "DimCustomers",
   "schema": "CONSUMPTION_FINANCE",
   "object_type": "Table",
-  "description": "",
+  "description": "Confidence: 0.00",
   "data_model_type": "Dimension",
-  "inputs": ["node_1"],
-  "outputs": ["node_2", "node_3"]
+  "inputs": ["46623209"],
+  "outputs": ["350624292", "366624349"]
 }
 ```
+
+**Note:** IDs are string-cast object_ids (e.g., "1986106116") not sequential node_X format
 
 ### Bidirectional Graph Model
 
