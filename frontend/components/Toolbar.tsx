@@ -1,0 +1,175 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { DataNode } from '../types';
+import { NotificationHistory } from './NotificationSystem';
+import { Notification } from '../types';
+
+type ToolbarProps = {
+    viewMode: 'detail' | 'schema';
+    setViewMode: (mode: 'detail' | 'schema') => void;
+    searchTerm: string;
+    setSearchTerm: (term: string) => void;
+    executeSearch: (query: string) => void;
+    autocompleteSuggestions: DataNode[];
+    setAutocompleteSuggestions: (suggestions: DataNode[]) => void;
+    selectedSchemas: Set<string>;
+    setSelectedSchemas: (schemas: Set<string>) => void;
+    schemas: string[];
+    selectedTypes: Set<string>;
+    setSelectedTypes: (types: Set<string>) => void;
+    dataModelTypes: string[];
+    layout: 'LR' | 'TB';
+    setLayout: (layout: 'LR' | 'TB') => void;
+    hideUnrelated: boolean;
+    setHideUnrelated: (hide: boolean) => void;
+    isTraceModeActive: boolean;
+    onStartTrace: () => void;
+    isControlsVisible: boolean;
+    onToggleControls: () => void;
+    onOpenImport: () => void;
+    onOpenInfo: () => void;
+    onExportSVG: () => void;
+    notificationHistory: Notification[];
+    onClearNotificationHistory: () => void;
+};
+
+export const Toolbar = (props: ToolbarProps) => {
+    const {
+        viewMode, setViewMode, searchTerm, setSearchTerm, executeSearch,
+        autocompleteSuggestions, setAutocompleteSuggestions,
+        selectedSchemas, setSelectedSchemas, schemas,
+        selectedTypes, setSelectedTypes, dataModelTypes,
+        layout, setLayout, hideUnrelated, setHideUnrelated,
+        isTraceModeActive, onStartTrace, isControlsVisible,
+        onToggleControls, onOpenImport, onOpenInfo, onExportSVG, notificationHistory, onClearNotificationHistory
+    } = props;
+    
+    const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
+    const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
+    const schemaFilterRef = useRef<HTMLDivElement>(null);
+    const typeFilterRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (schemaFilterRef.current && !schemaFilterRef.current.contains(event.target as Node)) {
+                setIsSchemaFilterOpen(false);
+            }
+            if (typeFilterRef.current && !typeFilterRef.current.contains(event.target as Node)) {
+                setIsTypeFilterOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setAutocompleteSuggestions([]);
+        executeSearch(searchTerm.trim());
+    };
+    
+    const handleSuggestionClick = (node: DataNode) => {
+        setSearchTerm(node.name);
+        setAutocompleteSuggestions([]);
+        executeSearch(node.name);
+    };
+
+    return (
+        <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-gray-200">
+            <div className="flex items-start gap-2 flex-wrap">
+                <div className="flex items-center rounded-lg bg-gray-200 p-0.5 h-10">
+                    <button onClick={() => setViewMode('detail')} disabled={isTraceModeActive} className={`h-full px-3 text-sm font-semibold rounded-md transition-colors ${viewMode === 'detail' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-black'} disabled:opacity-50 disabled:cursor-not-allowed`}>Detail View</button>
+                    <button onClick={() => setViewMode('schema')} disabled={isTraceModeActive} className={`h-full px-3 text-sm font-semibold rounded-md transition-colors ${viewMode === 'schema' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-black'} disabled:opacity-50 disabled:cursor-not-allowed`}>Schema View</button>
+                </div>
+                <div className="relative">
+                    <form onSubmit={handleSearch} className="flex items-center">
+                        <input
+                            type="text"
+                            placeholder="Find object..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onBlur={() => setTimeout(() => setAutocompleteSuggestions([]), 150)}
+                            disabled={viewMode === 'schema' || isTraceModeActive}
+                            className="text-sm h-10 w-48 pl-3 pr-10 border rounded-lg bg-gray-100 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                        />
+                        <button type="submit" disabled={viewMode === 'schema' || isTraceModeActive} className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed" title="Search">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+                        </button>
+                    </form>
+                    {autocompleteSuggestions.length > 0 && (
+                        <div className="absolute top-full mt-1 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-40 overflow-y-auto">
+                            <ul className="py-1">
+                                {autocompleteSuggestions.map(node => (
+                                    <li
+                                        key={node.id}
+                                        className="px-3 py-1.5 text-sm text-gray-800 hover:bg-blue-100 cursor-pointer truncate"
+                                        title={node.name}
+                                        onMouseDown={() => handleSuggestionClick(node)}
+                                    >
+                                        {node.name}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+                <div className="relative" ref={schemaFilterRef}>
+                    <button onClick={() => setIsSchemaFilterOpen(p => !p)} disabled={isTraceModeActive} className="h-10 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">Filter Schemas ({selectedSchemas.size}/{schemas.length})</button>
+                    {isSchemaFilterOpen && (
+                        <div className="absolute top-full mt-2 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                            <div className="space-y-2">
+                                {schemas.map(s => (<label key={s} className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={selectedSchemas.has(s)} onChange={() => { const newSet = new Set(selectedSchemas); if (newSet.has(s)) newSet.delete(s); else newSet.add(s); setSelectedSchemas(newSet); }} className="rounded text-blue-500 focus:ring-blue-500" /><span>{s}</span></label>))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+                {dataModelTypes.length > 0 && (
+                    <div className="relative" ref={typeFilterRef}>
+                        <button onClick={() => setIsTypeFilterOpen(p => !p)} disabled={isTraceModeActive} className="h-10 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">Filter Types ({selectedTypes.size}/{dataModelTypes.length})</button>
+                        {isTypeFilterOpen && (
+                            <div className="absolute top-full mt-2 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                                <div className="space-y-2">
+                                    {dataModelTypes.map(t => (<label key={t} className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={selectedTypes.has(t)} onChange={() => { const newSet = new Set(selectedTypes); if (newSet.has(t)) newSet.delete(t); else newSet.add(t); setSelectedTypes(newSet); }} className="rounded text-blue-500 focus:ring-blue-500" /><span>{t}</span></label>))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+                <select value={layout} onChange={(e) => setLayout(e.target.value as 'LR' | 'TB')} className="h-10 appearance-none bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg pl-4 pr-10 focus:outline-none text-sm">
+                    <option value="LR">Layout: Horizontal</option>
+                    <option value="TB">Layout: Vertical</option>
+                </select>
+                <label className={`flex items-center gap-2 text-sm cursor-pointer h-10 px-3 rounded-lg hover:bg-gray-200 ${viewMode === 'schema' || isTraceModeActive ? 'opacity-50 cursor-not-allowed' : ''}`}><input type="checkbox" checked={hideUnrelated} onChange={(e) => setHideUnrelated(e.target.checked)} disabled={viewMode === 'schema' || isTraceModeActive} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><span>Hide Unrelated</span></label>
+            </div>
+            <div className="flex items-start gap-2 flex-wrap">
+                <button onClick={onStartTrace} className="h-10 px-4 bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold rounded-lg text-sm flex items-center gap-2" title="Start Interactive Trace">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75v6.75m-4.5-3.5h9M3.75 12a9 9 0 0 1 18 0v.001a9 9 0 0 1-18 0V12Z" /></svg>
+                    Start Trace
+                </button>
+                <button onClick={onToggleControls} className="h-10 w-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-lg" title={isControlsVisible ? "Hide Overlays" : "Show Overlays"}>
+                    {isControlsVisible ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-800">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L6.228 6.228" />
+                        </svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-800">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5s-8.573-3.007-9.963-7.178z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    )}
+                </button>
+                <button onClick={onExportSVG} className="h-10 w-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-lg" title="Export as SVG">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-800">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                </button>
+                <button onClick={onOpenImport} className="h-10 w-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-lg" title="Import & Edit Data">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 text-gray-800"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+                </button>
+                <button onClick={onOpenInfo} className="h-10 w-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-lg text-gray-800" title="About this App">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" /></svg>
+                </button>
+                <NotificationHistory history={notificationHistory} onClearHistory={onClearNotificationHistory} />
+            </div>
+        </div>
+    );
+};

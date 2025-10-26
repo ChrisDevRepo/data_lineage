@@ -2,9 +2,29 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Environment
+
+**Devcontainer:** This project runs in a VSCode devcontainer using `mcr.microsoft.com/devcontainers/base:noble` (Ubuntu 24.04)
+
+**System Dependencies Installed:**
+- Python 3.12.3
+- Microsoft ODBC Driver 18 for SQL Server (v18.5.1.1)
+- unixODBC libraries
+
+**MCP Servers Configured:** ([.vscode/mcp.json](.vscode/mcp.json))
+- `microsoft-learn` - Microsoft documentation access (via mcp-remote)
+
+**Built-in Tools Available:**
+- `WebFetch` - Fetch and analyze web content
+- `WebSearch` - Search the web for current information
+
 ## Overview
 
-This repository contains SQL scripts for an Azure Synapse Analytics data warehouse implementation. The codebase is organized into stored procedures, tables, and views across multiple schemas that support finance, clinical operations, and reporting workloads.
+This repository contains:
+1. **Azure Synapse Data Warehouse** - SQL scripts for stored procedures, tables, and views
+2. **Vibecoding Lineage Parser v3** - DMV-first data lineage extraction system
+
+The codebase supports finance, clinical operations, and reporting workloads across multiple schemas.
 
 ## Repository Structure
 
@@ -15,19 +35,36 @@ ws-psidwh/
 │   ├── Tables/                   # Table definitions
 │   └── Views/                    # View definitions
 │
-├── scripts/                      # Lineage analysis scripts
-│   └── autonomous_lineage.py     # Main autonomous lineage engine
+├── lineage_v3/                   # 🆕 Lineage Parser v3 (Current)
+│   ├── main.py                   # CLI entry point
+│   ├── extractor/                # DMV → Parquet exporter (dev only)
+│   ├── core/                     # DuckDB engine
+│   ├── parsers/                  # SQLGlot parser
+│   ├── ai_analyzer/              # Microsoft Agent Framework
+│   ├── output/                   # JSON formatters
+│   └── utils/                    # Config & incremental support
 │
-├── ai_analyzer/                  # AI-assisted SQL analysis modules
-├── parsers/                      # SQL parsing modules
-├── validators/                   # Dependency validation modules
-├── output/                       # Output formatting modules (internal)
-├── lineage_output/              # Generated lineage results (JSON files)
-├── docs/                        # Documentation
-└── CLAUDE.md                    # This file
+├── deprecated/                   # Archived v2 implementation
+│   ├── scripts/                  # Old file-based parser
+│   ├── ai_analyzer/              # Custom AI logic (v2)
+│   ├── parsers/                  # Regex parsers (v2)
+│   ├── validators/               # Validators (v2)
+│   ├── output/                   # Output formatters (v2)
+│   └── README_DEPRECATED.md      # Migration notes
+│
+├── frontend/                     # React Flow visualization app
+├── parquet_snapshots/            # DMV Parquet exports (gitignored)
+├── lineage_output/               # Generated lineage JSON files
+├── docs/                         # Documentation
+├── .env.template                 # Environment config template
+├── requirements.txt              # Python dependencies
+├── lineage_specs_v2.md           # v3 specification (v2.1)
+└── CLAUDE.md                     # This file
 ```
 
-## Schema Architecture
+---
+
+## Synapse Data Warehouse Schema Architecture
 
 The data warehouse uses a layered architecture with distinct schemas for different purposes:
 
@@ -62,296 +99,398 @@ The data warehouse uses a layered architecture with distinct schemas for differe
   - HR supervisor hierarchies
   - Timesheet aggregations
 
-## Key Patterns and Conventions
+### Key SQL Patterns
 
-### Stored Procedure Naming
-- Procedures follow pattern: `[Schema].[spLoad{TargetTable}]`
-- Master procedures orchestrate multiple child procedures (e.g., `spLoadDimTables` calls individual dimension loaders)
-- Suffixes indicate processing stage:
-  - `_Post` - Post-processing operations
-  - `_Aggregations` - Aggregation calculations
-  - `_ETL` - Extract, Transform, Load operations
+**Stored Procedure Naming**:
+- Pattern: `[Schema].[spLoad{TargetTable}]`
+- Suffixes: `_Post`, `_Aggregations`, `_ETL`
 
-### Error Handling and Logging
-All procedures use a standard pattern:
-```sql
-BEGIN TRY
-    -- Logging start with dbo.LogMessage
-    -- Main processing logic
-    -- Logging completion with dbo.LogMessage
-END TRY
-BEGIN CATCH
-    -- Error capture and logging with dbo.LogMessage
-    -- RAISERROR to propagate error
-END CATCH
+**Error Handling**:
+- All procedures use `BEGIN TRY...END TRY / BEGIN CATCH...END CATCH`
+- Centralized logging: `dbo.LogMessage`, `dbo.spLastRowCount`
+
+**Table Distribution**:
+- `DISTRIBUTION = REPLICATE` - Small dimension tables
+- `DISTRIBUTION = HASH([columns])` - Large fact tables
+- `CLUSTERED COLUMNSTORE INDEX` - Fact tables
+- `HEAP` - Some dimension tables
+
+---
+
+## Vibecoding Lineage Parser v3 🆕
+
+### Overview
+
+**Version:** 3.0.0
+**Status:** In Development (Phase 1 Complete)
+**Specification:** See [lineage_specs_v2.md](lineage_specs_v2.md) (v2.1)
+
+A DMV-first data lineage extraction system that consumes Parquet snapshots of Synapse metadata and produces JSON-based dependency graphs.
+
+### Core Architecture
+
+```
+[Synapse DMVs] → Helper Extractor → [Parquet Snapshots]
+                                            ↓
+                              DuckDB Workspace (Persistent)
+                                            ↓
+              ┌──────────────────────────────┼──────────────────────────┐
+              ↓                              ↓                          ↓
+    DMV Dependencies (1.0)     Query Logs (0.9)              SQLGlot Parser (0.85)
+              └──────────────────────────────┼──────────────────────────┘
+                                            ↓
+                              AI Fallback (Microsoft Agent Framework - 0.7)
+                                            ↓
+                              Lineage Merger (Bidirectional Graph)
+                                            ↓
+              ┌──────────────────────────────┼──────────────────────────┐
+              ↓                              ↓                          ↓
+    lineage.json (internal)    frontend_lineage.json        lineage_summary.json
+    (int object_ids)           (string node_ids)            (coverage stats)
 ```
 
-Key logging components:
-- `dbo.LogMessage` - Centralized logging stored procedure
-- `dbo.spLastRowCount` - Captures affected row counts
-- Log levels: INFO, ERROR
+### Key Differences: v2 → v3
 
-### Table Distribution Strategies
-Tables use Azure Synapse-specific distribution:
-- `DISTRIBUTION = REPLICATE` - For small dimension tables
-- `DISTRIBUTION = HASH([columns])` - For large fact tables with specific distribution keys
-- `CLUSTERED COLUMNSTORE INDEX` - Default for fact tables
-- `HEAP` - For some dimension tables
+| Aspect | v2 (Deprecated) | v3 (Current) |
+|--------|----------------|--------------|
+| **Data Source** | File-based (`.sql` files) | DMV-based (Parquet snapshots) |
+| **Primary Key** | String `"schema.object_name"` | Integer `object_id` |
+| **Database** | None (in-memory dicts) | DuckDB persistent workspace |
+| **SQL Parser** | Regex + AI hybrid | SQLGlot AST + AI fallback |
+| **AI Framework** | Custom multi-source | Microsoft Agent Framework |
+| **Incremental Loads** | ❌ Not supported | ✅ Via `modify_date` tracking |
+| **Output Formats** | Frontend only | Internal + Frontend |
 
-### Temporal Tracking
-Tables consistently include audit columns:
-- `CreatedAt` / `CREATED_AT`
-- `UpdatedAt` / `UPDATED_AT`
-- `CreatedBy` / `UpdatedBy`
+### Installation & Setup
 
-### Data Processing Patterns
+**Prerequisites:**
+- Python >=3.10 (tested with 3.12.3)
+- Microsoft ODBC Driver 18 for SQL Server (for dev environment only)
+- Azure Synapse Dedicated SQL Pool access (for DMV extraction during development)
+- Azure AI Foundry endpoint (for AI fallback - configured in Phase 5)
 
-**Truncate and Load**: Most consumption tables use TRUNCATE then INSERT pattern for full refresh
+**Steps:**
 
-**Complex ETL with Temp Tables**: Large procedures (e.g., `spLoadCadenceBudgetData`) use:
-1. Temporary tables with hash distribution for intermediate results
-2. Multiple UNION operations to combine different data scenarios
-3. Currency conversion joins to `MonthlyAverageCurrencyExchangeRate`
-4. Department mapping with `PrimaDepartmentCount` for proportional allocation
-5. Final UPDATE statements to adjust calculated fields
+1. **Clone repository and navigate:**
+   ```bash
+   cd /path/to/ws-psidwh
+   ```
 
-**Earned Value Calculations**: The Cadence budget processing includes sophisticated earned value methodology:
-- Direct allocation (50% or 25% based on version)
-- Indirect allocation based on proportions
-- Special handling for "Project Management" tasks
-- Multiple calculation versions (Version-2) for comparison
+2. **Install dependencies:**
+   ```bash
+   pip install --break-system-packages -r requirements.txt
+   # Note: Use --break-system-packages in dev containers
+   ```
+
+3. **Configure environment:**
+   ```bash
+   # Create .env file from your credentials
+   # Required fields:
+   # - SYNAPSE_SERVER
+   # - SYNAPSE_DATABASE
+   # - SYNAPSE_USERNAME
+   # - SYNAPSE_PASSWORD
+   ```
+
+4. **Validate setup:**
+   ```bash
+   python lineage_v3/main.py validate
+   ```
+
+### Development Tools
+
+**Internal Database Helper (Vibecoding Development Only):**
+
+For rapid testing and verification during development, use the internal helper:
+
+```bash
+# Test Synapse connection
+python lineage_v3/utils/db_helper.py
+
+# Or import in scripts
+from lineage_v3.utils import SynapseHelper
+
+helper = SynapseHelper()
+results = helper.query("SELECT * FROM sys.objects WHERE type = 'P'")
+helper.print_results(results)
+```
+
+**⚠️ Note:** This helper is for internal development only. External users will use the production extractor (see below).
+
+### Usage
+
+#### During Development (With Synapse Access):
+
+```bash
+# Step 1: Extract DMV data to Parquet
+python lineage_v3/main.py extract --output parquet_snapshots/
+
+# Step 2: Run lineage analysis
+python lineage_v3/main.py run --parquet parquet_snapshots/
+```
+
+#### In Production (Pre-exported Parquet):
+
+```bash
+# Provide Parquet files in parquet_snapshots/ directory
+# Run lineage analysis directly
+python lineage_v3/main.py run --parquet parquet_snapshots/
+```
+
+#### Advanced Options:
+
+```bash
+# Full refresh (skip incremental)
+python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
+
+# Generate only frontend output
+python lineage_v3/main.py run --parquet parquet_snapshots/ --format frontend
+
+# Skip query log analysis (if DMV unavailable)
+python lineage_v3/main.py run --parquet parquet_snapshots/ --skip-query-logs
+```
+
+### JSON Output Formats
+
+#### Internal Format (`lineage.json`)
+
+Uses integer `object_id` from `sys.objects` as primary key:
+
+```json
+{
+  "id": 1001,
+  "name": "DimCustomers",
+  "schema": "CONSUMPTION_FINANCE",
+  "object_type": "Table",
+  "inputs": [2002],
+  "outputs": [3003],
+  "provenance": {
+    "primary_source": "dmv",
+    "confidence": 1.0
+  }
+}
+```
+
+#### Frontend Format (`frontend_lineage.json`)
+
+Uses string `node_X` format for React Flow compatibility:
+
+```json
+{
+  "id": "node_0",
+  "name": "DimCustomers",
+  "schema": "CONSUMPTION_FINANCE",
+  "object_type": "Table",
+  "description": "",
+  "data_model_type": "Dimension",
+  "inputs": ["node_1"],
+  "outputs": ["node_2", "node_3"]
+}
+```
+
+### Bidirectional Graph Model
+
+**Stored Procedures:**
+- `inputs`: Tables/Views it reads from (FROM, JOIN clauses)
+- `outputs`: Tables it writes to (INSERT, UPDATE, MERGE, TRUNCATE)
+
+**Tables:**
+- `inputs`: Stored Procedures that write to it
+- `outputs`: Stored Procedures/Views that read from it (**populated via reverse lookup**)
+
+**Views:**
+- `inputs`: Tables/Views it reads from
+- `outputs`: Stored Procedures/Views that read from it (**populated via reverse lookup**)
+
+**Circular Dependencies:** A stored procedure can appear in both `inputs` and `outputs` of a table when it both reads from and writes to that table.
+
+### Confidence Model
+
+| Source | Confidence | Description |
+|--------|-----------|-------------|
+| **DMV** | 1.0 | Authoritative system metadata (`sys.sql_expression_dependencies`) |
+| **Query Log** | 0.9 | Confirmed runtime execution (`sys.dm_pdw_exec_requests`) |
+| **SQLGlot Parser** | 0.85 | Static AST analysis of DDL (`sys.sql_modules`) |
+| **AI (Microsoft Agent Framework)** | 0.7 | Multi-agent fallback for complex SQL |
+
+### Incremental Load Support
+
+The parser tracks object modification timestamps to skip unchanged objects:
+
+```bash
+# Default: Incremental mode
+python lineage_v3/main.py run --parquet parquet_snapshots/
+
+# Force full refresh
+python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
+```
+
+**How it works:**
+1. DuckDB maintains `lineage_metadata` table with `last_parsed_modify_date`
+2. Before parsing, checks if `modify_date` from `objects.parquet` is newer
+3. Skips parsing if object hasn't changed and confidence >= 0.85
+
+### Production vs Development Tools
+
+**⚠️ Important Distinction:**
+
+| Tool | Purpose | Audience | Location |
+|------|---------|----------|----------|
+| **Production Extractor** | Export DMVs to Parquet for external users | External DBAs/Users | `lineage_v3/extractor/synapse_dmv_extractor.py` |
+| **Development Helper** | Quick testing & verification during development | Internal Vibecoding team only | `lineage_v3/utils/db_helper.py` |
+
+**Production Extractor (Coming in Phase 2):**
+- Standalone Python script provided to external users
+- Creates the 4 required Parquet files from Synapse DMVs
+- No dependencies on rest of lineage system
+- Users run this once to generate Parquet snapshots
+- Example: `python extract_dmvs.py --output parquet_snapshots/`
+
+**Development Helper (Current):**
+- Internal tool for Vibecoding team
+- Quick ad-hoc queries during development
+- Testing database connections
+- Verifying DMV queries
+- NOT distributed to external users
+
+---
+
+## Development Status
+
+### ✅ Completed Phases:
+- **Phase 0:** Spec updates & environment setup
+- **Phase 1:** Migration & project structure
+- **Setup:** Development environment validated
+  - Python 3.12.3 installed
+  - All 137 dependencies installed
+  - ODBC drivers configured
+  - Database connection tested
+  - Internal helper created
+
+### 🚧 In Progress:
+- **Phase 2:** Production Extractor (Synapse DMV → Parquet)
+
+### 📋 Upcoming Phases:
+- **Phase 3:** Core Engine (DuckDB workspace)
+- **Phase 4:** SQLGlot Parser
+- **Phase 5:** AI Fallback (Microsoft Agent Framework)
+- **Phase 6:** Output Formatters
+- **Phase 7:** Incremental Load Implementation
+- **Phase 8:** Integration & Testing
+
+---
+
+## Important Files
+
+### Configuration
+- [.env](.env) - Environment configuration (gitignored - contains credentials)
+- [requirements.txt](requirements.txt) - Python dependencies
+
+### Specification & Documentation
+- [lineage_specs_v2.md](lineage_specs_v2.md) - Complete v3 specification (v2.1)
+- [CLAUDE.md](CLAUDE.md) - This file
+
+### Legacy Documentation (Archived)
+- [deprecated/README_DEPRECATED.md](deprecated/README_DEPRECATED.md) - v2 migration notes
+- Old v2 docs moved to [deprecated/](deprecated/) folder
+
+---
 
 ## Common Development Commands
 
-Since this is a SQL-only repository for Azure Synapse, there are no build or test commands. Development workflow:
+### Lineage Parser v3
 
-1. **Modify SQL scripts** in the appropriate directory
-2. **Deploy to Synapse** using Azure Data Studio, SSMS, or Azure DevOps pipelines
-3. **Test stored procedures** by executing them in Synapse with appropriate parameters
-4. **Verify table structures** match distribution and indexing requirements
-
-## Important Notes
-
-### Country and Department Handling
-- The system handles multiple scenarios: standard countries, "Global", "No Country"
-- Department mapping uses `Full_Departmental_Map` to map Cadence departments to Prima departments
-- A single Cadence department can map to multiple Prima departments, requiring proportional allocation via `PrimaDepartmentCount`
-
-### Currency Conversion
-- Uses `CONSUMPTION_PRIMA.MonthlyAverageCurrencyExchangeRate` table
-- Supports CHF, GBP, USD, EUR as target currencies
-- Applied via `COALESCE(cur.[Rate], 1)` pattern (defaults to 1.0 if no rate found)
-
-### Record Update Types
-Special handling for different record types:
-- Standard records (default)
-- 'OOS' - Out of Scope Service records
-- 'REC' - Reconciliation records
-- 'BKF' - Backfill records (exclude from Actual Cost of Work Performed)
-
-### Table Hints
-Procedures commonly use `with (nolock)` for read operations to avoid blocking
-
-## Data Lineage Analysis Tools
-
-This repository includes autonomous data lineage tools for reverse-engineering SQL dependencies.
-
-### Autonomous Lineage Engine
-
-**Location**: `scripts/main.py`
-
-**Purpose**: Automatically generates complete data lineage from any database object (table, view, or stored procedure) by analyzing SQL code.
-
-**Usage**:
 ```bash
-# From repository root
-python3 scripts/main.py <object_name>
+# Validate environment
+python lineage_v3/main.py validate
+
+# Extract DMV data (dev only)
+python lineage_v3/main.py extract
+
+# Run lineage analysis
+python lineage_v3/main.py run --parquet parquet_snapshots/
+
+# Get help
+python lineage_v3/main.py --help
 ```
 
-**Examples**:
+### SQL Deployment (Synapse)
+
+Since this is a SQL-only repository for Azure Synapse:
+1. Modify SQL scripts in `Synapse_Data_Warehouse/` directory
+2. Deploy using Azure Data Studio, SSMS, or Azure DevOps pipelines
+3. Test stored procedures by executing them with appropriate parameters
+
+---
+
+## Troubleshooting
+
+### Lineage Parser Issues
+
+**Import Errors:**
 ```bash
-# Analyze a table
-python3 scripts/main.py CadenceBudgetData
-
-# Analyze a stored procedure
-python3 scripts/main.py spLoadEmployeeContractUtilization_Aggregations
-
-# With full schema qualification
-python3 scripts/main.py CONSUMPTION_ClinOpsFinance.CadenceBudgetData
+python lineage_v3/main.py validate  # Check all dependencies installed
+pip install -r requirements.txt     # Reinstall if needed
 ```
 
-**Testing**:
+**Missing .env File:**
 ```bash
-# Run unit tests to validate lineage structure
-python3 tests/test_bidirectional_graph.py
+cp .env.template .env
+# Edit .env with your credentials
 ```
 
-**Output Files** (saved to `lineage_output/` folder):
-- `{object}_lineage.json` - Complete lineage in strict JSON format (see docs/JSON_FORMAT_SPECIFICATION.md)
-- `{object}_confidence.json` - Analysis quality report with confidence scores
+**Parquet Files Not Found:**
+- Ensure Parquet files are in `parquet_snapshots/` directory
+- In dev: Run `python lineage_v3/main.py extract` first
+- In prod: Obtain Parquet exports from DBA team
 
-**Key Features**:
-- **Fully Autonomous**: No manual approvals required
-- **Hybrid Analysis**: Combines regex parsing + AI analysis for complex SQL patterns
-- **Circular Dependency Tracking**: Detects when SPs both read and write to the same table
-- **Confidence Scoring**: Provides reliability metrics for each detected dependency
-- **Validation**: Cross-checks all dependencies against actual codebase
-- **Logging Exclusion**: Automatically filters out logging objects (ADMIN.Logs, dbo.LogMessage, dbo.spLastRowCount)
+**Low Confidence Scores (<0.7):**
+- Review `lineage_summary.json` for coverage stats
+- Check `provenance.primary_source` to identify weak dependencies
+- Consider manual validation for critical objects
 
-### JSON Lineage Format (Version 2.1)
+---
 
-Each object in the lineage has:
-```json
-{
-  "id": "node_0",
-  "name": "ObjectName",
-  "schema": "SchemaName",
-  "object_type": "Table|View|Stored Procedure",
-  "description": "",
-  "data_model_type": "Dimension|Fact|Other",
-  "inputs": ["node_1", "node_2"],
-  "outputs": ["node_3", "node_4"]
-}
-```
+## For More Information
 
-**New Fields (Version 2.1)**:
-- `description`: Optional field for documenting the object's purpose (empty by default)
-- `data_model_type`: Automatically classified based on object name:
-  - `"Dimension"` - Objects starting with "Dim" (e.g., DimCustomers, DimAccount)
-  - `"Fact"` - Objects starting with "Fact" (e.g., FactGLCognos, FactOrders)
-  - `"Other"` - All other objects (stored procedures, views, staging tables)
+- **Specification:** [lineage_specs_v2.md](lineage_specs_v2.md)
+- **v2 Migration:** [deprecated/README_DEPRECATED.md](deprecated/README_DEPRECATED.md)
+- **Frontend App:** [frontend/](frontend/) - React Flow visualization
+- **Output Examples:** [lineage_output/](lineage_output/)
 
-**Lineage Rules (Bidirectional Graph)**:
+---
 
-**Stored Procedures**:
-- `inputs`: Tables/views it READS from (FROM, JOIN clauses)
-- `outputs`: Tables it WRITES to (INSERT, UPDATE, SELECT INTO, MERGE, TRUNCATE)
+**Last Updated:** 2025-10-26
+**Lineage Parser Version:** 3.0.0 (In Development)
 
-**Tables**:
-- `inputs`: Stored procedures that WRITE to it
-- `outputs`: Stored procedures/views that READ from it ✅ **(NEW: Creates bidirectional graph)**
+### Production vs Development Tools
 
-**Views**:
-- `inputs`: Tables/views it READS from
-- `outputs`: Stored procedures/views that READ from it ✅ **(NEW: Creates bidirectional graph)**
+**⚠️ Important Distinction:**
 
-**Circular Dependencies**:
-A stored procedure can appear in both `inputs` and `outputs` of a table when it both reads from and writes to that table within the same execution.
+| Tool | Purpose | Audience | Location |
+|------|---------|----------|----------|
+| **Production Extractor** | Export DMVs to Parquet for external users | External DBAs/Users | `lineage_v3/extractor/synapse_dmv_extractor.py` |
+| **Development Helper** | Quick testing & verification during development | Internal Vibecoding team only | `lineage_v3/utils/db_helper.py` |
 
-**Graph Visualization Ready**: The bidirectional structure allows direct import into D3.js, Graphviz, Neo4j, Cytoscape, and other graph visualization tools.
+**Production Extractor (Coming in Phase 2):**
+- Standalone Python script provided to external users
+- Creates the 4 required Parquet files from Synapse DMVs
+- No dependencies on rest of lineage system
+- Users run this once to generate Parquet snapshots
+- Example: `python extract_dmvs.py --output parquet_snapshots/`
 
-**Complete Specification**: See `JSON_FORMAT_SPECIFICATION.md` for detailed format documentation.
+**Development Helper (Current):**
+- Internal tool for Vibecoding team
+- Quick ad-hoc queries during development
+- Testing database connections
+- Verifying DMV queries
+- NOT distributed to external users
 
-### Architecture Components
 
-The lineage engine consists of modular components:
+### Development Tools (Internal Only)
+- [lineage_v3/utils/db_helper.py](lineage_v3/utils/db_helper.py) - Database helper for testing and verification
+  - Usage: `python lineage_v3/utils/db_helper.py`
+  - Or import: `from lineage_v3.utils import SynapseHelper`
+  - Features: Connection testing, query execution, DMV exploration
+  - **Note:** For Vibecoding development only, NOT for external distribution
 
-**Parsers** (`parsers/`):
-- `sql_parser_enhanced.py` - Regex-based SQL parsing with confidence scoring
-- `dependency_extractor.py` - Extracts all SQL dependency types
-
-**AI Analyzer** (`ai_analyzer/`):
-- `sql_complexity_detector.py` - Detects complex patterns needing AI review
-- `ai_sql_parser.py` - Handles MERGE, CTEs, dynamic SQL, PIVOT/UNPIVOT
-- `confidence_scorer.py` - Combines regex + AI results with weighted confidence
-
-**Validators** (`validators/`):
-- `dependency_validator.py` - Verifies objects exist in codebase
-- `iterative_refiner.py` - Uses Grep/Glob to find missing dependencies
-
-**Output** (`output/`):
-- `json_formatter.py` - Generates strict JSON format
-- `confidence_reporter.py` - Creates analysis quality reports
-
-### Common Lineage Patterns
-
-**1. Source Tables**: Tables with no inputs (no SP writes to them)
-```json
-{
-  "id": "node_1",
-  "name": "HrContractAttendance",
-  "schema": "CONSUMPTION_ClinOpsFinance",
-  "object_type": "Table",
-  "inputs": [],
-  "outputs": []
-}
-```
-
-**2. ETL Stored Procedures**: Read from source tables, write to target tables
-```json
-{
-  "id": "node_0",
-  "name": "spLoadCadenceBudgetData",
-  "schema": "CONSUMPTION_ClinOpsFinance",
-  "object_type": "StoredProcedure",
-  "inputs": ["node_1", "node_2"],    // Source tables
-  "outputs": ["node_3"]               // Target table
-}
-```
-
-**3. Views**: Read from tables, don't write
-```json
-{
-  "id": "node_2",
-  "name": "vFull_Departmental_Map_ActivePrima",
-  "schema": "CONSUMPTION_ClinOpsFinance",
-  "object_type": "View",
-  "inputs": ["node_4", "node_5"],    // Base tables
-  "outputs": []
-}
-```
-
-**4. Target Tables**: Written to by SPs
-```json
-{
-  "id": "node_3",
-  "name": "CadenceBudgetData",
-  "schema": "CONSUMPTION_ClinOpsFinance",
-  "object_type": "Table",
-  "inputs": ["node_0"],              // SP that creates it
-  "outputs": []
-}
-```
-
-**5. Circular Dependencies**: SP both reads and writes same table
-```json
-{
-  "id": "node_0",
-  "name": "spLoadEmployeeContractUtilization_Aggregations",
-  "schema": "CONSUMPTION_ClinOpsFinance",
-  "object_type": "StoredProcedure",
-  "inputs": ["node_3"],              // Reads from EmployeeContractFTE_Monthly
-  "outputs": ["node_3"]              // Also writes to it (CIRCULAR!)
-}
-```
-
-### Performance Characteristics
-
-- **Simple objects** (1-10 dependencies): ~5-10 seconds
-- **Complex objects** (50+ dependencies): ~20-30 seconds
-- **Large dependency trees** (100+ objects): ~30-60 seconds
-
-The engine automatically handles:
-- CTEs (Common Table Expressions)
-- Temp tables (unwrapped to source tables)
-- Dynamic SQL (basic pattern detection)
-- MERGE statements
-- Complex joins and subqueries
-- Cross-schema dependencies
-
-### Troubleshooting Lineage Analysis
-
-**Low Confidence Scores** (< 0.7):
-- Review uncertain dependencies in confidence report
-- Check for dynamic SQL or complex patterns
-- Consider manual verification of flagged dependencies
-
-**Invalid Dependencies**:
-- May indicate temp tables created at runtime
-- Could reference objects in external databases
-- Check if object names are dynamically constructed
-
-**Missing Objects**:
-- Object may be created via `SELECT INTO` within a stored procedure
-- Analyze the stored procedure that creates it instead
-- Use the confidence report to identify creation source

@@ -1,0 +1,86 @@
+# ==============================================================================
+# Vibecoding Lineage Parser v3 - Python Dependencies
+# ==============================================================================
+# Python Version Requirement: >=3.10 (due to Click 8.3.0)
+# Last Updated: 2025-10-26
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Core Database & Parquet Processing
+# ------------------------------------------------------------------------------
+duckdb>=1.4.1                    # Latest: 1.4.1 (Oct 2025) - LTS with MERGE support
+pyarrow>=22.0.0                  # Latest: 22.0.0 - Apache Arrow for Parquet I/O
+pandas>=2.3.3                    # Latest: 2.3.3 (Sep 2025) - Data manipulation
+
+# ------------------------------------------------------------------------------
+# Synapse Connection (Dev Only - Helper Extractor)
+# ------------------------------------------------------------------------------
+# These are only needed during development for extracting DMV data
+# Production systems use pre-exported Parquet files
+pyodbc>=5.0.0                    # ODBC driver for SQL Server/Synapse
+sqlalchemy>=2.0.44               # Latest: 2.0.44 (Oct 2025) - Python 3.14 support
+
+# Optional: For better Synapse integration
+# sqlalchemy-pyodbc-mssql>=0.1.0
+
+# ------------------------------------------------------------------------------
+# SQL Parsing
+# ------------------------------------------------------------------------------
+sqlglot>=27.28.1                 # Latest: 27.28.1 (Oct 2025) - Supports 31 SQL dialects
+                                 # Used for T-SQL AST traversal and dependency extraction
+
+# ------------------------------------------------------------------------------
+# Microsoft Agent Framework & Azure AI
+# ------------------------------------------------------------------------------
+agent-framework>=1.0.0b251016    # Latest beta (Oct 2025) - Multi-agent orchestration
+azure-ai-inference>=1.0.0b7      # Latest: 1.0.0b7 (Jan 2025) - Azure AI Foundry client
+azure-core>=1.30.0               # Azure SDK core - Required for AzureKeyCredential
+azure-identity>=1.15.0           # Azure authentication (if using managed identity)
+
+# Optional: For OpenTelemetry observability
+# opentelemetry-api>=1.20.0
+# opentelemetry-sdk>=1.20.0
+# opentelemetry-exporter-otlp>=1.20.0
+
+# ------------------------------------------------------------------------------
+# CLI & Configuration
+# ------------------------------------------------------------------------------
+click>=8.3.0                     # Latest: 8.3.0 (Sep 2025) - CLI framework (requires Python >=3.10)
+python-dotenv>=1.1.1             # Latest: 1.1.1 (Jun 2025) - Environment variable management
+
+# ------------------------------------------------------------------------------
+# Utilities & Logging
+# ------------------------------------------------------------------------------
+rich>=13.7.0                     # Rich console output with colors and formatting
+pydantic>=2.5.0                  # Data validation and settings management
+
+# Optional: For better error tracking
+# sentry-sdk>=1.40.0
+
+# ------------------------------------------------------------------------------
+# Development & Testing (Optional)
+# ------------------------------------------------------------------------------
+# pytest>=7.4.0                  # Testing framework
+# pytest-cov>=4.1.0              # Code coverage
+# black>=23.12.0                 # Code formatter
+# ruff>=0.1.0                    # Fast Python linter
+# mypy>=1.7.0                    # Static type checker
+
+# ==============================================================================
+# Installation Instructions
+# ==============================================================================
+#
+# 1. Create and activate a virtual environment:
+#    python3.10 -m venv venv
+#    source venv/bin/activate  # On Windows: venv\Scripts\activate
+#
+# 2. Install all dependencies:
+#    pip install -r requirements.txt
+#
+# 3. For development (with optional dev tools):
+#    pip install -r requirements.txt pytest pytest-cov black ruff mypy
+#
+# 4. Verify installation:
+#    python -c "import duckdb, sqlglot, agent_framework, azure.ai.inference; print('All imports successful')"
+#
+# ==============================================================================

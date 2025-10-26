@@ -1,178 +1,293 @@
-# PROJECT STATUS - COMPLETE ✅
+# PROJECT STATUS - Phase 0 & 1 Complete ✅
 
-## 📊 Final Lineage Generation Results
-
-### Latest Run: spLoadFactGLCOGNOS
-```
-Analysis Time: 2025-10-24T19:56:23
-Processing Time: 90.42s
-Overall Confidence: 0.874 (GOOD)
-
-Statistics:
-  - Total Objects: 206
-  - Total Dependencies: 352
-  - StoredProcedures: 71
-  - Tables: 133
-  - Views: 2
-  - Schemas: 15
-```
-
-### Test Results: ALL PASSING ✅
-```
-✅ No Disconnected Nodes       (206 total nodes)
-✅ Bidirectional Edges Valid   (all 206 nodes)
-✅ External Objects Connected   (all external objects have outputs)
-✅ Tree Structure Valid         (57 leaf nodes, 148 intermediate)
-
-TEST RESULTS: 4 passed, 0 failed
-```
-
-## 📁 Project Structure (Clean & Organized)
-
-```
-ws-psidwh/
-├── README.md                    ✅ Main project overview
-├── CLAUDE.md                    ✅ AI assistant instructions
-├── .gitignore                   ✅ Python patterns
-│
-├── Synapse_Data_Warehouse/      📊 SQL Objects
-│   ├── Stored Procedures/
-│   ├── Tables/
-│   └── Views/
-│
-├── scripts/                     🚀 Main Scripts
-│   └── main.py                  ✅ Autonomous lineage engine
-│
-├── ai_analyzer/                 🤖 AI Analysis Modules
-│   ├── sql_complexity_detector.py
-│   ├── ai_sql_parser.py
-│   └── confidence_scorer.py
-│
-├── parsers/                     📝 SQL Parsing
-│   ├── sql_parser_enhanced.py
-│   └── dependency_extractor.py
-│
-├── validators/                  ✔️  Validation
-│   ├── dependency_validator.py
-│   └── iterative_refiner.py
-│
-├── output/                      📤 Output Formatting
-│   ├── json_formatter.py
-│   └── confidence_reporter.py
-│
-├── tests/                       🧪 Unit Tests
-│   ├── __init__.py
-│   └── test_bidirectional_graph.py
-│
-├── lineage_output/             📊 Generated Results
-│   ├── *_lineage.json
-│   └── *_confidence.json
-│
-└── docs/                       📚 Documentation
-    ├── FINAL_SUMMARY.md         - Complete refactoring summary
-    ├── JSON_FORMAT_SPECIFICATION.md - Format specification
-    ├── README_AUTONOMOUS_LINEAGE.md - Engine guide
-    └── archive/                 - Old reports (archived)
-```
-
-## ✅ Completed Tasks
-
-### Code Quality
-- [x] Renamed autonomous_lineage.py → main.py (best practice)
-- [x] Organized folder structure (scripts/, tests/, docs/, lineage_output/)
-- [x] Proper Python imports with sys.path handling
-- [x] Clean separation of concerns
-
-### Bidirectional Graph Implementation
-- [x] Fixed order of operations (dependency fixing after all objects added)
-- [x] Implemented fix_table_outputs() for bidirectional edges
-- [x] Tables/views now have outputs populated
-- [x] External objects properly connected
-- [x] No disconnected nodes (0/206)
-- [x] All edges bidirectional (206/206)
-
-### Recursive Dependency Resolution  
-- [x] Enhanced refine_lineage() with queue processing
-- [x] Captures complete upstream lineage tree
-- [x] 2.5x more objects discovered (206 vs 82)
-- [x] All referenced objects added to graph
-
-### Testing
-- [x] Created comprehensive unit tests
-- [x] 4 test cases covering all requirements
-- [x] All tests passing (4/4)
-- [x] Validation for disconnected nodes
-- [x] Validation for bidirectional edges
-- [x] Validation for external objects
-- [x] Validation for tree structure
-
-### Documentation
-- [x] Updated README.md with correct paths
-- [x] Updated CLAUDE.md with new structure
-- [x] Updated docs/README_AUTONOMOUS_LINEAGE.md
-- [x] Created FINAL_SUMMARY.md
-- [x] Archived old reports
-- [x] Clean documentation structure
-
-### Verification
-- [x] AI analyzer working (detected complex patterns)
-- [x] All modules actively used (not artifacts)
-- [x] Confidence scoring working
-- [x] Circular dependency detection working
-- [x] 76 circular dependencies detected
-- [x] JSON format validated
-
-## 🚀 Usage
-
-### Generate Lineage
-```bash
-python3 scripts/main.py spLoadFactGLCOGNOS
-```
-
-### Run Tests
-```bash
-python3 tests/test_bidirectional_graph.py
-```
-
-### Output Location
-```
-lineage_output/
-├── CONSUMPTION_FINANCE.spLoadFactGLCOGNOS_lineage.json
-└── CONSUMPTION_FINANCE.spLoadFactGLCOGNOS_confidence.json
-```
-
-## 📈 Key Metrics
-
-| Metric | Before | After | Improvement |
-|--------|--------|-------|-------------|
-| Objects Discovered | 82 | 206 | **+151%** |
-| Disconnected Nodes | 41 | 0 | **100% fixed** |
-| Broken Edges | 12 | 0 | **100% fixed** |
-| Test Coverage | 0 | 4 tests | **Complete** |
-| Processing Time | ~80s | ~90s | Acceptable |
-| Confidence Score | N/A | 0.874 | Good |
-
-## 🎯 Ready for Production
-
-✅ **All requirements met**
-✅ **All tests passing**
-✅ **Complete documentation**
-✅ **Clean code structure**
-✅ **Bidirectional graphs**
-✅ **Graph visualization ready**
-
-## 📝 Next Steps (Optional Enhancements)
-
-Future improvements that could be considered:
-1. Add caching for faster re-runs
-2. Parallel processing for large graphs
-3. Interactive graph visualization
-4. More test coverage (edge cases)
-5. Performance profiling
-6. CI/CD integration
+**Version:** 3.0.0
+**Last Updated:** 2025-10-26
+**Current Phase:** Phase 2 - Production Extractor
 
 ---
 
-**Status**: ✅ PRODUCTION READY
-**Last Updated**: 2025-10-24
-**Version**: 2.0
+## 📊 Project Overview
+
+This repository contains the **Vibecoding Lineage Parser v3**, a DMV-first data lineage extraction system for Azure Synapse Dedicated SQL Pool.
+
+### Key Architecture Changes (v2 → v3)
+
+| Aspect | v2 (Deprecated) | v3 (Current) |
+|--------|----------------|--------------|
+| **Data Source** | File-based (`.sql` files) | DMV-based (Parquet snapshots) |
+| **Primary Key** | String `"schema.object_name"` | Integer `object_id` |
+| **Database** | None (in-memory dicts) | DuckDB persistent workspace |
+| **SQL Parser** | Regex + AI hybrid | SQLGlot AST + AI fallback |
+| **AI Framework** | Custom multi-source | Microsoft Agent Framework |
+| **Incremental Loads** | ❌ Not supported | ✅ Via `modify_date` tracking |
+
+---
+
+## ✅ Completed Phases
+
+### Phase 0: Spec Updates & Environment Setup
+
+**Deliverables:**
+- ✅ Updated [lineage_specs_v2.md](lineage_specs_v2.md) to v2.1
+- ✅ Created [.env](.env) with Synapse credentials
+- ✅ Updated [.gitignore](.gitignore) with security patterns
+- ✅ Created comprehensive [requirements.txt](requirements.txt)
+
+**Key Updates:**
+- Added Microsoft Agent Framework integration
+- Simplified provenance schema
+- Added bidirectional graph documentation
+- Added frontend compatibility layer (Section 10)
+- Added incremental load support (Section 11)
+
+### Phase 1: Migration & Project Structure
+
+**Deliverables:**
+- ✅ Created `lineage_v3/` directory structure
+- ✅ Moved old implementation to `deprecated/` folder
+- ✅ Created [deprecated/README_DEPRECATED.md](deprecated/README_DEPRECATED.md)
+- ✅ Created [lineage_v3/main.py](lineage_v3/main.py) CLI
+- ✅ Cleaned up documentation structure
+
+**Architecture:**
+```
+lineage_v3/
+├── main.py                   # CLI entry point
+├── extractor/                # Phase 2 - Production Extractor
+├── core/                     # Phase 3 - DuckDB Engine
+├── parsers/                  # Phase 4 - SQLGlot Parser
+├── ai_analyzer/              # Phase 5 - Microsoft Agent Framework
+├── output/                   # Phase 6 - JSON Formatters
+└── utils/                    # Utilities & Development Tools
+    └── db_helper.py          # ✅ Internal dev tool (created)
+```
+
+### Development Environment Setup
+
+**System Configuration:**
+- ✅ Python 3.12.3
+- ✅ Microsoft ODBC Driver 18 for SQL Server (v18.5.1.1)
+- ✅ unixODBC libraries (2.3.12)
+- ✅ 137 Python packages installed
+
+**Database Connection:**
+- ✅ Connection to Synapse tested and working
+- ✅ Server: ws-chwa-synapse.sql.azuresynapse.net
+- ✅ Database: demo
+- ✅ Schemas: 10 schemas discovered
+
+**Development Tools:**
+- ✅ Created [lineage_v3/utils/db_helper.py](lineage_v3/utils/db_helper.py)
+  - Internal testing and verification tool
+  - Quick DMV queries during development
+  - **Note:** For Vibecoding team only, NOT for external users
+
+---
+
+## 🚧 Current Phase: Phase 2 - Production Extractor
+
+**Goal:** Create standalone Python script for external users to export Synapse DMVs to Parquet files.
+
+**Planned Deliverables:**
+- [ ] `lineage_v3/extractor/synapse_dmv_extractor.py` - Production extractor
+- [ ] `lineage_v3/extractor/schema.py` - Parquet schema definitions
+- [ ] Standalone executable for external users
+- [ ] User documentation for extractor
+
+**Requirements:**
+- Extract from 4 DMVs:
+  - `sys.objects` (with schema info)
+  - `sys.sql_expression_dependencies`
+  - `sys.sql_modules`
+  - `sys.dm_pdw_exec_requests` (optional)
+- Export to Parquet format
+- Standalone script (minimal dependencies)
+- Clear error handling
+
+---
+
+## 📋 Upcoming Phases
+
+### Phase 3: Core Engine (DuckDB Workspace)
+- [ ] `core/duckdb_workspace.py` - DuckDB initialization
+- [ ] `core/baseline_builder.py` - Step 2: DMV baseline
+- [ ] `core/query_log_enhancer.py` - Step 3: Query log analysis
+- [ ] `core/gap_detector.py` - Step 4: Detect unresolved SPs
+- [ ] `core/lineage_merger.py` - Step 7: Merge all sources
+
+### Phase 4: SQLGlot Parser
+- [ ] `parsers/sqlglot_parser.py` - Step 5: Parse DDL gaps
+
+### Phase 5: AI Fallback (Microsoft Agent Framework)
+- [ ] `ai_analyzer/ai_foundry_client.py` - Azure AI Foundry integration
+- [ ] `ai_analyzer/parser_agent.py` - Extract dependencies from SQL
+- [ ] `ai_analyzer/validator_agent.py` - Validate against DuckDB
+- [ ] `ai_analyzer/resolver_agent.py` - Consolidate & score
+
+### Phase 6: Output Formatters
+- [ ] `output/lineage_formatter.py` - Internal JSON (int object_ids)
+- [ ] `output/frontend_adapter.py` - Frontend JSON (string node_ids)
+- [ ] `output/summary_formatter.py` - Coverage statistics
+
+### Phase 7: Incremental Load Implementation
+- [ ] `utils/incremental.py` - Track modify_date
+- [ ] DuckDB metadata table for tracking
+
+### Phase 8: Integration & Testing
+- [ ] End-to-end testing
+- [ ] Complex SP testing (MERGE, CTEs, dynamic SQL)
+- [ ] Circular dependency testing
+- [ ] Frontend compatibility validation
+
+---
+
+## 📁 Project Structure
+
+```
+ws-psidwh/
+├── CLAUDE.md                     ✅ Main project guide
+├── lineage_specs_v2.md           ✅ v3 specification (v2.1)
+├── PROJECT_STATUS.md             ✅ This file
+├── PHASE_1_COMPLETION_SUMMARY.md ✅ Detailed Phase 0 & 1 summary
+├── .env                          ✅ Environment config (gitignored)
+├── requirements.txt              ✅ Python dependencies
+├── .gitignore                    ✅ Security patterns
+│
+├── lineage_v3/                   ✅ v3 Implementation
+│   ├── main.py                   ✅ CLI entry point
+│   ├── extractor/                🚧 Phase 2
+│   ├── core/                     📋 Phase 3
+│   ├── parsers/                  📋 Phase 4
+│   ├── ai_analyzer/              📋 Phase 5
+│   ├── output/                   📋 Phase 6
+│   └── utils/                    ✅ Utilities
+│       ├── config.py             📋 Phase 7
+│       ├── incremental.py        📋 Phase 7
+│       └── db_helper.py          ✅ Internal dev tool
+│
+├── deprecated/                   ✅ Archived v2
+│   ├── README_DEPRECATED.md      ✅ Migration guide
+│   └── [v2 modules]              ✅ Old implementation
+│
+├── docs/                         ✅ Documentation
+│   └── README.md                 ✅ Documentation index
+│
+├── frontend/                     ✅ React Flow visualization
+├── Synapse_Data_Warehouse/       📊 SQL scripts
+└── lineage_output/               📊 Generated lineage files
+```
+
+---
+
+## 🎯 Key Metrics
+
+### Environment Setup
+| Metric | Status |
+|--------|--------|
+| Python Version | 3.12.3 ✅ |
+| Dependencies Installed | 137/137 ✅ |
+| ODBC Driver | v18.5.1.1 ✅ |
+| Database Connection | Working ✅ |
+| Validation Tests | Passing ✅ |
+
+### Code Organization
+| Metric | Count |
+|--------|-------|
+| Files Created | 15+ |
+| Files Moved to deprecated/ | 25+ |
+| Documentation Files | 6 |
+| Lines of Code (new) | ~560 |
+
+---
+
+## 🚀 Usage
+
+### Environment Validation
+```bash
+python lineage_v3/main.py validate
+```
+
+### Internal Development Helper (Vibecoding Only)
+```bash
+# Test Synapse connection
+python lineage_v3/utils/db_helper.py
+
+# Or import in scripts
+from lineage_v3.utils import SynapseHelper
+helper = SynapseHelper()
+results = helper.query("SELECT * FROM sys.objects WHERE type = 'P'")
+helper.print_results(results)
+```
+
+### Production Extractor (Coming in Phase 2)
+```bash
+# Extract DMVs to Parquet (external users will use this)
+python lineage_v3/main.py extract --output parquet_snapshots/
+```
+
+### Run Lineage Analysis (Phases 3-8)
+```bash
+# Run lineage analysis on Parquet snapshots
+python lineage_v3/main.py run --parquet parquet_snapshots/
+```
+
+---
+
+## 📝 Documentation
+
+### Primary Documents
+- **[CLAUDE.md](CLAUDE.md)** - Main project guide for AI assistants
+- **[lineage_specs_v2.md](lineage_specs_v2.md)** - Complete v3 specification (v2.1)
+- **[docs/README.md](docs/README.md)** - Documentation index
+- **[PHASE_1_COMPLETION_SUMMARY.md](PHASE_1_COMPLETION_SUMMARY.md)** - Detailed Phase 0 & 1 summary
+
+### Legacy Documentation
+- **[deprecated/README_DEPRECATED.md](deprecated/README_DEPRECATED.md)** - v2 migration notes
+- **[deprecated/](deprecated/)** - Archived v2 implementation and docs
+
+---
+
+## ⚙️ Configuration
+
+### Environment Variables (.env)
+```bash
+# Synapse Connection (Required)
+SYNAPSE_SERVER=ws-chwa-synapse.sql.azuresynapse.net
+SYNAPSE_DATABASE=demo
+SYNAPSE_USERNAME=<configured>
+SYNAPSE_PASSWORD=<configured>
+
+# DuckDB
+DUCKDB_PATH=lineage_workspace.duckdb
+
+# Output
+OUTPUT_DIR=lineage_output
+OUTPUT_FORMAT=both  # internal|frontend|both
+
+# Azure AI Foundry (Phase 5)
+# AI_FOUNDRY_ENDPOINT=<to-be-configured>
+# AI_FOUNDRY_API_KEY=<to-be-configured>
+```
+
+---
+
+## 📊 Progress Summary
+
+**Overall Progress:** Phase 1 of 8 complete (12.5%)
+
+| Phase | Status | Progress |
+|-------|--------|----------|
+| Phase 0 | ✅ Complete | 100% |
+| Phase 1 | ✅ Complete | 100% |
+| Phase 2 | 🚧 In Progress | 0% |
+| Phase 3 | 📋 Planned | 0% |
+| Phase 4 | 📋 Planned | 0% |
+| Phase 5 | 📋 Planned | 0% |
+| Phase 6 | 📋 Planned | 0% |
+| Phase 7 | 📋 Planned | 0% |
+| Phase 8 | 📋 Planned | 0% |
+
+---
+
+**Status:** ✅ Phase 0 & 1 Complete - Ready for Phase 2
+**Next Milestone:** Production Extractor Implementation
