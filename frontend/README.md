@@ -5,250 +5,210 @@
 [![React](https://img.shields.io/badge/React-19.2.0-blue.svg)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-6.2.0-purple.svg)](https://vitejs.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8.2-blue.svg)](https://www.typescriptlang.org/)
-[![Azure Ready](https://img.shields.io/badge/Azure-Free%20Tier%20Ready-0078D4.svg)](https://azure.microsoft.com/)
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Current Status
 
-### Running in VSCode Devcontainer (Current Environment)
+**Version:** 2.0 (Standalone React App)
+**v3.0 Status:** Will be enhanced with new features (Week 2-4)
 
-```bash
-# 1. Install dependencies (first time only)
-npm install
+### What's Changing in v3.0
 
-# 2. Start development server
-npm run dev
-```
+**v2.0 (Current):**
+- Standalone React SPA
+- User uploads JSON file manually
+- Deploys to Azure Web App (static files)
+- Uses `web.config` (IIS) or `startup.sh` (Node.js)
 
-**Opens at:** `http://localhost:3000`
-
-**That's it!** Node.js and npm are already installed in your devcontainer.
+**v3.0 (Coming Soon):**
+- React SPA + FastAPI backend in single Docker container
+- User uploads Parquet files via browser
+- Backend processes server-side, frontend polls for status
+- SQL Viewer feature (right-click → view SQL)
+- Deploys to Azure Web App for Containers
 
 ---
 
-## 📁 Project Structure
+## 🏗️ Project Structure (v2.0)
 
 ```
 frontend/
-├── 📚 docs/                          # All documentation
-│   ├── FRONTEND_ARCHITECTURE.md      # Complete app architecture
-│   ├── LOCAL_DEVELOPMENT.md          # Development guide
-│   ├── DEPLOYMENT_AZURE.md           # Azure deployment guide
-│   ├── INTEGRATION.md                # Backend integration patterns
-│   └── README_COMPLETE.md            # Full setup summary
-│
-├── 🚀 deploy/                        # Deployment configuration
-│   ├── web.config                    # Azure IIS config (Windows)
-│   ├── startup.sh                    # PM2 startup (Linux)
-│   └── .deployment                   # Azure deployment settings
-│
 ├── 🎨 components/                    # React components
 │   ├── CustomNode.tsx                # Graph node renderer
 │   ├── Toolbar.tsx                   # Top toolbar with filters
 │   ├── Legend.tsx                    # Schema color legend
 │   ├── InteractiveTracePanel.tsx     # Lineage tracing panel
-│   ├── ImportDataModal.tsx           # Data import/editor
-│   ├── InfoModal.tsx                 # Help/info modal
+│   ├── ImportDataModal.tsx           # Data import modal
+│   ├── InfoModal.tsx                 # Information modal
 │   └── NotificationSystem.tsx        # Toast notifications
 │
-├── 🪝 hooks/                         # Custom React hooks
-│   ├── useGraphology.ts              # Graph construction
-│   ├── useInteractiveTrace.ts        # Lineage tracing logic
-│   ├── useDataFiltering.ts           # Filter & search logic
-│   └── useNotifications.ts           # Notification system
+├── 🔧 hooks/                         # Custom React hooks
+│   ├── useGraphology.ts              # Graph algorithms (BFS, upstream/downstream)
+│   ├── useDataFiltering.ts           # Filtering logic
+│   ├── useInteractiveTrace.ts        # Tracing state management
+│   └── useNotifications.ts           # Notification state
 │
 ├── 🛠️ utils/                         # Utilities
-│   ├── layout.ts                     # Dagre graph layout
-│   └── data.ts                       # Sample data generator
+│   ├── data.ts                       # Data transformation (JSON → React Flow)
+│   └── layout.ts                     # Dagre layout algorithm
 │
-├── App.tsx                           # Main application component
-├── index.tsx                         # React entry point
-├── index.html                        # HTML template
-├── types.ts                          # TypeScript type definitions
-├── constants.ts                      # App constants
-├── package.json                      # Dependencies & scripts
-├── vite.config.ts                    # Vite configuration
-├── tsconfig.json                     # TypeScript config
-└── .env.local                        # Environment variables
+├── 📄 App.tsx                        # Main application component
+├── 📄 index.tsx                      # Entry point
+├── 📄 types.ts                       # TypeScript type definitions
+├── 📄 constants.ts                   # Constants (colors, filters)
+├── 📄 package.json                   # Dependencies
+├── 📄 vite.config.ts                 # Vite build configuration
+└── 📄 README.md                      # This file
 ```
 
----
-
-## 📚 Documentation
-
-**Start here based on what you need:**
-
-| Document | Read When |
-|----------|-----------|
-| **[docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md)** | Daily development, running locally |
-| **[docs/FRONTEND_ARCHITECTURE.md](docs/FRONTEND_ARCHITECTURE.md)** | Understanding the codebase, onboarding |
-| **[docs/INTEGRATION.md](docs/INTEGRATION.md)** | Connecting to Python backend |
-| **[docs/DEPLOYMENT_AZURE.md](docs/DEPLOYMENT_AZURE.md)** | Deploying to Azure Web App |
-| **[docs/README_COMPLETE.md](docs/README_COMPLETE.md)** | Complete setup summary |
+**Note:** Documentation and deployment files moved to `backup_v2/frontend_deploy/` (v2.0 specific)
 
 ---
 
-## 🎯 Common Tasks
+## 🚀 Development (v2.0)
 
-### Development
+### Running Locally
 
 ```bash
-# Start dev server with hot reload
-npm run dev
+# Install dependencies
+npm install
 
+# Start development server
+npm run dev
+```
+
+**Opens at:** `http://localhost:3000`
+
+### Building for Production (v2.0 - Static)
+
+```bash
 # Build for production
 npm run build
 
 # Preview production build
 npm run preview
-
-# Type check without building
-npm run type-check
-
-# Clean build artifacts
-npm run clean
 ```
 
-### Azure Deployment
+**Output:** `dist/` folder with static files
 
-```bash
-# Build and prepare for Azure deployment
-npm run build:azure
+---
 
-# Create deployment package (deploy.zip)
-npm run deploy:zip
+## 🆕 v3.0 Implementation Plan
 
-# Then deploy using Azure CLI:
-# az webapp deployment source config-zip \
-#   --resource-group <rg> --name <app> --src deploy.zip
+### Week 2-3: Single Container Deployment
+
+**Frontend Changes:**
+1. Add Parquet upload mode to `ImportDataModal.tsx`
+2. Add polling logic for background job status
+3. Add progress bar component
+4. Update API calls to backend endpoints:
+   - `POST /api/upload-parquet`
+   - `GET /api/status/{job_id}`
+   - `GET /api/result/{job_id}`
+
+### Week 4: SQL Viewer
+
+**New Components:**
+1. `SqlViewer.tsx` - SQL syntax highlighter (Prism.js)
+2. Update `CustomNode.tsx` - Add right-click context menu
+3. Update `App.tsx` - Split view layout (graph + SQL viewer)
+
+**New Features:**
+- Right-click object → View SQL definition
+- Syntax highlighting (T-SQL)
+- Full-text search in SQL
+- Read-only view
+
+---
+
+## 📚 Documentation
+
+### v3.0 Specification
+- **[docs/IMPLEMENTATION_SPEC_FINAL.md](../docs/IMPLEMENTATION_SPEC_FINAL.md)** - Complete v3.0 spec
+  - Section 5: Frontend implementation details
+  - Section 6: SQL viewer specification
+  - Code examples and API contracts
+
+### v2.0 Documentation (Archived)
+- **[backup_v2/frontend_deploy/docs/](../backup_v2/frontend_deploy/docs/)** - Complete v2.0 documentation
+  - FRONTEND_ARCHITECTURE.md - Full architecture analysis
+  - DEPLOYMENT_AZURE.md - Azure Web App deployment guide
+  - LOCAL_DEVELOPMENT.md - Development setup
+  - INTEGRATION.md - Backend integration patterns
+
+---
+
+## 🔧 Technology Stack
+
+| Category | Technology | Version | Purpose |
+|----------|-----------|---------|---------|
+| **Framework** | React | 19.2.0 | UI framework |
+| **Build Tool** | Vite | 6.2.0 | Fast dev server & build |
+| **Language** | TypeScript | 5.8.2 | Type safety |
+| **Visualization** | ReactFlow | 11.11.4 | Interactive graph rendering |
+| **Graph Engine** | Graphology | 0.25.4 | Graph algorithms (BFS, DFS) |
+| **Layout** | Dagre | 0.8.5 | Hierarchical layout |
+| **Styling** | Tailwind CSS | 3.x (CDN) | Utility-first CSS |
+
+**New in v3.0:**
+- **Prism.js** - SQL syntax highlighting
+- **FastAPI Client** - HTTP polling for backend jobs
+
+---
+
+## 🐳 v3.0 Deployment (Docker Container)
+
+**New Deployment Model:**
+
+```dockerfile
+# Multi-stage build
+FROM node:20-alpine AS frontend-build
+WORKDIR /frontend
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM python:3.12-slim
+COPY --from=frontend-build /frontend/dist ./static
+# Backend serves static files via FastAPI
 ```
 
-See **[docs/DEPLOYMENT_AZURE.md](docs/DEPLOYMENT_AZURE.md)** for complete deployment instructions.
+See [docker/README.md](../docker/README.md) for complete Docker configuration.
 
 ---
 
-## 🔗 Backend Integration
+## 🔄 Migration Path (v2.0 → v3.0)
 
-The frontend loads lineage data from JSON files generated by the Python backend:
+**What Stays the Same:**
+- ✅ Core React components (CustomNode, Toolbar, Legend)
+- ✅ Graph visualization logic (React Flow + Dagre)
+- ✅ Filtering and tracing hooks
+- ✅ Type definitions
 
-```bash
-# Terminal 1: Generate lineage data (from project root)
-cd /workspaces/ws-psidwh
-python lineage_v3/main.py run --parquet parquet_snapshots/
-# Creates: lineage_output/frontend_lineage.json
+**What Gets Enhanced:**
+- 🔄 `ImportDataModal.tsx` - Add Parquet upload tab
+- 🔄 `App.tsx` - Add split view for SQL viewer
+- 🆕 `SqlViewer.tsx` - New component for SQL display
+- 🆕 Polling logic for background jobs
 
-# Terminal 2: Start frontend
-cd frontend
-npm run dev
-
-# In browser: Click "Import Data" → Upload frontend_lineage.json
-```
-
-See **[docs/INTEGRATION.md](docs/INTEGRATION.md)** for all integration patterns.
-
----
-
-## 🎨 Features
-
-- ✅ **Interactive Graph Visualization** - Zoom, pan, drag nodes
-- ✅ **Lineage Tracing** - Upstream/downstream dependency exploration
-- ✅ **Smart Filtering** - By schema, object type, data model
-- ✅ **Search** - Find objects with autocomplete
-- ✅ **Multiple Views** - Detail view (objects) & Schema view (aggregated)
-- ✅ **Data Import** - Load custom JSON with validation
-- ✅ **SVG Export** - Export graphs for documentation
-- ✅ **Responsive UI** - Works on desktop and tablets
+**What Gets Removed:**
+- ❌ `deploy/` folder (Docker replaces it)
+- ❌ v2.0 deployment docs (archived)
 
 ---
 
-## 🛠️ Technology Stack
+## 📋 Next Steps
 
-| Category | Technology | Version |
-|----------|-----------|---------|
-| **Framework** | React | 19.2.0 |
-| **Build Tool** | Vite | 6.2.0 |
-| **Language** | TypeScript | 5.8.2 |
-| **Visualization** | ReactFlow | 11.11.4 |
-| **Graph Engine** | Graphology | 0.25.4 |
-| **Layout** | Dagre | 0.8.5 |
-| **Styling** | Tailwind CSS | 3.x (CDN) |
+1. ✅ v2.0 code backed up in `backup_v2/`
+2. 🚧 Week 2-3: Implement upload + polling UI
+3. 🚧 Week 4: Implement SQL viewer component
+4. 🚧 Test integration with FastAPI backend
+5. 🚧 Deploy to Azure Web App for Containers
 
 ---
 
-## ☁️ Azure Deployment
-
-This app is **optimized for Azure Web App Free Tier**:
-
-| Metric | Free Tier | This App | Status |
-|--------|-----------|----------|--------|
-| Disk Space | 1 GB | ~2-5 MB | ✅ <1% usage |
-| Bandwidth | 165 MB/day | ~500 KB/load | ✅ ~330 users/day |
-| CPU Time | 60 min/day | Client-side only | ✅ No server CPU |
-| Cost | $0/month | Static SPA | ✅ FREE! |
-
-**Read more:** [docs/DEPLOYMENT_AZURE.md](docs/DEPLOYMENT_AZURE.md)
-
----
-
-## 🐛 Troubleshooting
-
-### Port already in use
-
-```bash
-# Kill process on port 3000
-lsof -ti:3000 | xargs kill -9
-
-# Or use different port
-npm run dev -- --port 3001
-```
-
-### Module not found
-
-```bash
-# Reinstall dependencies
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### Clear Vite cache
-
-```bash
-npm run clean
-npm run dev
-```
-
-**More help:** See troubleshooting sections in:
-- [docs/LOCAL_DEVELOPMENT.md](docs/LOCAL_DEVELOPMENT.md#troubleshooting)
-- [docs/DEPLOYMENT_AZURE.md](docs/DEPLOYMENT_AZURE.md#troubleshooting)
-
----
-
-## 📖 Learn More
-
-- **Architecture deep dive:** [docs/FRONTEND_ARCHITECTURE.md](docs/FRONTEND_ARCHITECTURE.md)
-- **Component breakdown:** [docs/FRONTEND_ARCHITECTURE.md#component-breakdown](docs/FRONTEND_ARCHITECTURE.md#component-breakdown)
-- **Data flow:** [docs/FRONTEND_ARCHITECTURE.md#data-flow](docs/FRONTEND_ARCHITECTURE.md#data-flow)
-- **Performance tips:** [docs/FRONTEND_ARCHITECTURE.md#performance-considerations](docs/FRONTEND_ARCHITECTURE.md#performance-considerations)
-
----
-
-## 🤝 Contributing
-
-This frontend is part of the **Vibecoding Lineage Parser v3.0** project.
-
-**Main repository:** `/workspaces/ws-psidwh/`
-**Backend:** `lineage_v3/` (Python)
-**Frontend:** `frontend/` (React)
-
-See the main [CLAUDE.md](../CLAUDE.md) for complete project documentation.
-
----
-
-## 📄 License
-
-Internal Vibecoding project - see main repository for license details.
-
----
-
-**Built with ❤️ using React + Vite + TypeScript**
+**Last Updated:** 2025-10-27
+**Current Version:** 2.0 (Standalone React App) ✅ Production Ready
+**Next Version:** 3.0 (Single Container) 🚧 Specification Complete
