@@ -10,8 +10,27 @@
 
 ## 🚀 Current Status
 
-**Version:** 2.0 (Standalone React App)
+**Version:** 2.2.0 (SQL Viewer Enhancements)
 **v3.0 Status:** Will be enhanced with new features (Week 2-4)
+
+### ✨ Latest Updates (v2.2.0 - 2025-10-27)
+
+**New Features:**
+- ✅ **Resizable SQL Viewer** - Drag to resize SQL panel (default 1/3 width, range 20-60%)
+- ✅ **Yellow Highlight** - Selected objects now highlighted in yellow (better visual distinction)
+- ✅ **Level 1 Neighbor Visibility** - Connected nodes remain visible when object selected
+- ✅ **UI Refinements** - SQL viewer title changed to "DDL" with normal font weight
+
+**Previous Updates (v2.1.1):**
+- ✅ **Data Model Type Filter Inheritance** - Trace mode inherits data model type filters
+- ✅ **Additional Type Filtering in Trace Panel** - Further refine data model types within trace panel
+
+**Previous Updates (v2.1.0):**
+- ✅ **Preserve Selection on Trace Exit** - Traced nodes remain highlighted in detail view
+- ✅ **Reset View Button** - One-click reset to default state (all filters cleared)
+- ✅ **Schema Filter Inheritance** - Trace mode inherits detail mode schema filters
+
+See [CHANGELOG.md](./CHANGELOG.md) for detailed feature descriptions and usage examples.
 
 ### What's Changing in v3.0
 
@@ -210,5 +229,11 @@ See [docker/README.md](../docker/README.md) for complete Docker configuration.
 ---
 
 **Last Updated:** 2025-10-27
-**Current Version:** 2.0 (Standalone React App) ✅ Production Ready
+**Current Version:** 2.1.1 (Enhanced Type Filtering in Trace Mode) ✅ Production Ready
 **Next Version:** 3.0 (Single Container) 🚧 Specification Complete
+
+---
+
+## 📖 Additional Documentation
+
+- **[CHANGELOG.md](./CHANGELOG.md)** - Detailed feature changes and version history

@@ -46,7 +46,7 @@ The codebase supports finance, clinical operations, and reporting workloads acro
 
 ## Quick Reference for Claude Code
 
-### Working with Frontend (v2.0 - Will be enhanced in v3.0)
+### Working with Frontend (v2.1.1 - Enhanced Type Filtering in Trace Mode)
 ```bash
 # Start frontend dev server
 cd /workspaces/ws-psidwh/frontend
@@ -55,7 +55,24 @@ npm run dev  # Opens at http://localhost:3000
 
 **Frontend Documentation:**
 - Main README: [frontend/README.md](frontend/README.md)
+- Changelog: [frontend/CHANGELOG.md](frontend/CHANGELOG.md) - **NEW: v2.2.0 features**
 - v2.0 deployment docs: [backup_v2/frontend_deploy/docs/](backup_v2/frontend_deploy/docs/)
+
+**Latest Features (v2.2.0 - 2025-10-27):**
+- ✅ **Resizable SQL Viewer** - Drag to resize SQL panel (default 1/3 width, range 20-60%)
+- ✅ **Yellow Highlight** - Selected objects highlighted in yellow for better visual distinction
+- ✅ **Level 1 Neighbor Visibility** - Connected nodes remain visible when object selected
+- ✅ **UI Refinements** - SQL viewer title changed to "DDL" with normal font weight
+
+**Previous Features (v2.1.1):**
+- ✅ **Data Model Type Filter Inheritance** - Trace mode inherits type filters (Dimension, Fact, Lookup, Other)
+- ✅ **Additional Type Filtering in Trace Panel** - Further refine data model types within trace mode
+
+**Previous Features (v2.1.0):**
+- ✅ **Preserve Selection on Trace Exit** - Highlighted nodes persist when leaving trace mode
+- ✅ **Reset View Button** - Quick reset to default view (circular arrows icon in toolbar)
+- ✅ **Schema Filter Inheritance** - Trace mode starts with detail mode's schema filter
+- ✅ **Additional Trace Filtering** - Further refine schemas within trace panel
 
 ### Working with Backend
 
@@ -65,12 +82,13 @@ npm run dev  # Opens at http://localhost:3000
 cd /workspaces/ws-psidwh/api
 python3 main.py  # Opens at http://localhost:8000
 
-# Upload Parquet files via API
+# Upload Parquet files via API (3 required + 2 optional)
 curl -X POST http://localhost:8000/api/upload-parquet \
   -F "objects=@objects.parquet" \
   -F "dependencies=@dependencies.parquet" \
   -F "definitions=@definitions.parquet" \
-  -F "query_logs=@query_logs.parquet"
+  -F "query_logs=@query_logs.parquet" \
+  -F "table_columns=@table_columns.parquet"
 ```
 
 **Option 2: CLI (v2.0 - Command Line)**
@@ -564,22 +582,22 @@ React Flow needs **ONE of these** to render the edge:
 - [SPEC_REVIEW_REVISED.md](SPEC_REVIEW_REVISED.md) - Detailed analysis of findings
 - Test artifacts cleaned up (TESTING schema dropped from Synapse)
 
-### Incremental Load Support
+### Full Refresh Mode (v3.0 Web API)
 
-The parser tracks object modification timestamps to skip unchanged objects:
+The v3.0 web API always uses **full refresh mode** for each upload:
 
 ```bash
-# Default: Incremental mode
-python lineage_v3/main.py run --parquet parquet_snapshots/
-
-# Force full refresh
-python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
+# Web API: Always full refresh (truncate tables before loading)
+curl -X POST http://localhost:8000/api/upload-parquet -F "files=@..."
 ```
 
 **How it works:**
-1. DuckDB maintains `lineage_metadata` table with `last_parsed_modify_date`
-2. Before parsing, checks if `modify_date` from `objects.parquet` is newer
-3. Skips parsing if object hasn't changed and confidence >= 0.85
+1. DuckDB tables are truncated after validation
+2. Fresh data loaded from Parquet files
+3. All objects parsed completely (no incremental tracking)
+4. Job-specific workspace cleaned up after retrieval
+
+**Note:** Incremental mode exists in CLI for persistent workspace scenarios but is not used in the web API workflow.
 
 ### Production vs Development Tools
 
@@ -590,9 +608,9 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 | **Production Extractor** | Export DMVs to Parquet for external users | External DBAs/Users | `lineage_v3/extractor/synapse_dmv_extractor.py` |
 | **Development Helper** | Quick testing & verification during development | Internal Vibecoding team only | `lineage_v3/utils/synapse_query_helper.py` |
 
-**Production Extractor (Coming in Phase 2):**
-- Standalone Python script provided to external users
-- Creates the 4 required Parquet files from Synapse DMVs
+**Production Extractor (PySpark DMV Extractor):**
+- Standalone PySpark script provided to external users
+- Creates 5 Parquet files from Synapse DMVs (3 required + 2 optional)
 - No dependencies on rest of lineage system
 - Users run this once to generate Parquet snapshots
 - Example: `python extract_dmvs.py --output parquet_snapshots/`
@@ -622,7 +640,13 @@ The `frontend/` directory contains a **React 19 + Vite 6** single-page applicati
 - Data import/edit capabilities
 - Fully client-side (no backend API required)
 
-**Status:** ✅ **Production Ready** (deployable to Azure Web App Free tier)
+**Latest Enhancements (v2.1.0 - 2025-10-27):**
+- ✅ **Preserve Selection on Trace Exit** - Traced nodes remain highlighted when returning to detail view
+- ✅ **Reset View Button** - One-click reset to default state (all filters cleared)
+- ✅ **Schema Filter Inheritance** - Trace mode automatically inherits detail mode schema filters
+- ✅ **Additional Trace Filtering** - Further refine schemas within the trace panel
+
+**Status:** ✅ **Production Ready** (v2.1.0 - deployable to Azure Web App Free tier)
 
 ### Documentation
 
@@ -630,6 +654,8 @@ All frontend documentation is self-contained in the `frontend/` subfolder:
 
 | Document | Purpose |
 |----------|---------|
+| [README.md](frontend/README.md) | Quick start guide and feature overview (v2.1.0) |
+| [CHANGELOG.md](frontend/CHANGELOG.md) | **NEW:** Detailed v2.1.0 feature descriptions and usage examples |
 | [FRONTEND_ARCHITECTURE.md](frontend/docs/FRONTEND_ARCHITECTURE.md) | Complete architectural analysis, component breakdown, data flow |
 | [DEPLOYMENT_AZURE.md](frontend/docs/DEPLOYMENT_AZURE.md) | Azure Web App deployment guide (Free tier compatible) |
 | [LOCAL_DEVELOPMENT.md](frontend/docs/LOCAL_DEVELOPMENT.md) | Local development in devcontainer and standalone |
@@ -733,12 +759,12 @@ See [frontend/docs/INTEGRATION.md](frontend/docs/INTEGRATION.md) for integration
 - **Phase 1:** Migration & project structure
 - **Phase 2:** Production Extractor (Synapse DMV → Parquet)
   - [synapse_dmv_extractor.py](lineage_v3/extractor/synapse_dmv_extractor.py) - Standalone extractor
-  - Exports 4 Parquet files: objects, dependencies, definitions, query_logs
+  - Exports 5 Parquet files: objects, dependencies, definitions, query_logs, table_columns
   - Command-line interface with .env support
 - **Phase 3:** Core Engine (DuckDB workspace) ✅ **COMPLETE**
   - [duckdb_workspace.py](lineage_v3/core/duckdb_workspace.py) - Workspace manager
   - Persistent DuckDB database with schema initialization
-  - Parquet ingestion for all 4 input files
+  - Parquet ingestion for all 5 input files (2 optional)
   - Incremental load metadata tracking
   - Query interface for DMV data access
   - Full test coverage (manual tests passing)
@@ -782,13 +808,30 @@ See [frontend/docs/INTEGRATION.md](frontend/docs/INTEGRATION.md) for integration
   - **Test Coverage:** All 6 endpoints tested and verified
   - See [api/README.md](api/README.md) and [api/TEST_RESULTS.md](api/TEST_RESULTS.md)
 
+- **Week 2-3 (v3.0):** Query Logs Optimization ✅ **COMPLETE**
+  - **Problem:** Original query_logs extract had 9,991 rows with 93% duplicates and irrelevant operations
+  - **Solution:** Filter at source (PySpark extractor) instead of downstream
+  - **Changes:**
+    - Only extract DML operations: SELECT, INSERT, UPDATE, MERGE
+    - Apply DISTINCT on command_text to remove duplicates
+    - Only store command_text column (removed request_id, session_id, submit_time)
+    - Extended lookback from 7 to 21 days for better coverage
+  - **Results:**
+    - 97.1% data reduction (9,991 rows → ~285 rows)
+    - Parquet file size: ~170KB → ~5KB
+    - Only lineage-relevant operations (excludes DELETE, TRUNCATE, SET, BEGIN, COMMIT, etc.)
+  - **Files Updated:**
+    - [extractor/synapse_pyspark_dmv_extractor.py](extractor/synapse_pyspark_dmv_extractor.py) - QUERY_LOGS optimized
+    - [lineage_v3/core/duckdb_workspace.py](lineage_v3/core/duckdb_workspace.py) - Removed redundant filtering
+  - **Architecture Principle:** Filter at source to minimize data transfer and processing
+
 ### 🚧 In Progress:
-- (None - Ready for Week 2-3 remaining days)
+- (None - Ready for Week 3-4 tasks)
 
 ### 📋 Upcoming Phases:
-- **Phase 5:** AI Fallback (Microsoft Agent Framework - Step 6) - **CRITICAL** (must handle 8 remaining low-confidence SPs)
-- **Phase 7:** Incremental Load Implementation (Full pipeline)
-- **Phase 8:** Integration & Testing
+- **Phase 5:** AI Fallback (Microsoft Agent Framework - Step 6) - **DEFERRED** (8 low-confidence SPs - pending approval)
+- **Week 3-4:** Docker Containerization (Single container deployment)
+- **Week 4:** SQL Viewer Feature (View definitions in UI)
 
 ---
 
@@ -960,9 +1003,9 @@ To achieve the best parsing results (confidence ≥0.85), follow these guideline
 | **Production Extractor** | Export DMVs to Parquet for external users | External DBAs/Users | `lineage_v3/extractor/synapse_dmv_extractor.py` |
 | **Development Helper** | Quick testing & verification during development | Internal Vibecoding team only | `lineage_v3/utils/synapse_query_helper.py` |
 
-**Production Extractor (Coming in Phase 2):**
-- Standalone Python script provided to external users
-- Creates the 4 required Parquet files from Synapse DMVs
+**Production Extractor (PySpark DMV Extractor):**
+- Standalone PySpark script provided to external users
+- Creates 5 Parquet files from Synapse DMVs (3 required + 2 optional)
 - No dependencies on rest of lineage system
 - Users run this once to generate Parquet snapshots
 - Example: `python extract_dmvs.py --output parquet_snapshots/`

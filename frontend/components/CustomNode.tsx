@@ -8,6 +8,14 @@ type CustomNodeData = DataNode & {
     isDimmed: boolean;
     layoutDir: 'LR' | 'TB';
     schemaColor: string;
+    sqlViewerOpen?: boolean;
+    onNodeClick?: (nodeData: {
+        id: string;
+        name: string;
+        schema: string;
+        objectType: string;
+        ddlText: string | null;
+    }) => void;
 };
 
 export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
@@ -15,24 +23,45 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
     const isHorizontal = data.layoutDir === 'LR';
     const schemaColor = data.schemaColor || '#7f7f7f';
 
+    // SQL Viewer click handler
+    const handleClick = () => {
+        if (data.sqlViewerOpen && data.onNodeClick) {
+            data.onNodeClick({
+                id: data.id,
+                name: data.name,
+                schema: data.schema,
+                objectType: data.object_type,
+                ddlText: data.ddl_text || null
+            });
+        }
+    };
+
+    // Check if node is clickable for SQL viewer
+    const isClickableForSql = data.sqlViewerOpen && data.onNodeClick;
+
     const nodeClasses = `
         w-48 h-12 flex items-center justify-center text-sm font-bold
         border-2 shadow-lg text-gray-800
         ${shapeStyle}
-        ${data.isHighlighted ? 'border-blue-500 !border-4 ring-4 ring-blue-500/50' : ''}
+        ${data.isHighlighted ? 'border-yellow-400 !border-4 ring-4 ring-yellow-400/50' : ''}
         ${data.isDimmed ? 'opacity-20' : ''}
+        ${isClickableForSql ? 'cursor-pointer hover:shadow-xl hover:scale-105' : ''}
         transition-all duration-300
     `;
-    
+
     const nodeStyle = {
         backgroundColor: `${schemaColor}30`,
         borderColor: schemaColor,
     };
-    
-    const nodeTitle = `Object: ${data.schema}.${data.name}\nObject Type: ${data.object_type}\nData Model Type: ${data.data_model_type || 'N/A'}\nDescription: ${data.description || 'No description provided.'}`;
+
+    let nodeTitle = `Object: ${data.schema}.${data.name}\nObject Type: ${data.object_type}\nData Model Type: ${data.data_model_type || 'N/A'}\nDescription: ${data.description || 'No description provided.'}`;
+
+    if (isClickableForSql) {
+        nodeTitle += `\n\n💡 Click to view SQL definition`;
+    }
 
     return (
-        <div className={nodeClasses} title={nodeTitle} style={nodeStyle}>
+        <div className={nodeClasses} title={nodeTitle} style={nodeStyle} onClick={handleClick}>
             <Handle type="target" position={isHorizontal ? Position.Left : Position.Top} className="!bg-gray-500" />
             <div className="truncate px-2">{data.name}</div>
             <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} className="!bg-gray-500" />

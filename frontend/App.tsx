@@ -18,6 +18,7 @@ import { ImportDataModal } from './components/ImportDataModal';
 import { InfoModal } from './components/InfoModal';
 import { InteractiveTracePanel } from './components/InteractiveTracePanel';
 import { NotificationContainer, NotificationHistory } from './components/NotificationSystem';
+import { SqlViewer } from './components/SqlViewer';
 import { useGraphology } from './hooks/useGraphology';
 import { useNotifications } from './hooks/useNotifications';
 import { useInteractiveTrace } from './hooks/useInteractiveTrace';
@@ -60,11 +61,34 @@ function DataLineageVisualizer() {
     setAutocompleteSuggestions,
   } = useDataFiltering({ allData, lineageGraph, schemas, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace });
 
+  // Store previous trace results for when we exit trace mode
+  const previousTraceResultsRef = useRef<Set<string>>(new Set());
+
+  // --- Detect DDL Availability (memoized for performance) ---
+  const hasDdlData = useMemo(() => {
+    return allData.some(node => node.ddl_text != null && node.ddl_text !== '');
+  }, [allData]);
+
+  // Enable SQL viewer only in Detail View with DDL data
+  const sqlViewerEnabled = hasDdlData && viewMode === 'detail';
+
   // --- UI State ---
   const [isLegendCollapsed, setIsLegendCollapsed] = useState(true);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isControlsVisible, setIsControlsVisible] = useState(true);
+
+  // --- SQL Viewer State ---
+  const [sqlViewerOpen, setSqlViewerOpen] = useState(false);
+  const [sqlViewerWidth, setSqlViewerWidth] = useState(33); // Default 33% (1/3 of screen)
+  const [isResizing, setIsResizing] = useState(false);
+  const [selectedNodeForSql, setSelectedNodeForSql] = useState<{
+    id: string;
+    name: string;
+    schema: string;
+    objectType: string;
+    ddlText: string | null;
+  } | null>(null);
 
   // --- Memos for Derived State and Layouting ---
   const layoutedElements = useMemo(() => {
@@ -80,21 +104,63 @@ function DataLineageVisualizer() {
     });
   }, [finalVisibleData, viewMode, layout, schemaColorMap, schemas, selectedSchemas, lineageGraph, isTraceModeActive]);
 
+  // --- SQL Viewer Handlers (must be defined before finalNodes) ---
+  const handleNodeClickForSql = useCallback((nodeData: {
+    id: string;
+    name: string;
+    schema: string;
+    objectType: string;
+    ddlText: string | null;
+  }) => {
+    if (sqlViewerOpen) {
+      setSelectedNodeForSql(nodeData);
+    }
+  }, [sqlViewerOpen]);
+
   const finalNodes = useMemo(() => {
     const currentHighlights = isTraceModeActive && traceConfig?.startNodeId
       ? new Set([traceConfig.startNodeId])
       : highlightedNodes;
 
-    return layoutedElements.nodes.map(n => ({
-      ...n,
-      data: {
-        ...n.data,
-        isHighlighted: currentHighlights.has(n.id),
-        isDimmed: !isTraceModeActive && highlightedNodes.size > 0 && !highlightedNodes.has(n.id),
-        layoutDir: layout
-      }
-    }));
-  }, [layoutedElements.nodes, highlightedNodes, layout, isTraceModeActive, traceConfig]);
+    // Build set of level 1 neighbors (nodes directly connected to highlighted nodes)
+    const level1Neighbors = new Set<string>();
+    if (!isTraceModeActive && highlightedNodes.size > 0) {
+      highlightedNodes.forEach(nodeId => {
+        if (lineageGraph.hasNode(nodeId)) {
+          const neighbors = lineageGraph.neighbors(nodeId);
+          neighbors.forEach(neighborId => level1Neighbors.add(neighborId));
+        }
+      });
+    }
+
+    return layoutedElements.nodes.map(n => {
+      // Find the original data node to get ddl_text
+      const originalNode = allData.find(d => d.id === n.id);
+
+      // A node should be dimmed if:
+      // - Not in trace mode AND
+      // - There are highlighted nodes AND
+      // - This node is NOT highlighted AND
+      // - This node is NOT a level 1 neighbor of highlighted nodes
+      const shouldBeDimmed = !isTraceModeActive &&
+                             highlightedNodes.size > 0 &&
+                             !highlightedNodes.has(n.id) &&
+                             !level1Neighbors.has(n.id);
+
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          isHighlighted: currentHighlights.has(n.id),
+          isDimmed: shouldBeDimmed,
+          layoutDir: layout,
+          sqlViewerOpen,
+          onNodeClick: handleNodeClickForSql,
+          ddl_text: originalNode?.ddl_text
+        }
+      };
+    });
+  }, [layoutedElements.nodes, highlightedNodes, layout, isTraceModeActive, traceConfig, sqlViewerOpen, allData, handleNodeClickForSql, lineageGraph]);
 
   // --- Effects to Synchronize State with React Flow ---
   useEffect(() => {
@@ -127,6 +193,26 @@ function DataLineageVisualizer() {
       window.removeEventListener('resize', debouncedHandleResize);
     };
   }, [fitView]); // Dependency on fitView ensures it's not stale
+
+  // --- Effect to store trace results when in trace mode ---
+  useEffect(() => {
+    if (isTraceModeActive && traceConfig) {
+      const tracedIds = performInteractiveTrace(traceConfig);
+      previousTraceResultsRef.current = tracedIds;
+    }
+  }, [isTraceModeActive, traceConfig, performInteractiveTrace]);
+
+  // --- Effect to preserve selection when exiting trace mode ---
+  useEffect(() => {
+    if (!isTraceModeActive && previousTraceResultsRef.current.size > 0) {
+      // Apply the stored trace results as highlighted nodes in detail mode
+      setHighlightedNodes(previousTraceResultsRef.current);
+      // Clear focused node since we're showing multiple nodes
+      setFocusedNodeId(null);
+      // Clear the stored results after applying
+      // previousTraceResultsRef.current = new Set(); // Keep it so users can toggle back and forth
+    }
+  }, [isTraceModeActive, setHighlightedNodes]);
 
   // --- Event Handlers ---
   const handleNodeClick = (_: React.MouseEvent, node: ReactFlowNode) => {
@@ -197,6 +283,84 @@ function DataLineageVisualizer() {
       setFocusedNodeId(null);
     }
   };
+
+  const handleResetView = () => {
+    // Reset all filters and selections to default
+    setSelectedSchemas(new Set(schemas));
+    setSelectedTypes(new Set(dataModelTypes));
+    setHighlightedNodes(new Set());
+    setFocusedNodeId(null);
+    setSearchTerm('');
+    setHideUnrelated(false);
+    setViewMode('detail');
+    previousTraceResultsRef.current = new Set();
+
+    // Also close SQL viewer and clear selection
+    setSqlViewerOpen(false);
+    setSelectedNodeForSql(null);
+
+    // Fit view after reset
+    setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
+
+    addNotification('View reset to default.', 'info');
+  };
+
+  // --- SQL Viewer Toggle Handler ---
+  const handleToggleSqlViewer = () => {
+    if (!sqlViewerEnabled) return;
+
+    setSqlViewerOpen(!sqlViewerOpen);
+    if (sqlViewerOpen) {
+      setSelectedNodeForSql(null); // Clear selection when closing
+    }
+  };
+
+  // --- SQL Viewer Resize Handler ---
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // Get the main container element (the flex parent)
+      const mainContainer = document.querySelector('.flex-grow.rounded-b-lg.flex') as HTMLElement;
+      if (!mainContainer) return;
+
+      const containerRect = mainContainer.getBoundingClientRect();
+      const containerWidth = containerRect.width;
+
+      // Calculate distance from right edge
+      const distanceFromRight = containerRect.right - e.clientX;
+
+      // Convert to percentage
+      const newWidthPercent = (distanceFromRight / containerWidth) * 100;
+
+      // Constrain between 20% and 60%
+      const constrainedWidth = Math.min(Math.max(newWidthPercent, 20), 60);
+      setSqlViewerWidth(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    // Add cursor style to body during resize
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
 
   const miniMapNodeColor = (node: ReactFlowNode): string => {
     if (viewMode === 'schema' || !node.data.schema) return '#e2e8f0';
@@ -308,45 +472,75 @@ function DataLineageVisualizer() {
             onOpenImport={() => setIsImportModalOpen(true)}
             onOpenInfo={() => setIsInfoModalOpen(true)}
             onExportSVG={handleExportSVG}
+            onResetView={handleResetView}
+            sqlViewerOpen={sqlViewerOpen}
+            onToggleSqlViewer={handleToggleSqlViewer}
+            sqlViewerEnabled={sqlViewerEnabled}
+            hasDdlData={hasDdlData}
             notificationHistory={notificationHistory}
             onClearNotificationHistory={clearNotificationHistory}
           />
-          <div className="relative flex-grow rounded-b-lg">
-            {isTraceModeActive && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
-                <span className="font-semibold">You are in Interactive Trace Mode.</span>
-                <button onClick={handleExitTraceMode} className="text-blue-100 hover:text-white underline font-bold">Exit</button>
-              </div>
+          <div className="relative flex-grow rounded-b-lg flex">
+            {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
+            <div className={`relative ${!isResizing ? 'transition-all duration-300' : ''}`} style={{ width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%' }}>
+              {isTraceModeActive && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
+                  <span className="font-semibold">You are in Interactive Trace Mode.</span>
+                  <button onClick={handleExitTraceMode} className="text-blue-100 hover:text-white underline font-bold">Exit</button>
+                </div>
+              )}
+              <ReactFlow
+                nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+                nodeTypes={nodeTypes}
+                onPaneClick={handlePaneClick}
+                onNodeClick={handleNodeClick}
+                fitView
+                minZoom={0.1}
+                proOptions={{ hideAttribution: true }}
+              >
+                <Controls />
+                {isControlsVisible && <MiniMap nodeColor={miniMapNodeColor} nodeStrokeWidth={3} nodeBorderRadius={2} zoomable pannable className="bg-white/80" ariaLabel="Minimap" />}
+                <Background color={'#a1a1aa'} gap={16} />
+                {isControlsVisible && viewMode === 'detail' &&
+                  <Legend
+                    isCollapsed={isLegendCollapsed}
+                    onToggle={() => setIsLegendCollapsed(p => !p)}
+                    schemas={schemas}
+                    schemaColorMap={schemaColorMap}
+                  />}
+              </ReactFlow>
+            </div>
+
+            {/* SQL Viewer Container - Dynamic width with resize handle */}
+            {sqlViewerOpen && (
+              <>
+                {/* Resize Handle */}
+                <div
+                  onMouseDown={handleMouseDown}
+                  className={`w-1 bg-gray-300 hover:bg-blue-500 cursor-col-resize transition-colors ${isResizing ? 'bg-blue-500' : ''}`}
+                  style={{ userSelect: 'none' }}
+                />
+                {/* SQL Viewer Panel */}
+                <div style={{ width: `${sqlViewerWidth}%` }} className="border-l border-gray-300">
+                  <SqlViewer
+                    isOpen={sqlViewerOpen}
+                    selectedNode={selectedNodeForSql}
+                  />
+                </div>
+              </>
             )}
-            <ReactFlow
-              nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-              nodeTypes={nodeTypes}
-              onPaneClick={handlePaneClick}
-              onNodeClick={handleNodeClick}
-              fitView
-              minZoom={0.1}
-              proOptions={{ hideAttribution: true }}
-            >
-              <Controls />
-              {isControlsVisible && <MiniMap nodeColor={miniMapNodeColor} nodeStrokeWidth={3} nodeBorderRadius={2} zoomable pannable className="bg-white/80" ariaLabel="Minimap" />}
-              <Background color={'#a1a1aa'} gap={16} />
-              {isControlsVisible && viewMode === 'detail' && 
-                <Legend 
-                  isCollapsed={isLegendCollapsed} 
-                  onToggle={() => setIsLegendCollapsed(p => !p)} 
-                  schemas={schemas} 
-                  schemaColorMap={schemaColorMap} 
-                />}
-            </ReactFlow>
           </div>
         </div>
-        <InteractiveTracePanel 
-          isOpen={isTraceModeActive} 
-          onClose={handleExitTraceMode} 
-          onApply={handleApplyTrace} 
-          availableSchemas={schemas} 
-          allData={allData} 
-          addNotification={addNotification} 
+        <InteractiveTracePanel
+          isOpen={isTraceModeActive}
+          onClose={handleExitTraceMode}
+          onApply={handleApplyTrace}
+          availableSchemas={schemas}
+          inheritedSchemaFilter={selectedSchemas}
+          availableTypes={dataModelTypes}
+          inheritedTypeFilter={selectedTypes}
+          allData={allData}
+          addNotification={addNotification}
         />
       </main>
       <ImportDataModal 
