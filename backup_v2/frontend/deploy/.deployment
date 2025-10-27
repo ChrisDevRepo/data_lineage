@@ -1,0 +1,16 @@
+# Azure Deployment Configuration
+# This file tells Azure how to deploy the frontend application
+
+[config]
+# Specify custom deployment script (optional)
+# If not specified, Azure will auto-detect Node.js and run npm install + npm run build
+
+# For simple Vite builds, auto-detection works fine
+# command = deploy.sh
+
+# Deployment target (wwwroot is the default web root)
+project = .
+
+# SCM (Kudu) Configuration
+SCM_DO_BUILD_DURING_DEPLOYMENT = true
+SCM_SCRIPT_GENERATOR_ARGS = --node

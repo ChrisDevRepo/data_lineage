@@ -1,0 +1,33 @@
+{
+  "name": "data-object-lineage",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Interactive data lineage visualizer for Azure Synapse",
+  "author": "Vibecoding",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:azure": "npm run build && npm run deploy:prepare",
+    "deploy:prepare": "cp deploy/web.config dist/ && echo 'Deployment package ready in dist/'",
+    "deploy:zip": "npm run build:azure && cd dist && zip -r ../deploy.zip . && cd .. && echo 'Created deploy.zip'",
+    "serve": "npm run build && npm run preview",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist deploy.zip node_modules/.vite"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "reactflow": "^11.11.4",
+    "dagre": "0.8.5",
+    "graphology": "0.25.4",
+    "graphology-traversal": "0.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
