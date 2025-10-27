@@ -24,7 +24,7 @@ This repository contains:
 1. **Azure Synapse Data Warehouse** - SQL scripts for stored procedures, tables, and views
 2. **Vibecoding Lineage Parser v3.0** - DMV-first data lineage system with GUI-based workflow
 
-**Current Status:** v3.0 Implementation - Week 1 Complete (PySpark Extractor)
+**Current Status:** v3.0 Implementation - Week 1-2 Complete (PySpark Extractor + FastAPI Backend)
 
 The codebase supports finance, clinical operations, and reporting workloads across multiple schemas.
 
@@ -43,9 +43,25 @@ npm run dev  # Opens at http://localhost:3000
 - Main README: [frontend/README.md](frontend/README.md)
 - v2.0 deployment docs: [backup_v2/frontend_deploy/docs/](backup_v2/frontend_deploy/docs/)
 
-### Working with Backend (Lineage Parser)
+### Working with Backend
+
+**Option 1: FastAPI Backend (v3.0 - Web API)**
 ```bash
-# Run lineage parser
+# Start FastAPI server
+cd /workspaces/ws-psidwh/api
+python3 main.py  # Opens at http://localhost:8000
+
+# Upload Parquet files via API
+curl -X POST http://localhost:8000/api/upload-parquet \
+  -F "objects=@objects.parquet" \
+  -F "dependencies=@dependencies.parquet" \
+  -F "definitions=@definitions.parquet" \
+  -F "query_logs=@query_logs.parquet"
+```
+
+**Option 2: CLI (v2.0 - Command Line)**
+```bash
+# Run lineage parser directly
 cd /workspaces/ws-psidwh
 python lineage_v3/main.py run --parquet parquet_snapshots/
 
@@ -53,6 +69,8 @@ python lineage_v3/main.py run --parquet parquet_snapshots/
 ```
 
 **Backend Documentation:**
+- API Documentation: [api/README.md](api/README.md)
+- Test Results: [api/TEST_RESULTS.md](api/TEST_RESULTS.md)
 - Specification: [lineage_specs.md](lineage_specs.md)
 - Main CLI: [lineage_v3/main.py](lineage_v3/main.py)
 
@@ -74,8 +92,13 @@ ws-psidwh/
 │   ├── synapse_pyspark_dmv_extractor.py  # Spark Job script
 │   └── README.md                 # Deployment guide
 │
-├── api/                          # 🚧 Week 2-3: FastAPI Backend (PENDING)
-│   └── README.md                 # Implementation guide
+├── api/                          # ✅ Week 2: FastAPI Backend (COMPLETE)
+│   ├── main.py                   # FastAPI application with 6 endpoints
+│   ├── background_tasks.py       # Background processing wrapper
+│   ├── models.py                 # Pydantic request/response models
+│   ├── requirements.txt          # API dependencies
+│   ├── README.md                 # Complete API documentation
+│   └── TEST_RESULTS.md           # Comprehensive test report
 │
 ├── docker/                       # 🚧 Week 2-3: Container Config (PENDING)
 │   └── README.md                 # Docker multi-stage build
@@ -735,8 +758,18 @@ See [frontend/docs/INTEGRATION.md](frontend/docs/INTEGRATION.md) for integration
   - Integrated into [main.py](lineage_v3/main.py) Step 8
   - Output directory: [lineage_output/](lineage_output/)
 
+- **Week 2 (v3.0):** FastAPI Backend ✅ **COMPLETE**
+  - [api/main.py](api/main.py) - FastAPI application with 6 endpoints
+  - [api/background_tasks.py](api/background_tasks.py) - Background processing wrapper
+  - [api/models.py](api/models.py) - Pydantic models
+  - **Endpoints:** `/health`, `/api/upload-parquet`, `/api/status/{job_id}`, `/api/result/{job_id}`, `/api/jobs`, `/api/jobs/{job_id}`
+  - **Features:** File upload, background processing, real-time progress tracking, OpenAPI docs
+  - **Performance:** 2.3s processing time for 85 objects (~37 objects/sec)
+  - **Test Coverage:** All 6 endpoints tested and verified
+  - See [api/README.md](api/README.md) and [api/TEST_RESULTS.md](api/TEST_RESULTS.md)
+
 ### 🚧 In Progress:
-- (None - Ready for Phase 5)
+- (None - Ready for Week 2-3 remaining days)
 
 ### 📋 Upcoming Phases:
 - **Phase 5:** AI Fallback (Microsoft Agent Framework - Step 6) - **CRITICAL** (must handle 8 remaining low-confidence SPs)

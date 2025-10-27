@@ -1,0 +1,14 @@
+# FastAPI Backend Dependencies
+# These are IN ADDITION to existing requirements.txt in root
+
+# Web framework
+fastapi==0.115.0
+uvicorn[standard]==0.32.0  # ASGI server with auto-reload
+python-multipart==0.0.12  # For file uploads
+
+# Data validation
+pydantic>=2.11.0
+pydantic-settings>=2.6.0
+
+# CORS support
+python-jose==3.3.0  # For JWT tokens (if auth needed later)
