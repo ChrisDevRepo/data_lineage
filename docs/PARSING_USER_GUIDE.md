@@ -308,3 +308,69 @@ ORDER BY m.confidence ASC
 **Last Updated:** 2025-10-26
 **Parser Version:** 3.0.0 (Phase 4 Complete)
 **Questions?** Contact Vibecoding team
+
+---
+
+## Updates (v3.4.0 - 2025-10-27)
+
+### SELECT INTO Statement Handling
+
+**Fixed:** Parser now correctly captures source tables in SELECT INTO statements.
+
+**Example:**
+```sql
+SELECT *
+INTO #temp_results
+FROM CONSUMPTION_FINANCE.vFactLaborCost  -- ✅ Now captured correctly
+WHERE Account IN (...)
+```
+
+**Before Fix:**
+- Parser treated #temp_results as a DML target
+- Source table (vFactLaborCost) was incorrectly excluded
+- Result: Missing dependencies
+
+**After Fix:**
+- SELECT INTO targets tracked separately from INSERT/UPDATE/MERGE targets
+- Source tables in FROM clause are correctly identified as inputs
+- Result: Complete dependency graph
+
+### Query Log Validation (Step 5)
+
+**New Feature:** Runtime validation of parsed stored procedures using query execution logs.
+
+**How It Works:**
+1. Parser generates lineage from stored procedure DDL (confidence 0.85)
+2. Query log validator checks if parsed tables appear in actual DML queries
+3. If matching queries found → Confidence boosted to 0.95
+4. Result: "Parsed & Validated" vs "Parsed Only"
+
+**Benefits:**
+- ✅ Runtime confirmation of static parsing accuracy
+- ✅ Distinguishes theoretical vs executed dependencies
+- ✅ No false positives (only boosts correctly parsed SPs)
+- ✅ Optional feature (graceful degradation if no query logs)
+
+**Example Output:**
+```
+Step 5: Query Log Validation (Cross-Validation)
+======================================================================
+📊 Found 1,634 query log entries
+🔍 Cross-validating parsed stored procedures...
+✅ Validated 6 stored procedure(s)
+
+📈 Confidence Boosts:
+   - CONSUMPTION_FINANCE.spLoadDimAccount: 0.85 → 0.95
+   - CONSUMPTION_FINANCE.spLoadFactGLSAP: 0.85 → 0.95
+```
+
+**Documentation:**
+- [Query Logs Analysis](QUERY_LOGS_ANALYSIS.md) - Complete analysis & strategy
+- [Parser Bug Report](PARSER_BUG_SELECT_INTO.md) - SELECT INTO fix details
+- [Implementation Summary](IMPLEMENTATION_COMPLETE.md) - v3.4.0 overview
+
+---
+
+**Last Updated:** 2025-10-27
+**Parser Version:** 3.4.0 (Query Log Validation Added)
+**Questions?** Contact Vibecoding team

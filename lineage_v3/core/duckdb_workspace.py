@@ -176,15 +176,81 @@ class DuckDBWorkspace:
         # Create parser_comparison_log table
         self.connection.execute(self.SCHEMA_PARSER_COMPARISON)
 
+    def load_parquet_from_mappings(
+        self,
+        file_mappings: Dict[str, Path],
+        full_refresh: bool = False
+    ) -> Dict[str, int]:
+        """
+        Load Parquet files into DuckDB tables using file mappings.
+
+        Works with any filenames - loads files directly by their actual paths.
+
+        Args:
+            file_mappings: Dict mapping table_name -> filepath
+                Expected keys: 'objects', 'dependencies', 'definitions', 'query_logs' (optional)
+            full_refresh: If True, drop existing tables before loading
+
+        Returns:
+            Dictionary mapping table name to row count
+
+        Raises:
+            KeyError: If required file mappings missing
+            RuntimeError: If loading fails
+        """
+        if not self.connection:
+            raise RuntimeError("Not connected to DuckDB workspace")
+
+        row_counts = {}
+
+        # Required table types
+        required_tables = ['objects', 'dependencies', 'definitions']
+
+        # Optional table types
+        optional_tables = ['query_logs', 'table_columns']
+
+        # Check for missing required files
+        for table_name in required_tables:
+            if table_name not in file_mappings:
+                raise KeyError(f"Missing required file mapping: '{table_name}'")
+
+        # Load required files
+        for table_name in required_tables:
+            file_path = file_mappings[table_name]
+            row_count = self._load_parquet_file(
+                file_path,
+                table_name,
+                full_refresh
+            )
+            row_counts[table_name] = row_count
+
+        # Load optional files if provided
+        for table_name in optional_tables:
+            if table_name in file_mappings:
+                file_path = file_mappings[table_name]
+                row_count = self._load_parquet_file(
+                    file_path,
+                    table_name,
+                    full_refresh
+                )
+                row_counts[table_name] = row_count
+            else:
+                row_counts[table_name] = 0  # Mark as skipped
+
+        # Create unified_ddl view after loading all Parquet files
+        self.create_unified_ddl_view()
+
+        return row_counts
+
     def load_parquet(
         self,
         parquet_dir: Path,
         full_refresh: bool = False
     ) -> Dict[str, int]:
         """
-        Load Parquet files into DuckDB tables.
+        Load Parquet files into DuckDB tables (legacy method for CLI).
 
-        Loads the 4 required Parquet files:
+        Loads the 4 required Parquet files by fixed names:
         1. objects.parquet → objects table
         2. dependencies.parquet → dependencies table
         3. definitions.parquet → definitions table
@@ -219,7 +285,8 @@ class DuckDBWorkspace:
 
         # Optional files
         optional_files = {
-            'query_logs': 'query_logs.parquet'
+            'query_logs': 'query_logs.parquet',
+            'table_columns': 'table_columns.parquet'
         }
 
         # Load required files
@@ -248,6 +315,9 @@ class DuckDBWorkspace:
             else:
                 row_counts[table_name] = 0  # Mark as skipped
 
+        # Create unified_ddl view after loading all Parquet files
+        self.create_unified_ddl_view()
+
         return row_counts
 
     def _load_parquet_file(
@@ -258,6 +328,9 @@ class DuckDBWorkspace:
     ) -> int:
         """
         Load a single Parquet file into DuckDB table.
+
+        Note: query_logs filtering (SELECT, INSERT, UPDATE, etc.) and DISTINCT
+        are done at source in PySpark extractor to minimize data transfer.
 
         Args:
             file_path: Path to Parquet file
@@ -274,12 +347,27 @@ class DuckDBWorkspace:
         if replace:
             self.connection.execute(f"DROP TABLE IF EXISTS {table_name}")
 
-        # Load Parquet file
-        # DuckDB can read Parquet directly without pandas
-        self.connection.execute(f"""
-            CREATE OR REPLACE TABLE {table_name} AS
-            SELECT * FROM read_parquet('{file_path}')
-        """)
+        # Load Parquet file with special handling for table_columns
+        if table_name == 'table_columns':
+            # Load table_columns and add correct_object_id column immediately
+            # This handles cases where object_ids change between extractions
+            self.connection.execute(f"""
+                CREATE OR REPLACE TABLE {table_name} AS
+                SELECT
+                    tc.*,
+                    o.object_id as correct_object_id
+                FROM read_parquet('{file_path}') tc
+                LEFT JOIN objects o
+                    ON o.schema_name = tc.schema_name
+                    AND o.object_name = tc.table_name
+                    AND o.object_type = 'Table'
+            """)
+        else:
+            # Load other tables directly (no additional filtering needed)
+            self.connection.execute(f"""
+                CREATE OR REPLACE TABLE {table_name} AS
+                SELECT * FROM read_parquet('{file_path}')
+            """)
 
         # Get row count
         result = self.connection.execute(
@@ -518,6 +606,89 @@ class DuckDBWorkspace:
             outputs_json
         ])
 
+    def create_unified_ddl_view(self):
+        """
+        Create unified_ddl view that combines real DDL (SPs/Views) with generated table DDL.
+
+        This view provides a single interface to get DDL for any database object:
+        - Stored Procedures and Views: Real DDL from definitions table
+        - Tables: Generated CREATE TABLE DDL from table_columns
+        """
+        if not self.connection:
+            raise RuntimeError("Not connected to DuckDB workspace")
+
+        # Check if definitions table exists
+        definitions_exists = self.connection.execute("""
+            SELECT COUNT(*) FROM information_schema.tables
+            WHERE table_name = 'definitions'
+        """).fetchone()[0] > 0
+
+        # Check if table_columns exists
+        table_columns_exists = self.connection.execute("""
+            SELECT COUNT(*) FROM information_schema.tables
+            WHERE table_name = 'table_columns'
+        """).fetchone()[0] > 0
+
+        if not definitions_exists:
+            # Can't create view without definitions table
+            return
+
+        # Build view SQL based on which tables exist
+        view_parts = []
+
+        # Part 1: Real DDL from definitions (always include if definitions exists)
+        view_parts.append("""
+            SELECT
+                d.object_id,
+                o.schema_name,
+                o.object_name,
+                o.object_type,
+                d.definition as ddl_text
+            FROM definitions d
+            JOIN objects o ON d.object_id = o.object_id
+            WHERE o.object_type IN ('Stored Procedure', 'View')
+        """)
+
+        # Part 2: Generated CREATE TABLE DDL (only if table_columns exists)
+        if table_columns_exists:
+            view_parts.append("""
+                SELECT
+                    tc.correct_object_id as object_id,
+                    tc.schema_name,
+                    tc.table_name as object_name,
+                    'Table' as object_type,
+                    'CREATE TABLE [' || tc.schema_name || '].[' || tc.table_name || '] (' || chr(10) ||
+                    string_agg(
+                        '    [' || tc.column_name || '] ' ||
+                        CASE
+                            WHEN tc.data_type IN ('varchar', 'nvarchar', 'char', 'nchar') THEN
+                                tc.data_type ||
+                                CASE
+                                    WHEN tc.max_length = -1 THEN '(MAX)'
+                                    WHEN tc.data_type IN ('nvarchar', 'nchar') THEN '(' || CAST(tc.max_length / 2 AS VARCHAR) || ')'
+                                    ELSE '(' || CAST(tc.max_length AS VARCHAR) || ')'
+                                END
+                            WHEN tc.data_type IN ('decimal', 'numeric') THEN
+                                tc.data_type || '(' || CAST(tc.precision AS VARCHAR) || ',' || CAST(tc.scale AS VARCHAR) || ')'
+                            ELSE tc.data_type
+                        END ||
+                        CASE WHEN tc.is_nullable THEN ' NULL' ELSE ' NOT NULL' END,
+                        ',' || chr(10)
+                        ORDER BY tc.column_id
+                    ) || chr(10) || ');' as ddl_text
+                FROM table_columns tc
+                WHERE tc.correct_object_id IS NOT NULL
+                GROUP BY tc.correct_object_id, tc.schema_name, tc.table_name
+            """)
+
+        # Create view with UNION ALL if we have multiple parts
+        if len(view_parts) == 1:
+            view_sql = f"CREATE OR REPLACE VIEW unified_ddl AS {view_parts[0]}"
+        else:
+            view_sql = f"CREATE OR REPLACE VIEW unified_ddl AS {view_parts[0]} UNION ALL {view_parts[1]}"
+
+        self.connection.execute(view_sql)
+
     def query(self, sql: str, params: Optional[List[Any]] = None) -> List[tuple]:
         """
         Execute arbitrary SQL query.
@@ -551,7 +722,7 @@ class DuckDBWorkspace:
 
         # Table row counts
         for table in ['objects', 'dependencies', 'definitions', 'query_logs',
-                     'lineage_metadata', 'lineage_results']:
+                     'table_columns', 'lineage_metadata', 'lineage_results']:
             try:
                 result = self.connection.execute(
                     f"SELECT COUNT(*) FROM {table}"

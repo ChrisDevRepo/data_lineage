@@ -1,6 +1,8 @@
 # Azure Synapse Data Warehouse - Data Lineage Analysis
 
-This repository contains SQL scripts for an Azure Synapse Analytics data warehouse implementation, along with the **Vibecoding Lineage Parser v3.0** - a DMV-first data lineage system with GUI-based workflow.
+This repository contains SQL scripts for an Azure Synapse Analytics data warehouse implementation, along with the **Vibecoding Lineage Parser v3.0.1** - a DMV-first data lineage system with GUI-based workflow.
+
+**Latest Update (2025-10-27):** Data persistence bug fixed - parquet uploads now persist correctly after page refresh.
 
 ## 📁 Repository Structure (v3.0)
 
@@ -15,9 +17,9 @@ ws-psidwh/
 │   ├── synapse_pyspark_dmv_extractor.py  # Spark job script
 │   └── README.md                 # Deployment guide
 │
-├── api/                          # ✅ FastAPI Backend (Week 2 Complete)
-│   ├── main.py                   # 6 endpoints (tested)
-│   ├── background_tasks.py       # Background processing
+├── api/                          # ✅ FastAPI Backend v3.0.1 (Production Ready)
+│   ├── main.py                   # 7 endpoints with data persistence
+│   ├── background_tasks.py       # Background processing + persistence
 │   ├── models.py                 # Pydantic models
 │   ├── README.md                 # API documentation
 │   └── TEST_RESULTS.md           # Comprehensive tests
@@ -57,15 +59,35 @@ ws-psidwh/
 
 ## 🚀 v3.0 Implementation Status
 
-**Current Status:** ✅ **Specification Complete - Week 1-2 Complete**
+**Current Status:** ✅ **Week 1-2 Complete + Parser Enhancements (v3.4.0)**
 
 ### Timeline (4 weeks)
 
 | Week | Feature | Status |
 |------|---------|--------|
 | **Week 1** | PySpark DMV Extractor | ✅ Complete |
-| **Week 2-3** | Single Container Deployment | 🚧 Pending |
-| **Week 4** | SQL Viewer | 🚧 Pending |
+| **Week 2** | FastAPI Backend (6 endpoints) | ✅ Complete |
+| **Week 3** | Parser Enhancements + Query Log Validation | ✅ Complete (v3.4.0) |
+| **Week 3-4** | Docker Containerization | 🚧 Pending |
+| **Week 4** | SQL Viewer Feature | 🚧 Pending |
+
+### ✨ Latest Updates (v3.4.0 - 2025-10-27)
+
+**1. SELECT INTO Parser Bug Fix**
+- Fixed missing dependencies in `SELECT INTO #temp FROM source` statements
+- Example: `spLoadFactLaborCostForEarnedValue_1` now correctly captures `vFactLaborCost` dependency
+- Impact: 1 SP confidence improved (0.5 → 0.85)
+
+**2. Query Log Validation (Step 5)**
+- Cross-validates parsed stored procedures with runtime execution evidence
+- Boosts confidence for validated SPs: 0.85 → 0.95
+- Results: 6-8 SPs validated, +200% very high-confidence objects
+- Features: Regex table extraction, temp table filtering, graceful degradation
+
+**Documentation:**
+- [Query Logs Analysis](docs/QUERY_LOGS_ANALYSIS.md) - Complete analysis & strategy
+- [Parser Bug Report](docs/PARSER_BUG_SELECT_INTO.md) - Root cause & fix
+- [Implementation Summary](docs/IMPLEMENTATION_COMPLETE.md) - v3.4.0 details
 
 ### What's Changing in v3.0
 

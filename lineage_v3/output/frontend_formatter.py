@@ -14,12 +14,13 @@ Format:
   "description": "Confidence: 0.85",  # Shows confidence score
   "data_model_type": "Dimension|Fact|Other",
   "inputs": ["node_1", "node_2"],
-  "outputs": ["node_3"]
+  "outputs": ["node_3"],
+  "ddl_text": "CREATE PROCEDURE..."  # Optional: DDL for SPs/Views (v3.0 SQL Viewer)
 }
 
 Author: Vibecoding
 Version: 3.0.0
-Date: 2025-10-26
+Date: 2025-10-27 (SQL Viewer feature added)
 """
 
 import json
@@ -51,15 +52,17 @@ class FrontendFormatter:
     def generate(
         self,
         internal_lineage: List[Dict[str, Any]],
-        output_path: str = "lineage_output/frontend_lineage.json"
+        output_path: str = "lineage_output/frontend_lineage.json",
+        include_ddl: bool = True
     ) -> Dict[str, Any]:
         """
         Generate frontend_lineage.json from internal lineage.
-        
+
         Args:
             internal_lineage: List of nodes in internal format
             output_path: Path to output JSON file
-            
+            include_ddl: If True, include DDL text for SPs and Views (default: True)
+
         Returns:
             Statistics about generation
         """
@@ -69,7 +72,7 @@ class FrontendFormatter:
         self._assign_node_ids(internal_lineage)
         
         # Step 2: Transform to frontend format
-        frontend_nodes = self._transform_to_frontend(internal_lineage)
+        frontend_nodes = self._transform_to_frontend(internal_lineage, include_ddl)
         
         # Step 3: Write to JSON file
         output_file = Path(output_path)
@@ -97,14 +100,16 @@ class FrontendFormatter:
     
     def _transform_to_frontend(
         self,
-        internal_lineage: List[Dict[str, Any]]
+        internal_lineage: List[Dict[str, Any]],
+        include_ddl: bool = True
     ) -> List[Dict[str, Any]]:
         """
         Transform internal format to frontend format.
-        
+
         Args:
             internal_lineage: List of nodes in internal format
-            
+            include_ddl: If True, include DDL text for SPs and Views
+
         Returns:
             List of nodes in frontend format
         """
@@ -142,7 +147,17 @@ class FrontendFormatter:
                 node['name'],
                 node['object_type']
             )
-            
+
+            # Get DDL text if requested (for SQL Viewer feature)
+            ddl_text = None
+            if include_ddl:
+                if node['object_type'] in ['Stored Procedure', 'View']:
+                    # Query definitions table for DDL
+                    ddl_text = self._get_ddl_for_object(object_id)
+                elif node['object_type'] == 'Table':
+                    # Generate DDL from table_columns if available
+                    ddl_text = self._generate_table_ddl(object_id, node['schema'], node['name'])
+
             # Create frontend node
             frontend_node = {
                 'id': node_id,
@@ -152,7 +167,8 @@ class FrontendFormatter:
                 'description': description,
                 'data_model_type': data_model_type,
                 'inputs': sorted(input_node_ids, key=lambda x: int(x)),
-                'outputs': sorted(output_node_ids, key=lambda x: int(x))
+                'outputs': sorted(output_node_ids, key=lambda x: int(x)),
+                'ddl_text': ddl_text  # SQL definition for SPs/Views, None for Tables
             }
 
             frontend_nodes.append(frontend_node)
@@ -187,3 +203,101 @@ class FrontendFormatter:
         
         # Default to Other for staging tables, junction tables, etc.
         return "Other"
+
+    def _get_ddl_for_object(self, object_id: int) -> str | None:
+        """
+        Retrieve DDL definition from definitions table.
+
+        Args:
+            object_id: Integer object_id from sys.objects
+
+        Returns:
+            DDL text as string, or None if not found
+        """
+        try:
+            result = self.workspace.query("""
+                SELECT definition
+                FROM definitions
+                WHERE object_id = ?
+            """, [object_id])
+
+            if result and len(result) > 0:
+                ddl_text = result[0][0]
+                # Return DDL if it's not empty
+                if ddl_text and ddl_text.strip():
+                    return ddl_text
+
+            return None
+
+        except Exception as e:
+            logger.warning(f"Failed to retrieve DDL for object_id {object_id}: {e}")
+            return None
+
+    def _generate_table_ddl(self, object_id: int, schema_name: str, table_name: str) -> str | None:
+        """
+        Generate CREATE TABLE DDL from table_columns data.
+
+        Args:
+            object_id: Integer object_id from sys.objects
+            schema_name: Schema name for the table
+            table_name: Table name
+
+        Returns:
+            Generated DDL text as string, or None if table_columns not available
+        """
+        try:
+            # Query table_columns using correct_object_id (mapped from objects table)
+            # Note: correct_object_id is populated by joining on schema_name + table_name
+            # to handle cases where object_ids change between extractions
+            columns = self.workspace.query("""
+                SELECT
+                    column_name,
+                    data_type,
+                    max_length,
+                    precision,
+                    scale,
+                    is_nullable,
+                    column_id
+                FROM table_columns
+                WHERE correct_object_id = ?
+                ORDER BY column_id
+            """, [object_id])
+
+            if not columns or len(columns) == 0:
+                return None
+
+            # Build CREATE TABLE statement
+            ddl_lines = [f"CREATE TABLE [{schema_name}].[{table_name}] ("]
+            column_definitions = []
+
+            for col in columns:
+                col_name, data_type, max_length, precision, scale, is_nullable, _ = col
+
+                # Format data type with size/precision
+                if data_type in ['varchar', 'nvarchar', 'char', 'nchar']:
+                    if max_length == -1:
+                        type_spec = f"{data_type}(MAX)"
+                    elif data_type.startswith('n'):
+                        # nvarchar and nchar use half the byte length
+                        type_spec = f"{data_type}({max_length // 2})"
+                    else:
+                        type_spec = f"{data_type}({max_length})"
+                elif data_type in ['decimal', 'numeric']:
+                    type_spec = f"{data_type}({precision},{scale})"
+                else:
+                    type_spec = data_type
+
+                # Add nullable constraint
+                nullable_spec = "NULL" if is_nullable else "NOT NULL"
+
+                column_definitions.append(f"    [{col_name}] {type_spec} {nullable_spec}")
+
+            ddl_lines.append(",\n".join(column_definitions))
+            ddl_lines.append(");")
+
+            return "\n".join(ddl_lines)
+
+        except Exception as e:
+            # If table_columns doesn't exist or query fails, return None
+            logger.debug(f"Could not generate DDL for table {schema_name}.{table_name}: {e}")
+            return None

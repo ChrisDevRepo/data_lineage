@@ -7,9 +7,15 @@ Wraps existing lineage_v3 pipeline for web-based execution.
 import sys
 import json
 import time
+import logging
+import shutil
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Tuple
 from datetime import datetime
+import pyarrow.parquet as pq
+
+# Setup logging
+logger = logging.getLogger(__name__)
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -26,18 +32,104 @@ class LineageProcessor:
     Wraps the existing lineage_v3 pipeline without modifications.
     """
 
-    def __init__(self, job_dir: Path):
+    def __init__(self, job_dir: Path, data_dir: Optional[Path] = None, incremental: bool = True):
         """
         Initialize processor for a specific job.
 
         Args:
             job_dir: Directory containing uploaded Parquet files
+            data_dir: Directory for persistent data storage (default: ./data)
+            incremental: If True, only re-parse modified objects (default: True)
         """
         self.job_dir = job_dir
+        self.data_dir = data_dir or Path("./data")
+        self.incremental = incremental
         self.status_file = job_dir / "status.json"
         self.result_file = job_dir / "result.json"
         self.workspace_file = job_dir / "lineage_workspace.duckdb"
         self.start_time = time.time()
+
+    def validate_parquet_files(self) -> Tuple[bool, List[str], List[str], Dict[str, Path]]:
+        """
+        Validate uploaded Parquet files by schema analysis (DQ check).
+
+        Auto-detects file types by schema (works with any filename).
+        No renaming - returns file mappings for direct loading.
+
+        Returns:
+            Tuple of (is_valid, errors, warnings, file_mappings)
+            file_mappings: Dict mapping file_type -> actual filepath
+        """
+        errors = []
+        warnings = []
+
+        # Required files with expected column patterns
+        # Order matters: more specific patterns first (definitions has both object_id AND definition)
+        required_files = {
+            'definitions': ['object_id', 'definition'],  # Check this first - most specific
+            'dependencies': ['referencing_object_id', 'referenced_object_id'],
+            'objects': ['object_id', 'schema_name', 'object_name', 'object_type']
+        }
+
+        # Find all parquet files
+        parquet_files = list(self.job_dir.glob('*.parquet'))
+
+        if not parquet_files:
+            errors.append("No Parquet files found")
+            return (False, errors, warnings, {})
+
+        # Try to identify files by their schema (DQ check)
+        identified = {}
+        unidentified = []
+
+        for filepath in parquet_files:
+            try:
+                # Read schema
+                parquet_file = pq.ParquetFile(filepath)
+                schema = parquet_file.schema_arrow
+                column_names = [field.name.lower() for field in schema]
+
+                # Try to match to required files
+                matched = False
+                for file_type, expected_columns in required_files.items():
+                    # Check if expected columns exist
+                    if all(col.lower() in column_names for col in expected_columns):
+                        if file_type in identified:
+                            warnings.append(f"Multiple files detected for '{file_type}' type. Using: {filepath.name}")
+                        identified[file_type] = filepath
+                        matched = True
+                        break
+
+                if not matched:
+                    # Check if it might be query_logs (optional)
+                    if 'request_id' in column_names or 'command' in column_names:
+                        identified['query_logs'] = filepath
+                    # Check if it might be table_columns (optional)
+                    elif 'column_name' in column_names and 'data_type' in column_names:
+                        identified['table_columns'] = filepath
+                    else:
+                        unidentified.append(filepath.name)
+
+            except Exception as e:
+                errors.append(f"Cannot read {filepath.name}: {str(e)}")
+
+        # Check for missing required files
+        for file_type in required_files.keys():
+            if file_type not in identified:
+                errors.append(f"Missing required file type: '{file_type}' (expected columns: {', '.join(required_files[file_type])})")
+
+        # Warnings for unidentified files
+        if unidentified:
+            warnings.append(f"Unrecognized files (will be ignored): {', '.join(unidentified)}")
+
+        # If optional files are missing, add warnings
+        if 'query_logs' not in identified:
+            warnings.append("Optional 'query_logs' file not provided (confidence scores may be lower)")
+        if 'table_columns' not in identified:
+            warnings.append("Optional 'table_columns' file not provided (table DDL info will not be available)")
+
+        is_valid = len(errors) == 0
+        return (is_valid, errors, warnings, identified)
 
     def update_status(
         self,
@@ -51,7 +143,7 @@ class LineageProcessor:
 
         status_data = {
             "status": status,
-            "progress": progress,
+            "progress": round(progress, 1),  # Round to 1 decimal place
             "current_step": current_step,
             "elapsed_seconds": elapsed,
             "message": message,
@@ -73,23 +165,87 @@ class LineageProcessor:
         Returns:
             Dict containing final lineage data and summary
         """
-        try:
-            self.update_status("processing", 0, "Initializing workspace", "Starting lineage analysis...")
+        # Timing instrumentation
+        step_times = {}
+        step_start = time.time()
 
-            # Step 1: Initialize DuckDB workspace and load Parquet files
-            self.update_status("processing", 10, "Loading Parquet files", "Ingesting DMV data...")
+        try:
+            # Step 0: Validate files (DQ check)
+            self.update_status("processing", 0, "Validating files", "Checking Parquet file structure...")
+
+            is_valid, errors, warnings, file_mappings = self.validate_parquet_files()
+            step_times['validate'] = time.time() - step_start
+            step_start = time.time()
+
+            if not is_valid:
+                error_result = {
+                    "status": "failed",
+                    "errors": errors,
+                    "warnings": warnings,
+                    "data": None,
+                    "summary": None
+                }
+
+                with open(self.result_file, 'w') as f:
+                    json.dump(error_result, f, indent=2)
+
+                # Update status with errors and warnings
+                status_data = {
+                    "status": "failed",
+                    "progress": 0,
+                    "current_step": "Validation failed",
+                    "elapsed_seconds": time.time() - self.start_time,
+                    "message": f"File validation failed",
+                    "errors": errors,
+                    "warnings": warnings,
+                    "updated_at": datetime.utcnow().isoformat()
+                }
+                with open(self.status_file, 'w') as f:
+                    json.dump(status_data, f, indent=2)
+
+                return error_result
+
+            # Show warnings if any
+            if warnings:
+                self.update_status("processing", 5, "Validation complete", f"Warnings: {'; '.join(warnings)}")
+
+            # Step 1: Initialize DuckDB workspace and conditionally truncate tables
+            mode_text = "incremental" if self.incremental else "full refresh"
+            self.update_status("processing", 8, "Preparing workspace", f"Initializing workspace in {mode_text} mode...")
 
             with DuckDBWorkspace(workspace_path=str(self.workspace_file)) as db:
-                # Load Parquet files
-                row_counts = db.load_parquet(str(self.job_dir), full_refresh=True)
+                # Conditionally truncate data tables
+                if not self.incremental:
+                    # Full refresh: truncate all data tables (lineage_metadata will be rebuilt)
+                    tables_to_truncate = ['objects', 'dependencies', 'definitions', 'query_logs', 'table_columns']
+                    for table_name in tables_to_truncate:
+                        try:
+                            db.connection.execute(f"DROP TABLE IF EXISTS {table_name}")
+                        except Exception as e:
+                            # Table might not exist yet, ignore
+                            pass
+                # Incremental mode: don't truncate tables, lineage_metadata persists!
+
+                # Step 2: Load Parquet files using detected mappings
+                self.update_status("processing", 10, "Loading Parquet files", "Ingesting DMV data...")
+                row_counts = db.load_parquet_from_mappings(file_mappings)
+                step_times['load_parquet'] = time.time() - step_start
+                step_start = time.time()
 
                 # Verify files loaded
                 if not row_counts or sum(row_counts.values()) == 0:
                     raise Exception("No data loaded from Parquet files")
 
-                # Get objects to parse
-                objects_to_parse = db.get_objects_to_parse(full_refresh=True)
+                # Get objects to parse (use incremental flag)
+                objects_to_parse = db.get_objects_to_parse(full_refresh=not self.incremental)
                 total_objects = len(objects_to_parse)
+
+                if self.incremental:
+                    self.update_status("processing", 15, "Incremental mode",
+                                     f"Detected {total_objects} objects needing update (modified or new)")
+                else:
+                    self.update_status("processing", 15, "Full refresh mode",
+                                     f"Processing all {total_objects} objects")
 
                 # Step 2: Load DMV Dependencies (Views)
                 self.update_status("processing", 20, "Loading DMV dependencies",
@@ -179,6 +335,9 @@ class LineageProcessor:
                             # Continue even if one SP fails
                             pass
 
+                step_times['parse_sps'] = time.time() - step_start
+                step_start = time.time()
+
                 # Step 5: Build Bidirectional Graph (Reverse Lookup)
                 self.update_status("processing", 85, "Building graph relationships",
                                  "Establishing bidirectional connections...")
@@ -240,11 +399,13 @@ class LineageProcessor:
                 with open(self.job_dir / "lineage.json", 'r') as f:
                     internal_lineage = json.load(f)
 
-                # Generate frontend lineage.json
+                # Generate frontend lineage.json (without DDL for performance)
+                # DDL will be fetched on-demand via /api/ddl/{object_id} endpoint
                 frontend_formatter = FrontendFormatter(db)
                 frontend_stats = frontend_formatter.generate(
                     internal_lineage,
-                    output_path=str(self.job_dir / "frontend_lineage.json")
+                    output_path=str(self.job_dir / "frontend_lineage.json"),
+                    include_ddl=False  # Performance optimization: fetch DDL on demand
                 )
 
                 # Load results for response
@@ -253,6 +414,22 @@ class LineageProcessor:
 
                 with open(self.job_dir / "lineage_summary.json", 'r') as f:
                     lineage_summary = json.load(f)
+
+                step_times['output_generation'] = time.time() - step_start
+                step_start = time.time()
+
+                # Copy frontend JSON to persistent storage for /api/latest-data endpoint
+                try:
+                    self.data_dir.mkdir(parents=True, exist_ok=True)
+                    persistent_file = self.data_dir / "latest_frontend_lineage.json"
+                    shutil.copy2(
+                        self.job_dir / "frontend_lineage.json",
+                        persistent_file
+                    )
+                    logger.info(f"✅ Saved latest data to {persistent_file}")
+                except Exception as e:
+                    logger.error(f"⚠️  Failed to save to persistent storage: {e}")
+                    # Don't fail the job if persistent save fails
 
                 # Prepare result
                 result = {
@@ -293,16 +470,18 @@ class LineageProcessor:
             return error_result
 
 
-def process_lineage_job(job_id: str, job_dir: Path) -> Dict:
+def process_lineage_job(job_id: str, job_dir: Path, data_dir: Optional[Path] = None, incremental: bool = True) -> Dict:
     """
     Background task entry point for processing lineage.
 
     Args:
         job_id: Unique job identifier
         job_dir: Directory containing uploaded Parquet files
+        data_dir: Directory for persistent data storage (default: ./data)
+        incremental: If True, only re-parse modified objects (default: True)
 
     Returns:
         Dict containing lineage results or error information
     """
-    processor = LineageProcessor(job_dir)
+    processor = LineageProcessor(job_dir, data_dir=data_dir, incremental=incremental)
     return processor.process()

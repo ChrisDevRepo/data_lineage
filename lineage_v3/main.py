@@ -225,16 +225,9 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
 
             click.echo()
 
-            # Step 3: Query logs (still TODO)
+            # Step 3: Detect gaps
             click.echo("=" * 70)
-            click.echo("Step 3: Query Logs (Skipped)")
-            click.echo("=" * 70)
-            click.echo("⚠️  Query log enhancement deferred")
-            click.echo()
-
-            # Step 4: Detect gaps
-            click.echo("=" * 70)
-            click.echo("Step 4: Detect Gaps (Missing Dependencies)")
+            click.echo("Step 3: Detect Gaps (Missing Dependencies)")
             click.echo("=" * 70)
 
             from lineage_v3.core import GapDetector
@@ -262,9 +255,9 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
             click.echo(f"   - Gaps: {gap_stats['total_gaps']:,} ({gap_stats['gap_percentage']:.1f}%)")
             click.echo()
 
-            # Step 5: Parse ALL Stored Procedures with Dual-Parser
+            # Step 4: Parse ALL Stored Procedures with Dual-Parser
             click.echo("=" * 70)
-            click.echo("Step 5: Dual-Parser (Parse ALL Stored Procedures)")
+            click.echo("Step 4: Dual-Parser (Parse ALL Stored Procedures)")
             click.echo("=" * 70)
 
             # Get ALL stored procedures (not just gaps)
@@ -345,8 +338,53 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
                 click.echo("⚠️  No stored procedures found to parse")
                 click.echo()
 
-            # Step 6: AI Fallback (Skip for now - Phase 5)
+            # Step 5: Query Log Validation (Cross-Validation)
+            click.echo("=" * 70)
+            click.echo("Step 5: Query Log Validation (Cross-Validation)")
+            click.echo("=" * 70)
+
+            # Check if query logs available
+            try:
+                query_log_count = db.query("SELECT COUNT(*) FROM query_logs")[0][0]
+            except:
+                query_log_count = 0  # Table doesn't exist
+
+            if query_log_count > 0:
+                click.echo(f"📊 Found {query_log_count:,} query log entries")
+
+                from lineage_v3.parsers import QueryLogValidator
+                validator = QueryLogValidator(db)
+
+                # Cross-validate parsed stored procedures
+                click.echo(f"🔍 Cross-validating parsed stored procedures with runtime evidence...")
+                validation_results = validator.validate_parsed_objects()
+
+                if not validation_results['skipped']:
+                    click.echo(f"✅ Validated {validation_results['validated_objects']} stored procedure(s)")
+                    click.echo(f"   Total matching queries: {validation_results['total_matching_queries']}")
+
+                    if validation_results['confidence_boosted']:
+                        click.echo(f"\n📈 Confidence Boosts:")
+                        for obj_id, old_conf, new_conf in validation_results['confidence_boosted'][:5]:
+                            obj = db.query("SELECT schema_name, object_name FROM objects WHERE object_id = ?", [obj_id])[0]
+                            click.echo(f"   - {obj[0]}.{obj[1]}: {old_conf:.2f} → {new_conf:.2f}")
+
+                        if len(validation_results['confidence_boosted']) > 5:
+                            remaining = len(validation_results['confidence_boosted']) - 5
+                            click.echo(f"   ... and {remaining} more")
+
+                    if validation_results['unvalidated_objects'] > 0:
+                        click.echo(f"\n⚠️  {validation_results['unvalidated_objects']} object(s) could not be validated")
+                        click.echo(f"   (No matching queries found in logs)")
+                else:
+                    click.echo("ℹ️  No high-confidence objects to validate")
+            else:
+                click.echo("ℹ️  No query logs available - skipping validation")
+                click.echo("   Query logs are optional. Static parsing results will be used.")
+
             click.echo()
+
+            # Step 6: AI Fallback (Skip for now - Phase 5)
             click.echo("=" * 70)
             click.echo("Step 6: AI Fallback (Skipped)")
             click.echo("=" * 70)

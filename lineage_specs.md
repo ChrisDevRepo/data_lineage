@@ -118,22 +118,28 @@ SQLGlot is the required SQL parser. It is the optimal choice due to its robust T
 ---
 
 ## 5. Lineage Construction Logic
+## 5. Lineage Construction Logic
 
 The system must execute the following steps in order:
 
 1.  **Ingest:** Load all `.parquet` snapshots into DuckDB tables.
 2.  **Build Baseline (DMV):** Create the primary lineage set from `objects` and `dependencies` using `object_id`. Assign `provenance` as "dmv" and `confidence` as 1.0.
-3.  **Enhance (Query Logs):** Parse `query_logs.parquet` text.
-    * **Optimization:** Filter for DML/DDL statements (e.g., `INSERT...SELECT`, `SELECT INTO`, `CREATE TABLE AS`, `MERGE`).
-    * Resolve string table names to their `object_id`s via the `objects` table.
-    * Identify dependencies not found in the baseline. Assign `provenance` as "query_log" and `confidence` as 0.9.
-4.  **Detect Gaps:** Identify any Stored Procedures that have a `definition` but no resolved inputs or outputs.
-5.  **Run Parser (SQLGlot):** For each "gapped" SP, parse its DDL from `definitions.parquet`. Resolve extracted table names to `object_id`s. Assign `provenance` as "parser" and `confidence` as 0.85.
-6.  **Run AI Fallback:** For any SPs *still* unresolved, invoke the AI Fallback Framework. Assign `provenance` as "ai" and `confidence` as 0.7.
-7.  **Normalize & Merge:** Consolidate all dependency sources for each object.
-    * The final `confidence` for an object *must* be the `max()` of all its supporting sources (see Confidence Model).
-    * The `provenance.sources` array *must* list all unique sources (e.g., `["dmv", "parser"]`).
-8.  **Emit Artifacts:** Generate the final `lineage.json` and `lineage_summary.json` files.
+3.  **Detect Gaps:** Identify any Stored Procedures that have a `definition` but no resolved inputs or outputs.
+4.  **Run Parser (Dual Parser):** For all Stored Procedures, parse DDL from `definitions.parquet`. Resolve extracted table names to `object_id`s. Assign `provenance` as "parser" or "dual_parser" and `confidence` as 0.85 (high-quality parse) or 0.50 (low-quality parse).
+5.  **Query Log Validation (NEW - v3.4.0):** Cross-validate high-confidence parsed SPs (≥0.85) with runtime execution evidence.
+    * Load DML queries from `query_logs.parquet` (INSERT/UPDATE/MERGE only).
+    * For each high-confidence SP, match its parsed table dependencies against query log entries.
+    * If matching queries found: Boost confidence from 0.85 → 0.95.
+    * Assign `validation_source` as "query_log" in provenance.
+    * **Note:** This is validation only - no new lineage objects created.
+6.  **Run AI Fallback:** For any low-confidence SPs (confidence < 0.85), invoke the AI Fallback Framework. Assign `provenance` as "ai" and `confidence` as 0.7. **(DEFERRED - Phase 5)**
+7.  **Bidirectional Graph (Reverse Lookup):** Populate reverse dependencies for Tables/Views.
+    * For each SP/View that reads from a Table → Add SP/View to Table's `outputs`.
+    * For each SP that writes to a Table → Add SP to Table's `inputs`.
+    * This ensures React Flow can render edges in both directions.
+8.  **Emit Artifacts:** Generate the final `lineage.json`, `frontend_lineage.json`, and `lineage_summary.json` files.
+    * This ensures React Flow can render edges in both directions.
+8.  **Emit Artifacts:** Generate the final `lineage.json`, `frontend_lineage.json`, and `lineage_summary.json` files.
 
 ---
 

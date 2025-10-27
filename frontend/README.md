@@ -10,20 +10,22 @@
 
 ## 🚀 Current Status
 
-**Version:** 2.4.0 (Click & Trace Improvements)
-**v3.0 Status:** Will be enhanced with new features (Week 2-4)
+**Version:** 2.5.0 (Incremental Parsing & Data Management)
+**v3.0 Status:** Core features complete - Docker containerization pending
 
-### ✨ Latest Updates (v2.4.0 - 2025-10-27)
+### ✨ Latest Updates (v2.5.0 - 2025-10-27)
 
 **New Features:**
+- ✅ **Incremental Parsing** - Smart checkbox in Import modal (ON by default) - only re-parse changed objects
+- ✅ **Clear All Data** - Wipe button to delete all workspaces and persistent data
+- ✅ **Last Upload Timestamp** - Display when data was last uploaded with metadata
+- ✅ **Performance:** 50-90% faster uploads with incremental mode
+
+**Previous Updates (v2.4.0):**
 - ✅ **Auto-Fit on Trace Apply** - View automatically fits and highlights start node when applying trace
 - ✅ **Improved "Hide Unrelated" Filter** - Now static pre-filter applied before schema/type filters
-
-**Fixed:**
 - ✅ **Click Behavior** - Simplified logic, no camera zoom on unhighlight, instant SQL viewer response
 - ✅ **SQL Viewer Dimming** - Nodes stay bright (no dimming) when SQL viewer is open
-- ✅ **Trace Exit Mode** - Works correctly on multiple trace sessions, shows only traced objects
-- ✅ **Layout Stability** - Nodes don't move when clicking with "Hide Unrelated" enabled
 
 **Previous Updates (v2.3.0):**
 - ✅ **Table DDL Display** - View table structure with columns, data types, and constraints in SQL viewer

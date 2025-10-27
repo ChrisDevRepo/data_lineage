@@ -1,0 +1,87 @@
+INFO:     Will watch for changes in these directories: ['/workspaces/ws-psidwh/api']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [86293] using WatchFiles
+INFO:     Started server process [86314]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+🚀 Vibecoding Lineage Parser API v3.0.0
+📁 Jobs directory: /tmp/jobs
+💾 Data directory: /workspaces/ws-psidwh/data
+ℹ️  No existing data file (will be created on first upload)
+✅ API ready
+INFO:     127.0.0.1:36460 - "GET /health HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [86314]
+INFO:     Started server process [86910]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [86910]
+INFO:     Started server process [86981]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+Exception in thread Thread-1 (run_processing_thread):
+Traceback (most recent call last):
+🚀 Vibecoding Lineage Parser API v3.0.0
+📁 Jobs directory: /tmp/jobs
+💾 Data directory: /workspaces/ws-psidwh/data
+ℹ️  No existing data file (will be created on first upload)
+✅ API ready
+Error processing job d306c7d7-79b4-4763-8ce2-1ece1455800e: process_lineage_job() got an unexpected keyword argument 'incremental'
+INFO:     127.0.0.1:40166 - "POST /api/upload-parquet HTTP/1.1" 200 OK
+  File "/workspaces/ws-psidwh/api/main.py", line 123, in run_processing_thread
+    result = process_lineage_job(job_id, job_dir, data_dir=DATA_DIR, incremental=incremental)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: process_lineage_job() got an unexpected keyword argument 'incremental'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/usr/lib/python3.12/threading.py", line 1073, in _bootstrap_inner
+INFO:     127.0.0.1:40166 - "GET /api/status/d306c7d7-79b4-4763-8ce2-1ece1455800e HTTP/1.1" 200 OK
+    self.run()
+  File "/usr/lib/python3.12/threading.py", line 1010, in run
+    self._target(*self._args, **self._kwargs)
+  File "/workspaces/ws-psidwh/api/main.py", line 127, in run_processing_thread
+    active_jobs[job_id]["status"] = "failed"
+    ~~~~~~~~~~~^^^^^^^^
+KeyError: 'd306c7d7-79b4-4763-8ce2-1ece1455800e'
+WARNING:  WatchFiles detected changes in 'main.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [86981]
+INFO:     Started server process [87055]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+🚀 Vibecoding Lineage Parser API v3.0.0
+📁 Jobs directory: /tmp/jobs
+💾 Data directory: /workspaces/ws-psidwh/data
+ℹ️  No existing data file (will be created on first upload)
+✅ API ready
+INFO:     127.0.0.1:40176 - "GET /api/status/d306c7d7-79b4-4763-8ce2-1ece1455800e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40176 - "GET /api/status/d306c7d7-79b4-4763-8ce2-1ece1455800e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40176 - "GET /api/status/d306c7d7-79b4-4763-8ce2-1ece1455800e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40176 - "GET /api/status/d306c7d7-79b4-4763-8ce2-1ece1455800e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40176 - "GET /api/status/d306c7d7-79b4-4763-8ce2-1ece1455800e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40176 - "GET /api/status/d306c7d7-79b4-4763-8ce2-1ece1455800e HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40176 - "GET /api/status/d306c7d7-79b4-4763-8ce2-1ece1455800e HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'background_tasks.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87055]
+INFO:     Started server process [87140]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [87140]
+INFO:     Stopping reloader process [86293]

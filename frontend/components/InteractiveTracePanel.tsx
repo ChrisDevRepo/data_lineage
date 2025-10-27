@@ -6,11 +6,14 @@ type InteractiveTracePanelProps = {
     onClose: () => void;
     onApply: (config: Omit<TraceConfig, 'rawExclusionPatterns'>) => void;
     availableSchemas: string[];
+    inheritedSchemaFilter: Set<string>;
+    availableTypes: string[];
+    inheritedTypeFilter: Set<string>;
     allData: DataNode[];
     addNotification: (text: string, type: 'info' | 'error') => void;
 };
 
-export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchemas, allData, addNotification }: InteractiveTracePanelProps) => {
+export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchemas, inheritedSchemaFilter, availableTypes, inheritedTypeFilter, allData, addNotification }: InteractiveTracePanelProps) => {
     const [startNodeSearch, setStartNodeSearch] = useState('');
     const [suggestions, setSuggestions] = useState<DataNode[]>([]);
     const [selectedNode, setSelectedNode] = useState<DataNode | null>(null);
@@ -19,13 +22,18 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
     const [downstream, setDownstream] = useState(3);
     const [isDownstreamAll, setIsDownstreamAll] = useState(false);
     const [includedSchemas, setIncludedSchemas] = useState(new Set(availableSchemas));
+    const [includedTypes, setIncludedTypes] = useState(new Set(availableTypes));
     const [exclusions, setExclusions] = useState("_TEMP_*;STG_*");
 
+    // Inherit schema and type filters from detail mode when opening trace mode
     useEffect(() => {
         if (isOpen) {
-            setIncludedSchemas(new Set(availableSchemas));
+            // Use inherited schema filter from detail mode
+            setIncludedSchemas(new Set(inheritedSchemaFilter));
+            // Use inherited type filter from detail mode
+            setIncludedTypes(new Set(inheritedTypeFilter));
         }
-    }, [isOpen, availableSchemas]);
+    }, [isOpen, inheritedSchemaFilter, inheritedTypeFilter]);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -54,6 +62,7 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
             upstreamLevels: isUpstreamAll ? Number.MAX_SAFE_INTEGER : upstream,
             downstreamLevels: isDownstreamAll ? Number.MAX_SAFE_INTEGER : downstream,
             includedSchemas: includedSchemas,
+            includedTypes: includedTypes,
             exclusionPatterns: exclusions.split(';').map(p => p.trim()).filter(p => p !== ''),
         });
     };
@@ -67,6 +76,7 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
         setIsUpstreamAll(false);
         setIsDownstreamAll(false);
         setIncludedSchemas(new Set(availableSchemas));
+        setIncludedTypes(new Set(availableTypes));
         setExclusions("_TEMP_*;STG_*");
     };
 
@@ -119,7 +129,13 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
                         </div>
                     </div>
                     <div>
-                        <label htmlFor="exclusions-input" className="font-semibold block mb-1">4. Exclusion Patterns</label>
+                        <label className="font-semibold block mb-1">4. Included Types ({includedTypes.size}/{availableTypes.length})</label>
+                        <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
+                            {availableTypes.map(t => <label key={t} className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includedTypes.has(t)} onChange={() => { const newSet = new Set(includedTypes); if (newSet.has(t)) newSet.delete(t); else newSet.add(t); setIncludedTypes(newSet); }} />{t}</label>)}
+                        </div>
+                    </div>
+                    <div>
+                        <label htmlFor="exclusions-input" className="font-semibold block mb-1">5. Exclusion Patterns</label>
                         <input type="text" id="exclusions-input" value={exclusions} onChange={e => setExclusions(e.target.value)} className="w-full p-2 border rounded-md font-mono text-xs" placeholder="e.g. _TEMP_*;STG_*" />
                         <p className="text-xs text-gray-500 mt-1">Separate patterns with a semicolon (;).</p>
                     </div>

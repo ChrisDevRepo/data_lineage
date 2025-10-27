@@ -33,6 +33,8 @@ class JobStatusResponse(BaseModel):
     elapsed_seconds: Optional[float] = Field(None, description="Elapsed time in seconds")
     estimated_remaining_seconds: Optional[float] = Field(None, description="Estimated remaining time")
     message: Optional[str] = Field(None, description="Status message or error details")
+    errors: Optional[List[str]] = Field(None, description="List of errors if job failed")
+    warnings: Optional[List[str]] = Field(None, description="List of warnings")
 
 
 class LineageResultResponse(BaseModel):

@@ -69,12 +69,12 @@ Synapse Studio → Develop → Spark job definitions → Upload Python file
 
 All files saved to `OUTPUT_PATH` as **directories** (Spark native format):
 
-| Directory | Content | Typical Size |
-|-----------|---------|--------------|
-| `objects.parquet/` | Tables, Views, Stored Procedures | ~100-500 rows |
-| `dependencies.parquet/` | DMV relationships (Views only) | ~50-200 rows |
-| `definitions.parquet/` | DDL text | ~100-500 rows |
-| `query_logs.parquet/` | Query execution history (optional) | ~10,000 rows |
+| Directory | Content | Typical Size | Notes |
+|-----------|---------|--------------|-------|
+| `objects.parquet/` | Tables, Views, Stored Procedures | ~100-500 rows | Full metadata |
+| `dependencies.parquet/` | DMV relationships (Views only) | ~50-200 rows | From sys.sql_expression_dependencies |
+| `definitions.parquet/` | DDL text | ~100-500 rows | Stored procedures + views source code |
+| `query_logs.parquet/` | Query execution history (optional) | ~285 rows | ✨ **Optimized**: DISTINCT DML only (97% reduction) |
 
 **Directory Structure:**
 ```
@@ -97,6 +97,43 @@ OUTPUT_PATH/
 - Each directory contains a single `part-*.parquet` file (via `.coalesce(1)`)
 - DuckDB reads these directories natively (no conversion needed)
 - `dependencies.parquet` captures View dependencies only (SPs parsed from DDL)
+
+### Query Logs Optimization (Week 2-3)
+
+The `query_logs.parquet` extract is heavily optimized for data lineage:
+
+**SQL Query:**
+```sql
+SELECT DISTINCT
+    SUBSTRING(r.command, 1, 4000) AS command_text
+FROM sys.dm_pdw_exec_requests r
+WHERE r.submit_time >= DATEADD(day, -21, GETDATE())  -- Last 3 weeks
+    AND r.status = 'Completed'
+    AND (
+        r.command LIKE 'SELECT %'    -- Read dependencies
+        OR r.command LIKE 'INSERT %' -- Write dependencies
+        OR r.command LIKE 'UPDATE %' -- Read + Write
+        OR r.command LIKE 'MERGE %'  -- Upsert operations
+    )
+```
+
+**Optimization Results:**
+- **Before:** 9,991 rows with 93% duplicates, all operations
+- **After:** ~285 rows (97.1% reduction), only DML operations
+- **File size:** 170KB → ~5KB
+- **Only 1 column:** `command_text` (removed request_id, session_id, submit_time)
+
+**What's Included:**
+- ✅ SELECT - Shows table read dependencies
+- ✅ INSERT - Shows table write dependencies
+- ✅ UPDATE - Shows read + write dependencies
+- ✅ MERGE - Shows upsert dependencies
+
+**What's Excluded (not useful for lineage):**
+- ❌ DELETE, TRUNCATE - No data flow information
+- ❌ SET, DECLARE, BEGIN, COMMIT - Session management
+- ❌ EXEC sp_executesql - Dynamic SQL wrappers
+- ❌ CREATE/DROP EXTERNAL TABLE - Spark connector internals
 
 ## Usage Workflow
 

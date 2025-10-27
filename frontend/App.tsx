@@ -35,8 +35,49 @@ function DataLineageVisualizer() {
   const { fitView, setCenter, getNodes, getEdges } = useReactFlow();
 
   // --- State Management ---
-  const [allData, setAllData] = useState<DataNode[]>(generateSampleData);
+  // Start with empty data, load from API asynchronously
+  const [allData, setAllData] = useState<DataNode[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [sampleData] = useState<DataNode[]>(() => generateSampleData());
+
+  // Load data from API on mount (async to avoid blocking UI)
+  useEffect(() => {
+    const loadLatestData = async () => {
+      const startTime = Date.now();
+
+      try {
+        const response = await fetch('http://localhost:8000/api/latest-data');
+
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        const headerValue = response.headers.get('x-data-available');
+
+        // Simple check: if we got an array with data, use it
+        if (Array.isArray(data) && data.length > 0) {
+          setAllData(data);
+        } else {
+          setAllData(generateSampleData());
+        }
+      } catch (error) {
+        console.error('Failed to load from API:', error);
+        setAllData(generateSampleData());
+      } finally {
+        // Ensure loading screen shows for at least 500ms for better UX
+        const elapsed = Date.now() - startTime;
+        const minDelay = 500;
+        if (elapsed < minDelay) {
+          setTimeout(() => setIsLoadingData(false), minDelay - elapsed);
+        } else {
+          setIsLoadingData(false);
+        }
+      }
+    };
+
+    loadLatestData();
+  }, []);
   const [layout, setLayout] = useState<'LR' | 'TB'>('LR');
   const [viewMode, setViewMode] = useState<'detail' | 'schema'>('detail');
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
@@ -76,11 +117,10 @@ function DataLineageVisualizer() {
   });
 
   // --- Detect DDL Availability (memoized for performance) ---
-  const hasDdlData = useMemo(() => {
-    return allData.some(node => node.ddl_text != null && node.ddl_text !== '');
-  }, [allData]);
+  // DDL is now fetched on-demand via API, so always available when data is loaded
+  const hasDdlData = allData.length > 0;
 
-  // Enable SQL viewer only in Detail View with DDL data
+  // Enable SQL viewer only in Detail View
   const sqlViewerEnabled = hasDdlData && viewMode === 'detail';
 
   // --- UI State ---
@@ -98,7 +138,6 @@ function DataLineageVisualizer() {
     name: string;
     schema: string;
     objectType: string;
-    ddlText: string | null;
   } | null>(null);
 
   // --- Memos for Derived State and Layouting ---
@@ -115,11 +154,10 @@ function DataLineageVisualizer() {
     });
   }, [finalVisibleData, viewMode, layout, schemaColorMap, schemas, selectedSchemas, lineageGraph, isTraceModeActive]);
 
-  // --- SQL Viewer Handlers (must be defined before finalNodes) ---
-  // Note: SQL viewer is now updated in handleNodeClick, not here
-  const handleNodeClickForSql = useCallback(() => {
-    // Placeholder - actual logic moved to handleNodeClick
-  }, []);
+  // OPTIMIZATION: Create Map for O(1) lookups instead of O(n) find()
+  const allDataMap = useMemo(() => {
+    return new Map(allData.map(node => [node.id, node]));
+  }, [allData]);
 
   const finalNodes = useMemo(() => {
     // Build set of level 1 neighbors (nodes directly connected to highlighted node)
@@ -134,8 +172,8 @@ function DataLineageVisualizer() {
     }
 
     return layoutedElements.nodes.map(n => {
-      // Find the original data node to get ddl_text
-      const originalNode = allData.find(d => d.id === n.id);
+      // OPTIMIZATION: Use Map for O(1) lookup instead of O(n) find()
+      const originalNode = allDataMap.get(n.id);
 
       const isHighlighted = highlightedNodes.has(n.id);
 
@@ -144,6 +182,7 @@ function DataLineageVisualizer() {
       // - SQL viewer is NOT open (when SQL viewer is open, no dimming) AND
       // - This node is NOT highlighted AND
       // - This node is NOT a level 1 neighbor
+      // OPTIMIZATION: sqlViewerOpen removed from dependencies - dimming is visual only
       const shouldBeDimmed = highlightedNodes.size > 0 &&
                              !sqlViewerOpen &&
                              !isHighlighted &&
@@ -156,13 +195,11 @@ function DataLineageVisualizer() {
           isHighlighted: isHighlighted,
           isDimmed: shouldBeDimmed,
           layoutDir: layout,
-          sqlViewerOpen,
-          onNodeClick: handleNodeClickForSql,
           ddl_text: originalNode?.ddl_text
         }
       };
     });
-  }, [layoutedElements.nodes, highlightedNodes, layout, sqlViewerOpen, allData, handleNodeClickForSql, lineageGraph]);
+  }, [layoutedElements.nodes, highlightedNodes, layout, sqlViewerOpen, allDataMap, lineageGraph]);
 
   // --- Effects to Synchronize State with React Flow ---
   useEffect(() => {
@@ -225,7 +262,7 @@ function DataLineageVisualizer() {
   }, [isTraceModeActive, setHighlightedNodes, isInTraceExitMode, traceExitNodes]);
 
   // --- Event Handlers ---
-  const handleNodeClick = (_: React.MouseEvent, node: ReactFlowNode) => {
+  const handleNodeClick = useCallback((_: React.MouseEvent, node: ReactFlowNode) => {
     // In schema view, do nothing
     if (viewMode === 'schema') return;
 
@@ -236,16 +273,18 @@ function DataLineageVisualizer() {
     }
 
     // Update SQL viewer if it's open (only in detail view, not in trace mode)
+    // OPTIMIZATION: Only update if node actually changed (prevents unnecessary re-renders)
     if (sqlViewerOpen && !isTraceModeActive) {
-      const originalNode = allData.find(d => d.id === node.id);
-      if (originalNode) {
-        setSelectedNodeForSql({
-          id: originalNode.id,
-          name: originalNode.name,
-          schema: originalNode.schema,
-          objectType: originalNode.object_type,
-          ddlText: originalNode.ddl_text || null
-        });
+      if (selectedNodeForSql?.id !== node.id) {
+        const originalNode = allDataMap.get(node.id);
+        if (originalNode) {
+          setSelectedNodeForSql({
+            id: originalNode.id,
+            name: originalNode.name,
+            schema: originalNode.schema,
+            objectType: originalNode.object_type
+          });
+        }
       }
     }
 
@@ -260,11 +299,15 @@ function DataLineageVisualizer() {
       setFocusedNodeId(node.id);
       setHighlightedNodes(new Set([node.id]));
     }
-  };
+  }, [viewMode, isInTraceExitMode, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
   
   const handleDataImport = (newData: DataNode[]) => {
     const processedData = newData.map(node => ({ ...node, schema: node.schema.toUpperCase() }));
     setAllData(processedData);
+
+    // Note: Only parquet uploads via API are persisted to backend
+    // JSON imports are temporary and will be lost on page refresh
+    // To persist data, upload parquet files instead
 
     // Reset view state for a clean slate after import
     setFocusedNodeId(null);
@@ -272,7 +315,7 @@ function DataLineageVisualizer() {
     setSearchTerm('');
     hasInitiallyFittedRef.current = false; // Allow fitView on new data
 
-    addNotification('Data imported successfully! The view has been refreshed.', 'info');
+    addNotification('Data imported successfully! Note: JSON imports are temporary. Upload parquet files to persist data.', 'info');
     setIsImportModalOpen(false);
   };
   
@@ -484,6 +527,36 @@ function DataLineageVisualizer() {
     URL.revokeObjectURL(url);
     addNotification('SVG export started.', 'info');
   }, [getNodes, getEdges, addNotification, schemaColorMap, layout]);
+
+  // Show loading screen while data is being loaded from API
+  if (isLoadingData) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center max-w-md px-6">
+          {/* Animated spinner */}
+          <div className="inline-block animate-spin rounded-full h-20 w-20 border-b-4 border-blue-600 mb-6"></div>
+
+          {/* Main message */}
+          <h2 className="text-gray-800 text-2xl font-bold mb-3">Loading Lineage Data</h2>
+
+          {/* Status message */}
+          <p className="text-gray-600 text-base mb-4">
+            Fetching latest data from server...
+          </p>
+
+          {/* Progress indicator */}
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
+            <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+          </div>
+
+          {/* Additional info */}
+          <p className="text-gray-500 text-sm italic">
+            This may take a moment for large datasets
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-screen h-screen flex flex-col font-sans">

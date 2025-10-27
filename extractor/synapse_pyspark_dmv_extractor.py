@@ -1,57 +1,10 @@
-"""
-Synapse PySpark DMV Extractor - v3.0
-
-Extracts DMV metadata from Azure Synapse Dedicated SQL Pool and saves to Parquet directories.
-Designed to run as a Synapse Spark Job (not a notebook).
-
-Usage:
-    spark-submit synapse_pyspark_dmv_extractor.py
-
-Requirements:
-    - shared_utils.process_spark_base wheel installed
-    - Synapse Spark pool with access to SQL pool
-    - ADLS Gen2 storage account
-
-Output (directory structure):
-    - objects.parquet/part-00000-{uuid}.snappy.parquet
-    - dependencies.parquet/part-00000-{uuid}.snappy.parquet
-    - definitions.parquet/part-00000-{uuid}.snappy.parquet
-    - query_logs.parquet/part-00000-{uuid}.snappy.parquet (optional)
-
-Note: .coalesce(1) ensures single partition per directory. DuckDB reads these
-      directories natively without requiring pandas conversion.
-"""
+SERVER = ""
+DATABASE = ""
+TEMP_FOLDER = ""
+TARGET_FODER = ""
 
 from shared_utils.process_spark_base import ProcessSparkBase
-import sys
-from datetime import datetime
-
-# ============================================================================
-# CONFIGURATION - UPDATE THESE VALUES
-# ============================================================================
-
-SERVER = "your-synapse-workspace.sql.azuresynapse.net"
-DATABASE = "YourDatabase"
-TEMP_FOLDER = "abfss://lineage@yourstorage.dfs.core.windows.net/temp"
-OUTPUT_PATH = "abfss://lineage@yourstorage.dfs.core.windows.net/parquet_snapshots/"
-
-# Set to True to skip query logs (if no VIEW SERVER STATE permission)
-SKIP_QUERY_LOGS = False
-
-# ============================================================================
-# SQL QUERIES
-# ============================================================================
-
-# Schemas to include (based on production data warehouse structure)
-INCLUDED_SCHEMAS = [
-    'CONSUMPTION_FINANCE',
-    'CONSUMPTION_POWERBI',
-    'CONSUMPTION_PRIMA',
-    'STAGING_FINANCE_COGNOS',
-    'STAGING_FINANCE_FILE',
-    'ADMIN',
-    'dbo'
-]
+utils = ProcessSparkBase(SERVER, DATABASE, TEMP_FOLDER)
 
 QUERY_OBJECTS = """
     SELECT
@@ -71,7 +24,6 @@ QUERY_OBJECTS = """
         AND o.is_ms_shipped = 0
         AND s.name IN ('CONSUMPTION_FINANCE', 'CONSUMPTION_POWERBI', 'CONSUMPTION_PRIMA',
                        'STAGING_FINANCE_COGNOS', 'STAGING_FINANCE_FILE', 'ADMIN', 'dbo')
-    ORDER BY s.name, o.name
 """
 
 QUERY_DEPENDENCIES = """
@@ -100,88 +52,49 @@ QUERY_DEFINITIONS = """
 """
 
 QUERY_LOGS = """
-    SELECT TOP 10000
-        r.request_id,
-        r.session_id,
-        r.submit_time,
+    SELECT DISTINCT
         SUBSTRING(r.command, 1, 4000) AS command_text
     FROM sys.dm_pdw_exec_requests r
-    WHERE r.submit_time >= DATEADD(day, -7, GETDATE())
-        AND r.command IS NOT NULL
-    ORDER BY r.submit_time DESC
+    WHERE r.submit_time >= DATEADD(day, -21, GETDATE())
+        AND r.status = 'Completed'
+        AND (
+            r.command LIKE 'SELECT %'
+            OR r.command LIKE 'INSERT %'
+            OR r.command LIKE 'UPDATE %'
+            OR r.command LIKE 'MERGE %'
+        )
 """
 
-# ============================================================================
-# HELPER FUNCTIONS
-# ============================================================================
+QUERY_TABLE_COLUMNS = """
+    SELECT
+        o.object_id,
+        s.name AS schema_name,
+        o.name AS table_name,
+        c.name AS column_name,
+        t.name AS data_type,
+        c.max_length,
+        c.precision,
+        c.scale,
+        c.is_nullable,
+        c.column_id
+    FROM sys.tables o
+    JOIN sys.schemas s ON o.schema_id = s.schema_id
+    JOIN sys.columns c ON o.object_id = c.object_id
+    JOIN sys.types t ON c.user_type_id = t.user_type_id
+    WHERE o.is_ms_shipped = 0
+        AND s.name IN ('CONSUMPTION_FINANCE', 'CONSUMPTION_POWERBI', 'CONSUMPTION_PRIMA',
+                       'STAGING_FINANCE_COGNOS', 'STAGING_FINANCE_FILE', 'ADMIN', 'dbo')
+"""
 
-def extract_to_parquet(utils, query, output_filename, description):
-    """
-    Extract data from DWH and save as Parquet directory.
+def extract_to_parquet(query, output_filename):
 
-    Creates a directory (e.g., objects.parquet/) containing a single
-    part-*.parquet file via .coalesce(1).
-    """
-    print(f"\n{'='*60}")
-    print(f"Extracting {description}...")
-    print(f"{'='*60}")
+    df = utils.read_dwh(query)
 
-    try:
-        df = utils.read_dwh(query)
-        row_count = df.count()
-        print(f"✅ Query executed: {row_count:,} rows")
-
-        output_path = f"{OUTPUT_PATH}{output_filename}"
-        df.coalesce(1).write.mode("overwrite").parquet(output_path)
-
-        print(f"✅ Saved to: {output_path}")
-
-    except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        raise
-
-# ============================================================================
-# MAIN EXECUTION
-# ============================================================================
-
-def main():
-    """Main extraction process"""
-    print(f"\n{'='*80}")
-    print("SYNAPSE PYSPARK DMV EXTRACTOR - v3.0")
-    print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"Server: {SERVER} | Database: {DATABASE}")
-    print(f"Output: {OUTPUT_PATH}")
-    print(f"{'='*80}")
-
-    try:
-        utils = ProcessSparkBase(SERVER=SERVER, DATABASE=DATABASE, TEMP_FOLDER=TEMP_FOLDER)
-        print("✅ Connected to DWH")
-
-        extract_to_parquet(utils, QUERY_OBJECTS, "objects.parquet", "objects")
-        extract_to_parquet(utils, QUERY_DEPENDENCIES, "dependencies.parquet", "dependencies")
-        extract_to_parquet(utils, QUERY_DEFINITIONS, "definitions.parquet", "definitions")
-
-        if not SKIP_QUERY_LOGS:
-            try:
-                extract_to_parquet(utils, QUERY_LOGS, "query_logs.parquet", "query logs")
-            except Exception as e:
-                print(f"⚠️  Query logs skipped: {str(e)}")
-
-        print(f"\n{'='*80}")
-        print("✅ EXTRACTION COMPLETE")
-        print(f"Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Location: {OUTPUT_PATH}")
-        print(f"{'='*80}\n")
-        return 0
-
-    except Exception as e:
-        print(f"\n{'='*80}")
-        print(f"❌ EXTRACTION FAILED: {str(e)}")
-        print(f"{'='*80}\n")
-        import traceback
-        traceback.print_exc()
-        return 1
-
-if __name__ == "__main__":
-    exit_code = main()
-    sys.exit(exit_code)
+    output_path = f"{TARGET_FODER}{output_filename}"
+    df.coalesce(1).write.mode("overwrite").parquet(output_path)
+	
+extract_to_parquet(QUERY_OBJECTS, "objects")
+extract_to_parquet(QUERY_DEPENDENCIES, "dependencies")
+extract_to_parquet(QUERY_DEFINITIONS, "definitions")
+extract_to_parquet(QUERY_LOGS, "query_logs")
+extract_to_parquet(QUERY_TABLE_COLUMNS, "table_columns")

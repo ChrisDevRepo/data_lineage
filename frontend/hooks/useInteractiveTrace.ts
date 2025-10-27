@@ -37,8 +37,11 @@ export function useInteractiveTrace(
                     if (!neighborNode) return;
                     if (!config.includedSchemas.has(neighborNode.schema)) return;
 
+                    // Filter by data model type if the node has one
+                    if (neighborNode.data_model_type && !config.includedTypes.has(neighborNode.data_model_type)) return;
+
                     const isExcluded = exclusionRegexes.some(regex => regex.test(neighborNode.name));
-                    
+
                     // Always add the neighbor to the visible set, even if excluded, to draw the edge to it.
                     // But do not traverse further from an excluded node.
                     visibleIds.add(neighborId);
@@ -62,10 +65,11 @@ export function useInteractiveTrace(
         addNotification('Trace applied successfully!', 'info');
     };
 
-    const handleExitTraceMode = () => {
+    const handleExitTraceMode = useCallback(() => {
         setIsTraceModeActive(false);
-        setTraceConfig(null);
-    };
+        // Don't clear traceConfig immediately - we'll use it to preserve selection
+        // setTraceConfig(null);
+    }, []);
 
     return {
         traceConfig,

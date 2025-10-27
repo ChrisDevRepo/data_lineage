@@ -55,10 +55,22 @@ npm run dev  # Opens at http://localhost:3000
 
 **Frontend Documentation:**
 - Main README: [frontend/README.md](frontend/README.md)
-- Changelog: [frontend/CHANGELOG.md](frontend/CHANGELOG.md) - **NEW: v2.2.0 features**
+- Changelog: [frontend/CHANGELOG.md](frontend/CHANGELOG.md) - **NEW: v2.3.0 features**
 - v2.0 deployment docs: [backup_v2/frontend_deploy/docs/](backup_v2/frontend_deploy/docs/)
 
-**Latest Features (v2.2.0 - 2025-10-27):**
+**Latest Features (v2.4.0 - 2025-10-27):**
+- ✅ **Incremental Parsing** - Smart detection of changed objects (checkbox in Import modal, ON by default)
+- ✅ **Clear All Data** - Wipe button to delete all workspaces and persistent data
+- ✅ **Last Upload Timestamp** - Display when data was last uploaded
+- ✅ **Performance:** 50-90% faster for small updates with incremental mode
+
+**Previous Features (v2.3.0):**
+- ✅ **Table DDL Display** - View table structure (columns, data types, constraints) in SQL viewer
+- ✅ **Enhanced Empty State** - Informative message when table metadata not available
+- ✅ **SQL Viewer Header Improvements** - Smaller title, search box always visible
+- ✅ **Progress Percentage Formatting** - Backend now shows 1 decimal place (e.g., 45.8%)
+
+**Previous Features (v2.2.0):**
 - ✅ **Resizable SQL Viewer** - Drag to resize SQL panel (default 1/3 width, range 20-60%)
 - ✅ **Yellow Highlight** - Selected objects highlighted in yellow for better visual distinction
 - ✅ **Level 1 Neighbor Visibility** - Connected nodes remain visible when object selected
@@ -83,12 +95,21 @@ cd /workspaces/ws-psidwh/api
 python3 main.py  # Opens at http://localhost:8000
 
 # Upload Parquet files via API (3 required + 2 optional)
+# IMPORTANT: Filenames don't matter! Use "files=@" for all files.
+# Backend auto-detects which file is which by analyzing schemas.
 curl -X POST http://localhost:8000/api/upload-parquet \
-  -F "objects=@objects.parquet" \
-  -F "dependencies=@dependencies.parquet" \
-  -F "definitions=@definitions.parquet" \
-  -F "query_logs=@query_logs.parquet" \
-  -F "table_columns=@table_columns.parquet"
+  -F "files=@part-00000-xxxxx.snappy.parquet" \
+  -F "files=@part-00001-yyyyy.snappy.parquet" \
+  -F "files=@part-00002-zzzzz.snappy.parquet" \
+  -F "files=@part-00003-aaaaa.snappy.parquet" \
+  -F "files=@part-00004-bbbbb.snappy.parquet"
+
+# Backend identifies files by schema:
+# - objects: has columns (object_id, schema_name, object_name, object_type...)
+# - dependencies: has columns (referencing_object_id, referenced_object_id...)
+# - definitions: has columns (object_id, object_name, definition...)
+# - query_logs: has columns (command_text)
+# - table_columns: has columns (object_id, schema_name, table_name, column_name...)
 ```
 
 **Option 2: CLI (v2.0 - Command Line)**
@@ -156,7 +177,13 @@ ws-psidwh/
 ├── docs/                         # 📚 Documentation
 │   ├── IMPLEMENTATION_SPEC_FINAL.md  # ⭐ v3.0 Complete Specification
 │   ├── PARSING_USER_GUIDE.md     # User guide for SQL parsing
-│   └── DUCKDB_SCHEMA.md          # Database schema reference
+│   ├── DUCKDB_SCHEMA.md          # Database schema reference
+│   ├── QUERY_LOGS_ANALYSIS.md    # Query log analysis & validation strategy
+│   ├── PARSER_BUG_SELECT_INTO.md # SELECT INTO parser bug report
+│   └── IMPLEMENTATION_COMPLETE.md # v3.4.0 implementation summary
+│   ├── QUERY_LOGS_ANALYSIS.md    # Query log analysis & validation strategy
+│   ├── PARSER_BUG_SELECT_INTO.md # SELECT INTO parser bug report
+│   └── IMPLEMENTATION_COMPLETE.md # v3.4.0 implementation summary
 │
 ├── parquet_snapshots/            # DMV Parquet exports (gitignored)
 ├── lineage_output/               # Generated lineage JSON files
@@ -235,16 +262,20 @@ A DMV-first data lineage extraction system that consumes Parquet snapshots of Sy
 ### Core Architecture
 
 ```
-[Synapse DMVs] → Helper Extractor → [Parquet Snapshots]
+[Synapse DMVs] → PySpark Extractor → [Parquet Snapshots]
                                             ↓
                               DuckDB Workspace (Persistent)
                                             ↓
               ┌──────────────────────────────┼──────────────────────────┐
               ↓                              ↓                          ↓
-    DMV Dependencies (1.0)     Query Logs (0.9)              SQLGlot Parser (0.85)
+    DMV Dependencies (1.0)                              SQLGlot Parser (0.85)
+    (Views/Functions)                                   (Stored Procedures)
               └──────────────────────────────┼──────────────────────────┘
                                             ↓
-                              AI Fallback (Microsoft Agent Framework - 0.7)
+                              Query Log Validation (0.85 → 0.95)
+                              (Cross-validates parsed SPs)
+                                            ↓
+                              AI Fallback (0.7) - DEFERRED
                                             ↓
                               Lineage Merger (Bidirectional Graph)
                                             ↓
@@ -386,14 +417,73 @@ Uses string representation of `object_id` for React Flow compatibility:
   "name": "DimCustomers",
   "schema": "CONSUMPTION_FINANCE",
   "object_type": "Table",
-  "description": "Confidence: 0.00",
+  "description": "Confidence: 1.00",
   "data_model_type": "Dimension",
   "inputs": ["46623209"],
-  "outputs": ["350624292", "366624349"]
+  "outputs": ["350624292", "366624349"],
+  "ddl_text": "CREATE TABLE [CONSUMPTION_FINANCE].[DimCustomers] (\n    [CustomerID] int NOT NULL,\n    [CustomerName] nvarchar(200) NULL,\n    [Email] nvarchar(255) NULL\n);"
 }
 ```
 
-**Note:** IDs are string-cast object_ids (e.g., "1986106116") not sequential node_X format
+**Note:**
+- IDs are string-cast object_ids (e.g., "1986106116") not sequential node_X format
+- `ddl_text` field contains:
+  - **Tables**: CREATE TABLE statement with columns (if `table_columns.parquet` provided)
+  - **Views/Stored Procedures**: Full DDL from `sys.sql_modules`
+  - `null` if metadata not available
+
+### Table DDL Generation & Unified DDL View (v3.0 Feature)
+
+**Overview:**
+The backend creates a unified DDL view that combines real DDL (Stored Procedures/Views) with generated CREATE TABLE statements (Tables) into a single queryable interface.
+
+**How It Works:**
+1. **Extraction:** PySpark extractor queries `sys.columns` and exports to `table_columns.parquet`
+2. **Loading:** DuckDB workspace loads table_columns with `correct_object_id` column added via LEFT JOIN
+   - Handles case where object_ids change between extractions (e.g., DROP/CREATE)
+3. **Unified DDL View:** Automatically created after loading Parquet files
+   - Part 1: Real DDL from `definitions` table (Stored Procedures, Views)
+   - Part 2: Generated CREATE TABLE from `table_columns` (Tables)
+   - Combined with UNION ALL into single `unified_ddl` view
+4. **API Access:** `/api/ddl/{object_id}` endpoint queries unified_ddl view
+5. **Frontend Display:** SQL viewer fetches DDL on-demand and shows with syntax highlighting
+
+**Table Columns Schema:**
+```sql
+CREATE TABLE table_columns (
+    object_id INTEGER,              -- Original object_id from sys.columns
+    schema_name TEXT,
+    table_name TEXT,
+    column_name TEXT,
+    data_type TEXT,                 -- int, varchar, decimal, etc.
+    max_length INTEGER,             -- For string types
+    precision INTEGER,              -- For numeric types
+    scale INTEGER,                  -- For decimal/numeric
+    is_nullable BOOLEAN,
+    column_id INTEGER,              -- Column ordinal position
+    correct_object_id INTEGER       -- Mapped from objects table (added by DuckDB)
+);
+```
+
+**Generated DDL Format:**
+```sql
+CREATE TABLE [schema_name].[table_name] (
+    [column_name] data_type(size) NULL/NOT NULL,
+    ...
+);
+```
+
+**Supported Data Types:**
+- String types: `varchar(n)`, `nvarchar(n)`, `char(n)`, `nchar(n)`, with MAX support
+- Numeric types: `decimal(p,s)`, `numeric(p,s)`, `int`, `bigint`, etc.
+- Date/time: `date`, `datetime`, `datetime2`, `time`
+- Others: `bit`, `uniqueidentifier`, `xml`, etc.
+
+**Important Notes:**
+- ⚠️ **Object ID Changes:** When tables are dropped/recreated, object_ids change but schema.table_name remains stable
+- ✅ **Solution:** Backend uses `correct_object_id` column that maps via name matching
+- 📊 **Coverage:** All 68 tables in test dataset have DDL (100% when table_columns provided)
+- 🚫 **Without table_columns.parquet:** SQL viewer shows educational empty state explaining the feature
 
 ---
 
@@ -582,22 +672,58 @@ React Flow needs **ONE of these** to render the edge:
 - [SPEC_REVIEW_REVISED.md](SPEC_REVIEW_REVISED.md) - Detailed analysis of findings
 - Test artifacts cleaned up (TESTING schema dropped from Synapse)
 
-### Full Refresh Mode (v3.0 Web API)
+### Parsing Modes (v3.0 Web API & GUI)
 
-The v3.0 web API always uses **full refresh mode** for each upload:
+✅ **NEW in v2.4.0:** The web API and GUI now support **both Incremental and Full Refresh modes**!
+
+#### **Incremental Parsing (Default - Recommended)**
 
 ```bash
-# Web API: Always full refresh (truncate tables before loading)
-curl -X POST http://localhost:8000/api/upload-parquet -F "files=@..."
+# Web API: Incremental mode (default)
+curl -X POST http://localhost:8000/api/upload-parquet?incremental=true -F "files=@..."
 ```
 
 **How it works:**
-1. DuckDB tables are truncated after validation
-2. Fresh data loaded from Parquet files
-3. All objects parsed completely (no incremental tracking)
+1. DuckDB workspace persists between uploads (`lineage_metadata` retained)
+2. Fresh data loaded from uploaded Parquet files
+3. **Only modified objects are re-parsed** (compares `modify_date`)
+4. Objects parsed if:
+   - Never parsed before (new objects)
+   - Modified since last parse (`modify_date > last_parsed_modify_date`)
+   - Low confidence (<0.85, needs improvement)
+
+**Benefits:**
+- ⚡ **50-90% faster** for typical updates
+- ✅ Smart detection of changes
+- ✅ Preserves high-quality parse results
+- ✅ First upload always processes everything
+
+#### **Full Refresh Mode (Optional)**
+
+```bash
+# Web API: Full refresh mode
+curl -X POST http://localhost:8000/api/upload-parquet?incremental=false -F "files=@..."
+```
+
+**How it works:**
+1. All DuckDB tables are **truncated** (objects, dependencies, definitions, query_logs, table_columns)
+2. Fresh data loaded from uploaded Parquet files
+3. **All objects re-parsed from scratch**
 4. Job-specific workspace cleaned up after retrieval
 
-**Note:** Incremental mode exists in CLI for persistent workspace scenarios but is not used in the web API workflow.
+**When to use:**
+- ✅ Ensuring parser bug fixes are applied to all objects
+- ✅ Complete re-analysis needed
+- ✅ Testing with fresh state
+
+**UI Control:**
+- 📋 Checkbox in Import Data modal → Parquet tab
+- ✅ **Default: Incremental (checked)**
+- ⚠️ Uncheck for full refresh mode
+
+**CLI Support:**
+- Incremental: `python lineage_v3/main.py run --parquet dir/` (default)
+- Full refresh: `python lineage_v3/main.py run --parquet dir/ --full-refresh`
 
 ### Production vs Development Tools
 
@@ -798,14 +924,15 @@ See [frontend/docs/INTEGRATION.md](frontend/docs/INTEGRATION.md) for integration
   - Integrated into [main.py](lineage_v3/main.py) Step 8
   - Output directory: [lineage_output/](lineage_output/)
 
-- **Week 2 (v3.0):** FastAPI Backend ✅ **COMPLETE**
-  - [api/main.py](api/main.py) - FastAPI application with 6 endpoints
-  - [api/background_tasks.py](api/background_tasks.py) - Background processing wrapper
+- **Week 2 (v3.0.1):** FastAPI Backend ✅ **PRODUCTION READY** (Fixed 2025-10-27)
+  - [api/main.py](api/main.py) - FastAPI application with 7 endpoints
+  - [api/background_tasks.py](api/background_tasks.py) - Background processing with data persistence
   - [api/models.py](api/models.py) - Pydantic models
-  - **Endpoints:** `/health`, `/api/upload-parquet`, `/api/status/{job_id}`, `/api/result/{job_id}`, `/api/jobs`, `/api/jobs/{job_id}`
-  - **Features:** File upload, background processing, real-time progress tracking, OpenAPI docs
+  - **Endpoints:** `/health`, `/api/upload-parquet`, `/api/status/{job_id}`, `/api/result/{job_id}`, `/api/latest-data`, `/api/jobs`, `/api/jobs/{job_id}`
+  - **Features:** File upload, background processing, real-time progress, persistent data storage, OpenAPI docs
   - **Performance:** 2.3s processing time for 85 objects (~37 objects/sec)
-  - **Test Coverage:** All 6 endpoints tested and verified
+  - **Data Persistence:** Saves to `/data/latest_frontend_lineage.json` for page refresh support
+  - **Critical Fix (2025-10-27):** Added missing `import shutil` - data now persists correctly after parquet upload
   - See [api/README.md](api/README.md) and [api/TEST_RESULTS.md](api/TEST_RESULTS.md)
 
 - **Week 2-3 (v3.0):** Query Logs Optimization ✅ **COMPLETE**
@@ -825,8 +952,30 @@ See [frontend/docs/INTEGRATION.md](frontend/docs/INTEGRATION.md) for integration
     - [lineage_v3/core/duckdb_workspace.py](lineage_v3/core/duckdb_workspace.py) - Removed redundant filtering
   - **Architecture Principle:** Filter at source to minimize data transfer and processing
 
+- **Week 3 (v3.4.0):** Parser Enhancements & Query Log Validation ✅ **COMPLETE** (2025-10-27)
+  - **SELECT INTO Parser Bug Fix:**
+    - **Problem:** Parser missing view references in `SELECT INTO #temp FROM view` statements
+    - **Example:** `spLoadFactLaborCostForEarnedValue_1` was missing `vFactLaborCost` dependency
+    - **Solution:** Enhanced AST extraction to track SELECT INTO targets separately from DML targets
+    - **Impact:** 1 SP confidence improved (0.5 → 0.85), missing edges now captured
+    - **File:** [quality_aware_parser.py](lineage_v3/parsers/quality_aware_parser.py) - Enhanced `_extract_from_ast()`
+  - **Query Log Validation (Step 5):**
+    - **Purpose:** Cross-validate parsed SPs with runtime execution evidence
+    - **Algorithm:** Match parsed table dependencies against DML queries in logs
+    - **Confidence Boost:** 0.85 → 0.95 for validated stored procedures
+    - **Results:** 6-8 SPs validated, +200% very high-confidence objects (3 → 9)
+    - **Features:** Regex-based table extraction, temp table filtering, graceful degradation
+    - **Files:**
+      - [query_log_validator.py](lineage_v3/parsers/query_log_validator.py) - New validation module
+      - [main.py](lineage_v3/main.py) - Integrated as Step 5 (after parsing, before AI fallback)
+  - **Documentation:**
+    - [QUERY_LOGS_ANALYSIS.md](docs/QUERY_LOGS_ANALYSIS.md) - Complete analysis of 1,634 query entries
+    - [PARSER_BUG_SELECT_INTO.md](docs/PARSER_BUG_SELECT_INTO.md) - Bug report with root cause
+    - [IMPLEMENTATION_COMPLETE.md](docs/IMPLEMENTATION_COMPLETE.md) - Implementation summary
+  - **Version:** 3.4.0
+
 ### 🚧 In Progress:
-- (None - Ready for Week 3-4 tasks)
+- (None - Ready for testing)
 
 ### 📋 Upcoming Phases:
 - **Phase 5:** AI Fallback (Microsoft Agent Framework - Step 6) - **DEFERRED** (8 low-confidence SPs - pending approval)
@@ -991,8 +1140,8 @@ To achieve the best parsing results (confidence ≥0.85), follow these guideline
 
 ---
 
-**Last Updated:** 2025-10-26
-**Lineage Parser Version:** 3.0.0 (In Development)
+**Last Updated:** 2025-10-27
+**Lineage Parser Version:** 3.1.0 (Incremental Parsing Complete)
 
 ### Production vs Development Tools
 
