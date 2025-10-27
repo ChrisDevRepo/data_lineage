@@ -304,20 +304,10 @@ def extract_to_parquet(query, output_filename, description):
         .options(**jdbc_properties) \
         .load()
 
-    # Convert to pandas for single-file write
-    # (avoids multiple part files from Spark)
-    pdf = df.toPandas()
-
-    # Save to local temp
-    local_temp = f"/tmp/{output_filename}"
-    pdf.to_parquet(local_temp, index=False, engine='pyarrow', compression='snappy')
-
-    # Upload to ADLS
-    mssparkutils.fs.cp(f"file://{local_temp}", f"{OUTPUT_PATH}{output_filename}")
-
-    # Clean up
-    import os
-    os.remove(local_temp)
+    # Write to ADLS using Spark native (creates directory output)
+    # .coalesce(1) ensures single partition (single part file)
+    output_path = f"{OUTPUT_PATH}{output_filename}"
+    df.coalesce(1).write.mode("overwrite").parquet(output_path)
 
 # CELL 4-7: Extract each DMV
 extract_to_parquet(QUERY_OBJECTS, "objects.parquet", "objects")
@@ -401,38 +391,45 @@ QUERY_LOGS = """
 
 **Decision:** Start with Synapse only, add Databricks later if requested
 
-### 4.5. Single File Output Strategy
+### 4.5. Parquet Output Strategy
 
-**Problem:** Spark defaults to partitioned output:
+**Spark Native Behavior:** Spark writes partitioned output to directories:
 ```
 objects.parquet/
   ├── _SUCCESS
-  ├── part-00000.parquet
-  ├── part-00001.parquet
-  └── part-00002.parquet  ❌ Multiple files
+  └── part-00000-abc123.snappy.parquet  ✅ Single partition (via .coalesce(1))
 ```
 
-**Solution:** Use `.coalesce(1)` + pandas:
+**Solution:** Use `.coalesce(1)` for single partition, DuckDB reads directories natively:
 ```python
 df = spark.read.jdbc(...)
-df_coalesced = df.coalesce(1)  # Force single partition
-pdf = df_coalesced.toPandas()  # Convert to pandas
-pdf.to_parquet("objects.parquet", index=False)  # ✅ Single file
+df.coalesce(1).write.mode("overwrite").parquet(output_path)
+# Creates: objects.parquet/part-00000-{uuid}.parquet
 ```
 
-**Why pandas?**
-- ✅ Guarantees single file (no part-* files)
-- ✅ DMV data is small (<10 MB) - safe for driver memory
-- ✅ Simpler than Spark native + file renaming
+**Why This Works:**
+- ✅ **No pandas needed** - Spark native output
+- ✅ **DuckDB compatible** - `read_parquet()` supports directories
+- ✅ **Simpler deployment** - No additional dependencies
+- ✅ **Scalable** - Works for any data size
 
-**Memory Analysis:**
-| File | Expected Size | Pandas Memory |
+**DuckDB Reading:**
+```python
+# DuckDB automatically reads from directories
+SELECT * FROM read_parquet('objects.parquet/*.parquet')
+
+# Or use glob pattern for specific files
+SELECT * FROM read_parquet('objects.parquet/part-*.parquet')
+```
+
+**Data Size Analysis:**
+| File | Expected Size | Spark Memory |
 |------|---------------|---------------|
-| objects.parquet | <1 MB | <10 MB |
-| dependencies.parquet | <5 MB | <50 MB |
-| definitions.parquet | <10 MB | <100 MB |
-| query_logs.parquet | <5 MB | <50 MB |
-| **TOTAL** | **<20 MB** | **<200 MB** ✅ Safe |
+| objects.parquet/ | <1 MB | <10 MB (one partition) |
+| dependencies.parquet/ | <5 MB | <50 MB (one partition) |
+| definitions.parquet/ | <10 MB | <100 MB (one partition) |
+| query_logs.parquet/ | <5 MB | <50 MB (one partition) |
+| **TOTAL** | **<20 MB** | **<200 MB** ✅ Safe for small executor |
 
 ---
 
@@ -1734,7 +1731,7 @@ class FrontendFormatter:
 **Day 1-2: Create PySpark Script**
 - [ ] Convert Python queries to PySpark JDBC
 - [ ] Implement platform detection (Synapse)
-- [ ] Implement single-file output (`.coalesce(1)` + pandas)
+- [ ] Implement directory output (`.coalesce(1)` for single partition)
 - [ ] Test connection to Synapse SQL Pool
 
 **Day 3: Create Synapse Notebook**
@@ -1745,7 +1742,7 @@ class FrontendFormatter:
 
 **Day 4: Testing**
 - [ ] Test on production Synapse workspace
-- [ ] Verify Parquet files (single file, correct schema)
+- [ ] Verify Parquet directories (single partition, correct schema)
 - [ ] Test download from ADLS
 
 **Day 5: Documentation**

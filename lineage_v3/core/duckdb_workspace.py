@@ -20,7 +20,6 @@ import duckdb
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
-import pandas as pd
 
 
 class DuckDBWorkspace:

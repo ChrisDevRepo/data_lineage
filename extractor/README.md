@@ -11,7 +11,7 @@ Standalone Python script for extracting DMV metadata from Azure Synapse Dedicate
 **New Approach:**
 - Uses `shared_utils.process_spark_base` wheel (no JDBC/ODBC)
 - Runs as Synapse Spark Job (not notebook)
-- Single Parquet file output per table
+- Directory output with single partition per table (DuckDB compatible)
 
 ## Files
 
@@ -67,16 +67,36 @@ Synapse Studio → Develop → Spark job definitions → Upload Python file
 
 ## Output Files
 
-All files saved to `OUTPUT_PATH`:
+All files saved to `OUTPUT_PATH` as **directories** (Spark native format):
 
-| File | Content | Typical Size |
-|------|---------|--------------|
-| `objects.parquet` | Tables, Views, Stored Procedures | ~100-500 rows |
-| `dependencies.parquet` | DMV relationships (Views only) | ~50-200 rows |
-| `definitions.parquet` | DDL text | ~100-500 rows |
-| `query_logs.parquet` | Query execution history (optional) | ~10,000 rows |
+| Directory | Content | Typical Size |
+|-----------|---------|--------------|
+| `objects.parquet/` | Tables, Views, Stored Procedures | ~100-500 rows |
+| `dependencies.parquet/` | DMV relationships (Views only) | ~50-200 rows |
+| `definitions.parquet/` | DDL text | ~100-500 rows |
+| `query_logs.parquet/` | Query execution history (optional) | ~10,000 rows |
 
-**Note:** `dependencies.parquet` captures View dependencies only. Stored Procedure lineage comes from DDL parsing.
+**Directory Structure:**
+```
+OUTPUT_PATH/
+├── objects.parquet/
+│   ├── _SUCCESS
+│   └── part-00000-abc123.snappy.parquet  ← Single partition
+├── dependencies.parquet/
+│   ├── _SUCCESS
+│   └── part-00000-def456.snappy.parquet
+├── definitions.parquet/
+│   ├── _SUCCESS
+│   └── part-00000-ghi789.snappy.parquet
+└── query_logs.parquet/
+    ├── _SUCCESS
+    └── part-00000-jkl012.snappy.parquet
+```
+
+**Notes:**
+- Each directory contains a single `part-*.parquet` file (via `.coalesce(1)`)
+- DuckDB reads these directories natively (no conversion needed)
+- `dependencies.parquet` captures View dependencies only (SPs parsed from DDL)
 
 ## Usage Workflow
 
@@ -114,8 +134,9 @@ All files saved to `OUTPUT_PATH`:
 
 **Spark Operations:**
 - `utils.read_dwh(query)` → Returns Spark DataFrame
-- `df.coalesce(1)` → Single partition
-- `.write.parquet()` → Single file output (part-*.parquet in folder)
+- `df.coalesce(1)` → Reduces to single partition
+- `.write.parquet(path)` → Creates directory with single part file
+  - Example: `objects.parquet/part-00000-{uuid}.snappy.parquet`
 
 **Memory Usage:**
 - DMV queries return small datasets (<1000 rows typically)

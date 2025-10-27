@@ -1,7 +1,7 @@
 """
 Synapse PySpark DMV Extractor - v3.0
 
-Extracts DMV metadata from Azure Synapse Dedicated SQL Pool and saves to Parquet files.
+Extracts DMV metadata from Azure Synapse Dedicated SQL Pool and saves to Parquet directories.
 Designed to run as a Synapse Spark Job (not a notebook).
 
 Usage:
@@ -12,11 +12,14 @@ Requirements:
     - Synapse Spark pool with access to SQL pool
     - ADLS Gen2 storage account
 
-Output:
-    - objects.parquet
-    - dependencies.parquet
-    - definitions.parquet
-    - query_logs.parquet (optional)
+Output (directory structure):
+    - objects.parquet/part-00000-{uuid}.snappy.parquet
+    - dependencies.parquet/part-00000-{uuid}.snappy.parquet
+    - definitions.parquet/part-00000-{uuid}.snappy.parquet
+    - query_logs.parquet/part-00000-{uuid}.snappy.parquet (optional)
+
+Note: .coalesce(1) ensures single partition per directory. DuckDB reads these
+      directories natively without requiring pandas conversion.
 """
 
 from shared_utils.process_spark_base import ProcessSparkBase
@@ -113,7 +116,12 @@ QUERY_LOGS = """
 # ============================================================================
 
 def extract_to_parquet(utils, query, output_filename, description):
-    """Extract data from DWH and save as single Parquet file."""
+    """
+    Extract data from DWH and save as Parquet directory.
+
+    Creates a directory (e.g., objects.parquet/) containing a single
+    part-*.parquet file via .coalesce(1).
+    """
     print(f"\n{'='*60}")
     print(f"Extracting {description}...")
     print(f"{'='*60}")
