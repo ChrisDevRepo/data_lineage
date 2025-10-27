@@ -22,9 +22,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains:
 1. **Azure Synapse Data Warehouse** - SQL scripts for stored procedures, tables, and views
-2. **Vibecoding Lineage Parser v2.0** - DMV-first data lineage extraction system
+2. **Vibecoding Lineage Parser v3.0** - DMV-first data lineage system with GUI-based workflow
 
-**Version Note:** The parser is version **2.0** (folder name `lineage_v3` refers to the third development iteration, not the product version).
+**Current Status:** v3.0 Implementation - Week 1 Complete (PySpark Extractor)
 
 The codebase supports finance, clinical operations, and reporting workloads across multiple schemas.
 
@@ -32,24 +32,16 @@ The codebase supports finance, clinical operations, and reporting workloads acro
 
 ## Quick Reference for Claude Code
 
-### Working with Frontend
+### Working with Frontend (v2.0 - Will be enhanced in v3.0)
 ```bash
 # Start frontend dev server
 cd /workspaces/ws-psidwh/frontend
 npm run dev  # Opens at http://localhost:3000
-
-# Frontend folder organization:
-# - docs/       = Documentation (never deployed)
-# - deploy/     = Azure configs (used in deployment)
-# - components/ = React components (deployed)
-# - hooks/      = Custom hooks (deployed)
-# - utils/      = Utilities (deployed)
 ```
 
 **Frontend Documentation:**
 - Main README: [frontend/README.md](frontend/README.md)
-- Organization: [frontend/ORGANIZATION.md](frontend/ORGANIZATION.md)
-- Full docs in: [frontend/docs/](frontend/docs/)
+- v2.0 deployment docs: [backup_v2/frontend_deploy/docs/](backup_v2/frontend_deploy/docs/)
 
 ### Working with Backend (Lineage Parser)
 ```bash
@@ -78,38 +70,45 @@ ws-psidwh/
 │   ├── Tables/                   # Table definitions
 │   └── Views/                    # View definitions
 │
-├── lineage_v3/                   # 🆕 Lineage Parser v2.0 (folder name is v3 for historical reasons)
+├── extractor/                    # ✅ Week 1: PySpark DMV Extractor (COMPLETE)
+│   ├── synapse_pyspark_dmv_extractor.py  # Spark Job script
+│   └── README.md                 # Deployment guide
+│
+├── api/                          # 🚧 Week 2-3: FastAPI Backend (PENDING)
+│   └── README.md                 # Implementation guide
+│
+├── docker/                       # 🚧 Week 2-3: Container Config (PENDING)
+│   └── README.md                 # Docker multi-stage build
+│
+├── backup_v2/                    # 📦 v2.0 Backup (CLI-based implementation)
+│   ├── lineage_v3/               # Python backend (v2.0)
+│   ├── frontend/                 # React app (v2.0)
+│   └── frontend_deploy/          # v2.0 deployment files
+│
+├── lineage_v3/                   # Current v2.0 implementation (will be wrapped in v3.0)
 │   ├── main.py                   # CLI entry point
-│   ├── extractor/                # DMV → Parquet exporter (dev only)
 │   ├── core/                     # DuckDB engine
 │   ├── parsers/                  # SQLGlot parser
-│   ├── ai_analyzer/              # Microsoft Agent Framework
 │   ├── output/                   # JSON formatters
-│   └── utils/                    # Config & incremental support
+│   └── utils/                    # Config & helpers
 │
-├── deprecated/                   # Archived v2 implementation
-│   ├── scripts/                  # Old file-based parser
-│   ├── ai_analyzer/              # Custom AI logic (v2)
-│   ├── parsers/                  # Regex parsers (v2)
-│   ├── validators/               # Validators (v2)
-│   ├── output/                   # Output formatters (v2)
-│   └── README_DEPRECATED.md      # Migration notes
+├── frontend/                     # React Flow visualizer (v2.0 - will be enhanced)
+│   ├── components/               # React components
+│   ├── hooks/                    # Custom hooks
+│   ├── utils/                    # Utilities
+│   └── README.md                 # Frontend guide
 │
-├── frontend/                     # 📊 React lineage visualizer (see frontend/docs/FRONTEND_ARCHITECTURE.md)
-│   ├── FRONTEND_ARCHITECTURE.md  # Complete app analysis & architecture
-│   ├── DEPLOYMENT_AZURE.md       # Azure Web App deployment guide
-│   ├── LOCAL_DEVELOPMENT.md      # Local & devcontainer development
-│   ├── INTEGRATION.md            # Backend integration guide
-│   ├── web.config                # Azure IIS configuration
-│   ├── startup.sh                # Azure Linux startup script
-│   └── ...                       # React components, hooks, utils
+├── docs/                         # 📚 Documentation
+│   ├── IMPLEMENTATION_SPEC_FINAL.md  # ⭐ v3.0 Complete Specification
+│   ├── PARSING_USER_GUIDE.md     # User guide for SQL parsing
+│   └── DUCKDB_SCHEMA.md          # Database schema reference
 │
 ├── parquet_snapshots/            # DMV Parquet exports (gitignored)
 ├── lineage_output/               # Generated lineage JSON files
-├── docs/                         # Documentation
 ├── .env.template                 # Environment config template
 ├── requirements.txt              # Python dependencies
-├── lineage_specs.md              # Parser v2.0 specification (spec v2.1)
+├── lineage_specs.md              # Parser v2.0 specification
+├── README.md                     # Main project overview
 └── CLAUDE.md                     # This file
 ```
 
