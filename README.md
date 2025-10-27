@@ -39,7 +39,7 @@ ws-psidwh/
 │   ├── IMPLEMENTATION_SPEC_FINAL.md  # ⭐ v3.0 Complete Specification
 │   ├── PARSING_USER_GUIDE.md     # User guide for SQL parsing
 │   ├── DUCKDB_SCHEMA.md          # Database schema reference
-│   └── archive/                  # Historical documents
+
 │
 ├── .env.template                 # Environment config template
 ├── requirements.txt              # Python dependencies
@@ -115,7 +115,6 @@ User → Opens Synapse Studio (browser)
 - **[frontend/docs/](frontend/docs/)** - Frontend application docs
 
 ### Historical Docs
-- **[docs/archive/](docs/archive/)** - Phase completion summaries, confidence analysis
 
 ---
 
@@ -185,7 +184,6 @@ Upload `lineage_output/frontend_lineage.json` to the React app (see [frontend/RE
 
 ## 🔄 Version History
 
-- **v1.0** (Deprecated) - File-based parser with regex (archived)
 - **v2.0** (Current) - CLI-based, DMV-first parser with DuckDB workspace ✅ **Production Ready**
 - **v3.0** (In Development) - GUI-based workflow with single container deployment 🚧 **Spec Complete**
 
