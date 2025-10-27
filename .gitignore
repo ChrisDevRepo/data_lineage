@@ -34,8 +34,8 @@ lineage_workspace.*
 # Parquet snapshots (may contain sensitive data)
 parquet_snapshots/*.parquet
 
-# Lineage output (optional - uncomment if you don't want to track lineage results)
-# lineage_output/*.json
+# Lineage output (generated files should not be tracked)
+lineage_output/*.json
 
 # Testing results (query log validation)
 testing/query_log_validation/results/*.json

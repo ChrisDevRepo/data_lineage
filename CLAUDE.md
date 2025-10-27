@@ -605,7 +605,7 @@ curl -X POST http://localhost:8000/api/upload-parquet -F "files=@..."
 
 | Tool | Purpose | Audience | Location |
 |------|---------|----------|----------|
-| **Production Extractor** | Export DMVs to Parquet for external users | External DBAs/Users | `lineage_v3/extractor/synapse_dmv_extractor.py` |
+| **Production Extractor** | Export DMVs to Parquet for external users | External DBAs/Users | `lineage_v3/extractor/synapse_pyspark_dmv_extractor.py` |
 | **Development Helper** | Quick testing & verification during development | Internal Vibecoding team only | `lineage_v3/utils/synapse_query_helper.py` |
 
 **Production Extractor (PySpark DMV Extractor):**
@@ -758,7 +758,7 @@ See [frontend/docs/INTEGRATION.md](frontend/docs/INTEGRATION.md) for integration
 - **Phase 0:** Spec updates & environment setup
 - **Phase 1:** Migration & project structure
 - **Phase 2:** Production Extractor (Synapse DMV → Parquet)
-  - [synapse_dmv_extractor.py](lineage_v3/extractor/synapse_dmv_extractor.py) - Standalone extractor
+  - [synapse_pyspark_dmv_extractor.py](lineage_v3/extractor/synapse_pyspark_dmv_extractor.py) - Standalone extractor
   - Exports 5 Parquet files: objects, dependencies, definitions, query_logs, table_columns
   - Command-line interface with .env support
 - **Phase 3:** Core Engine (DuckDB workspace) ✅ **COMPLETE**
@@ -792,7 +792,7 @@ See [frontend/docs/INTEGRATION.md](frontend/docs/INTEGRATION.md) for integration
   - [summary_formatter.py](lineage_v3/output/summary_formatter.py) - Generates lineage_summary.json (statistics)
   - **Output Format:**
     - Internal: Uses object_id (int) for DuckDB joins
-    - Frontend: Uses node_X (string) for React Flow compatibility
+    - Frontend: Uses string-cast object_id (e.g., "1986106116") for React Flow compatibility
     - Summary: Confidence distribution, coverage stats
   - **Data Model Type Detection:** Auto-detects Dimension/Fact tables from naming patterns
   - Integrated into [main.py](lineage_v3/main.py) Step 8
@@ -1000,7 +1000,7 @@ To achieve the best parsing results (confidence ≥0.85), follow these guideline
 
 | Tool | Purpose | Audience | Location |
 |------|---------|----------|----------|
-| **Production Extractor** | Export DMVs to Parquet for external users | External DBAs/Users | `lineage_v3/extractor/synapse_dmv_extractor.py` |
+| **Production Extractor** | Export DMVs to Parquet for external users | External DBAs/Users | `lineage_v3/extractor/synapse_pyspark_dmv_extractor.py` |
 | **Development Helper** | Quick testing & verification during development | Internal Vibecoding team only | `lineage_v3/utils/synapse_query_helper.py` |
 
 **Production Extractor (PySpark DMV Extractor):**

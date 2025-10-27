@@ -11,13 +11,18 @@ ws-psidwh/
 │   ├── Tables/                   # Table definitions
 │   └── Views/                    # View definitions
 │
-├── extractor/                    # 🆕 PySpark DMV Extractor (Week 1)
-│   └── README.md                 # Implementation pending
+├── extractor/                    # ✅ PySpark DMV Extractor (Week 1 Complete)
+│   ├── synapse_pyspark_dmv_extractor.py  # Spark job script
+│   └── README.md                 # Deployment guide
 │
-├── api/                          # 🆕 FastAPI Backend (Week 2-3)
-│   └── README.md                 # Implementation pending
+├── api/                          # ✅ FastAPI Backend (Week 2 Complete)
+│   ├── main.py                   # 6 endpoints (tested)
+│   ├── background_tasks.py       # Background processing
+│   ├── models.py                 # Pydantic models
+│   ├── README.md                 # API documentation
+│   └── TEST_RESULTS.md           # Comprehensive tests
 │
-├── docker/                       # 🆕 Container Configuration (Week 2-3)
+├── docker/                       # 🚧 Container Configuration (Week 2-3 Pending)
 │   └── README.md                 # Implementation pending
 │
 ├── backup_v2/                    # 📦 v2.0 Backup (CLI-based implementation)
@@ -52,13 +57,13 @@ ws-psidwh/
 
 ## 🚀 v3.0 Implementation Status
 
-**Current Status:** ✅ **Specification Complete - Ready for Implementation**
+**Current Status:** ✅ **Specification Complete - Week 1-2 Complete**
 
 ### Timeline (4 weeks)
 
 | Week | Feature | Status |
 |------|---------|--------|
-| **Week 1** | PySpark DMV Extractor | 🚧 Pending |
+| **Week 1** | PySpark DMV Extractor | ✅ Complete |
 | **Week 2-3** | Single Container Deployment | 🚧 Pending |
 | **Week 4** | SQL Viewer | 🚧 Pending |
 
