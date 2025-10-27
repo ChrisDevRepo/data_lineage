@@ -10,25 +10,32 @@
 
 ## 🚀 Current Status
 
-**Version:** 2.2.0 (SQL Viewer Enhancements)
+**Version:** 2.4.0 (Click & Trace Improvements)
 **v3.0 Status:** Will be enhanced with new features (Week 2-4)
 
-### ✨ Latest Updates (v2.2.0 - 2025-10-27)
+### ✨ Latest Updates (v2.4.0 - 2025-10-27)
 
 **New Features:**
+- ✅ **Auto-Fit on Trace Apply** - View automatically fits and highlights start node when applying trace
+- ✅ **Improved "Hide Unrelated" Filter** - Now static pre-filter applied before schema/type filters
+
+**Fixed:**
+- ✅ **Click Behavior** - Simplified logic, no camera zoom on unhighlight, instant SQL viewer response
+- ✅ **SQL Viewer Dimming** - Nodes stay bright (no dimming) when SQL viewer is open
+- ✅ **Trace Exit Mode** - Works correctly on multiple trace sessions, shows only traced objects
+- ✅ **Layout Stability** - Nodes don't move when clicking with "Hide Unrelated" enabled
+
+**Previous Updates (v2.3.0):**
+- ✅ **Table DDL Display** - View table structure with columns, data types, and constraints in SQL viewer
+- ✅ **Enhanced Empty State** - Informative message when table metadata not available
+- ✅ **SQL Viewer Header Improvements** - Smaller title, search box always visible
+
+**Previous Updates (v2.2.0 & v2.1.x):**
 - ✅ **Resizable SQL Viewer** - Drag to resize SQL panel (default 1/3 width, range 20-60%)
-- ✅ **Yellow Highlight** - Selected objects now highlighted in yellow (better visual distinction)
+- ✅ **Yellow Highlight** - Selected objects now highlighted in yellow
 - ✅ **Level 1 Neighbor Visibility** - Connected nodes remain visible when object selected
-- ✅ **UI Refinements** - SQL viewer title changed to "DDL" with normal font weight
-
-**Previous Updates (v2.1.1):**
-- ✅ **Data Model Type Filter Inheritance** - Trace mode inherits data model type filters
-- ✅ **Additional Type Filtering in Trace Panel** - Further refine data model types within trace panel
-
-**Previous Updates (v2.1.0):**
-- ✅ **Preserve Selection on Trace Exit** - Traced nodes remain highlighted in detail view
-- ✅ **Reset View Button** - One-click reset to default state (all filters cleared)
-- ✅ **Schema Filter Inheritance** - Trace mode inherits detail mode schema filters
+- ✅ **Data Model Type Filter Inheritance** - Trace mode inherits filters
+- ✅ **Reset View Button** - One-click reset to default state
 
 See [CHANGELOG.md](./CHANGELOG.md) for detailed feature descriptions and usage examples.
 

@@ -4,6 +4,167 @@ All notable changes to the frontend application will be documented in this file.
 
 ---
 
+## [2.4.0] - 2025-10-27
+
+### ✨ Added
+
+#### **Auto-Fit and Highlight on Trace Apply**
+- **Feature:** When applying a trace in Interactive Trace mode, the view automatically fits to show all traced nodes and highlights the start node
+- **Benefit:** Better visual feedback and easier navigation when starting a trace
+- **Implementation:**
+  - Auto-fit view with 800ms smooth animation after applying trace
+  - Start node highlighted in yellow immediately
+  - 200ms delay allows layout to calculate before fitting
+- **Files Changed:**
+  - `App.tsx` - Added `handleApplyTraceWithFit` wrapper function
+
+### 🔧 Fixed
+
+#### **Click Behavior Improvements**
+- **Fixed:** Simplified click logic - removed complex neighbor tracking that was causing issues
+- **Fixed:** Clicking to unhighlight no longer causes camera zoom
+- **Fixed:** SQL viewer click now works instantly on first click (consolidated to single handler)
+- **Implementation:**
+  - Removed duplicate click handlers between CustomNode and App.tsx
+  - All click handling now in ReactFlow's `onNodeClick` only
+  - `hasInitiallyFittedRef` prevents fitView from running on every state change
+- **Files Changed:**
+  - `App.tsx` - Simplified `handleNodeClick`, removed fitView from nodes effect
+  - `CustomNode.tsx` - Removed `onClick` handler from div element
+
+#### **Dimming Behavior with SQL Viewer**
+- **Fixed:** When SQL viewer is open, nodes are no longer dimmed (all stay at full brightness)
+- **Benefit:** Easier to read and click nodes when viewing SQL definitions
+- **Implementation:**
+  - Added `!sqlViewerOpen` condition to `shouldBeDimmed` calculation
+  - Dimming only applies when SQL viewer is closed
+- **Files Changed:**
+  - `App.tsx` - Updated `finalNodes` memo with SQL viewer check
+
+#### **Trace Exit Mode - Multiple Sessions**
+- **Fixed:** Trace exit mode now works correctly on 2nd, 3rd, Nth trace sessions
+- **Problem:** `isInTraceExitMode` flag wasn't being reset when entering trace again, preventing effect from running on subsequent exits
+- **Solution:** Reset flag to false when entering trace mode
+- **Files Changed:**
+  - `App.tsx` - Added `setIsInTraceExitMode(false)` in trace entry effect
+
+#### **Trace Exit Mode - Show Only Traced Objects**
+- **Fixed:** Exiting trace mode now correctly shows ONLY the traced objects at defined depth levels
+- **Problem:** Using `ref` instead of `state` meant changes weren't reactive, so `useDataFiltering` couldn't detect updates
+- **Solution:** Converted `previousTraceResultsRef` to `traceExitNodes` state
+- **Files Changed:**
+  - `App.tsx` - Converted ref to state `[traceExitNodes, setTraceExitNodes]`
+  - `useDataFiltering.ts` - Added trace exit mode filtering logic
+
+#### **"Hide Unrelated" Filter Improvements**
+- **Fixed:** "Hide Unrelated" is now a static pre-filter applied BEFORE schema/type filters
+- **Fixed:** Checking/unchecking no longer causes nodes to move around when clicking objects
+- **Problem:** Filter was applied after schema/type filters and recalculated on every click
+- **Solution:** Separate `preFilteredData` memo that only recalculates when filter checkbox changes
+- **Implementation:**
+  - Stage 1: Pre-filter removes nodes with zero connections in complete graph
+  - Stage 2: Schema/type filters applied to pre-filtered data
+  - Independent of click events and node highlighting
+- **Files Changed:**
+  - `useDataFiltering.ts` - Split into `preFilteredData` and `finalVisibleData` memos
+
+### 📝 Behavior Changes
+
+#### **Dimming Logic**
+- **Without SQL Viewer:** Clicked node highlighted (yellow), level 1 neighbors bright, others dimmed (20% opacity)
+- **With SQL Viewer:** Clicked node highlighted (yellow), all others at full brightness (no dimming)
+
+#### **Trace Mode Flow**
+1. Click "Start Trace" → Opens trace panel
+2. Select start node + configure levels
+3. Click "Apply Trace" → **Auto-fits view + highlights start node** (NEW)
+4. Click "Exit" → Shows only traced objects in detail view
+5. Click outside → Clears trace, shows all with filters
+
+#### **"Hide Unrelated" Behavior**
+- Applied as first filter (before schema/type)
+- Only hides nodes with zero connections in entire dataset
+- Does NOT recalculate when clicking nodes
+- Truly independent of other filters
+
+---
+
+## [2.3.0] - 2025-10-27
+
+### ✨ Added - Table Structure Display in SQL Viewer
+
+#### **Table DDL Display with Column Metadata**
+- **Feature:** SQL viewer now displays CREATE TABLE statements with full column information for tables
+- **Benefit:** Users can view table structure (columns, data types, constraints) directly in the UI without querying the database
+- **Implementation:**
+  - Backend generates CREATE TABLE DDL from `table_columns.parquet` metadata
+  - Shows column names, data types, precision/scale, max length, and NULL constraints
+  - Proper formatting for varchar(n), nvarchar(n), decimal(p,s), etc.
+  - Handles MAX length columns (varchar(MAX), nvarchar(MAX))
+  - Object ID mapping via `correct_object_id` column to handle ID changes between extractions
+- **Files Changed:**
+  - `lineage_v3/output/frontend_formatter.py` - Enhanced `_generate_table_ddl()` method
+  - `lineage_v3/core/duckdb_workspace.py` - Added `table_columns` table support
+  - `types.ts` - `ddl_text` field now populated for Tables (previously Views/SPs only)
+
+**Data Format Example:**
+```sql
+CREATE TABLE [CONSUMPTION_FINANCE].[DimCustomers] (
+    [CustomerID] int NOT NULL,
+    [CustomerName] nvarchar(200) NULL,
+    [Email] nvarchar(255) NULL,
+    [CreatedDate] datetime NOT NULL,
+    [Balance] decimal(18,2) NULL
+);
+```
+
+**Requirements:**
+- Backend must include `table_columns.parquet` file when uploading data
+- File contains: object_id, schema_name, table_name, column_name, data_type, max_length, precision, scale, is_nullable, column_id
+
+#### **Enhanced Empty State for Tables Without Metadata**
+- **Feature:** Informative message displayed when table column metadata is not available
+- **Benefit:** Clear user guidance on why table DDL isn't showing and how to enable it
+- **Implementation:**
+  - Shows table icon (SVG) with professional styling
+  - "Table Structure Not Available" heading
+  - Bulleted list explaining what would be displayed:
+    - Column names and data types
+    - Precision and scale for numeric columns
+    - Max length for string columns
+    - Nullable constraints
+  - Clear instruction to include `table_columns.parquet` in dataset
+- **Files Changed:**
+  - `components/SqlViewer.tsx` - Enhanced empty state UI with educational content
+
+**Empty State Display:**
+- Professional dark theme styling matching VSCode
+- Table icon for visual clarity
+- Educational content explaining missing feature
+- Actionable guidance for users
+
+#### **SQL Viewer Header Improvements**
+- **Feature:** Optimized header layout with better responsive behavior
+- **Changes:**
+  - Title font size reduced from 1.1rem to 0.95rem (smaller, cleaner)
+  - Title color changed to softer gray (#cccccc) for less visual weight
+  - Title truncates with ellipsis (...) when too long
+  - Search box now has flexShrink: 0 to prevent being pushed off-screen
+  - Search box reduced from 250px to 200px width with 150px minimum
+  - Header padding reduced for more compact layout
+  - Added minHeight: 52px for consistent header size
+- **Benefit:** Search box always visible even with scrollbars; cleaner, more professional appearance
+- **Files Changed:**
+  - `components/SqlViewer.tsx` - Updated header styles and layout
+
+**Visual Improvements:**
+- Title never obscures search box
+- Better space management in narrow panels
+- Consistent header height across different content states
+- Search box always accessible regardless of scrollbar width
+
+---
+
 ## [2.2.0] - 2025-10-27
 
 ### ✨ Added - SQL Viewer Enhancements

@@ -45,6 +45,10 @@ function DataLineageVisualizer() {
   const { addNotification, activeToasts, removeActiveToast, notificationHistory, clearNotificationHistory } = useNotifications();
   const { lineageGraph, schemas, schemaColorMap, dataModelTypes } = useGraphology(allData);
   const { traceConfig, isTraceModeActive, setIsTraceModeActive, performInteractiveTrace, handleApplyTrace, handleExitTraceMode } = useInteractiveTrace(addNotification, lineageGraph);
+  // Store previous trace results for when we exit trace mode (as state for reactivity)
+  const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
+  const [isInTraceExitMode, setIsInTraceExitMode] = useState(false);
+
   const {
     finalVisibleData,
     selectedSchemas,
@@ -59,10 +63,17 @@ function DataLineageVisualizer() {
     setHighlightedNodes,
     autocompleteSuggestions,
     setAutocompleteSuggestions,
-  } = useDataFiltering({ allData, lineageGraph, schemas, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace });
-
-  // Store previous trace results for when we exit trace mode
-  const previousTraceResultsRef = useRef<Set<string>>(new Set());
+  } = useDataFiltering({
+    allData,
+    lineageGraph,
+    schemas,
+    dataModelTypes,
+    isTraceModeActive,
+    traceConfig,
+    performInteractiveTrace,
+    isInTraceExitMode,
+    traceExitNodes
+  });
 
   // --- Detect DDL Availability (memoized for performance) ---
   const hasDdlData = useMemo(() => {
@@ -105,26 +116,15 @@ function DataLineageVisualizer() {
   }, [finalVisibleData, viewMode, layout, schemaColorMap, schemas, selectedSchemas, lineageGraph, isTraceModeActive]);
 
   // --- SQL Viewer Handlers (must be defined before finalNodes) ---
-  const handleNodeClickForSql = useCallback((nodeData: {
-    id: string;
-    name: string;
-    schema: string;
-    objectType: string;
-    ddlText: string | null;
-  }) => {
-    if (sqlViewerOpen) {
-      setSelectedNodeForSql(nodeData);
-    }
-  }, [sqlViewerOpen]);
+  // Note: SQL viewer is now updated in handleNodeClick, not here
+  const handleNodeClickForSql = useCallback(() => {
+    // Placeholder - actual logic moved to handleNodeClick
+  }, []);
 
   const finalNodes = useMemo(() => {
-    const currentHighlights = isTraceModeActive && traceConfig?.startNodeId
-      ? new Set([traceConfig.startNodeId])
-      : highlightedNodes;
-
-    // Build set of level 1 neighbors (nodes directly connected to highlighted nodes)
+    // Build set of level 1 neighbors (nodes directly connected to highlighted node)
     const level1Neighbors = new Set<string>();
-    if (!isTraceModeActive && highlightedNodes.size > 0) {
+    if (highlightedNodes.size > 0) {
       highlightedNodes.forEach(nodeId => {
         if (lineageGraph.hasNode(nodeId)) {
           const neighbors = lineageGraph.neighbors(nodeId);
@@ -137,21 +137,23 @@ function DataLineageVisualizer() {
       // Find the original data node to get ddl_text
       const originalNode = allData.find(d => d.id === n.id);
 
-      // A node should be dimmed if:
-      // - Not in trace mode AND
-      // - There are highlighted nodes AND
+      const isHighlighted = highlightedNodes.has(n.id);
+
+      // Dim nodes that are MORE THAN 1 level away:
+      // - If there ARE highlighted nodes AND
+      // - SQL viewer is NOT open (when SQL viewer is open, no dimming) AND
       // - This node is NOT highlighted AND
-      // - This node is NOT a level 1 neighbor of highlighted nodes
-      const shouldBeDimmed = !isTraceModeActive &&
-                             highlightedNodes.size > 0 &&
-                             !highlightedNodes.has(n.id) &&
+      // - This node is NOT a level 1 neighbor
+      const shouldBeDimmed = highlightedNodes.size > 0 &&
+                             !sqlViewerOpen &&
+                             !isHighlighted &&
                              !level1Neighbors.has(n.id);
 
       return {
         ...n,
         data: {
           ...n.data,
-          isHighlighted: currentHighlights.has(n.id),
+          isHighlighted: isHighlighted,
           isDimmed: shouldBeDimmed,
           layoutDir: layout,
           sqlViewerOpen,
@@ -160,7 +162,7 @@ function DataLineageVisualizer() {
         }
       };
     });
-  }, [layoutedElements.nodes, highlightedNodes, layout, isTraceModeActive, traceConfig, sqlViewerOpen, allData, handleNodeClickForSql, lineageGraph]);
+  }, [layoutedElements.nodes, highlightedNodes, layout, sqlViewerOpen, allData, handleNodeClickForSql, lineageGraph]);
 
   // --- Effects to Synchronize State with React Flow ---
   useEffect(() => {
@@ -168,12 +170,19 @@ function DataLineageVisualizer() {
     setEdges(layoutedElements.edges);
   }, [finalNodes, layoutedElements.edges, setNodes, setEdges]);
 
+  // Track if this is the initial load to only fitView once
+  const hasInitiallyFittedRef = useRef(false);
+
   useEffect(() => {
-    if (nodes.length > 0) {
-      const timeoutId = setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 150);
+    if (nodes.length > 0 && !hasInitiallyFittedRef.current) {
+      // Only auto-fit on initial load
+      const timeoutId = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 500 });
+        hasInitiallyFittedRef.current = true;
+      }, 150);
       return () => clearTimeout(timeoutId);
     }
-  }, [nodes.length, fitView, isTraceModeActive]);
+  }, [nodes.length, fitView]);
   
   // --- Effect for handling window resize ---
   useEffect(() => {
@@ -197,54 +206,71 @@ function DataLineageVisualizer() {
   // --- Effect to store trace results when in trace mode ---
   useEffect(() => {
     if (isTraceModeActive && traceConfig) {
+      // Reset trace exit mode when entering trace mode
+      setIsInTraceExitMode(false);
       const tracedIds = performInteractiveTrace(traceConfig);
-      previousTraceResultsRef.current = tracedIds;
+      setTraceExitNodes(tracedIds);
     }
   }, [isTraceModeActive, traceConfig, performInteractiveTrace]);
 
   // --- Effect to preserve selection when exiting trace mode ---
   useEffect(() => {
-    if (!isTraceModeActive && previousTraceResultsRef.current.size > 0) {
+    if (!isTraceModeActive && traceExitNodes.size > 0 && !isInTraceExitMode) {
       // Apply the stored trace results as highlighted nodes in detail mode
-      setHighlightedNodes(previousTraceResultsRef.current);
-      // Clear focused node since we're showing multiple nodes
-      setFocusedNodeId(null);
-      // Clear the stored results after applying
-      // previousTraceResultsRef.current = new Set(); // Keep it so users can toggle back and forth
+      // This shows the traced objects at the same depth level as in trace mode
+      setHighlightedNodes(traceExitNodes);
+      // Mark that we're in trace exit mode (showing trace results in detail view)
+      setIsInTraceExitMode(true);
     }
-  }, [isTraceModeActive, setHighlightedNodes]);
+  }, [isTraceModeActive, setHighlightedNodes, isInTraceExitMode, traceExitNodes]);
 
   // --- Event Handlers ---
   const handleNodeClick = (_: React.MouseEvent, node: ReactFlowNode) => {
-    if (viewMode === 'schema' || isTraceModeActive) return;
-  
+    // In schema view, do nothing
+    if (viewMode === 'schema') return;
+
+    // Exit trace exit mode if we're clicking a node
+    if (isInTraceExitMode) {
+      setIsInTraceExitMode(false);
+      setTraceExitNodes(new Set());
+    }
+
+    // Update SQL viewer if it's open (only in detail view, not in trace mode)
+    if (sqlViewerOpen && !isTraceModeActive) {
+      const originalNode = allData.find(d => d.id === node.id);
+      if (originalNode) {
+        setSelectedNodeForSql({
+          id: originalNode.id,
+          name: originalNode.name,
+          schema: originalNode.schema,
+          objectType: originalNode.object_type,
+          ddlText: originalNode.ddl_text || null
+        });
+      }
+    }
+
+    // Simple toggle logic: click to highlight (yellow), click again to unhighlight
     if (focusedNodeId === node.id) {
-      // If the already-focused node is clicked again, clear the focus.
+      // Clicking the same node again - unhighlight it
       setFocusedNodeId(null);
       setHighlightedNodes(new Set());
     } else {
-      // Focus on the new node and highlight its immediate neighborhood.
+      // Clicking a different node - highlight it in yellow
+      // All other nodes remain visible (no dimming)
       setFocusedNodeId(node.id);
-      const nodesToHighlight = new Set<string>([node.id]);
-      if (lineageGraph.hasNode(node.id)) {
-        // Use `neighbors` to get both incoming and outgoing connections (level 1 parents and children)
-        const neighbors = lineageGraph.neighbors(node.id);
-        neighbors.forEach(neighborId => {
-          nodesToHighlight.add(neighborId);
-        });
-      }
-      setHighlightedNodes(nodesToHighlight);
+      setHighlightedNodes(new Set([node.id]));
     }
   };
   
   const handleDataImport = (newData: DataNode[]) => {
     const processedData = newData.map(node => ({ ...node, schema: node.schema.toUpperCase() }));
     setAllData(processedData);
-    
+
     // Reset view state for a clean slate after import
     setFocusedNodeId(null);
     setHighlightedNodes(new Set());
     setSearchTerm('');
+    hasInitiallyFittedRef.current = false; // Allow fitView on new data
 
     addNotification('Data imported successfully! The view has been refreshed.', 'info');
     setIsImportModalOpen(false);
@@ -278,9 +304,14 @@ function DataLineageVisualizer() {
   };
 
   const handlePaneClick = () => {
-    if (!isTraceModeActive) {
-      setHighlightedNodes(new Set());
-      setFocusedNodeId(null);
+    // Clear highlights and focused node when clicking outside
+    setHighlightedNodes(new Set());
+    setFocusedNodeId(null);
+
+    // If in trace exit mode, clear the trace results and exit that mode
+    if (isInTraceExitMode) {
+      setTraceExitNodes(new Set());
+      setIsInTraceExitMode(false);
     }
   };
 
@@ -293,7 +324,8 @@ function DataLineageVisualizer() {
     setSearchTerm('');
     setHideUnrelated(false);
     setViewMode('detail');
-    previousTraceResultsRef.current = new Set();
+    setTraceExitNodes(new Set());
+    setIsInTraceExitMode(false);
 
     // Also close SQL viewer and clear selection
     setSqlViewerOpen(false);
@@ -304,6 +336,20 @@ function DataLineageVisualizer() {
 
     addNotification('View reset to default.', 'info');
   };
+
+  // Wrapper for trace apply that adds auto-fit and highlight
+  const handleApplyTraceWithFit = useCallback((config: Parameters<typeof handleApplyTrace>[0]) => {
+    // Call original handler
+    handleApplyTrace(config);
+
+    // Highlight the start node
+    setHighlightedNodes(new Set([config.startNodeId]));
+
+    // Auto-fit view after a short delay (to let layout calculate)
+    setTimeout(() => {
+      fitView({ padding: 0.2, duration: 800 });
+    }, 200);
+  }, [handleApplyTrace, fitView]);
 
   // --- SQL Viewer Toggle Handler ---
   const handleToggleSqlViewer = () => {
@@ -534,7 +580,7 @@ function DataLineageVisualizer() {
         <InteractiveTracePanel
           isOpen={isTraceModeActive}
           onClose={handleExitTraceMode}
-          onApply={handleApplyTrace}
+          onApply={handleApplyTraceWithFit}
           availableSchemas={schemas}
           inheritedSchemaFilter={selectedSchemas}
           availableTypes={dataModelTypes}

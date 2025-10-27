@@ -23,21 +23,9 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
     const isHorizontal = data.layoutDir === 'LR';
     const schemaColor = data.schemaColor || '#7f7f7f';
 
-    // SQL Viewer click handler
-    const handleClick = () => {
-        if (data.sqlViewerOpen && data.onNodeClick) {
-            data.onNodeClick({
-                id: data.id,
-                name: data.name,
-                schema: data.schema,
-                objectType: data.object_type,
-                ddlText: data.ddl_text || null
-            });
-        }
-    };
-
-    // Check if node is clickable for SQL viewer
-    const isClickableForSql = data.sqlViewerOpen && data.onNodeClick;
+    // All click handling is done by ReactFlow's onNodeClick in App.tsx
+    // This component just handles visual styling
+    const isClickableForSql = data.sqlViewerOpen;
 
     const nodeClasses = `
         w-48 h-12 flex items-center justify-center text-sm font-bold
@@ -61,7 +49,7 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
     }
 
     return (
-        <div className={nodeClasses} title={nodeTitle} style={nodeStyle} onClick={handleClick}>
+        <div className={nodeClasses} title={nodeTitle} style={nodeStyle}>
             <Handle type="target" position={isHorizontal ? Position.Left : Position.Top} className="!bg-gray-500" />
             <div className="truncate px-2">{data.name}</div>
             <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} className="!bg-gray-500" />
