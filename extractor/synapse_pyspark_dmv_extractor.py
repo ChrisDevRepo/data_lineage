@@ -113,58 +113,23 @@ QUERY_LOGS = """
 # ============================================================================
 
 def extract_to_parquet(utils, query, output_filename, description):
-    """
-    Extract data from DWH using shared_utils and save as single Parquet file.
-
-    Args:
-        utils: ProcessSparkBase instance
-        query: SQL query string
-        output_filename: Output file name (e.g., "objects.parquet")
-        description: Human-readable description for logging
-    """
+    """Extract data from DWH and save as single Parquet file."""
     print(f"\n{'='*60}")
     print(f"Extracting {description}...")
     print(f"{'='*60}")
 
     try:
-        # Read from DWH using shared_utils
         df = utils.read_dwh(query)
-
-        # Get row count for logging
         row_count = df.count()
-        print(f"✅ Query executed successfully: {row_count:,} rows retrieved")
+        print(f"✅ Query executed: {row_count:,} rows")
 
-        # Convert to pandas for single-file write (DMV data is small)
-        print(f"Converting to pandas for single-file output...")
-        pdf = df.toPandas()
+        output_path = f"{OUTPUT_PATH}{output_filename}"
+        df.coalesce(1).write.mode("overwrite").parquet(output_path)
 
-        # Save to temp file
-        temp_path = f"/tmp/{output_filename}"
-        print(f"Writing to temporary file: {temp_path}")
-        pdf.to_parquet(temp_path, index=False, engine='pyarrow', compression='snappy')
-
-        # Upload to ADLS
-        output_full_path = f"{OUTPUT_PATH}{output_filename}"
-        print(f"Uploading to ADLS: {output_full_path}")
-
-        from pyspark.sql import SparkSession
-        spark = SparkSession.builder.getOrCreate()
-
-        # Use mssparkutils for file operations (Synapse-specific)
-        from notebookutils import mssparkutils
-        mssparkutils.fs.cp(f"file://{temp_path}", output_full_path, True)
-
-        # Clean up temp file
-        import os
-        os.remove(temp_path)
-
-        print(f"✅ {description.capitalize()} saved successfully!")
-        print(f"   Location: {output_full_path}")
-        print(f"   Rows: {row_count:,}")
-        print(f"   Size: ~{len(pdf):,} bytes (uncompressed)")
+        print(f"✅ Saved to: {output_path}")
 
     except Exception as e:
-        print(f"❌ Error extracting {description}: {str(e)}")
+        print(f"❌ Error: {str(e)}")
         raise
 
 # ============================================================================
@@ -173,102 +138,40 @@ def extract_to_parquet(utils, query, output_filename, description):
 
 def main():
     """Main extraction process"""
-
-    print("\n" + "="*80)
-    print("  SYNAPSE PYSPARK DMV EXTRACTOR - v3.0")
-    print("="*80)
-    print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"\nConfiguration:")
-    print(f"  Server: {SERVER}")
-    print(f"  Database: {DATABASE}")
-    print(f"  Temp Folder: {TEMP_FOLDER}")
-    print(f"  Output Path: {OUTPUT_PATH}")
-    print(f"  Skip Query Logs: {SKIP_QUERY_LOGS}")
-    print("="*80)
+    print(f"\n{'='*80}")
+    print("SYNAPSE PYSPARK DMV EXTRACTOR - v3.0")
+    print(f"Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"Server: {SERVER} | Database: {DATABASE}")
+    print(f"Output: {OUTPUT_PATH}")
+    print(f"{'='*80}")
 
     try:
-        # Initialize ProcessSparkBase
-        print("\n📦 Initializing ProcessSparkBase...")
-        utils = ProcessSparkBase(
-            SERVER=SERVER,
-            DATABASE=DATABASE,
-            TEMP_FOLDER=TEMP_FOLDER
-        )
-        print("✅ ProcessSparkBase initialized successfully")
+        utils = ProcessSparkBase(SERVER=SERVER, DATABASE=DATABASE, TEMP_FOLDER=TEMP_FOLDER)
+        print("✅ Connected to DWH")
 
-        # Extract objects (Tables, Views, Stored Procedures)
-        extract_to_parquet(
-            utils,
-            QUERY_OBJECTS,
-            "objects.parquet",
-            "objects (tables, views, stored procedures)"
-        )
+        extract_to_parquet(utils, QUERY_OBJECTS, "objects.parquet", "objects")
+        extract_to_parquet(utils, QUERY_DEPENDENCIES, "dependencies.parquet", "dependencies")
+        extract_to_parquet(utils, QUERY_DEFINITIONS, "definitions.parquet", "definitions")
 
-        # Extract dependencies (DMV relationships)
-        extract_to_parquet(
-            utils,
-            QUERY_DEPENDENCIES,
-            "dependencies.parquet",
-            "dependencies (DMV relationships)"
-        )
-
-        # Extract definitions (DDL text)
-        extract_to_parquet(
-            utils,
-            QUERY_DEFINITIONS,
-            "definitions.parquet",
-            "definitions (DDL text)"
-        )
-
-        # Extract query logs (optional)
         if not SKIP_QUERY_LOGS:
             try:
-                extract_to_parquet(
-                    utils,
-                    QUERY_LOGS,
-                    "query_logs.parquet",
-                    "query logs (execution history)"
-                )
+                extract_to_parquet(utils, QUERY_LOGS, "query_logs.parquet", "query logs")
             except Exception as e:
-                print(f"\n⚠️  Warning: Query log extraction failed: {str(e)}")
-                print("    This is optional - continuing without query logs")
-        else:
-            print("\n⏭️  Skipping query logs (SKIP_QUERY_LOGS = True)")
+                print(f"⚠️  Query logs skipped: {str(e)}")
 
-        # Summary
-        print("\n" + "="*80)
-        print("  ✅ EXTRACTION COMPLETE!")
-        print("="*80)
-        print(f"Completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"\nOutput files saved to:")
-        print(f"  {OUTPUT_PATH}")
-        print(f"\nFiles generated:")
-        print(f"  1. objects.parquet       - Tables, Views, Stored Procedures")
-        print(f"  2. dependencies.parquet  - DMV relationships")
-        print(f"  3. definitions.parquet   - DDL text")
-        if not SKIP_QUERY_LOGS:
-            print(f"  4. query_logs.parquet    - Query execution history")
-        print("\n📥 Download these files from ADLS to your local machine")
-        print("📤 Then upload to the web application for lineage analysis")
-        print("="*80 + "\n")
-
+        print(f"\n{'='*80}")
+        print("✅ EXTRACTION COMPLETE")
+        print(f"Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Location: {OUTPUT_PATH}")
+        print(f"{'='*80}\n")
         return 0
 
     except Exception as e:
-        print("\n" + "="*80)
-        print("  ❌ EXTRACTION FAILED!")
-        print("="*80)
-        print(f"Error: {str(e)}")
-        print("\nPlease check:")
-        print("  1. SERVER and DATABASE configuration are correct")
-        print("  2. Spark pool has access to SQL pool")
-        print("  3. TEMP_FOLDER and OUTPUT_PATH exist and are writable")
-        print("  4. shared_utils.process_spark_base wheel is installed")
-        print("="*80 + "\n")
-
+        print(f"\n{'='*80}")
+        print(f"❌ EXTRACTION FAILED: {str(e)}")
+        print(f"{'='*80}\n")
         import traceback
         traceback.print_exc()
-
         return 1
 
 if __name__ == "__main__":
