@@ -31,7 +31,7 @@ The system is a file-based batch processor. Its boundary is defined by Parquet f
 [External] --> Helper Extractor --> (Input Interface)
                                         |
 +---------------------------------------+
-|         VIBECODING PARSER SYSTEM      |
+|         PARSER SYSTEM      |
 |                                       |
 |  1. Core Engine (DuckDB)              |
 |     - Ingests Parquet snapshots       |
