@@ -599,7 +599,7 @@ function DataLineageVisualizer() {
             notificationHistory={notificationHistory}
             onClearNotificationHistory={clearNotificationHistory}
           />
-          <div className="relative flex-grow rounded-b-lg flex">
+          <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
             <div className={`relative ${!isResizing ? 'transition-all duration-300' : ''}`} style={{ width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%' }}>
               {isTraceModeActive && (
@@ -640,7 +640,7 @@ function DataLineageVisualizer() {
                   style={{ userSelect: 'none' }}
                 />
                 {/* SQL Viewer Panel */}
-                <div style={{ width: `${sqlViewerWidth}%` }} className="border-l border-gray-300">
+                <div style={{ width: `${sqlViewerWidth}%`, height: '100%' }} className="border-l border-gray-300">
                   <SqlViewer
                     isOpen={sqlViewerOpen}
                     selectedNode={selectedNodeForSql}

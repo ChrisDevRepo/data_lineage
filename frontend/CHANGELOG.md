@@ -4,6 +4,36 @@ All notable changes to the frontend application will be documented in this file.
 
 ---
 
+## [2.4.3] - 2025-10-27
+
+### 🐛 Critical Fix: SQL Viewer Scrollbar Functionality
+
+#### **Fixed Scrollbar Not Appearing**
+- **Issue:** SQL viewer scrollbar was not visible and mouse wheel scrolling was not working
+- **Root Cause:** Multiple issues:
+  1. Parent flex container missing `overflow: hidden` constraint
+  2. Prism.js CSS theme overriding scrollbar styles
+  3. React/DOM conflict with `dangerouslySetInnerHTML`
+  4. Scrollbar colors too dark to be visible
+- **Fix:**
+  - **App.tsx:** Added `overflow-hidden` to flex container (critical fix!)
+  - **SqlViewer.tsx:** Changed `overflowY: 'auto'` to `overflowY: 'scroll'` (always visible)
+  - **SqlViewer.tsx:** Bright blue scrollbar (#007acc) - highly visible
+  - **SqlViewer.tsx:** Increased scrollbar width to 16px
+  - **SqlViewer.tsx:** Override Prism.js CSS with `!important` rules
+  - **SqlViewer.tsx:** Removed `dangerouslySetInnerHTML` to prevent React conflicts
+  - **SqlViewer.tsx:** Set `white-space: pre` to preserve SQL formatting
+- **Result:**
+  - ✅ Vertical scrollbar always visible (bright blue)
+  - ✅ Mouse wheel scrolling works properly
+  - ✅ Scrollbar persists when switching between objects
+  - ✅ Cross-browser support (Chrome, Firefox, Safari, Edge)
+- **Files Changed:**
+  - `App.tsx` - Added overflow constraint to flex container
+  - `components/SqlViewer.tsx` - Complete scrollbar overhaul
+
+---
+
 ## [2.4.2] - 2025-10-27
 
 ### 🎨 SQL Viewer Scrollbar Enhancement

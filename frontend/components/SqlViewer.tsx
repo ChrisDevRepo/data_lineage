@@ -193,7 +193,8 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
         className="sql-viewer-content"
         style={{
           flex: 1,
-          overflow: 'auto',
+          overflowY: 'scroll',  // ALWAYS show vertical scrollbar
+          overflowX: 'auto',     // Show horizontal only when needed
           padding: '1rem',
           background: '#1e1e1e',
           minHeight: 0 // Ensure flex child can scroll
@@ -328,6 +329,7 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
           </div>
         ) : (
           // SQL content with syntax highlighting
+          // Content is set via innerHTML in the useEffect to avoid React re-render conflicts
           <pre
             ref={codeRef}
             className="language-sql"
@@ -340,18 +342,22 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
               padding: 0,
               border: 'none'
             }}
-          >
-            <code
-              className="language-sql"
-              dangerouslySetInnerHTML={{ __html: highlightedDdl }}
-            />
-          </pre>
+          />
         )}
       </div>
 
       {/* Inline styles for search highlighting */}
       <style>
         {`
+          /* Override Prism.js default styles that break scrolling */
+          .sql-viewer-content pre[class*="language-"] {
+            white-space: pre !important;
+            overflow: visible !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+          }
+
           .search-highlight {
             background-color: #ffd700;
             color: #000000;
@@ -360,40 +366,40 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
             font-weight: bold;
           }
 
-          /* Custom scrollbar for dark theme - More visible */
+          /* Custom scrollbar - HIGHLY VISIBLE */
           /* Firefox support */
           .sql-viewer-content {
-            scrollbar-width: thin;
-            scrollbar-color: #5a5a5a #252526;
+            scrollbar-width: auto;
+            scrollbar-color: #007acc #1e1e1e;
           }
 
           /* Webkit browsers (Chrome, Safari, Edge) */
           .sql-viewer-content::-webkit-scrollbar {
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
           }
 
           .sql-viewer-content::-webkit-scrollbar-track {
-            background: #252526;
-            border-left: 1px solid #3e3e42;
+            background: #1e1e1e;
+            border-left: 2px solid #3e3e42;
           }
 
           .sql-viewer-content::-webkit-scrollbar-thumb {
-            background: #5a5a5a;
-            border: 2px solid #252526;
-            border-radius: 8px;
+            background: #007acc;
+            border: 3px solid #1e1e1e;
+            border-radius: 10px;
           }
 
           .sql-viewer-content::-webkit-scrollbar-thumb:hover {
-            background: #6e6e6e;
+            background: #1a8cd8;
           }
 
           .sql-viewer-content::-webkit-scrollbar-thumb:active {
-            background: #808080;
+            background: #2ea3f0;
           }
 
           .sql-viewer-content::-webkit-scrollbar-corner {
-            background: #252526;
+            background: #1e1e1e;
           }
 
           @keyframes spin {

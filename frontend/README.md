@@ -10,12 +10,20 @@
 
 ## 🚀 Current Status
 
-**Version:** 2.5.0 (Incremental Parsing & Data Management)
+**Version:** 2.5.1 (SQL Viewer Scrollbar Fix)
 **v3.0 Status:** Core features complete - Docker containerization pending
 
-### ✨ Latest Updates (v2.5.0 - 2025-10-27)
+### ✨ Latest Updates (v2.5.1 - 2025-10-27)
 
-**New Features:**
+**Bug Fixes:**
+- 🐛 **SQL Viewer Scrollbar Fix** - Fixed critical issue where scrollbar was not visible and mouse wheel scrolling didn't work
+  - Bright blue scrollbar (16px wide) now always visible
+  - Mouse wheel scrolling works properly
+  - Fixed flex container overflow constraints
+  - Overrode Prism.js CSS conflicts
+  - Cross-browser support (Chrome, Firefox, Safari, Edge)
+
+**Previous Updates (v2.5.0):**
 - ✅ **Incremental Parsing** - Smart checkbox in Import modal (ON by default) - only re-parse changed objects
 - ✅ **Clear All Data** - Wipe button to delete all workspaces and persistent data
 - ✅ **Last Upload Timestamp** - Display when data was last uploaded with metadata
