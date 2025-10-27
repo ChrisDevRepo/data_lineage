@@ -18,6 +18,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `WebFetch` - Fetch and analyze web content
 - `WebSearch` - Search the web for current information
 
+## Git Workflow
+
+**Current Branch:** `feature/v3-implementation`
+
+**IMPORTANT:** All v3.0 development work stays in the `feature/v3-implementation` branch until approved for merge.
+
+**Git Guidelines:**
+- ✅ Commit frequently to `feature/v3-implementation`
+- ✅ Push to remote: `git push origin feature/v3-implementation`
+- ❌ **DO NOT** pull with rebase
+- ❌ **DO NOT** merge from other branches
+- ❌ **DO NOT** merge to main/master
+- 📋 Branch will be merged to main only after full v3.0 approval
+
 ## Overview
 
 This repository contains:
