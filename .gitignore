@@ -40,3 +40,6 @@ lineage_output/*.json
 # Testing results (query log validation)
 testing/query_log_validation/results/*.json
 testing/query_log_validation/results/*.md
+# API persistent data
+api/data/
+data/

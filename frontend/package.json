@@ -17,10 +17,10 @@
     "clean": "rm -rf dist deploy.zip node_modules/.vite"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "dagre": "0.8.5",
     "graphology": "0.25.4",
     "graphology-traversal": "0.3.1",
-    "prismjs": "^1.30.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "reactflow": "^11.11.4"

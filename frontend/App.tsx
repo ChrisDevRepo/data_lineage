@@ -18,7 +18,7 @@ import { ImportDataModal } from './components/ImportDataModal';
 import { InfoModal } from './components/InfoModal';
 import { InteractiveTracePanel } from './components/InteractiveTracePanel';
 import { NotificationContainer, NotificationHistory } from './components/NotificationSystem';
-import { SqlViewer } from './components/SqlViewer';
+import { SqlViewer } from './components/SQLViewer';
 import { useGraphology } from './hooks/useGraphology';
 import { useNotifications } from './hooks/useNotifications';
 import { useInteractiveTrace } from './hooks/useInteractiveTrace';
@@ -89,6 +89,7 @@ function DataLineageVisualizer() {
   // Store previous trace results for when we exit trace mode (as state for reactivity)
   const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
   const [isInTraceExitMode, setIsInTraceExitMode] = useState(false);
+  const [isTraceLocked, setIsTraceLocked] = useState(false);
 
   const {
     finalVisibleData,
@@ -258,6 +259,8 @@ function DataLineageVisualizer() {
       setHighlightedNodes(traceExitNodes);
       // Mark that we're in trace exit mode (showing trace results in detail view)
       setIsInTraceExitMode(true);
+      // Automatically lock the trace results
+      setIsTraceLocked(true);
     }
   }, [isTraceModeActive, setHighlightedNodes, isInTraceExitMode, traceExitNodes]);
 
@@ -266,8 +269,12 @@ function DataLineageVisualizer() {
     // In schema view, do nothing
     if (viewMode === 'schema') return;
 
-    // Exit trace exit mode if we're clicking a node
-    if (isInTraceExitMode) {
+    // If locked, don't exit trace mode - just allow node interactions
+    if (isTraceLocked) {
+      // Allow highlighting within the locked subset, but don't clear the trace
+      // Just update the focused node for SQL viewer, etc.
+    } else if (isInTraceExitMode) {
+      // Exit trace exit mode if we're clicking a node and not locked
       setIsInTraceExitMode(false);
       setTraceExitNodes(new Set());
     }
@@ -299,7 +306,7 @@ function DataLineageVisualizer() {
       setFocusedNodeId(node.id);
       setHighlightedNodes(new Set([node.id]));
     }
-  }, [viewMode, isInTraceExitMode, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
+  }, [viewMode, isInTraceExitMode, isTraceLocked, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
   
   const handleDataImport = (newData: DataNode[]) => {
     const processedData = newData.map(node => ({ ...node, schema: node.schema.toUpperCase() }));
@@ -347,6 +354,11 @@ function DataLineageVisualizer() {
   };
 
   const handlePaneClick = () => {
+    // If locked, don't clear anything - just return
+    if (isTraceLocked) {
+      return;
+    }
+
     // Clear highlights and focused node when clicking outside
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
@@ -369,6 +381,7 @@ function DataLineageVisualizer() {
     setViewMode('detail');
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
+    setIsTraceLocked(false);
 
     // Also close SQL viewer and clear selection
     setSqlViewerOpen(false);
@@ -393,6 +406,22 @@ function DataLineageVisualizer() {
       fitView({ padding: 0.2, duration: 800 });
     }, 200);
   }, [handleApplyTrace, fitView]);
+
+  // --- Lock Toggle Handler ---
+  const handleToggleLock = () => {
+    setIsTraceLocked(prev => {
+      const newState = !prev;
+      if (newState) {
+        addNotification('Trace locked - node subset preserved', 'info');
+      } else {
+        // When unlocking, clear the trace
+        setIsInTraceExitMode(false);
+        setTraceExitNodes(new Set());
+        addNotification('Trace unlocked - full view restored', 'info');
+      }
+      return newState;
+    });
+  };
 
   // --- SQL Viewer Toggle Handler ---
   const handleToggleSqlViewer = () => {
@@ -598,6 +627,9 @@ function DataLineageVisualizer() {
             hasDdlData={hasDdlData}
             notificationHistory={notificationHistory}
             onClearNotificationHistory={clearNotificationHistory}
+            isTraceLocked={isTraceLocked}
+            isInTraceExitMode={isInTraceExitMode}
+            onToggleLock={handleToggleLock}
           />
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}

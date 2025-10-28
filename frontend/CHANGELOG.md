@@ -4,6 +4,117 @@ All notable changes to the frontend application will be documented in this file.
 
 ---
 
+## [2.7.0] - 2025-10-28
+
+### 🚀 Monaco Editor Integration - Professional Code Viewing
+
+#### **Replaced Prism.js with Monaco Editor**
+- **Feature:** Integrated Monaco Editor (VS Code's editor) for professional SQL viewing experience
+- **Package:** `@monaco-editor/react` (v4.7.0)
+- **Removed:** `prismjs` package (replaced with Monaco's built-in syntax highlighting)
+
+#### **Enhanced Search Functionality**
+- **Built-in Search Dialog:**
+  - Press `Ctrl+F` (or `Cmd+F` on Mac) to open search
+  - Next/Previous navigation buttons (↑↓)
+  - Match counter: "3 of 15 results"
+  - Case sensitive toggle
+  - Whole word matching
+  - Regex search support
+- **Keyboard Shortcuts:**
+  - `Ctrl+F` / `Cmd+F`: Open search
+  - `F3`: Jump to next match
+  - `Shift+F3`: Jump to previous match
+  - `Esc`: Close search dialog
+- **Overview Ruler:**
+  - Yellow markers on scrollbar show all match positions
+  - Click markers to jump directly to matches
+  - Similar to Notepad++ search overview
+
+#### **Performance Improvements**
+- **Optimized for Large Files:** Virtual scrolling for 10K+ line SQL files
+- **No Auto-Search Lag:** Search only triggers on button click or Enter (not on every keystroke)
+- **Syntax Highlighting:** Built-in SQL syntax highlighting via Monaco's language support
+
+#### **UI Changes**
+- **Removed:** Manual search input box in header
+- **Added:** "Press Ctrl+F to search" hint when SQL is loaded
+- **Disabled:** Minimap (code overview on right side) for cleaner view
+- **Kept:** Line numbers, word wrap, scrollbar with overview ruler
+
+#### **Files Changed**
+- `components/SQLViewer.tsx` - Complete rewrite with Monaco Editor
+- `package.json` - Added `@monaco-editor/react`, removed `prismjs`
+- `App.tsx` - Fixed import casing (`SqlViewer` → `SQLViewer`)
+
+#### **Technical Details**
+- **Read-only Mode:** SQL code is view-only (no editing)
+- **Theme:** VS Dark theme matching application style
+- **Font:** 14px monospace with 1.6 line height
+- **Scrollbar:** 16px width with visible blue thumb
+
+#### **Benefits**
+- ✅ **Faster Search:** No lag on large SQL files
+- ✅ **Better Navigation:** Next/prev buttons + keyboard shortcuts
+- ✅ **Visual Overview:** See all matches at a glance on scrollbar
+- ✅ **Professional UX:** Same editor as VS Code
+- ✅ **Future-Ready:** Monaco supports advanced features (folding, IntelliSense) if needed
+
+---
+
+## [2.6.0] - 2025-10-28
+
+### 🔒 Trace Lock Feature & Exclusion Pattern Fixes
+
+#### **New: Trace Lock Button**
+- **Feature:** Lock button to preserve traced node subset after exiting interactive trace mode
+- **Behavior:**
+  - Automatically locks when exiting trace mode (clicking X on Interactive Trace panel)
+  - Lock button appears in toolbar (only when in trace exit mode)
+  - **Visual States:**
+    - 🔒 **Locked** (Yellow/Gold button): Trace subset preserved
+    - 🔓 **Unlocked** (Gray button): Ready to lock
+- **When Locked:**
+  - ✅ Clicking outside nodes does NOT reset view
+  - ✅ Double-clicking nodes does NOT reset view
+  - ✅ Traced node subset is preserved
+  - ✅ You can still:
+    - Filter by schemas within locked subset
+    - Filter by data model types within locked subset
+    - Highlight individual nodes (click nodes)
+    - View SQL definitions
+    - Use "Hide Unrelated" filter
+    - Search within locked subset
+- **When Unlocked:**
+  - Traced subset is cleared
+  - Returns to full view with all filters
+  - Lock button disappears
+- **Reset View:** Clears lock and returns to default view
+- **Benefit:** Users can preserve trace results and explore within that subset without accidental resets
+- **Files Changed:**
+  - `App.tsx` - Added lock state, handlers, and integration
+  - `components/Toolbar.tsx` - Added lock button UI
+  - `hooks/useDataFiltering.ts` - Updated filtering logic to support locked subsets
+  - `types.ts` - No changes (used existing state)
+
+#### **Fixed: Exclusion Patterns Now Work Correctly**
+- **Issue:** Exclusion patterns in Interactive Trace were not hiding matching nodes
+- **Root Cause:** Code was adding excluded nodes to visible set (only prevented traversal beyond them)
+- **Fix:** `hooks/useInteractiveTrace.ts` - Now properly excludes matching nodes with early return
+- **Result:** Nodes matching patterns like `*_TMP`, `*_BAK` are now completely hidden from trace
+- **Files Changed:**
+  - `hooks/useInteractiveTrace.ts` - Fixed exclusion logic (line 43-49)
+
+#### **Changed: Default Exclusion Patterns**
+- **Old Defaults:** `_TEMP_*;STG_*`
+- **New Defaults:** `*_TMP;*_BAK`
+- **Rationale:** More common naming conventions for temporary and backup objects
+- **Behavior:** Fully editable by user in Interactive Trace panel
+- **Files Changed:**
+  - `components/InteractiveTracePanel.tsx` - Updated default and placeholder text
+
+---
+
 ## [2.4.3] - 2025-10-27
 
 ### 🐛 Critical Fix: SQL Viewer Scrollbar Functionality

@@ -35,6 +35,9 @@ type ToolbarProps = {
     hasDdlData: boolean;
     notificationHistory: Notification[];
     onClearNotificationHistory: () => void;
+    isTraceLocked: boolean;
+    isInTraceExitMode: boolean;
+    onToggleLock: () => void;
 };
 
 export const Toolbar = (props: ToolbarProps) => {
@@ -47,7 +50,8 @@ export const Toolbar = (props: ToolbarProps) => {
         isTraceModeActive, onStartTrace, isControlsVisible,
         onToggleControls, onOpenImport, onOpenInfo, onExportSVG, onResetView,
         sqlViewerOpen, onToggleSqlViewer, sqlViewerEnabled, hasDdlData,
-        notificationHistory, onClearNotificationHistory
+        notificationHistory, onClearNotificationHistory,
+        isTraceLocked, isInTraceExitMode, onToggleLock
     } = props;
     
     const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
@@ -175,6 +179,27 @@ export const Toolbar = (props: ToolbarProps) => {
                     </svg>
                     {sqlViewerOpen ? 'Close SQL' : 'View SQL'}
                 </button>
+                {isInTraceExitMode && (
+                    <button
+                        onClick={onToggleLock}
+                        className={`h-10 w-10 flex items-center justify-center rounded-lg transition-colors ${
+                            isTraceLocked
+                                ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                        }`}
+                        title={isTraceLocked ? "Unlock - Allow full view" : "Lock - Preserve traced subset"}
+                    >
+                        {isTraceLocked ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                        )}
+                    </button>
+                )}
                 <button onClick={onResetView} disabled={isTraceModeActive} className="h-10 w-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" title="Reset View to Default">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-800">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />

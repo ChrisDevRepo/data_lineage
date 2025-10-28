@@ -23,7 +23,7 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
     const [isDownstreamAll, setIsDownstreamAll] = useState(false);
     const [includedSchemas, setIncludedSchemas] = useState(new Set(availableSchemas));
     const [includedTypes, setIncludedTypes] = useState(new Set(availableTypes));
-    const [exclusions, setExclusions] = useState("_TEMP_*;STG_*");
+    const [exclusions, setExclusions] = useState("*_TMP;*_BAK");
 
     // Inherit schema and type filters from detail mode when opening trace mode
     useEffect(() => {
@@ -77,7 +77,7 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
         setIsDownstreamAll(false);
         setIncludedSchemas(new Set(availableSchemas));
         setIncludedTypes(new Set(availableTypes));
-        setExclusions("_TEMP_*;STG_*");
+        setExclusions("*_TMP;*_BAK");
     };
 
     return (
@@ -136,7 +136,7 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
                     </div>
                     <div>
                         <label htmlFor="exclusions-input" className="font-semibold block mb-1">5. Exclusion Patterns</label>
-                        <input type="text" id="exclusions-input" value={exclusions} onChange={e => setExclusions(e.target.value)} className="w-full p-2 border rounded-md font-mono text-xs" placeholder="e.g. _TEMP_*;STG_*" />
+                        <input type="text" id="exclusions-input" value={exclusions} onChange={e => setExclusions(e.target.value)} className="w-full p-2 border rounded-md font-mono text-xs" placeholder="e.g. *_TMP;*_BAK" />
                         <p className="text-xs text-gray-500 mt-1">Separate patterns with a semicolon (;).</p>
                     </div>
                 </main>

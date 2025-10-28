@@ -40,15 +40,13 @@ export function useInteractiveTrace(
                     // Filter by data model type if the node has one
                     if (neighborNode.data_model_type && !config.includedTypes.has(neighborNode.data_model_type)) return;
 
+                    // Check if node matches any exclusion pattern
                     const isExcluded = exclusionRegexes.some(regex => regex.test(neighborNode.name));
+                    if (isExcluded) return;
 
-                    // Always add the neighbor to the visible set, even if excluded, to draw the edge to it.
-                    // But do not traverse further from an excluded node.
+                    // Add the neighbor to the visible set and continue traversing
                     visibleIds.add(neighborId);
-
-                    if (!isExcluded) {
-                        queue.push({ id: neighborId, level: level + 1 });
-                    }
+                    queue.push({ id: neighborId, level: level + 1 });
                 });
             }
         };

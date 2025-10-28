@@ -93,8 +93,13 @@ export function useDataFiltering({
         }
 
         // If in trace exit mode, show only the traced nodes (preserve trace results)
+        // but still allow filtering by schemas and types within this subset
         if (isInTraceExitMode && traceExitNodes.size > 0) {
-            return preFilteredData.filter(node => traceExitNodes.has(node.id));
+            return preFilteredData.filter(node =>
+                traceExitNodes.has(node.id) &&
+                selectedSchemas.has(node.schema) &&
+                (dataModelTypes.length === 0 || !node.data_model_type || selectedTypes.has(node.data_model_type))
+            );
         }
 
         // Default behavior: filter by selected schemas and types.
@@ -112,7 +117,7 @@ export function useDataFiltering({
         });
 
         return baseVisibleNodes;
-    }, [preFilteredData, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes]);
+    }, [preFilteredData, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, allData]);
 
     return {
         finalVisibleData,

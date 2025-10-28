@@ -10,12 +10,37 @@
 
 ## 🚀 Current Status
 
-**Version:** 2.5.1 (SQL Viewer Scrollbar Fix)
+**Version:** 2.7.0 (Monaco Editor Integration - Professional Code Viewing)
 **v3.0 Status:** Core features complete - Docker containerization pending
 
-### ✨ Latest Updates (v2.5.1 - 2025-10-27)
+### ✨ Latest Updates (v2.7.0 - 2025-10-28)
 
-**Bug Fixes:**
+**Major Upgrade:**
+- 🚀 **Monaco Editor Integration** - Replaced Prism.js with VS Code's Monaco Editor
+  - Professional SQL code viewing experience
+  - Built-in search dialog with next/previous navigation
+  - Match counter ("3 of 15 results")
+  - Overview ruler with yellow markers on scrollbar (Notepad++ style)
+  - Keyboard shortcuts: `Ctrl+F` to search, `F3` next, `Shift+F3` previous
+  - Optimized for large SQL files (10K+ lines) with virtual scrolling
+  - Case sensitive, whole word, and regex search support
+  - No auto-search lag (triggers on Enter/button, not every keystroke)
+
+### ✨ Previous Updates (v2.6.0 - 2025-10-28)
+
+**New Features:**
+- 🔒 **Trace Lock Button** - Preserve traced node subset after exiting trace mode
+  - Automatically locks when exiting interactive trace
+  - Lock button (🔒) appears in toolbar - yellow when locked, gray when unlocked
+  - Prevents accidental view resets (clicking outside, double-clicking nodes)
+  - Allows filtering/highlighting within locked subset
+  - Click lock button to unlock and return to full view
+- ✅ **Fixed Exclusion Patterns** - Patterns now properly exclude nodes from trace results
+  - Previously excluded nodes were still visible (bug fixed)
+  - Default patterns changed: `*_TMP` and `*_BAK` (was `_TEMP_*;STG_*`)
+  - Fully editable in Interactive Trace panel
+
+**Previous Updates (v2.5.1):**
 - 🐛 **SQL Viewer Scrollbar Fix** - Fixed critical issue where scrollbar was not visible and mouse wheel scrolling didn't work
   - Bright blue scrollbar (16px wide) now always visible
   - Mouse wheel scrolling works properly
@@ -143,18 +168,20 @@ npm run preview
    - `GET /api/status/{job_id}`
    - `GET /api/result/{job_id}`
 
-### Week 4: SQL Viewer
+### Week 4: SQL Viewer ✅ **COMPLETE (v2.7.0)**
 
-**New Components:**
-1. `SqlViewer.tsx` - SQL syntax highlighter (Prism.js)
-2. Update `CustomNode.tsx` - Add right-click context menu
-3. Update `App.tsx` - Split view layout (graph + SQL viewer)
+**Implemented Components:**
+1. ✅ `SqlViewer.tsx` - Monaco Editor integration (VS Code's editor)
+2. ✅ Split view layout (graph + SQL viewer) - Resizable panel
+3. ✅ On-demand DDL fetching from backend API
 
-**New Features:**
-- Right-click object → View SQL definition
-- Syntax highlighting (T-SQL)
-- Full-text search in SQL
-- Read-only view
+**Features Delivered:**
+- ✅ Click object → View SQL definition (Stored Procedures, Views, Tables)
+- ✅ Professional syntax highlighting (Monaco's SQL language support)
+- ✅ Advanced search with next/prev navigation + overview ruler
+- ✅ Keyboard shortcuts: Ctrl+F, F3, Shift+F3
+- ✅ Read-only view with line numbers
+- ✅ Optimized for large files (10K+ lines)
 
 ---
 
@@ -186,9 +213,10 @@ npm run preview
 | **Graph Engine** | Graphology | 0.25.4 | Graph algorithms (BFS, DFS) |
 | **Layout** | Dagre | 0.8.5 | Hierarchical layout |
 | **Styling** | Tailwind CSS | 3.x (CDN) | Utility-first CSS |
+| **Code Editor** | Monaco Editor | 4.7.0 | SQL viewer (VS Code engine) |
 
 **New in v3.0:**
-- **Prism.js** - SQL syntax highlighting
+- **Monaco Editor** - Professional SQL syntax highlighting and search (✅ **IMPLEMENTED v2.7**)
 - **FastAPI Client** - HTTP polling for backend jobs
 
 ---
@@ -238,16 +266,16 @@ See [docker/README.md](../docker/README.md) for complete Docker configuration.
 ## 📋 Next Steps
 
 1. ✅ v2.0 code backed up in `backup_v2/`
-2. 🚧 Week 2-3: Implement upload + polling UI
-3. 🚧 Week 4: Implement SQL viewer component
-4. 🚧 Test integration with FastAPI backend
+2. ✅ Week 2-3: SQL viewer component with Monaco Editor (COMPLETE v2.7.0)
+3. 🚧 Week 3-4: Implement upload + polling UI for Parquet files
+4. 🚧 Week 4: Docker containerization (single container deployment)
 5. 🚧 Deploy to Azure Web App for Containers
 
 ---
 
-**Last Updated:** 2025-10-27
-**Current Version:** 2.1.1 (Enhanced Type Filtering in Trace Mode) ✅ Production Ready
-**Next Version:** 3.0 (Single Container) 🚧 Specification Complete
+**Last Updated:** 2025-10-28
+**Current Version:** 2.7.0 (Monaco Editor Integration) ✅ Production Ready
+**Next Version:** 3.0 (Single Container) 🚧 SQL Viewer Complete, Docker Pending
 
 ---
 

@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import Prism from 'prismjs';
-import 'prismjs/themes/prism-tomorrow.css';  // Dark theme for syntax highlighting
-import 'prismjs/components/prism-sql';        // SQL syntax support
+import React, { useState, useEffect, useRef } from 'react';
+import Editor from '@monaco-editor/react';
 
 type SqlViewerProps = {
   isOpen: boolean;
@@ -13,15 +11,11 @@ type SqlViewerProps = {
   } | null;
 };
 
-// Cache for syntax highlighting results (prevents re-highlighting same DDL)
-const highlightCache = new Map<string, string>();
-
 export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selectedNode }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [ddlText, setDdlText] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const codeRef = useRef<HTMLPreElement>(null);
+  const editorRef = useRef<any>(null);
 
   // Fetch DDL on demand when node changes
   useEffect(() => {
@@ -64,64 +58,15 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
     fetchDDL();
   }, [selectedNode?.id, isOpen]);
 
-  // Memoize syntax highlighting with cache (OPTIMIZATION: Avoid re-highlighting same DDL)
-  const highlightedDdl = useMemo(() => {
-    if (!ddlText) return '';
+  // Handle editor mount
+  const handleEditorDidMount = (editor: any, monaco: any) => {
+    editorRef.current = editor;
 
-    // Check cache first
-    const cacheKey = `${selectedNode?.id}_${ddlText.length}`;
-    if (highlightCache.has(cacheKey)) {
-      return highlightCache.get(cacheKey)!;
-    }
-
-    // Perform expensive syntax highlighting
-    const highlighted = Prism.highlight(
-      ddlText,
-      Prism.languages.sql,
-      'sql'
-    );
-
-    // Store in cache (limit cache size to prevent memory leak)
-    if (highlightCache.size > 50) {
-      const firstKey = highlightCache.keys().next().value;
-      highlightCache.delete(firstKey);
-    }
-    highlightCache.set(cacheKey, highlighted);
-
-    return highlighted;
-  }, [selectedNode?.id, ddlText]);
-
-  // Reset search when node changes
-  useEffect(() => {
-    setSearchQuery('');
-  }, [selectedNode?.id]);
-
-  // Consolidated effect: Handle both syntax highlighting AND search highlighting
-  // OPTIMIZATION: Reduced from 3 effects to 1, eliminating race conditions
-  useEffect(() => {
-    if (!codeRef.current || !highlightedDdl) return;
-
-    if (searchQuery) {
-      // Apply search highlighting on top of syntax highlighting
-      const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(escapedQuery, 'gi');
-      const html = highlightedDdl.replace(
-        regex,
-        (match) => `<mark class="search-highlight">${match}</mark>`
-      );
-
-      codeRef.current.innerHTML = html;
-
-      // Scroll to first match
-      const firstMatch = codeRef.current.querySelector('.search-highlight');
-      if (firstMatch) {
-        firstMatch.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
-    } else {
-      // No search - show pure syntax highlighting
-      codeRef.current.innerHTML = highlightedDdl;
-    }
-  }, [searchQuery, highlightedDdl]);
+    // Configure find widget to open automatically with Ctrl+F
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => {
+      editor.getAction('actions.find').run();
+    });
+  };
 
   if (!isOpen) return null;
 
@@ -159,32 +104,23 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
             : 'DDL Viewer'}
         </h2>
 
-        {/* Search box - only show when SQL is loaded */}
+        {/* Search hint - only show when SQL is loaded */}
         {ddlText && !isLoading && (
-          <input
-            type="text"
-            placeholder="Search SQL..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '200px',
-              minWidth: '150px',
-              flexShrink: 0,
-              padding: '0.4rem 0.6rem',
-              border: '1px solid #3e3e42',
-              borderRadius: '4px',
+          <div style={{
+            fontSize: '12px',
+            color: '#858585',
+            fontStyle: 'italic',
+            marginRight: '0.5rem'
+          }}>
+            Press <kbd style={{
               background: '#3c3c3c',
-              color: '#ffffff',
-              fontSize: '13px'
-            }}
-            onFocus={(e) => {
-              e.target.style.outline = 'none';
-              e.target.style.borderColor = '#007acc';
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = '#3e3e42';
-            }}
-          />
+              padding: '2px 6px',
+              borderRadius: '3px',
+              border: '1px solid #5a5a5a',
+              fontFamily: 'monospace',
+              fontSize: '11px'
+            }}>Ctrl+F</kbd> to search
+          </div>
         )}
       </div>
 
@@ -193,9 +129,6 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
         className="sql-viewer-content"
         style={{
           flex: 1,
-          overflowY: 'scroll',  // ALWAYS show vertical scrollbar
-          overflowX: 'auto',     // Show horizontal only when needed
-          padding: '1rem',
           background: '#1e1e1e',
           minHeight: 0 // Ensure flex child can scroll
         }}
@@ -328,80 +261,42 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
             )}
           </div>
         ) : (
-          // SQL content with syntax highlighting
-          // Content is set via innerHTML in the useEffect to avoid React re-render conflicts
-          <pre
-            ref={codeRef}
-            className="language-sql"
-            style={{
-              margin: 0,
-              fontSize: '14px',
-              lineHeight: '1.6',
-              color: '#d4d4d4',
-              background: 'transparent',
-              padding: 0,
-              border: 'none'
+          // Monaco Editor with syntax highlighting and built-in search
+          <Editor
+            height="100%"
+            language="sql"
+            theme="vs-dark"
+            value={ddlText}
+            onMount={handleEditorDidMount}
+            options={{
+              readOnly: true,
+              minimap: { enabled: false },
+              scrollBeyondLastLine: false,
+              wordWrap: 'on',
+              fontSize: 14,
+              lineNumbers: 'on',
+              renderWhitespace: 'selection',
+              scrollbar: {
+                vertical: 'visible',
+                horizontal: 'visible',
+                verticalScrollbarSize: 16,
+                horizontalScrollbarSize: 16,
+              },
+              overviewRulerBorder: true,
+              overviewRulerLanes: 3,
+              find: {
+                addExtraSpaceOnTop: false,
+                autoFindInSelection: 'never',
+                seedSearchStringFromSelection: 'always',
+              },
             }}
           />
         )}
       </div>
 
-      {/* Inline styles for search highlighting */}
+      {/* Inline styles for loading spinner */}
       <style>
         {`
-          /* Override Prism.js default styles that break scrolling */
-          .sql-viewer-content pre[class*="language-"] {
-            white-space: pre !important;
-            overflow: visible !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: transparent !important;
-          }
-
-          .search-highlight {
-            background-color: #ffd700;
-            color: #000000;
-            padding: 2px 4px;
-            border-radius: 2px;
-            font-weight: bold;
-          }
-
-          /* Custom scrollbar - HIGHLY VISIBLE */
-          /* Firefox support */
-          .sql-viewer-content {
-            scrollbar-width: auto;
-            scrollbar-color: #007acc #1e1e1e;
-          }
-
-          /* Webkit browsers (Chrome, Safari, Edge) */
-          .sql-viewer-content::-webkit-scrollbar {
-            width: 16px;
-            height: 16px;
-          }
-
-          .sql-viewer-content::-webkit-scrollbar-track {
-            background: #1e1e1e;
-            border-left: 2px solid #3e3e42;
-          }
-
-          .sql-viewer-content::-webkit-scrollbar-thumb {
-            background: #007acc;
-            border: 3px solid #1e1e1e;
-            border-radius: 10px;
-          }
-
-          .sql-viewer-content::-webkit-scrollbar-thumb:hover {
-            background: #1a8cd8;
-          }
-
-          .sql-viewer-content::-webkit-scrollbar-thumb:active {
-            background: #2ea3f0;
-          }
-
-          .sql-viewer-content::-webkit-scrollbar-corner {
-            background: #1e1e1e;
-          }
-
           @keyframes spin {
             from {
               transform: rotate(0deg);
