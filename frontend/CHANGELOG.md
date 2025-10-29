@@ -4,6 +4,61 @@ All notable changes to the frontend application will be documented in this file.
 
 ---
 
+## [2.8.0] - 2025-10-29
+
+### 🎯 Path-Based Tracing & SQL Viewer Enhancements
+
+#### **New: Path-Based Tracing Mode**
+- **Feature:** Added "Path Between Nodes" trace mode to find direct lineage paths between two specific nodes
+- **Two Trace Modes:**
+  1. **By Levels (Default):** Original behavior - define upstream/downstream levels from a start node
+  2. **Path Between Nodes (New):** Define start AND end nodes, show all direct lineage paths between them
+- **UI Changes:**
+  - Added trace mode dropdown selector at step 1 in Interactive Trace Panel
+  - Step 2: Start Node (search with autocomplete)
+  - Step 3: End Node (search with autocomplete) - only appears in "Path Between Nodes" mode
+  - Steps 4-6: Schema filters, type filters, exclusion patterns (renumbered)
+- **Path-Finding Logic:**
+  - Uses BFS (Breadth-First Search) to find ALL direct paths between nodes
+  - Searches in TWO directions:
+    - **Downstream:** Start → End (following outputs/dependencies)
+    - **Upstream:** End → Start (following inputs/sources, traced backwards)
+  - Shows all nodes that appear in ANY valid direct path
+  - **Direct Paths Only:** Each path follows a single consistent direction (no zigzag)
+  - Respects all filters: schemas, data model types, exclusion patterns
+  - Handles cycles gracefully (limits node visits to 3 per path)
+- **Validation:**
+  - Requires both start and end nodes to be selected in path mode
+  - Prevents selecting the same node as both start and end
+  - Shows helpful error notifications
+- **Use Cases:**
+  - "How does Table A flow into Table B?"
+  - "What's the lineage path between these two stored procedures?"
+  - "Show me all intermediate steps from source to target"
+- **Files Changed:**
+  - `types.ts` - Added optional `endNodeId` field to `TraceConfig`
+  - `components/InteractiveTracePanel.tsx` - Added mode selector, end node search, validation
+  - `hooks/useInteractiveTrace.ts` - Implemented bidirectional path-finding algorithm
+
+#### **Enhanced: SQL Viewer Dimming Effect**
+- **Feature:** Node dimming now persists when SQL viewer is open
+- **Previous Behavior:**
+  - Click node → Highlights in yellow, dims distant nodes (>1 level away)
+  - Open SQL viewer → Dimming disabled, all nodes visible
+- **New Behavior:**
+  - Click node → Highlights in yellow, dims distant nodes (>1 level away)
+  - Open SQL viewer → **Dimming persists**, maintaining visual focus
+- **Benefit:** Consistent visual hierarchy whether SQL viewer is open or closed
+- **Files Changed:**
+  - `App.tsx` - Removed `!sqlViewerOpen` check from dimming logic
+
+#### **Technical Details**
+- **Path Algorithm Complexity:** O(V + E) for BFS in each direction, where V = nodes, E = edges
+- **Memory:** Efficient - stores only final node set, not all path details
+- **Performance:** Fast even with 1000+ node graphs (tested in dev)
+
+---
+
 ## [2.7.0] - 2025-10-28
 
 ### 🚀 Monaco Editor Integration - Professional Code Viewing

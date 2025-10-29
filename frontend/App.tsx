@@ -180,12 +180,9 @@ function DataLineageVisualizer() {
 
       // Dim nodes that are MORE THAN 1 level away:
       // - If there ARE highlighted nodes AND
-      // - SQL viewer is NOT open (when SQL viewer is open, no dimming) AND
       // - This node is NOT highlighted AND
       // - This node is NOT a level 1 neighbor
-      // OPTIMIZATION: sqlViewerOpen removed from dependencies - dimming is visual only
       const shouldBeDimmed = highlightedNodes.size > 0 &&
-                             !sqlViewerOpen &&
                              !isHighlighted &&
                              !level1Neighbors.has(n.id);
 
@@ -200,7 +197,7 @@ function DataLineageVisualizer() {
         }
       };
     });
-  }, [layoutedElements.nodes, highlightedNodes, layout, sqlViewerOpen, allDataMap, lineageGraph]);
+  }, [layoutedElements.nodes, highlightedNodes, layout, allDataMap, lineageGraph]);
 
   // --- Effects to Synchronize State with React Flow ---
   useEffect(() => {

@@ -10,10 +10,25 @@
 
 ## 🚀 Current Status
 
-**Version:** 2.7.0 (Monaco Editor Integration - Professional Code Viewing)
+**Version:** 2.8.0 (Path-Based Tracing & SQL Viewer Enhancements)
 **v3.0 Status:** Core features complete - Docker containerization pending
 
-### ✨ Latest Updates (v2.7.0 - 2025-10-28)
+### ✨ Latest Updates (v2.8.0 - 2025-10-29)
+
+**New Features:**
+- 🎯 **Path-Based Tracing Mode** - Find all direct lineage paths between two nodes
+  - Added "Path Between Nodes" option in Interactive Trace panel
+  - Two modes: "By Levels" (default) or "Path Between Nodes"
+  - Define start AND end nodes, see all intermediate steps
+  - Bidirectional search: downstream (start→end) and upstream (end→start)
+  - Direct paths only - no zigzag routes, follows data flow direction
+  - Use cases: "How does Table A flow to Table B?", "Show me the path between these SPs"
+- ✨ **SQL Viewer Dimming Persistence** - Node dimming effect now persists when SQL viewer is open
+  - Previously: Dimming disabled when SQL viewer opened
+  - Now: Consistent visual focus whether viewer is open or closed
+  - Distant nodes (>1 level away) stay blurred, adjacent nodes stay visible
+
+### ✨ Previous Updates (v2.7.0 - 2025-10-28)
 
 **Major Upgrade:**
 - 🚀 **Monaco Editor Integration** - Replaced Prism.js with VS Code's Monaco Editor

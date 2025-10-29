@@ -12,6 +12,7 @@ export type DataNode = {
 
 export type TraceConfig = {
   startNodeId: string | null;
+  endNodeId?: string | null;  // Optional: if provided, trace path between start and end
   upstreamLevels: number;
   downstreamLevels: number;
   includedSchemas: Set<string>;
