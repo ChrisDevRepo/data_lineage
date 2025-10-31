@@ -534,17 +534,18 @@ class DuckDBWorkspace:
                 # Assume dbo schema if not specified
                 lookup[name] = ('dbo', parts[0])
 
-        # Build WHERE clause for batch lookup
-        conditions = []
-        for schema, obj in lookup.values():
-            conditions.append(
-                f"(schema_name = '{schema}' AND object_name = '{obj}')"
-            )
-
-        if not conditions:
+        # Build WHERE clause for batch lookup using parameterized queries
+        if not lookup:
             return {}
 
-        where_clause = ' OR '.join(conditions)
+        # Use placeholders for SQL injection protection
+        placeholders = []
+        params = []
+        for schema, obj in lookup.values():
+            placeholders.append("(schema_name = ? AND object_name = ?)")
+            params.extend([schema, obj])
+
+        where_clause = ' OR '.join(placeholders)
 
         query = f"""
             SELECT
@@ -554,7 +555,7 @@ class DuckDBWorkspace:
             WHERE {where_clause}
         """
 
-        results = self.connection.execute(query).fetchall()
+        results = self.connection.execute(query, params).fetchall()
 
         # Build result map
         result_map = {row[0]: row[1] for row in results}
