@@ -356,7 +356,7 @@ async def search_ddl(q: str = Query(..., min_length=1, max_length=200, descripti
                     d.object_id::TEXT as id,
                     d.object_name as name,
                     o.object_type as type,
-                    o.schema_name as schema,
+                    d.schema_name as schema,
                     fts_main_definitions.match_bm25(d.object_id, ?) as score,
                     substr(d.definition, 1, 150) as snippet
                 FROM definitions d

@@ -167,20 +167,18 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
         onClick={handleClose}
       />
 
-      {/* Modal content */}
+      {/* Modal content - Full screen overlay */}
       <div
         style={{
           position: 'fixed',
-          top: '5%',
-          left: '5%',
-          right: '5%',
-          bottom: '5%',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
           background: '#1e1e1e',
           zIndex: 9999,
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: '8px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -193,8 +191,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
             padding: '1rem 1.5rem',
             background: '#252526',
             borderBottom: '1px solid #3e3e42',
-            borderTopLeftRadius: '8px',
-            borderTopRightRadius: '8px',
           }}
         >
           <span style={{ fontSize: '1.2rem' }}>🔍</span>
