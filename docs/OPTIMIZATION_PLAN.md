@@ -713,22 +713,20 @@ These improve user experience, code quality, or future maintainability but are N
 
 ## Next Steps
 
-**Please review this plan and confirm:**
+**⚠️ SUPERSEDED BY SIMPLIFIED APPROACH**
 
-1. ✅ Approve MUST-FIX list (all 10 items)
-2. 🔍 Identify any OPTIONAL items to include in Phase 1
-3. 📝 Answer questions above
-4. 🚀 Authorize start of implementation
+See **[SIMPLE_MULTI_USER_FIX.md](SIMPLE_MULTI_USER_FIX.md)** for pragmatic implementation plan.
 
-**Once approved, I will:**
-1. Create feature branches for each MUST item
-2. Implement fixes with tests
-3. Document changes in commit messages
-4. Create PR for review before merge
+**Simplified plan reduces scope:**
+- Original: 10 MUST-FIX items, 30 hours
+- Simplified: 5 MUST-FIX items, 10 hours
+- Approach: Simple blocking instead of job queue
+
+**Rationale:** Low probability of concurrent uploads means simple "busy" blocking is sufficient. Avoids over-engineering while ensuring safety.
 
 ---
 
-**Estimated Timeline:**
-- Phase 1 (MUST-FIX): 4 days
-- Testing & fixes: 1 day
-- **Total to UAT-ready:** 5 days (1 week)
+**Estimated Timeline (Simplified):**
+- Phase 1 (Simplified MUST-FIX): 1.5 days (10 hours)
+- Testing: 0.5 day
+- **Total to UAT-ready:** 2 days
