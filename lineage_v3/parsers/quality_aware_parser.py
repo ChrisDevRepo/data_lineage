@@ -869,7 +869,7 @@ class QualityAwareParser:
                 FROM objects
                 WHERE object_id = ?
             """
-            result = self.workspace.conn.execute(query, [object_id]).fetchone()
+            result = self.workspace.connection.execute(query, [object_id]).fetchone()
 
             if result:
                 return {'schema': result[0], 'name': result[1]}
@@ -942,7 +942,7 @@ class QualityAwareParser:
                   AND object_type = 'Table'
                 ORDER BY schema_name
             """
-            results = self.workspace.conn.execute(query, [table_name]).fetchall()
+            results = self.workspace.connection.execute(query, [table_name]).fetchall()
 
             return [f"{schema}.{name}" for schema, name in results]
 

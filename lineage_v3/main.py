@@ -181,9 +181,15 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_en
             click.echo(f"   - Metadata cache: {stats.get('lineage_metadata_count', 0):,}")
             click.echo()
 
-            # Get objects to parse
-            objects_to_parse = db.get_objects_to_parse(full_refresh=full_refresh)
+            # Get objects to parse (includes low-confidence objects needing AI retry)
+            objects_to_parse = db.get_objects_to_parse(
+                full_refresh=full_refresh,
+                confidence_threshold=settings.ai.confidence_threshold
+            )
             click.echo(f"🔍 Objects requiring analysis: {len(objects_to_parse):,}")
+
+            if not full_refresh:
+                click.echo(f"   ℹ️  Incremental mode: Parsing modified objects + low confidence (<{settings.ai.confidence_threshold:.2f})")
 
             if not objects_to_parse:
                 click.echo()
