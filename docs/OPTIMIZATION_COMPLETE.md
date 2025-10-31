@@ -134,6 +134,22 @@ ALLOWED_ORIGINS=https://frontend.azurewebsites.net,https://backup.azurewebsites.
 
 ## Testing Status
 
+### Smoke Tests Completed ✅
+
+**Date:** 2025-10-31
+**Method:** cURL-based HTTP tests (Docker-compatible)
+
+All 8 critical smoke tests passed:
+- ✅ Frontend HTML served (HTTP 200)
+- ✅ React imports present
+- ✅ API health endpoint reachable
+- ✅ CORS configured correctly (localhost:3000, not wildcard)
+- ✅ Metadata endpoint returns data (763 nodes)
+- ✅ Upload endpoint accessible
+- ✅ No startup errors in backend/frontend logs
+
+**Test script:** Automated smoke test suite created, validates critical paths without requiring GUI/browser.
+
 ### Manual Testing Required
 
 Before UAT deployment, test these scenarios:
@@ -355,6 +371,94 @@ If critical issues occur in production:
 **Post-deployment optimization needs?**
 - See "Optional Improvements" in SIMPLE_MULTI_USER_FIX.md
 - Estimate 1-3 hours per improvement
+
+---
+
+## E2E Testing with Playwright (Post-UAT)
+
+### Why Not in Devcontainer?
+
+Headless browser testing (Playwright/Puppeteer) was **intentionally excluded** from the devcontainer setup:
+- Requires ~150MB of system libraries (libnss3, libatk, chromium, etc.)
+- Adds complexity to devcontainer
+- Better suited for local development or CI/CD pipelines
+
+### Recommended Setup (Outside Docker)
+
+**Local machine (macOS/Windows/Linux):**
+```bash
+# On your local machine (NOT in devcontainer)
+cd frontend/
+npm install -D @playwright/test
+npx playwright install chromium
+
+# Create tests
+mkdir -p tests
+# (see example tests in comments)
+
+# Run tests
+npx playwright test
+npx playwright test --headed  # With browser window
+npx playwright show-report    # View results
+```
+
+**CI/CD (GitHub Actions/Azure Pipelines):**
+```yaml
+# .github/workflows/e2e-tests.yml
+name: E2E Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+      - name: Install dependencies
+        run: cd frontend && npm install
+      - name: Install Playwright
+        run: cd frontend && npx playwright install --with-deps chromium
+      - name: Run tests
+        run: cd frontend && npx playwright test
+```
+
+### Example Test Cases to Implement
+
+```typescript
+// frontend/tests/smoke.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Multi-User Optimization Tests', () => {
+  test('concurrent upload returns HTTP 409', async ({ request }) => {
+    // Test your new upload lock feature
+    // Simulate concurrent uploads
+  });
+
+  test('CORS only allows configured origins', async ({ request }) => {
+    const response = await request.get('http://localhost:8000/health', {
+      headers: { 'Origin': 'https://evil.com' }
+    });
+    expect(response.headers()['access-control-allow-origin']).not.toBe('*');
+  });
+
+  test('frontend loads without console errors', async ({ page }) => {
+    const errors = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') errors.push(msg.text());
+    });
+
+    await page.goto('http://localhost:3000');
+    await page.waitForLoadState('networkidle');
+    expect(errors).toHaveLength(0);
+  });
+});
+```
+
+### Testing Strategy
+
+**Phase 1 (UAT):** ✅ Manual testing + cURL smoke tests (current)
+**Phase 2 (Production):** Add Playwright E2E tests (post-UAT)
+**Phase 3 (Maturity):** CI/CD integration with automated test runs
 
 ---
 

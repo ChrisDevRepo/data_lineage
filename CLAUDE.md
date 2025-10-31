@@ -609,6 +609,59 @@ The following tools are for Vibecoding development team only, NOT for external d
 
 ---
 
+## Testing
+
+### Smoke Tests (Devcontainer-Compatible)
+
+Automated smoke tests validate critical paths without requiring GUI/browser:
+
+```bash
+# Backend health check
+curl http://localhost:8000/health
+
+# Frontend serving
+curl http://localhost:3000 | grep -q "react" && echo "✅ Frontend OK"
+
+# API integration with CORS
+curl -H "Origin: http://localhost:3000" http://localhost:8000/api/metadata
+```
+
+**Current Status:** ✅ All 8 smoke tests pass (see docs/OPTIMIZATION_COMPLETE.md)
+
+### E2E Testing with Playwright (Outside Docker)
+
+For comprehensive UI/UX testing, use Playwright **on your local machine or in CI/CD**:
+
+**Why not in devcontainer?**
+- Requires ~150MB of system libraries (chromium, libnss3, libatk, etc.)
+- Adds unnecessary complexity to development environment
+- Better suited for local development or GitHub Actions
+
+**Setup (Local Machine):**
+```bash
+# On your local machine (NOT in devcontainer)
+cd frontend/
+npm install -D @playwright/test
+npx playwright install chromium
+
+# Run tests
+npx playwright test
+npx playwright test --headed  # With visible browser
+```
+
+**CI/CD Integration:**
+See example GitHub Actions workflow in `docs/OPTIMIZATION_COMPLETE.md`
+
+**Recommended Test Cases:**
+- Concurrent upload blocking (HTTP 409)
+- CORS security validation
+- Frontend console error detection
+- Upload workflow end-to-end
+
+**Documentation:** [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md#e2e-testing-with-playwright-post-uat)
+
+---
+
 ## Troubleshooting
 
 ### Common Issues
@@ -684,3 +737,56 @@ The repository is configured to exclude:
 **Parser Version:** v3.6.0 (Production Ready)
 **Frontend Version:** v2.9.0 (Production Ready - UI Redesign Phase 1)
 **API Version:** v3.0.1 (Production Ready)
+
+---
+
+## Testing
+
+### Smoke Tests (Devcontainer-Compatible)
+
+Automated smoke tests validate critical paths without requiring GUI/browser:
+
+```bash
+# Backend health check
+curl http://localhost:8000/health
+
+# Frontend serving
+curl http://localhost:3000 | grep -q "react" && echo "✅ Frontend OK"
+
+# API integration with CORS
+curl -H "Origin: http://localhost:3000" http://localhost:8000/api/metadata
+```
+
+**Current Status:** ✅ All 8 smoke tests pass (see [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md))
+
+### E2E Testing with Playwright (Outside Docker)
+
+For comprehensive UI/UX testing, use Playwright **on your local machine or in CI/CD**:
+
+**Why not in devcontainer?**
+- Requires ~150MB of system libraries (chromium, libnss3, libatk, etc.)
+- Adds unnecessary complexity to development environment  
+- Better suited for local development or GitHub Actions
+
+**Setup (Local Machine):**
+```bash
+# On your local machine (NOT in devcontainer)
+cd frontend/
+npm install -D @playwright/test
+npx playwright install chromium
+
+# Run tests
+npx playwright test
+npx playwright test --headed  # With visible browser
+```
+
+**CI/CD Integration:**
+See example GitHub Actions workflow in [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md)
+
+**Recommended Test Cases:**
+- Concurrent upload blocking (HTTP 409)
+- CORS security validation
+- Frontend console error detection
+- Upload workflow end-to-end
+
+**Documentation:** [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md#e2e-testing-with-playwright-post-uat)
