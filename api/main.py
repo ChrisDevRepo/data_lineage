@@ -454,12 +454,24 @@ async def upload_parquet(
             if not upload_file.filename:
                 continue
 
+            # Sanitize filename to prevent path traversal attacks
+            filename = os.path.basename(upload_file.filename)  # Strip any path components
+
+            # Additional validation: reject suspicious characters
+            if '..' in filename or '/' in filename or '\\' in filename:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid filename '{upload_file.filename}' - path characters not allowed"
+                )
+
             # Ensure .parquet extension
-            filename = upload_file.filename
             if not filename.endswith('.parquet'):
                 raise HTTPException(status_code=400, detail=f"File '{filename}' is not a Parquet file")
 
-            file_path = job_dir / filename
+            # Validate resolved path stays within job directory
+            file_path = (job_dir / filename).resolve()
+            if not str(file_path).startswith(str(job_dir.resolve())):
+                raise HTTPException(status_code=400, detail="Path traversal detected")
             with open(file_path, 'wb') as f:
                 content = await upload_file.read()
                 f.write(content)
