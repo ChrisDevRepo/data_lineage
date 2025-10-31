@@ -19,6 +19,7 @@ import { InfoModal } from './components/InfoModal';
 import { InteractiveTracePanel } from './components/InteractiveTracePanel';
 import { NotificationContainer, NotificationHistory } from './components/NotificationSystem';
 import { SqlViewer } from './components/SQLViewer';
+import { DetailSearchModal } from './components/DetailSearchModal';
 import { useGraphology } from './hooks/useGraphology';
 import { useNotifications } from './hooks/useNotifications';
 import { useInteractiveTrace } from './hooks/useInteractiveTrace';
@@ -129,6 +130,7 @@ function DataLineageVisualizer() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isControlsVisible, setIsControlsVisible] = useState(true);
+  const [isDetailSearchOpen, setIsDetailSearchOpen] = useState(false);
 
   // --- SQL Viewer State ---
   const [sqlViewerOpen, setSqlViewerOpen] = useState(false);
@@ -399,6 +401,26 @@ function DataLineageVisualizer() {
     addNotification('View reset to default.', 'info');
   };
 
+  const handleCloseDetailSearch = useCallback((nodeId: string | null) => {
+    setIsDetailSearchOpen(false);
+
+    if (nodeId) {
+      // Highlight the selected node
+      setHighlightedNodes(new Set([nodeId]));
+
+      // Zoom to the node with animation
+      setTimeout(() => {
+        const node = getNodes().find(n => n.id === nodeId);
+        if (node) {
+          setCenter(node.position.x + 100, node.position.y, {
+            duration: 800,
+            zoom: 1.5
+          });
+        }
+      }, 100);
+    }
+  }, [getNodes, setCenter, setHighlightedNodes]);
+
   // Wrapper for trace apply that adds auto-fit and highlight
   const handleApplyTraceWithFit = useCallback((config: Parameters<typeof handleApplyTrace>[0]) => {
     // Call original handler
@@ -631,6 +653,7 @@ function DataLineageVisualizer() {
             onToggleSqlViewer={handleToggleSqlViewer}
             sqlViewerEnabled={sqlViewerEnabled}
             hasDdlData={hasDdlData}
+            onOpenDetailSearch={() => setIsDetailSearchOpen(true)}
             notificationHistory={notificationHistory}
             onClearNotificationHistory={clearNotificationHistory}
             isTraceLocked={isTraceLocked}
@@ -710,6 +733,11 @@ function DataLineageVisualizer() {
       <InfoModal
         isOpen={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
+      />
+      <DetailSearchModal
+        isOpen={isDetailSearchOpen}
+        allData={allData}
+        onClose={handleCloseDetailSearch}
       />
     </div>
   );
