@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { DataNode } from '../types';
+import { tokens } from '../design-tokens';
+import { Checkbox } from './ui/Checkbox';
 
 // Debounce utility
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
@@ -45,10 +47,12 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
   const [topPanelHeight, setTopPanelHeight] = useState(25);
   const [isResizing, setIsResizing] = useState(false);
 
-  // Filter state
-  const [selectedSchema, setSelectedSchema] = useState<string>('');
-  const [selectedObjectType, setSelectedObjectType] = useState<string>('');
+  // Filter state - Changed to Sets for multi-select
+  const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
+  const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(new Set());
   const [showSearchHelp, setShowSearchHelp] = useState(false);
+  const [showSchemaFilter, setShowSchemaFilter] = useState(false);
+  const [showTypeFilter, setShowTypeFilter] = useState(false);
 
   const editorRef = useRef<any>(null);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
@@ -117,7 +121,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
 
   // Debounced search function
   const debouncedSearch = useMemo(
-    () => debounce(async (query: string, schema: string, objectType: string) => {
+    () => debounce(async (query: string, schemas: Set<string>, objectTypes: Set<string>) => {
       if (!query.trim()) {
         setResults([]);
         setIsSearching(false);
@@ -139,12 +143,12 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
 
         let data = await response.json();
 
-        // Client-side filtering by schema and object type
-        if (schema) {
-          data = data.filter((result: SearchResult) => result.schema === schema);
+        // Client-side filtering by schemas and object types (multi-select)
+        if (schemas.size > 0) {
+          data = data.filter((result: SearchResult) => schemas.has(result.schema));
         }
-        if (objectType) {
-          data = data.filter((result: SearchResult) => result.type === objectType);
+        if (objectTypes.size > 0) {
+          data = data.filter((result: SearchResult) => objectTypes.has(result.type));
         }
 
         setResults(data);
@@ -163,12 +167,12 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
   useEffect(() => {
     if (searchQuery.trim()) {
       setIsSearching(true);
-      debouncedSearch(searchQuery, selectedSchema, selectedObjectType);
+      debouncedSearch(searchQuery, selectedSchemas, selectedObjectTypes);
     } else {
       setResults([]);
       setIsSearching(false);
     }
-  }, [searchQuery, selectedSchema, selectedObjectType, debouncedSearch]);
+  }, [searchQuery, selectedSchemas, selectedObjectTypes, debouncedSearch]);
 
   // Handle result click - fetch full DDL
   const handleResultClick = async (result: SearchResult) => {
@@ -207,9 +211,11 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     setError(null);
     setIsSearching(false);
     setIsLoadingDdl(false);
-    setSelectedSchema('');
-    setSelectedObjectType('');
+    setSelectedSchemas(new Set());
+    setSelectedObjectTypes(new Set());
     setShowSearchHelp(false);
+    setShowSchemaFilter(false);
+    setShowTypeFilter(false);
   };
 
   // Handle editor mount
@@ -224,17 +230,18 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
 
   // Get icon by object type
   const getObjectIcon = (type: string) => {
+    const iconClass = "w-4 h-4";
     switch (type) {
       case 'Stored Procedure':
-        return '📦';
+        return <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>;
       case 'View':
-        return '👁';
+        return <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>;
       case 'Table':
-        return '📊';
+        return <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>;
       case 'Function':
-        return '⚡';
+        return <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>;
       default:
-        return '📄';
+        return <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>;
     }
   };
 
@@ -244,268 +251,210 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     <>
       {/* Full-screen backdrop */}
       <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.7)',
-          zIndex: 9998,
-        }}
+        className="fixed inset-0 bg-black/50 z-[9998]"
         onClick={handleClose}
       />
 
       {/* Modal content - Full screen overlay */}
       <div
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: '#1e1e1e',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-        }}
+        className="fixed inset-0 bg-white z-[9999] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.75rem',
-            padding: '1rem 1.5rem',
-            background: '#252526',
-            borderBottom: '1px solid #3e3e42',
-          }}
-        >
-          {/* First row: Search input and close button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <span style={{ fontSize: '1.2rem' }}>🔍</span>
+        {/* Header Row 1: Logo and Icon Bar (reusing main toolbar style) */}
+        <div>
+          <div className="flex items-center justify-between px-4 py-2 bg-white shadow-sm">
+            <img src="/logo.png" alt="Data Lineage Visualizer" className="h-10" />
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 font-medium">Detail Search Mode</span>
+              <button
+                onClick={handleClose}
+                className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 text-gray-600 rounded transition-colors"
+                title="Close (ESC)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {/* Colorful accent bar matching logo theme */}
+          <div className="h-1 bg-gradient-to-r from-blue-500 via-teal-400 to-orange-400"></div>
+        </div>
+
+        {/* Header Row 2: Search Controls */}
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-200">
+          {/* Search input */}
+          <div className="relative flex-1 max-w-2xl">
+            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
             <input
               type="text"
               placeholder="Search DDL definitions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
-              style={{
-                flex: 1,
-                padding: '0.5rem 1rem',
-                background: '#3c3c3c',
-                border: '1px solid #5a5a5a',
-                borderRadius: '4px',
-                color: '#d4d4d4',
-                fontSize: '14px',
-                outline: 'none',
-              }}
+              className="w-full h-9 pl-9 pr-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors"
             />
-            {isSearching && (
-              <div
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  border: '2px solid #555',
-                  borderTopColor: '#569CD6',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                }}
-              />
+          </div>
+
+          {/* Schema filter - Multi-select */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSchemaFilter(!showSchemaFilter)}
+              className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedSchemas.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
+              title={`Schemas (${selectedSchemas.size > 0 ? selectedSchemas.size : 'All'})`}
+            >
+              Schemas ({selectedSchemas.size > 0 ? selectedSchemas.size : filterOptions.schemas.length})
+            </button>
+            {showSchemaFilter && (
+              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                <div className="space-y-2">
+                  {filterOptions.schemas.map(schema => (
+                    <Checkbox
+                      key={schema}
+                      checked={selectedSchemas.has(schema)}
+                      onChange={() => {
+                        const newSet = new Set(selectedSchemas);
+                        if (newSet.has(schema)) newSet.delete(schema);
+                        else newSet.add(schema);
+                        setSelectedSchemas(newSet);
+                      }}
+                      label={schema}
+                    />
+                  ))}
+                </div>
+              </div>
             )}
+          </div>
+
+          {/* Object type filter - Multi-select */}
+          <div className="relative">
+            <button
+              onClick={() => setShowTypeFilter(!showTypeFilter)}
+              className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedObjectTypes.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
+              title={`Types (${selectedObjectTypes.size > 0 ? selectedObjectTypes.size : 'All'})`}
+            >
+              Types ({selectedObjectTypes.size > 0 ? selectedObjectTypes.size : filterOptions.objectTypes.length})
+            </button>
+            {showTypeFilter && (
+              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                <div className="space-y-2">
+                  {filterOptions.objectTypes.map(type => (
+                    <Checkbox
+                      key={type}
+                      checked={selectedObjectTypes.has(type)}
+                      onChange={() => {
+                        const newSet = new Set(selectedObjectTypes);
+                        if (newSet.has(type)) newSet.delete(type);
+                        else newSet.add(type);
+                        setSelectedObjectTypes(newSet);
+                      }}
+                      label={type}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Search status indicators */}
+          <div className="flex items-center gap-2">
+            {isSearching && (
+              <div className="w-5 h-5 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
+            )}
+
             {results.length > 0 && !isSearching && (
-              <span style={{ fontSize: '13px', color: '#888', whiteSpace: 'nowrap' }}>
+              <span className="text-sm text-gray-600 whitespace-nowrap">
                 {results.length} {results.length === 1 ? 'match' : 'matches'}
               </span>
             )}
-            <button
-              onClick={handleClose}
-              style={{
-                width: '32px',
-                height: '32px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'transparent',
-                border: 'none',
-                color: '#d4d4d4',
-                fontSize: '20px',
-                cursor: 'pointer',
-                borderRadius: '4px',
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.background = '#3e3e42')}
-              onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
-              title="Close (ESC)"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Second row: Filters and help */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingLeft: '2.2rem' }}>
-            {/* Schema filter */}
-            <select
-              value={selectedSchema}
-              onChange={(e) => setSelectedSchema(e.target.value)}
-              style={{
-                padding: '0.35rem 0.75rem',
-                background: '#3c3c3c',
-                border: '1px solid #5a5a5a',
-                borderRadius: '4px',
-                color: '#d4d4d4',
-                fontSize: '12px',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              <option value="">All Schemas</option>
-              {filterOptions.schemas.map(schema => (
-                <option key={schema} value={schema}>{schema}</option>
-              ))}
-            </select>
-
-            {/* Object type filter */}
-            <select
-              value={selectedObjectType}
-              onChange={(e) => setSelectedObjectType(e.target.value)}
-              style={{
-                padding: '0.35rem 0.75rem',
-                background: '#3c3c3c',
-                border: '1px solid #5a5a5a',
-                borderRadius: '4px',
-                color: '#d4d4d4',
-                fontSize: '12px',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              <option value="">All Types</option>
-              {filterOptions.objectTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
 
             {/* Search help toggle */}
             <button
               onClick={() => setShowSearchHelp(!showSearchHelp)}
-              style={{
-                padding: '0.35rem 0.75rem',
-                background: showSearchHelp ? '#404040' : 'transparent',
-                border: '1px solid #5a5a5a',
-                borderRadius: '4px',
-                color: '#569CD6',
-                fontSize: '12px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-              }}
+              className={`h-9 w-9 flex items-center justify-center border border-gray-300 rounded-md transition-colors ${
+                showSearchHelp ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'
+              }`}
               title="Search syntax help"
             >
-              <span>?</span>
-              <span>Help</span>
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </button>
 
             {/* Clear filters button */}
-            {(selectedSchema || selectedObjectType) && (
+            {(selectedSchemas.size > 0 || selectedObjectTypes.size > 0) && (
               <button
                 onClick={() => {
-                  setSelectedSchema('');
-                  setSelectedObjectType('');
+                  setSelectedSchemas(new Set());
+                  setSelectedObjectTypes(new Set());
                 }}
-                style={{
-                  padding: '0.35rem 0.75rem',
-                  background: 'transparent',
-                  border: '1px solid #5a5a5a',
-                  borderRadius: '4px',
-                  color: '#888',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                }}
+                className="h-9 px-3 bg-white hover:bg-gray-50 border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap"
                 title="Clear filters"
               >
                 Clear Filters
               </button>
             )}
           </div>
+        </div>
 
-          {/* Search help panel */}
-          {showSearchHelp && (
-            <div
-              style={{
-                padding: '0.75rem',
-                background: '#2d2d2d',
-                border: '1px solid #3e3e42',
-                borderRadius: '4px',
-                fontSize: '12px',
-                color: '#cccccc',
-                lineHeight: '1.6',
-                marginLeft: '2.2rem',
-              }}
-            >
-              <div style={{ fontWeight: 500, marginBottom: '0.5rem', color: '#569CD6' }}>
+        {/* Search help panel */}
+        {showSearchHelp && (
+          <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
+            <div className="p-3 bg-white border border-blue-300 rounded text-xs text-gray-700 leading-relaxed">
+              <div className="font-medium mb-2 text-primary-600">
                 Advanced Search Syntax:
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1rem' }}>
-                <code style={{ color: '#ce9178' }}>customer AND order</code>
+              <div className="grid grid-cols-[auto_1fr] gap-y-2 gap-x-4">
+                <code className="text-orange-600 bg-white px-1.5 py-0.5 rounded">customer AND order</code>
                 <span>Both words must appear</span>
 
-                <code style={{ color: '#ce9178' }}>customer OR client</code>
+                <code className="text-orange-600 bg-white px-1.5 py-0.5 rounded">customer OR client</code>
                 <span>Either word can appear</span>
 
-                <code style={{ color: '#ce9178' }}>customer NOT temp</code>
+                <code className="text-orange-600 bg-white px-1.5 py-0.5 rounded">customer NOT temp</code>
                 <span>Exclude results with "temp"</span>
 
-                <code style={{ color: '#ce9178' }}>"SELECT * FROM"</code>
+                <code className="text-orange-600 bg-white px-1.5 py-0.5 rounded">"SELECT * FROM"</code>
                 <span>Exact phrase search</span>
 
-                <code style={{ color: '#ce9178' }}>cust*</code>
+                <code className="text-orange-600 bg-white px-1.5 py-0.5 rounded">cust*</code>
                 <span>Wildcard (matches customer, customers, etc.)</span>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Content area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Results panel (top panel with dynamic height) */}
           <div
-            style={{
-              height: `${topPanelHeight}%`,
-              background: '#1e1e1e',
-              borderBottom: '1px solid #3e3e42',
-              overflow: 'auto',
-              padding: '1rem',
-            }}
+            style={{ height: `${topPanelHeight}%` }}
+            className="bg-gray-50 border-b border-gray-200 overflow-auto p-4"
           >
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '14px', color: '#888', fontWeight: 500 }}>
-              📋 Search Results
+            <h3 className="flex items-center gap-2 m-0 mb-4 text-sm text-gray-600 font-medium">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Search Results
             </h3>
 
             {error && !isSearching && (
-              <div
-                style={{
-                  padding: '1rem',
-                  background: '#3e2020',
-                  border: '1px solid #6e4040',
-                  borderRadius: '4px',
-                  color: '#f48771',
-                  fontSize: '13px',
-                }}
-              >
+              <div className="p-4 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
                 {error}
               </div>
             )}
 
             {!searchQuery.trim() && results.length === 0 && !error && (
-              <div style={{ textAlign: 'center', color: '#666', padding: '2rem', fontSize: '13px' }}>
+              <div className="text-center text-gray-500 py-8 text-sm">
                 Start typing to search across all DDL definitions...
               </div>
             )}
 
             {searchQuery.trim() && results.length === 0 && !isSearching && !error && (
-              <div style={{ textAlign: 'center', color: '#666', padding: '2rem', fontSize: '13px' }}>
+              <div className="text-center text-gray-500 py-8 text-sm">
                 No matches found for "{searchQuery}"
               </div>
             )}
@@ -514,49 +463,32 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
               <div
                 key={result.id}
                 onClick={() => handleResultClick(result)}
-                style={{
-                  padding: '0.75rem',
-                  marginBottom: '0.5rem',
-                  background: selectedResult?.id === result.id ? '#2a2d2e' : '#252526',
-                  border: `1px solid ${selectedResult?.id === result.id ? '#007acc' : '#3e3e42'}`,
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseOver={(e) => {
-                  if (selectedResult?.id !== result.id) {
-                    e.currentTarget.style.background = '#2a2d2e';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (selectedResult?.id !== result.id) {
-                    e.currentTarget.style.background = '#252526';
-                  }
-                }}
+                className={`p-3 mb-2 rounded cursor-pointer transition-all ${
+                  selectedResult?.id === result.id
+                    ? 'bg-primary-50 border-2 border-primary-600'
+                    : 'bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                }`}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                  {selectedResult?.id === result.id && <span style={{ color: '#4ec9b0' }}>✓</span>}
-                  <span style={{ fontSize: '16px' }}>{getObjectIcon(result.type)}</span>
-                  <span style={{ fontSize: '14px', fontWeight: 500, color: '#d4d4d4' }}>{result.name}</span>
-                  <span style={{ fontSize: '12px', color: '#888', marginLeft: 'auto' }}>
+                <div className="flex items-center gap-2 mb-1">
+                  {selectedResult?.id === result.id && (
+                    <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  <span className="text-gray-600">{getObjectIcon(result.type)}</span>
+                  <span className="text-sm font-medium text-gray-800">{result.name}</span>
+                  <span className="text-xs text-gray-500 ml-auto">
                     (score: {result.score.toFixed(2)})
                   </span>
                 </div>
-                <div style={{ fontSize: '12px', color: '#888', marginLeft: selectedResult?.id === result.id ? '2rem' : '1.5rem' }}>
+                <div className={`text-xs text-gray-600 ${selectedResult?.id === result.id ? 'ml-8' : 'ml-6'}`}>
                   {result.schema} • {result.type}
                 </div>
                 {result.snippet && (
                   <div
-                    style={{
-                      fontSize: '12px',
-                      color: '#888',
-                      marginTop: '0.25rem',
-                      fontStyle: 'italic',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      marginLeft: selectedResult?.id === result.id ? '2rem' : '1.5rem',
-                    }}
+                    className={`text-xs text-gray-500 mt-1 italic overflow-hidden text-ellipsis whitespace-nowrap ${
+                      selectedResult?.id === result.id ? 'ml-8' : 'ml-6'
+                    }`}
                   >
                     ...{result.snippet}...
                   </div>
@@ -568,68 +500,29 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
           {/* Resize divider */}
           <div
             onMouseDown={handleMouseDown}
-            style={{
-              height: '4px',
-              background: isResizing ? '#007acc' : '#3e3e42',
-              cursor: 'ns-resize',
-              transition: isResizing ? 'none' : 'background 0.2s',
-              position: 'relative',
-            }}
-            onMouseOver={(e) => {
-              if (!isResizing) {
-                e.currentTarget.style.background = '#007acc';
-              }
-            }}
-            onMouseOut={(e) => {
-              if (!isResizing) {
-                e.currentTarget.style.background = '#3e3e42';
-              }
-            }}
+            className={`h-1 cursor-ns-resize relative ${
+              isResizing ? 'bg-primary-600' : 'bg-gray-200 hover:bg-primary-600'
+            }`}
+            style={{ transition: isResizing ? 'none' : 'background 0.2s' }}
           >
             {/* Visual indicator */}
-            <div
-              style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '40px',
-                height: '2px',
-                background: '#888',
-                borderRadius: '1px',
-              }}
-            />
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-0.5 bg-gray-400 rounded" />
           </div>
 
           {/* DDL viewer panel (bottom panel with dynamic height) */}
-          <div style={{ flex: 1, background: '#1e1e1e', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+          <div className="flex-1 bg-white flex flex-col min-h-0">
             {/* DDL header */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.75rem 1rem',
-                background: '#252526',
-                borderBottom: '1px solid #3e3e42',
-              }}
-            >
-              <h3 style={{ flex: 1, margin: 0, fontSize: '14px', color: '#cccccc', fontWeight: 400 }}>
-                {selectedResult ? `📄 ${selectedResult.name} - DDL` : '📄 DDL Viewer'}
+            <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-200">
+              <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <h3 className="flex-1 m-0 text-sm text-gray-700 font-normal">
+                {selectedResult ? `${selectedResult.name} - DDL` : 'DDL Viewer'}
               </h3>
               {ddlText && !isLoadingDdl && (
-                <div style={{ fontSize: '12px', color: '#858585', fontStyle: 'italic' }}>
+                <div className="text-xs text-gray-500 italic">
                   Press{' '}
-                  <kbd
-                    style={{
-                      background: '#3c3c3c',
-                      padding: '2px 6px',
-                      borderRadius: '3px',
-                      border: '1px solid #5a5a5a',
-                      fontFamily: 'monospace',
-                      fontSize: '11px',
-                    }}
-                  >
+                  <kbd className="bg-gray-200 px-1.5 py-0.5 rounded border border-gray-300 font-mono text-xs">
                     Ctrl+F
                   </kbd>{' '}
                   to search
@@ -638,76 +531,30 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
             </div>
 
             {/* DDL content */}
-            <div style={{ flex: 1, background: '#1e1e1e', minHeight: 0 }}>
+            <div className="flex-1 bg-gray-50 min-h-0">
               {!selectedResult ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    color: '#888',
-                    fontSize: '13px',
-                  }}
-                >
+                <div className="flex items-center justify-center h-full text-gray-500 text-sm">
                   Click on a search result to view its DDL
                 </div>
               ) : isLoadingDdl ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    color: '#888',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      border: '4px solid #333',
-                      borderTopColor: '#569CD6',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
-                    }}
-                  />
-                  <p style={{ marginTop: '1rem', fontSize: '13px' }}>Loading DDL...</p>
+                <div className="flex flex-col items-center justify-center h-full text-gray-500">
+                  <div className="w-10 h-10 border-4 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
+                  <p className="mt-4 text-sm">Loading DDL...</p>
                 </div>
               ) : error ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    color: '#f48771',
-                    padding: '2rem',
-                  }}
-                >
-                  <p style={{ fontSize: '14px', fontWeight: 500 }}>Failed to Load DDL</p>
-                  <p style={{ fontSize: '13px', color: '#888' }}>{error}</p>
+                <div className="flex flex-col items-center justify-center h-full text-red-600 p-8">
+                  <p className="text-sm font-medium">Failed to Load DDL</p>
+                  <p className="text-sm text-gray-500 mt-2">{error}</p>
                 </div>
               ) : !ddlText ? (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    height: '100%',
-                    color: '#888',
-                    fontSize: '13px',
-                  }}
-                >
+                <div className="flex items-center justify-center h-full text-gray-500 text-sm">
                   No DDL available for this object
                 </div>
               ) : (
                 <Editor
                   height="100%"
                   language="sql"
-                  theme="vs-dark"
+                  theme="light"
                   value={ddlText}
                   onMount={handleEditorDidMount}
                   options={{

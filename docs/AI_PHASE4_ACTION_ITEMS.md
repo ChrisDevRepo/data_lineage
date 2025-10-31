@@ -255,8 +255,8 @@ parser = QualityAwareParser(workspace)
   ```
 
 **Testing Checkpoint:**
-- [ ] All unit tests pass: `pytest tests/test_ai_disambiguator.py -v`
-- [ ] Coverage ≥90%: `pytest --cov=lineage_v3.parsers.ai_disambiguator tests/test_ai_disambiguator.py`
+- [ ] Manual testing with sample data
+- [ ] Code review for edge cases and error handling
 
 ---
 

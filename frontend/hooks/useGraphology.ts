@@ -5,6 +5,7 @@ import { CONSTANTS } from '../constants';
 
 export function useGraphology(allData: DataNode[]) {
     const lineageGraph = useMemo(() => {
+        const startTime = Date.now();
         const graph = new Graph({ type: 'directed' });
         const nodeMap = new Map(allData.map(n => [n.id, n]));
 
@@ -26,6 +27,7 @@ export function useGraphology(allData: DataNode[]) {
                 }
             });
         });
+        console.log(`[Performance] Graph built in ${Date.now() - startTime}ms (${graph.order} nodes, ${graph.size} edges)`);
         return graph;
     }, [allData]);
 

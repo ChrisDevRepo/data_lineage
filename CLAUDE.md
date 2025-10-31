@@ -107,7 +107,7 @@ ws-psidwh/
 │   │   └── summary_formatter.py  # lineage_summary.json (stats)
 │   └── utils/                    # Dev helpers (internal use only)
 │
-├── frontend/                     # ✅ React Visualizer (v2.8.0)
+├── frontend/                     # ✅ React Visualizer (v2.9.0)
 │   ├── components/               # React Flow components
 │   ├── hooks/                    # Custom React hooks
 │   ├── utils/                    # Utility functions
@@ -115,7 +115,7 @@ ws-psidwh/
 │   │   ├── FRONTEND_ARCHITECTURE.md  # Architecture deep dive
 │   │   ├── LOCAL_DEVELOPMENT.md      # Dev setup guide
 │   │   ├── DEPLOYMENT_AZURE.md       # Azure deployment
-│   │   └── archive/              # Historical docs
+│   │   └── UI_STANDARDIZATION_GUIDE.md  # UI design system guide
 │   ├── deploy/                   # Azure deployment configs
 │   ├── README.md                 # Quick start guide
 │   └── CHANGELOG.md              # Feature history
@@ -125,7 +125,11 @@ ws-psidwh/
 │   ├── PARSER_EVOLUTION_LOG.md   # Parser version history
 │   ├── DUCKDB_SCHEMA.md          # Database schema reference
 │   ├── QUERY_LOGS_ANALYSIS.md    # Query log validation strategy
-│   └── archive/                  # Historical implementation docs
+│   ├── AI_DISAMBIGUATION_SPEC.md # AI disambiguation specification
+│   ├── AI_PHASE4_ACTION_ITEMS.md # AI implementation action items
+│   ├── AI_MODEL_EVALUATION.md    # AI model evaluation results
+│   ├── DETAIL_SEARCH_SPEC.md     # Detail search specification
+│   └── UNIFIED_DDL_FEATURE.md    # Unified DDL feature docs
 │
 ├── tests/                        # Testing & validation
 │   └── parser_regression_test.py # ⭐ Parser regression testing
@@ -146,7 +150,7 @@ ws-psidwh/
 
 ## Quick Start Guide
 
-### Working with Frontend (v2.8.0)
+### Working with Frontend (v2.9.0)
 
 ```bash
 # Start frontend dev server
@@ -162,8 +166,10 @@ cd /workspaces/ws-psidwh/frontend && lsof -ti:3000 | xargs -r kill && npm run de
 - Changelog: [frontend/CHANGELOG.md](frontend/CHANGELOG.md)
 - Architecture: [frontend/docs/FRONTEND_ARCHITECTURE.md](frontend/docs/FRONTEND_ARCHITECTURE.md)
 - Deployment: [frontend/docs/DEPLOYMENT_AZURE.md](frontend/docs/DEPLOYMENT_AZURE.md)
+- UI Design System: [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md)
 
-**Latest Features (v2.8.0):**
+**Latest Features (v2.9.0):**
+- 🎨 **UI Redesign Phase 1** - Unified design system with modern gradient accents
 - 🔍 **Path-Based Tracing** - Interactive upstream/downstream lineage exploration
 - 📝 **Monaco SQL Viewer** - Professional SQL editor with syntax highlighting
 - 🔒 **Trace Lock** - Preserve traced subset after exiting trace mode
@@ -649,23 +655,6 @@ The repository is configured to exclude:
 - **Credentials:** `.env`, `.env.local`
 - **Parquet snapshots:** `parquet_snapshots/*.parquet` (may contain sensitive data)
 
-### Archived Documentation
-
-Historical documentation has been organized into archives:
-
-**Frontend Archives:**
-- `frontend/docs/archive/sql-viewer-feature/` - SQL Viewer implementation docs (feature complete)
-- `frontend/docs/archive/versions/` - Version-specific implementation notes
-
-**Backend Archives:**
-- `docs/archive/implementation-history/` - Completion markers and milestones
-- `docs/archive/bugs/` - Fixed bug reports
-
-**Parser Archives:**
-- `lineage_v3/parsers/deprecated/` - Old parser implementations (replaced by v3.6.0)
-
-**Rationale:** Keep active codebase clean while preserving historical context for reference.
-
 ---
 
 ## For More Information
@@ -679,9 +668,13 @@ Historical documentation has been organized into archives:
 
 ### Additional Resources
 - **Parser Evolution:** [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md)
-- **AI Model Evaluation:** [docs/AI_MODEL_EVALUATION.md](docs/AI_MODEL_EVALUATION.md) - Azure OpenAI testing results
 - **DuckDB Schema:** [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md)
 - **Query Logs Analysis:** [docs/QUERY_LOGS_ANALYSIS.md](docs/QUERY_LOGS_ANALYSIS.md)
+- **AI Disambiguation:** [docs/AI_DISAMBIGUATION_SPEC.md](docs/AI_DISAMBIGUATION_SPEC.md)
+- **AI Phase 4 Actions:** [docs/AI_PHASE4_ACTION_ITEMS.md](docs/AI_PHASE4_ACTION_ITEMS.md)
+- **AI Model Evaluation:** [docs/AI_MODEL_EVALUATION.md](docs/AI_MODEL_EVALUATION.md)
+- **Detail Search Spec:** [docs/DETAIL_SEARCH_SPEC.md](docs/DETAIL_SEARCH_SPEC.md)
+- **Unified DDL Feature:** [docs/UNIFIED_DDL_FEATURE.md](docs/UNIFIED_DDL_FEATURE.md)
 - **Frontend Architecture:** [frontend/docs/FRONTEND_ARCHITECTURE.md](frontend/docs/FRONTEND_ARCHITECTURE.md)
 - **Azure Deployment:** [frontend/docs/DEPLOYMENT_AZURE.md](frontend/docs/DEPLOYMENT_AZURE.md)
 
@@ -689,5 +682,5 @@ Historical documentation has been organized into archives:
 
 **Last Updated:** 2025-10-31
 **Parser Version:** v3.6.0 (Production Ready)
-**Frontend Version:** v2.8.0 (Production Ready)
+**Frontend Version:** v2.9.0 (Production Ready - UI Redesign Phase 1)
 **API Version:** v3.0.1 (Production Ready)

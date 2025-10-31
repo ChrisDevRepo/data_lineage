@@ -47,13 +47,17 @@ function DataLineageVisualizer() {
       const startTime = Date.now();
 
       try {
+        const fetchStart = Date.now();
         const response = await fetch('http://localhost:8000/api/latest-data');
+        console.log(`[Performance] API fetch took ${Date.now() - fetchStart}ms`);
 
         if (!response.ok) {
           throw new Error(`API returned ${response.status}`);
         }
 
+        const parseStart = Date.now();
         const data = await response.json();
+        console.log(`[Performance] JSON parse took ${Date.now() - parseStart}ms, data size: ${data.length} objects`);
         const headerValue = response.headers.get('x-data-available');
 
         // Simple check: if we got an array with data, use it
@@ -66,14 +70,9 @@ function DataLineageVisualizer() {
         console.error('Failed to load from API:', error);
         setAllData(generateSampleData());
       } finally {
-        // Ensure loading screen shows for at least 500ms for better UX
         const elapsed = Date.now() - startTime;
-        const minDelay = 500;
-        if (elapsed < minDelay) {
-          setTimeout(() => setIsLoadingData(false), minDelay - elapsed);
-        } else {
-          setIsLoadingData(false);
-        }
+        console.log(`[Performance] Total data load time: ${elapsed}ms`);
+        setIsLoadingData(false);
       }
     };
 
@@ -206,6 +205,7 @@ function DataLineageVisualizer() {
 
   // Track if this is the initial load to only fitView once
   const hasInitiallyFittedRef = useRef(false);
+  const [minimapKey, setMinimapKey] = useState(0);
 
   useEffect(() => {
     if (nodes.length > 0 && !hasInitiallyFittedRef.current) {
@@ -217,6 +217,23 @@ function DataLineageVisualizer() {
       return () => clearTimeout(timeoutId);
     }
   }, [nodes.length, fitView]);
+
+  // Separate effect to remount minimap ONCE after initial layout is ready
+  const hasMinimapInitializedRef = useRef(false);
+  useEffect(() => {
+    if (layoutedElements.nodes.length > 0 && !hasMinimapInitializedRef.current) {
+      // Wait for layout to be applied and rendered, then remount minimap once
+      const timeoutId = setTimeout(() => {
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            setMinimapKey(prev => prev + 1);
+            hasMinimapInitializedRef.current = true;
+          });
+        });
+      }, 800);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [layoutedElements.nodes.length]);
   
   // --- Effect for handling window resize ---
   useEffect(() => {
@@ -321,6 +338,8 @@ function DataLineageVisualizer() {
     setHighlightedNodes(new Set());
     setSearchTerm('');
     hasInitiallyFittedRef.current = false; // Allow fitView on new data
+    hasMinimapInitializedRef.current = false; // Allow minimap re-initialization
+    setMinimapKey(0); // Reset minimap key to trigger re-initialization
 
     addNotification('Data imported successfully! Note: JSON imports are temporary. Upload parquet files to persist data.', 'info');
     // Don't auto-close modal - let user close it after viewing summary
@@ -379,7 +398,7 @@ function DataLineageVisualizer() {
     setFocusedNodeId(null);
     setSearchTerm('');
     setHideUnrelated(false);
-    setViewMode('detail');
+    setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
     setIsTraceLocked(false);
@@ -388,7 +407,7 @@ function DataLineageVisualizer() {
     setSqlViewerOpen(false);
     setSelectedNodeForSql(null);
 
-    // Fit view after reset
+    // Fit view after reset - minimap will already be initialized so no need to reset it
     setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
 
     addNotification('View reset to default.', 'info');
@@ -502,11 +521,11 @@ function DataLineageVisualizer() {
   }, [isResizing]);
 
   const miniMapNodeColor = (node: ReactFlowNode): string => {
-    if (!node.data.schema) return '#e2e8f0';
-    return schemaColorMap.get(node.data.schema) || '#e2e8f0';
+    // Use subtle gray tones for minimap - less colorful, better for overview
+    return '#9ca3af'; // gray-400 - consistent neutral color for all nodes
   };
 
-  const handleExportSVG = useCallback(() => {
+  const handleExportSVG = useCallback(async () => {
     const nodesToExport = getNodes();
     const edgesToExport = getEdges();
 
@@ -515,15 +534,35 @@ function DataLineageVisualizer() {
         return;
     }
 
+    // Convert logo to base64
+    let logoBase64 = '';
+    try {
+      const response = await fetch('/logo.png');
+      const blob = await response.blob();
+      logoBase64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error('Failed to load logo:', error);
+    }
+
     const PADDING = 50;
+    const HEADER_HEIGHT = 100; // Space for logo and title at top
+    const LEGEND_WIDTH = 280; // Space for legend on left
+    const LEGEND_PADDING = 20;
+
     const minX = Math.min(...nodesToExport.map(n => n.position.x));
     const minY = Math.min(...nodesToExport.map(n => n.position.y));
     const maxX = Math.max(...nodesToExport.map(n => n.position.x + (n.width || 0)));
     const maxY = Math.max(...nodesToExport.map(n => n.position.y + (n.height || 0)));
-    const width = maxX - minX + PADDING * 2;
-    const height = maxY - minY + PADDING * 2;
-    const offsetX = -minX + PADDING;
-    const offsetY = -minY + PADDING;
+    const graphWidth = maxX - minX + PADDING * 2;
+    const graphHeight = maxY - minY + PADDING * 2;
+    const width = graphWidth + LEGEND_WIDTH + LEGEND_PADDING;
+    const height = graphHeight + HEADER_HEIGHT;
+    const offsetX = -minX + PADDING + LEGEND_WIDTH + LEGEND_PADDING;
+    const offsetY = -minY + PADDING + HEADER_HEIGHT;
 
     const isHorizontal = layout === 'LR';
 
@@ -565,7 +604,58 @@ function DataLineageVisualizer() {
         `;
     }).join('');
 
-    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><defs><marker id="arrow" viewBox="0 -5 10 10" refX="8" refY="0" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,-5L10,0L0,5" fill="#9ca3af"></path></marker></defs><g>${edgePaths}${nodeElements}</g></svg>`;
+    // Generate legend elements - calculate proper height for all schemas
+    const legendItems = schemas.map((schema, index) => {
+      const color = schemaColorMap.get(schema) || '#7f7f7f';
+      const y = HEADER_HEIGHT + 60 + (index * 28);
+      return `
+        <g transform="translate(20, ${y})">
+          <rect width="16" height="16" rx="2" fill="${color}" stroke="rgba(0,0,0,0.2)" stroke-width="1"/>
+          <text x="24" y="8" dominant-baseline="middle" font-family="sans-serif" font-size="13px" fill="#374151">${schema}</text>
+        </g>
+      `;
+    }).join('');
+
+    // Calculate legend height to fit all schemas (28px per schema + 60px for header + 20px padding)
+    const legendHeight = Math.min(schemas.length * 28 + 80, height - HEADER_HEIGHT - 40);
+
+    const svgString = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}">
+      <defs>
+        <marker id="arrow" viewBox="0 -5 10 10" refX="8" refY="0" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,-5L10,0L0,5" fill="#9ca3af"></path>
+        </marker>
+      </defs>
+
+      <!-- Background -->
+      <rect width="${width}" height="${height}" fill="#ffffff"/>
+
+      <!-- Header with Logo -->
+      <g id="header">
+        ${logoBase64 ? `<image href="${logoBase64}" x="20" y="20" width="200" height="60" preserveAspectRatio="xMinYMin meet"/>` : ''}
+        <!-- Colorful accent bar -->
+        <defs>
+          <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
+            <stop offset="50%" style="stop-color:#4ec9b0;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#fb923c;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="${HEADER_HEIGHT - 10}" width="${width}" height="4" fill="url(#accentGradient)"/>
+      </g>
+
+      <!-- Schema Legend -->
+      <g id="legend">
+        <rect x="10" y="${HEADER_HEIGHT + 10}" width="${LEGEND_WIDTH}" height="${legendHeight}" rx="8" fill="rgba(255,255,255,0.95)" stroke="#d1d5db" stroke-width="1"/>
+        <text x="20" y="${HEADER_HEIGHT + 40}" font-family="sans-serif" font-size="16px" font-weight="bold" fill="#1f2937">Schemas</text>
+        ${legendItems}
+      </g>
+
+      <!-- Graph Content -->
+      <g id="graph">
+        ${edgePaths}
+        ${nodeElements}
+      </g>
+    </svg>`;
     const blob = new Blob([svgString], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -576,7 +666,7 @@ function DataLineageVisualizer() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     addNotification('SVG export started.', 'info');
-  }, [getNodes, getEdges, addNotification, schemaColorMap, layout]);
+  }, [getNodes, getEdges, addNotification, schemaColorMap, layout, schemas]);
 
   // Show loading screen while data is being loaded from API
   if (isLoadingData) {
@@ -610,8 +700,12 @@ function DataLineageVisualizer() {
 
   return (
     <div className="w-screen h-screen flex flex-col font-sans">
-      <header className="flex items-center justify-between p-3 bg-white shadow-md flex-shrink-0 z-20 border-b border-gray-200 text-gray-800">
-        <h1 className="text-2xl font-bold">Data Lineage Visualizer</h1>
+      <header className="flex-shrink-0 z-20">
+        <div className="flex items-center justify-between px-4 py-2 bg-white shadow-sm">
+          <img src="/logo.png" alt="Data Lineage Visualizer" className="h-10" />
+        </div>
+        {/* Colorful accent bar matching logo theme */}
+        <div className="h-1 bg-gradient-to-r from-blue-500 via-teal-400 to-orange-400"></div>
       </header>
       <main className="flex-grow p-4 relative bg-gray-100 overflow-hidden">
         <NotificationContainer activeToasts={activeToasts} onDismissToast={removeActiveToast} />
@@ -670,7 +764,7 @@ function DataLineageVisualizer() {
                 proOptions={{ hideAttribution: true }}
               >
                 <Controls />
-                {isControlsVisible && <MiniMap nodeColor={miniMapNodeColor} nodeStrokeWidth={3} nodeBorderRadius={2} zoomable pannable className="bg-white/80" ariaLabel="Minimap" />}
+                {isControlsVisible && <MiniMap key={minimapKey} nodeColor={miniMapNodeColor} nodeStrokeWidth={1.5} nodeBorderRadius={2} maskColor="rgb(240, 240, 240, 0.6)" zoomable pannable className="bg-white border border-gray-300" ariaLabel="Minimap" />}
                 <Background color={'#a1a1aa'} gap={16} />
                 {isControlsVisible &&
                   <Legend

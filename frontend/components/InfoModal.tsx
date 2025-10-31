@@ -1,23 +1,48 @@
 import React from 'react';
+import { Button } from './ui/Button';
 
 type InfoModalProps = {
     isOpen: boolean;
     onClose: () => void;
 };
 
-// SVG Icons for different sections
-const GraphIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-blue-500"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" /></svg>;
-const NavIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-blue-500"><path strokeLinecap="round" strokeLinejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m0 13.5v2.25m0-15.75-1.383-.393a2.25 2.25 0 0 0-2.122 2.122L7.5 7.5m0 9 1.383.393a2.25 2.25 0 0 0 2.122-2.122L12 15.75m0-9-1.383.393a2.25 2.25 0 0 1-2.122-2.122L7.5 7.5m0 9 1.383-.393a2.25 2.25 0 0 1 2.122 2.122L12 15.75m0-15.75 1.383-.393a2.25 2.25 0 0 1 2.122 2.122L16.5 7.5m0 9-1.383.393a2.25 2.25 0 0 1-2.122-2.122L12 15.75m0 0 .569 9.47a2.25 2.25 0 0 1-2.122 2.122L10.5 21.75m2.816-16.5-2.225-2.512a2.25 2.25 0 0 0-2.122-2.122L7.5 4.5M12 15.75l2.225 2.512a2.25 2.25 0 0 0 2.122 2.122l.393 1.383M12 15.75l-2.225 2.512a2.25 2.25 0 0 1-2.122 2.122L6 21.75" /></svg>;
-const ViewIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-blue-500"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12a7.5 7.5 0 0 0 15 0m-15 0a7.5 7.5 0 1 1 15 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1 1 15 0m-15 0H3m18 0h-1.5m-15 0a7.5 7.5 0 1 1 15 0m-15 0H3m18 0h-1.5" /></svg>;
-const FilterIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-blue-500"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.572a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>;
-const TraceIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-blue-500"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75v6.75m-4.5-3.5h9M3.75 12a9 9 0 0 1 18 0v.001a9 9 0 0 1-18 0V12Z" /></svg>;
-const ImportExportIcon = () => <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-8 h-8 text-blue-500"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>;
+// Simple icon components with subtle styling
+const GraphIcon = () => (
+    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-600"><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6a7.5 7.5 0 1 0 7.5 7.5h-7.5V6Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5H21A7.5 7.5 0 0 0 13.5 3v7.5Z" /></svg>
+    </div>
+);
+const NavIcon = () => (
+    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-600"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3.75v4.5m0-4.5h4.5m-4.5 0L9 9M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0L9 15M20.25 3.75h-4.5m4.5 0v4.5m0-4.5L15 9m5.25 11.25h-4.5m4.5 0v-4.5m0 4.5L15 15" /></svg>
+    </div>
+);
+const SearchIcon = () => (
+    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-600"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
+    </div>
+);
+const FilterIcon = () => (
+    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-600"><path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" /></svg>
+    </div>
+);
+const TraceIcon = () => (
+    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-600"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+    </div>
+);
+const ImportExportIcon = () => (
+    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-600"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
+    </div>
+);
 
 const Feature = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
-    <div className="flex items-start gap-4">
-        <div className="flex-shrink-0 mt-1">{icon}</div>
+    <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
+        <div className="flex-shrink-0">{icon}</div>
         <div>
-            <h3 className="text-lg font-bold text-gray-800">{title}</h3>
+            <h3 className="text-base font-semibold text-gray-800 mb-1">{title}</h3>
             <p className="text-sm text-gray-600 leading-relaxed">{children}</p>
         </div>
     </div>
@@ -27,45 +52,86 @@ export const InfoModal = ({ isOpen, onClose }: InfoModalProps) => {
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl h-auto max-h-[90vh] flex flex-col text-gray-800">
-                <header className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-2xl font-bold">Welcome to the Data Lineage Visualizer!</h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                    </button>
-                </header>
-                <main className="flex-grow p-6 overflow-y-auto space-y-6">
-                    <p className="text-center text-gray-700 italic">This tool helps you explore and understand the relationships between your data assets.</p>
-                    
-                    <Feature icon={<GraphIcon />} title="Visualize Lineage">
-                        See how data flows from source to destination. Each node represents a data object (like a table or view), and the lines show their connections. Nodes are color-coded by their database schema.
-                    </Feature>
+        <>
+            {/* Backdrop */}
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={onClose} />
 
-                    <Feature icon={<NavIcon />} title="Canvas Navigation">
-                        Click and drag to pan across the canvas. Use your mouse wheel or the controls on the left to zoom in and out. Click an object to highlight it and its immediate neighbors, dimming everything else for focus.
-                    </Feature>
+            {/* Modal */}
+            <div className="fixed inset-0 z-[51] flex items-center justify-center p-4 pointer-events-none">
+                <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl h-auto max-h-[90vh] flex flex-col text-gray-800 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                    {/* Header with logo and colorful accent */}
+                    <div>
+                        <div className="flex items-center justify-between px-4 py-2 bg-white rounded-t-lg">
+                            <img src="/logo.png" alt="Data Lineage Visualizer" className="h-10" />
+                            <button
+                                onClick={onClose}
+                                className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 text-gray-600 rounded transition-colors"
+                                title="Close (ESC)"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        {/* Colorful accent bar matching logo theme */}
+                        <div className="h-1 bg-gradient-to-r from-blue-500 via-teal-400 to-orange-400"></div>
+                    </div>
 
-                    <Feature icon={<ViewIcon />} title="Detail vs. Schema View">
-                        Switch between a detailed, object-level graph (<strong>Detail View</strong>) and a high-level overview of dependencies between entire schemas (<strong>Schema View</strong>) using the toggle in the toolbar.
-                    </Feature>
+                    {/* Title section */}
+                    <header className="px-6 py-4 border-b border-gray-200">
+                        <h2 className="text-2xl font-bold text-gray-800">Welcome to the Data Lineage Visualizer!</h2>
+                        <p className="mt-2 text-sm text-gray-600 italic">Explore and understand the relationships between your data assets</p>
+                    </header>
 
-                    <Feature icon={<FilterIcon />} title="Search & Filter">
-                        Use the toolbar to quickly find any object by name. You can also filter the canvas to show only the schemas or data model types you're interested in, simplifying complex diagrams.
-                    </Feature>
+                    {/* Content */}
+                    <main className="flex-grow px-6 py-5 overflow-y-auto">
+                        <div className="space-y-4">
+                            <Feature icon={<GraphIcon />} title="Visualize Data Lineage">
+                                See how data flows from source to destination. Each node represents a database object (table, view, or stored procedure), and arrows show dependencies. Nodes are color-coded by schema for easy identification.
+                            </Feature>
 
-                    <Feature icon={<TraceIcon />} title="Interactive Trace">
-                        Perform powerful impact and root-cause analysis with the <strong>Start Trace</strong> feature. Select a starting node and trace its lineage upstream (ancestors) or downstream (descendants) to any depth.
-                    </Feature>
+                            <Feature icon={<NavIcon />} title="Navigate the Canvas">
+                                Click and drag to pan, scroll to zoom, or use the controls in the bottom-left corner. Click any node to highlight its immediate connections. Toggle layout between top-down or left-right orientation.
+                            </Feature>
 
-                    <Feature icon={<ImportExportIcon />} title="Custom Data & Export">
-                        Load your own data lineage by clicking the upload icon and providing a JSON file. Once you're happy with your visualization, export it as a clean SVG file for presentations or documentation.
-                    </Feature>
-                </main>
-                <footer className="p-4 border-t flex items-center justify-end flex-shrink-0">
-                    <button onClick={onClose} className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm">Got it!</button>
-                </footer>
+                            <Feature icon={<SearchIcon />} title="Advanced Search">
+                                Use <strong>Detail Search</strong> to search across all DDL definitions with full-text search. Filter by schema and object type, then view SQL code in a Monaco editor with syntax highlighting.
+                            </Feature>
+
+                            <Feature icon={<FilterIcon />} title="Filter & Focus">
+                                Filter the canvas to show only specific schemas or object types. Use pattern-based exclusions to hide temporary or backup objects and simplify complex diagrams.
+                            </Feature>
+
+                            <Feature icon={<TraceIcon />} title="Interactive Trace">
+                                Perform impact analysis with <strong>Interactive Trace</strong>. Select a starting node and trace upstream (dependencies) or downstream (dependents) to any depth, or find the shortest path between two objects.
+                            </Feature>
+
+                            <Feature icon={<ImportExportIcon />} title="Import & Export">
+                                Load your own lineage data from JSON files or Parquet snapshots. Export your current view as SVG for presentations and documentation. All data stays local in your browser.
+                            </Feature>
+                        </div>
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="px-6 py-4 border-t border-gray-200 flex items-center justify-between flex-shrink-0 bg-gray-50 rounded-b-lg">
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                            <span>Created by</span>
+                            <a
+                                href="https://at.linkedin.com/in/christian-wagner-11aa8614b/de"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-primary-600 hover:text-primary-700 hover:underline font-medium"
+                            >
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                                </svg>
+                                Christian Wagner
+                            </a>
+                        </div>
+                        <Button onClick={onClose} variant="primary" className="px-6">Got it!</Button>
+                    </footer>
+                </div>
             </div>
-        </div>
+        </>
     );
 };

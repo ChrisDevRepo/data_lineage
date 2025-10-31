@@ -14,6 +14,7 @@ type LayoutProps = {
 export const patternToRegex = (pattern: string) => new RegExp('^' + pattern.replace(/\*/g, '.*') + '$', 'i');
 
 export const getDagreLayoutedElements = (props: LayoutProps) => {
+    const startTime = Date.now();
     const { data, layout, schemaColorMap, lineageGraph, isTraceModeActive } = props;
 
     if (data.length === 0) return { nodes: [], edges: [] };
@@ -60,6 +61,8 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
     initialEdges.forEach((edge) => g.setEdge(edge.source, edge.target));
 
     dagre.layout(g);
+
+    console.log(`[Performance] Layout calculated in ${Date.now() - startTime}ms (${initialNodes.length} nodes, ${initialEdges.length} edges)`);
 
     return {
         nodes: initialNodes.map((node) => {
