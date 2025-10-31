@@ -15,7 +15,7 @@ from typing import List, Optional
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -296,6 +296,87 @@ async def get_ddl(object_id: int):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to fetch DDL: {str(e)}"
+        )
+
+
+@app.get("/api/search-ddl", tags=["Data"])
+async def search_ddl(q: str = Query(..., min_length=1, max_length=200, description="Search query")):
+    """
+    Full-text search across all DDL definitions using DuckDB FTS.
+
+    Search features:
+    - Case-insensitive search by default
+    - Searches object_name and definition_text
+    - BM25 relevance ranking (most relevant first)
+    - Automatic stemming (e.g., "customer" matches "customers")
+    - Phrase search support (e.g., "SELECT * FROM")
+    - Boolean operators (AND, OR, NOT)
+    - Wildcard support (e.g., "cust*")
+
+    Args:
+        q: Search query string (1-200 chars, required)
+
+    Returns:
+        List of matching objects sorted by relevance score:
+        [
+            {
+                "id": "1234567890",
+                "name": "spLoadCustomers",
+                "type": "Stored Procedure",
+                "schema": "CONSUMPTION_FINANCE",
+                "score": 2.456,
+                "snippet": "SELECT * FROM DimCustomers WHERE..."
+            }
+        ]
+
+    Raises:
+        404: No lineage data available
+        500: Search failed
+    """
+    # Use persistent workspace in data directory
+    workspace_file = DATA_DIR / "lineage_workspace.duckdb"
+
+    if not workspace_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail="No lineage data available. Please upload data first."
+        )
+
+    try:
+        # Import here to avoid startup dependency
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from lineage_v3.core import DuckDBWorkspace
+
+        with DuckDBWorkspace(workspace_path=str(workspace_file)) as db:
+            # Query FTS index for matching objects
+            # Returns ranked results with BM25 relevance scores
+            results = db.connection.execute("""
+                SELECT
+                    d.object_id::TEXT as id,
+                    d.object_name as name,
+                    o.object_type as type,
+                    o.schema_name as schema,
+                    fts_main_definitions.match_bm25(d.object_id, ?) as score,
+                    substr(d.definition, 1, 150) as snippet
+                FROM definitions d
+                JOIN objects o ON d.object_id = o.object_id
+                WHERE fts_main_definitions.match_bm25(d.object_id, ?) IS NOT NULL
+                ORDER BY score DESC
+                LIMIT 100
+            """, [q, q]).fetchdf()
+
+            # Convert to list of dicts for JSON response
+            search_results = results.to_dict('records')
+
+            return JSONResponse(content=search_results)
+
+    except Exception as e:
+        # Log the error for debugging
+        print(f"❌ Search failed for query '{q}': {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Search failed: {str(e)}"
         )
 
 

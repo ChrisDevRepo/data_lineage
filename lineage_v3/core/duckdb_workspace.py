@@ -240,6 +240,9 @@ class DuckDBWorkspace:
         # Create unified_ddl view after loading all Parquet files
         self.create_unified_ddl_view()
 
+        # Create FTS index for full-text search in Detail Search feature
+        self.create_fts_index()
+
         return row_counts
 
     def load_parquet(
@@ -317,6 +320,9 @@ class DuckDBWorkspace:
 
         # Create unified_ddl view after loading all Parquet files
         self.create_unified_ddl_view()
+
+        # Create FTS index for full-text search in Detail Search feature
+        self.create_fts_index()
 
         return row_counts
 
@@ -605,6 +611,48 @@ class DuckDBWorkspace:
             inputs_json,
             outputs_json
         ])
+
+    def create_fts_index(self):
+        """
+        Create full-text search index for DDL definitions.
+
+        Called after loading definitions table on data upload.
+
+        Features:
+        - Indexes: object_name, definition_text
+        - Case-insensitive search
+        - Automatic stemming (e.g., "customer" matches "customers")
+        - BM25 relevance ranking
+        - Supports phrase search, boolean operators, wildcards
+
+        Raises:
+            RuntimeError: If not connected or definitions table doesn't exist
+        """
+        if not self.connection:
+            raise RuntimeError("Not connected to DuckDB workspace")
+
+        try:
+            # Install and load FTS extension
+            self.connection.execute("INSTALL fts;")
+            self.connection.execute("LOAD fts;")
+
+            # Create FTS index on definitions table
+            # Indexes both object_name and definition_text for comprehensive search
+            self.connection.execute("""
+                PRAGMA create_fts_index(
+                    'definitions',
+                    'object_id',
+                    'object_name',
+                    'definition',
+                    overwrite=1
+                );
+            """)
+
+            print("✅ FTS index created successfully on definitions table")
+
+        except Exception as e:
+            print(f"❌ Failed to create FTS index: {e}")
+            raise RuntimeError(f"FTS index creation failed: {e}")
 
     def create_unified_ddl_view(self):
         """
