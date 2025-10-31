@@ -92,22 +92,13 @@ class DuckDBWorkspace:
             sqlglot_confidence REAL,
             sqlglot_quality_match REAL,
 
-            -- SQLLineage parser results (if dual-parser used)
-            sqllineage_sources_found INTEGER,
-            sqllineage_targets_found INTEGER,
-            sqllineage_quality_match REAL,
-
-            -- Dual-parser decision
-            dual_parser_agreement REAL,
-            dual_parser_decision TEXT,
-
             -- Final result
             final_sources_count INTEGER,
             final_targets_count INTEGER,
             final_confidence REAL,
-            final_source TEXT,  -- 'sqlglot', 'sqllineage', 'dual_parser', 'ai'
+            final_source TEXT,  -- 'sqlglot', 'regex', 'ai', 'query_log'
 
-            -- AI fallback (if used)
+            -- AI disambiguation (if used)
             ai_used BOOLEAN DEFAULT FALSE,
             ai_sources_found INTEGER,
             ai_targets_found INTEGER,
