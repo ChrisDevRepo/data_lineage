@@ -89,7 +89,9 @@ export const Toolbar = (props: ToolbarProps) => {
 
     return (
         <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-gray-200">
-            <div className="flex items-start gap-2 flex-wrap">
+            {/* LEFT SECTION: Search, Filters, View Options */}
+            <div className="flex items-center gap-3 flex-wrap">
+                {/* Search Input */}
                 <div className="relative">
                     <form onSubmit={handleSearch} className="flex items-center">
                         <input
@@ -99,14 +101,14 @@ export const Toolbar = (props: ToolbarProps) => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onBlur={() => setTimeout(() => setAutocompleteSuggestions([]), 150)}
                             disabled={isTraceModeActive}
-                            className="text-sm h-10 w-72 pl-3 pr-10 border rounded-lg bg-gray-100 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                            className="text-sm h-10 w-64 pl-3 pr-10 border rounded-lg bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
                         />
-                        <button type="submit" disabled={isTraceModeActive} className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed" title="Search">
+                        <button type="submit" disabled={isTraceModeActive} className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center text-gray-500 hover:text-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors" title="Search">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                         </button>
                     </form>
                     {autocompleteSuggestions.length > 0 && (
-                        <div className="absolute top-full mt-1 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-40 overflow-y-auto">
+                        <div className="absolute top-full mt-1 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-40 overflow-y-auto">
                             <ul className="py-1">
                                 {autocompleteSuggestions.map(node => (
                                     <li
@@ -122,9 +124,14 @@ export const Toolbar = (props: ToolbarProps) => {
                         </div>
                     )}
                 </div>
+
+                {/* Vertical divider */}
+                <div className="h-8 w-px bg-gray-300"></div>
+
+                {/* Filter Group */}
                 <div className="relative" ref={schemaFilterRef}>
-                    <Button onClick={() => setIsSchemaFilterOpen(p => !p)} disabled={isTraceModeActive} variant="secondary">
-                        Filter Schemas ({selectedSchemas.size}/{schemas.length})
+                    <Button onClick={() => setIsSchemaFilterOpen(p => !p)} disabled={isTraceModeActive} variant="secondary" size="sm">
+                        Schemas ({selectedSchemas.size}/{schemas.length})
                     </Button>
                     {isSchemaFilterOpen && (
                         <div className="absolute top-full mt-2 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
@@ -148,8 +155,8 @@ export const Toolbar = (props: ToolbarProps) => {
                 </div>
                 {dataModelTypes.length > 0 && (
                     <div className="relative" ref={typeFilterRef}>
-                        <Button onClick={() => setIsTypeFilterOpen(p => !p)} disabled={isTraceModeActive} variant="secondary">
-                            Filter Types ({selectedTypes.size}/{dataModelTypes.length})
+                        <Button onClick={() => setIsTypeFilterOpen(p => !p)} disabled={isTraceModeActive} variant="secondary" size="sm">
+                            Types ({selectedTypes.size}/{dataModelTypes.length})
                         </Button>
                         {isTypeFilterOpen && (
                             <div className="absolute top-full mt-2 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
@@ -172,11 +179,16 @@ export const Toolbar = (props: ToolbarProps) => {
                         )}
                     </div>
                 )}
-                <Select value={layout} onChange={(e) => setLayout(e.target.value as 'LR' | 'TB')}>
-                    <option value="LR">Layout: Horizontal</option>
-                    <option value="TB">Layout: Vertical</option>
+
+                {/* Vertical divider */}
+                <div className="h-8 w-px bg-gray-300"></div>
+
+                {/* View Options Group */}
+                <Select value={layout} onChange={(e) => setLayout(e.target.value as 'LR' | 'TB')} size="sm">
+                    <option value="LR">Horizontal</option>
+                    <option value="TB">Vertical</option>
                 </Select>
-                <div className={`flex items-center h-10 px-3 rounded-lg hover:bg-gray-100 ${isTraceModeActive ? 'opacity-50' : ''}`}>
+                <div className={`flex items-center h-8 px-2 rounded-lg hover:bg-gray-100 transition-colors ${isTraceModeActive ? 'opacity-50' : ''}`}>
                     <Checkbox
                         checked={hideUnrelated}
                         onChange={(e) => setHideUnrelated(e.target.checked)}
@@ -185,7 +197,9 @@ export const Toolbar = (props: ToolbarProps) => {
                     />
                 </div>
             </div>
-            <div className="flex items-start gap-2 flex-wrap">
+
+            {/* RIGHT SECTION: Actions & Utilities */}
+            <div className="flex items-center gap-2 flex-wrap">
                 <Button onClick={onStartTrace} variant="primary" className="bg-blue-100 text-blue-700 hover:bg-blue-200" title="Start Interactive Trace">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75v6.75m-4.5-3.5h9M3.75 12a9 9 0 0 1 18 0v.001a9 9 0 0 1-18 0V12Z" /></svg>
                     Start Trace
@@ -240,6 +254,11 @@ export const Toolbar = (props: ToolbarProps) => {
                         )}
                     </Button>
                 )}
+
+                {/* Vertical divider */}
+                <div className="h-8 w-px bg-gray-300"></div>
+
+                {/* Utility Actions */}
                 <Button onClick={onResetView} disabled={isTraceModeActive} variant="icon" title="Reset View to Default">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
