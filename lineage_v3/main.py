@@ -107,7 +107,18 @@ def extract(output, timestamp):
     default='lineage_workspace.duckdb',
     help='Path to DuckDB workspace file'
 )
-def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
+@click.option(
+    '--ai-enabled/--no-ai',
+    default=True,
+    help='Enable/disable AI disambiguation (default: enabled)'
+)
+@click.option(
+    '--ai-threshold',
+    default=0.85,
+    type=float,
+    help='Parser confidence threshold to trigger AI (default: 0.85)'
+)
+def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_enabled, ai_threshold):
     """
     Run lineage analysis on Parquet snapshots.
 
@@ -122,12 +133,19 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
     7. Merge all sources
     8. Generate output JSON files
     """
+    import os as os_module
+
+    # Set AI configuration from CLI options
+    os_module.environ["AI_ENABLED"] = "true" if ai_enabled else "false"
+    os_module.environ["AI_CONFIDENCE_THRESHOLD"] = str(ai_threshold)
+
     click.echo(f"🚀 Vibecoding Lineage Parser v{__version__}")
     click.echo(f"📂 Parquet directory: {parquet}")
     click.echo(f"📁 Output directory: {output}")
     click.echo(f"🔄 Mode: {'Full Refresh' if full_refresh else 'Incremental'}")
     click.echo(f"📊 Format: {format}")
     click.echo(f"💾 Workspace: {workspace}")
+    click.echo(f"🤖 AI Disambiguation: {'Enabled' if ai_enabled else 'Disabled'} (threshold: {ai_threshold})")
     click.echo()
 
     try:
@@ -268,29 +286,34 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
                 ORDER BY schema_name, object_name
             """)
 
-            click.echo(f"🔄 Parsing {len(all_sps):,} stored procedures with dual-parser...")
+            click.echo(f"🔄 Parsing {len(all_sps):,} stored procedures with AI-enhanced parser...")
             click.echo()
 
             if all_sps:
-                from lineage_v3.parsers import DualParser
-                dual_parser = DualParser(db)
+                from lineage_v3.parsers import QualityAwareParser
+                parser = QualityAwareParser(db)
 
                 parsed_count = 0
                 failed_count = 0
                 high_confidence_count = 0
                 medium_confidence_count = 0
                 low_confidence_count = 0
+                ai_used_count = 0
 
                 for i, sp in enumerate(all_sps):
                     try:
-                        # Parse with dual-parser
-                        result = dual_parser.parse_object(sp[0])  # sp[0] = object_id
+                        # Parse with quality-aware parser (includes AI fallback)
+                        result = parser.parse_object(sp[0])  # sp[0] = object_id
+
+                        # Track AI usage
+                        if result.get('quality_check', {}).get('ai_used', False):
+                            ai_used_count += 1
 
                         # Persist result to lineage_metadata
                         db.update_metadata(
                             object_id=sp[0],
                             modify_date=sp[3],  # sp[3] = modify_date
-                            primary_source=result.get('source', 'dual_parser'),
+                            primary_source=result.get('source', 'parser'),
                             confidence=result['confidence'],
                             inputs=result.get('inputs', []),
                             outputs=result.get('outputs', [])
@@ -318,22 +341,16 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace):
                         failed_count += 1
 
                 click.echo()
-                click.echo(f"✅ Dual-parser complete:")
+                click.echo(f"✅ Parser complete:")
                 click.echo(f"   - Total SPs: {len(all_sps):,}")
                 click.echo(f"   - Successfully parsed: {parsed_count:,} ({parsed_count/len(all_sps)*100:.1f}%)")
                 click.echo(f"     • High confidence (≥0.85): {high_confidence_count:,}")
                 click.echo(f"     • Medium confidence (0.75-0.84): {medium_confidence_count:,}")
                 click.echo(f"     • Low confidence (0.50-0.74): {low_confidence_count:,}")
-                click.echo(f"   - Failed (need AI): {failed_count:,} ({failed_count/len(all_sps)*100:.1f}%)")
+                click.echo(f"   - Failed: {failed_count:,} ({failed_count/len(all_sps)*100:.1f}%)")
+                if ai_used_count > 0:
+                    click.echo(f"   - AI disambiguations used: {ai_used_count:,} SPs ({ai_used_count/len(all_sps)*100:.1f}%)")
                 click.echo()
-
-                # Show dual-parser statistics
-                if hasattr(dual_parser, 'stats'):
-                    click.echo(f"📊 Dual-Parser Decision Breakdown:")
-                    for decision, count in dual_parser.stats.items():
-                        if count > 0:
-                            click.echo(f"   - {decision}: {count}")
-                    click.echo()
             else:
                 click.echo("⚠️  No stored procedures found to parse")
                 click.echo()
