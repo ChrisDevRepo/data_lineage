@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from lineage_v3.core import DuckDBWorkspace, GapDetector
-from lineage_v3.parsers import DualParser
+from lineage_v3.parsers import QualityAwareParser
 from lineage_v3.output import InternalFormatter, FrontendFormatter, SummaryFormatter
 
 
@@ -304,7 +304,7 @@ class LineageProcessor:
                 sps_to_parse = [obj for obj in objects_to_parse if obj['object_type'] == 'Stored Procedure']
 
                 if sps_to_parse:
-                    dual_parser = DualParser(db)
+                    parser = QualityAwareParser(db)
 
                     for i, sp_dict in enumerate(sps_to_parse):
                         # Update progress
@@ -317,14 +317,14 @@ class LineageProcessor:
                         )
 
                         try:
-                            # Parse with dual-parser
-                            result = dual_parser.parse_object(sp_dict['object_id'])
+                            # Parse with QualityAwareParser
+                            result = parser.parse_object(sp_dict['object_id'])
 
                             # Persist result to lineage_metadata
                             db.update_metadata(
                                 object_id=sp_dict['object_id'],
                                 modify_date=sp_dict['modify_date'],
-                                primary_source=result.get('source', 'dual_parser'),
+                                primary_source=result.get('primary_source', 'parser'),
                                 confidence=result['confidence'],
                                 inputs=result.get('inputs', []),
                                 outputs=result.get('outputs', [])
