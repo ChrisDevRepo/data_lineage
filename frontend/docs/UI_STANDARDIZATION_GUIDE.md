@@ -65,9 +65,10 @@
 ### 6. **Typography & Labels**
 
 - **Button labels**: Short, action-oriented (Trace, Search, Apply)
-- **Section headers**: Numbered lists for multi-step forms (1., 2., 3.)
+- **Section headers**: Uppercase, tracked labels (`uppercase tracking-wide text-xs font-semibold`)
 - **Helper text**: Gray-500, text-xs
-- **Font sizes**: text-sm for most UI, text-xs for secondary info
+- **Font sizes**: text-sm for most UI, text-xs for secondary info and checkboxes
+- **Checkbox labels**: text-xs for consistency across all dropdowns
 
 ### 7. **Modal & Panel Standards**
 
@@ -81,16 +82,20 @@
 </div>
 ```
 
-**Standard Modals:**
+**Standard Modals (with Gradient Accent):**
 ```tsx
 <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
   <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
-    <header className="p-4 border-b flex items-center justify-between">
-      <h2>Title</h2>
-      <Button variant="icon" onClick={onClose}>×</Button>
+    <header>
+      <div className="flex items-center justify-between px-4 py-2.5">
+        <img src="/logo.png" alt="Logo" className="h-10" />
+        <button onClick={onClose} className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 text-gray-600 rounded transition-colors">×</button>
+      </div>
+      {/* Colorful gradient accent bar */}
+      <div className="h-1 bg-gradient-to-r from-blue-500 via-teal-400 to-orange-400"></div>
     </header>
-    <main className="flex-1 p-6 overflow-y-auto">...</main>
-    <footer className="p-4 border-t flex justify-end gap-2">
+    <main className="flex-1 px-6 py-5 overflow-y-auto">...</main>
+    <footer className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-2">
       <Button variant="secondary">Cancel</Button>
       <Button variant="primary">Confirm</Button>
     </footer>
@@ -98,12 +103,30 @@
 </div>
 ```
 
-**Side Panels:**
+**Side Panels (with Icon & Gradient Accent):**
 ```tsx
 <div className={`absolute top-0 right-0 h-full w-80 bg-white shadow-2xl z-20 transform transition-transform ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-  <header className="p-4 border-b flex items-center justify-between">...</header>
-  <main className="flex-1 p-4 overflow-y-auto">...</main>
-  <footer className="p-4 border-t flex justify-end gap-2">...</footer>
+  <div className="flex flex-col h-full">
+    <header className="flex-shrink-0">
+      <div className="flex items-center justify-between px-4 py-2.5">
+        <div className="flex items-center gap-2">
+          {/* Gradient icon */}
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center">
+            <svg>...</svg>
+          </div>
+          <h2 className="text-lg font-bold text-gray-800">Panel Title</h2>
+        </div>
+        <button onClick={onClose} className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 text-gray-600 rounded transition-colors">×</button>
+      </div>
+      {/* Colorful gradient bar */}
+      <div className="h-1 bg-gradient-to-r from-green-500 via-teal-400 to-blue-500"></div>
+    </header>
+    <main className="flex-grow overflow-y-auto px-4 py-4 space-y-5">...</main>
+    <footer className="flex-shrink-0 px-4 py-3 border-t border-gray-200 bg-gray-50 flex justify-end gap-2">
+      <Button variant="secondary">Reset</Button>
+      <Button variant="primary">Apply</Button>
+    </footer>
+  </div>
 </div>
 ```
 
@@ -159,7 +182,8 @@
 
 ### Interactive Trace Panel
 - **Type**: Side panel (slide from right)
-- **Form**: Numbered sections (1., 2., 3.)
+- **Header**: Green gradient icon + colorful accent bar
+- **Form**: Uppercase tracked labels, contextual help text
 - **Footer**: Reset (left) | Apply Trace (right)
 
 ### Detail Search Modal
@@ -169,9 +193,10 @@
 - **No footer**: Close button in header only
 
 ### Info Modal
-- **Type**: Standard centered modal
-- **Content**: Feature cards with icons
-- **Footer**: Single "Got it!" button (right aligned)
+- **Type**: Standard centered modal with logo + gradient accent
+- **Icons**: Simple gray circles (bg-gray-100) with gray icons - not colorful gradients
+- **Content**: Feature cards with icons and descriptions
+- **Footer**: LinkedIn credit (left) | "Got it!" button (right)
 
 ---
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { DataNode } from '../types';
 import { tokens } from '../design-tokens';
+import { Checkbox } from './ui/Checkbox';
 
 // Debounce utility
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
@@ -46,10 +47,12 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
   const [topPanelHeight, setTopPanelHeight] = useState(25);
   const [isResizing, setIsResizing] = useState(false);
 
-  // Filter state
-  const [selectedSchema, setSelectedSchema] = useState<string>('');
-  const [selectedObjectType, setSelectedObjectType] = useState<string>('');
+  // Filter state - Changed to Sets for multi-select
+  const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
+  const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(new Set());
   const [showSearchHelp, setShowSearchHelp] = useState(false);
+  const [showSchemaFilter, setShowSchemaFilter] = useState(false);
+  const [showTypeFilter, setShowTypeFilter] = useState(false);
 
   const editorRef = useRef<any>(null);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
@@ -118,7 +121,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
 
   // Debounced search function
   const debouncedSearch = useMemo(
-    () => debounce(async (query: string, schema: string, objectType: string) => {
+    () => debounce(async (query: string, schemas: Set<string>, objectTypes: Set<string>) => {
       if (!query.trim()) {
         setResults([]);
         setIsSearching(false);
@@ -140,12 +143,12 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
 
         let data = await response.json();
 
-        // Client-side filtering by schema and object type
-        if (schema) {
-          data = data.filter((result: SearchResult) => result.schema === schema);
+        // Client-side filtering by schemas and object types (multi-select)
+        if (schemas.size > 0) {
+          data = data.filter((result: SearchResult) => schemas.has(result.schema));
         }
-        if (objectType) {
-          data = data.filter((result: SearchResult) => result.type === objectType);
+        if (objectTypes.size > 0) {
+          data = data.filter((result: SearchResult) => objectTypes.has(result.type));
         }
 
         setResults(data);
@@ -164,12 +167,12 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
   useEffect(() => {
     if (searchQuery.trim()) {
       setIsSearching(true);
-      debouncedSearch(searchQuery, selectedSchema, selectedObjectType);
+      debouncedSearch(searchQuery, selectedSchemas, selectedObjectTypes);
     } else {
       setResults([]);
       setIsSearching(false);
     }
-  }, [searchQuery, selectedSchema, selectedObjectType, debouncedSearch]);
+  }, [searchQuery, selectedSchemas, selectedObjectTypes, debouncedSearch]);
 
   // Handle result click - fetch full DDL
   const handleResultClick = async (result: SearchResult) => {
@@ -208,9 +211,11 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     setError(null);
     setIsSearching(false);
     setIsLoadingDdl(false);
-    setSelectedSchema('');
-    setSelectedObjectType('');
+    setSelectedSchemas(new Set());
+    setSelectedObjectTypes(new Set());
     setShowSearchHelp(false);
+    setShowSchemaFilter(false);
+    setShowTypeFilter(false);
   };
 
   // Handle editor mount
@@ -255,101 +260,150 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
         className="fixed inset-0 bg-white z-[9999] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex flex-col gap-3 px-6 py-4 bg-gray-50 border-b border-gray-200">
-          {/* First row: Search input and close button */}
-          <div className="flex items-center gap-4">
-            {/* Search Icon */}
-            <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        {/* Header Row 1: Logo and Icon Bar (reusing main toolbar style) */}
+        <div>
+          <div className="flex items-center justify-between px-4 py-2 bg-white shadow-sm">
+            <img src="/logo.png" alt="Data Lineage Visualizer" className="h-10" />
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600 font-medium">Detail Search Mode</span>
+              <button
+                onClick={handleClose}
+                className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 text-gray-600 rounded transition-colors"
+                title="Close (ESC)"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {/* Colorful accent bar matching logo theme */}
+          <div className="h-1 bg-gradient-to-r from-blue-500 via-teal-400 to-orange-400"></div>
+        </div>
+
+        {/* Header Row 2: Search Controls */}
+        <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-200">
+          {/* Search input */}
+          <div className="relative flex-1 max-w-2xl">
+            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
-
             <input
               type="text"
               placeholder="Search DDL definitions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
-              className="flex-1 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+              className="w-full h-9 pl-9 pr-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors"
             />
+          </div>
 
+          {/* Schema filter - Multi-select */}
+          <div className="relative">
+            <button
+              onClick={() => setShowSchemaFilter(!showSchemaFilter)}
+              className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedSchemas.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
+              title={`Schemas (${selectedSchemas.size > 0 ? selectedSchemas.size : 'All'})`}
+            >
+              Schemas ({selectedSchemas.size > 0 ? selectedSchemas.size : filterOptions.schemas.length})
+            </button>
+            {showSchemaFilter && (
+              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                <div className="space-y-2">
+                  {filterOptions.schemas.map(schema => (
+                    <Checkbox
+                      key={schema}
+                      checked={selectedSchemas.has(schema)}
+                      onChange={() => {
+                        const newSet = new Set(selectedSchemas);
+                        if (newSet.has(schema)) newSet.delete(schema);
+                        else newSet.add(schema);
+                        setSelectedSchemas(newSet);
+                      }}
+                      label={schema}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Object type filter - Multi-select */}
+          <div className="relative">
+            <button
+              onClick={() => setShowTypeFilter(!showTypeFilter)}
+              className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedObjectTypes.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
+              title={`Types (${selectedObjectTypes.size > 0 ? selectedObjectTypes.size : 'All'})`}
+            >
+              Types ({selectedObjectTypes.size > 0 ? selectedObjectTypes.size : filterOptions.objectTypes.length})
+            </button>
+            {showTypeFilter && (
+              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                <div className="space-y-2">
+                  {filterOptions.objectTypes.map(type => (
+                    <Checkbox
+                      key={type}
+                      checked={selectedObjectTypes.has(type)}
+                      onChange={() => {
+                        const newSet = new Set(selectedObjectTypes);
+                        if (newSet.has(type)) newSet.delete(type);
+                        else newSet.add(type);
+                        setSelectedObjectTypes(newSet);
+                      }}
+                      label={type}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Search status indicators */}
+          <div className="flex items-center gap-2">
             {isSearching && (
               <div className="w-5 h-5 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
             )}
 
             {results.length > 0 && !isSearching && (
-              <span className="text-sm text-gray-500 whitespace-nowrap">
+              <span className="text-sm text-gray-600 whitespace-nowrap">
                 {results.length} {results.length === 1 ? 'match' : 'matches'}
               </span>
             )}
 
-            <button
-              onClick={handleClose}
-              className="w-8 h-8 flex items-center justify-center bg-transparent hover:bg-gray-200 text-gray-600 text-xl rounded transition-colors"
-              title="Close (ESC)"
-            >
-              ×
-            </button>
-          </div>
-
-          {/* Second row: Filters and help */}
-          <div className="flex items-center gap-3 pl-9">
-            {/* Schema filter */}
-            <select
-              value={selectedSchema}
-              onChange={(e) => setSelectedSchema(e.target.value)}
-              className="px-3 py-1.5 bg-white border border-gray-300 rounded text-gray-700 text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-600"
-            >
-              <option value="">All Schemas</option>
-              {filterOptions.schemas.map(schema => (
-                <option key={schema} value={schema}>{schema}</option>
-              ))}
-            </select>
-
-            {/* Object type filter */}
-            <select
-              value={selectedObjectType}
-              onChange={(e) => setSelectedObjectType(e.target.value)}
-              className="px-3 py-1.5 bg-white border border-gray-300 rounded text-gray-700 text-xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-600"
-            >
-              <option value="">All Types</option>
-              {filterOptions.objectTypes.map(type => (
-                <option key={type} value={type}>{type}</option>
-              ))}
-            </select>
-
             {/* Search help toggle */}
             <button
               onClick={() => setShowSearchHelp(!showSearchHelp)}
-              className={`px-3 py-1.5 border border-gray-300 rounded text-primary-600 text-xs cursor-pointer flex items-center gap-1 transition-colors ${
-                showSearchHelp ? 'bg-gray-100' : 'bg-white hover:bg-gray-50'
+              className={`h-9 w-9 flex items-center justify-center border border-gray-300 rounded-md transition-colors ${
+                showSearchHelp ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'
               }`}
               title="Search syntax help"
             >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span>Help</span>
             </button>
 
             {/* Clear filters button */}
-            {(selectedSchema || selectedObjectType) && (
+            {(selectedSchemas.size > 0 || selectedObjectTypes.size > 0) && (
               <button
                 onClick={() => {
-                  setSelectedSchema('');
-                  setSelectedObjectType('');
+                  setSelectedSchemas(new Set());
+                  setSelectedObjectTypes(new Set());
                 }}
-                className="px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-300 rounded text-gray-600 text-xs cursor-pointer transition-colors"
+                className="h-9 px-3 bg-white hover:bg-gray-50 border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap"
                 title="Clear filters"
               >
                 Clear Filters
               </button>
             )}
           </div>
+        </div>
 
-          {/* Search help panel */}
-          {showSearchHelp && (
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded text-xs text-gray-700 leading-relaxed ml-9">
+        {/* Search help panel */}
+        {showSearchHelp && (
+          <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
+            <div className="p-3 bg-white border border-blue-300 rounded text-xs text-gray-700 leading-relaxed">
               <div className="font-medium mb-2 text-primary-600">
                 Advanced Search Syntax:
               </div>
@@ -370,8 +424,8 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
                 <span>Wildcard (matches customer, customers, etc.)</span>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Content area */}
         <div className="flex-1 flex flex-col overflow-hidden">

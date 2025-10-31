@@ -420,39 +420,58 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col text-gray-800">
-                <header className="p-4 border-b">
-                    <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-xl font-bold">Import Data</h2>
-                        <Button onClick={onClose} variant="icon" disabled={isProcessing}>
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                        </Button>
+        <>
+            {/* Backdrop */}
+            <div className="fixed inset-0 bg-black/50 z-50" onClick={isProcessing ? undefined : onClose} />
+
+            {/* Modal */}
+            <div className="fixed inset-0 z-[51] flex items-center justify-center p-4 pointer-events-none">
+                <div className="bg-white rounded-lg shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col text-gray-800 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+                    {/* Header with logo and colorful accent */}
+                    <div>
+                        <div className="flex items-center justify-between px-4 py-2 bg-white rounded-t-lg">
+                            <img src="/logo.png" alt="Data Lineage Visualizer" className="h-10" />
+                            <button
+                                onClick={onClose}
+                                disabled={isProcessing}
+                                className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 text-gray-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Close"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                        {/* Colorful accent bar matching logo theme */}
+                        <div className="h-1 bg-gradient-to-r from-blue-500 via-teal-400 to-orange-400"></div>
                     </div>
-                    {/* Tab selector */}
-                    <div className="flex gap-2">
-                        <Button
-                            variant={uploadMode === 'json' ? 'primary' : 'secondary'}
-                            onClick={() => setUploadMode('json')}
-                            disabled={isProcessing}
-                        >
-                            Import JSON
-                        </Button>
-                        <Button
-                            variant={uploadMode === 'parquet' ? 'primary' : 'secondary'}
-                            onClick={() => setUploadMode('parquet')}
-                            disabled={isProcessing}
-                        >
-                            Upload Parquet Files
-                        </Button>
-                    </div>
-                </header>
+
+                    {/* Title and Tab selector */}
+                    <header className="px-4 py-3 border-b border-gray-200">
+                        <h2 className="text-xl font-bold text-gray-800 mb-3">Import Data</h2>
+                        <div className="flex gap-2">
+                            <Button
+                                variant={uploadMode === 'json' ? 'primary' : 'secondary'}
+                                onClick={() => setUploadMode('json')}
+                                disabled={isProcessing}
+                            >
+                                Import JSON
+                            </Button>
+                            <Button
+                                variant={uploadMode === 'parquet' ? 'primary' : 'secondary'}
+                                onClick={() => setUploadMode('parquet')}
+                                disabled={isProcessing}
+                            >
+                                Upload Parquet Files
+                            </Button>
+                        </div>
+                    </header>
 
                 {/* Content area - conditionally render based on upload mode */}
                 {uploadMode === 'json' ? (
                     <main className="flex-grow p-4 grid grid-cols-1 md:grid-cols-2 gap-4 overflow-hidden">
                         <div className="flex flex-col gap-2">
-                            <label className="font-semibold">Edit current data or paste new JSON:</label>
+                            <label className="text-sm font-medium text-gray-700">Edit current data or paste new JSON:</label>
                             <textarea value={jsonText} onChange={(e) => setJsonText(e.target.value)} className="w-full flex-grow border rounded-md p-2 font-mono text-sm bg-gray-50 resize-none" spellCheck="false" />
                             <div className="flex items-center gap-2">
                                 <input type="file" ref={importFileRef} onChange={handleFileChange} accept=".json" className="hidden" />
@@ -462,7 +481,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                         </div>
                         <div className="flex flex-col gap-2 overflow-hidden">
                             <div className="flex items-center justify-between">
-                                <label className="font-semibold">{view === 'sample' ? 'Default Sample Data (read-only):' : 'Data Contract Definition:'}</label>
+                                <label className="text-sm font-medium text-gray-700">{view === 'sample' ? 'Default Sample Data (read-only):' : 'Data Contract Definition:'}</label>
                                 <Button onClick={() => setView(v => v === 'sample' ? 'definition' : 'sample')} variant="ghost" size="sm">
                                     {view === 'sample' ? 'Show Definition' : 'Show Sample Data'}
                                 </Button>
@@ -513,7 +532,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                             <div className="border border-gray-300 rounded-lg p-3">
                                 <button
                                     onClick={() => setShowInstructions(!showInstructions)}
-                                    className="w-full flex items-center justify-between text-left font-semibold text-gray-700 hover:text-blue-600"
+                                    className="w-full flex items-center justify-between text-left text-sm font-medium text-gray-700 hover:text-blue-600"
                                 >
                                     <span>📘 Upload Instructions</span>
                                     <span className="text-sm text-blue-600">
@@ -553,10 +572,10 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                                         checked={useIncremental}
                                         onChange={(e) => setUseIncremental(e.target.checked)}
                                         disabled={isProcessing}
-                                        className="mt-0.5 w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                                        className="mt-0.5 w-4 h-4 flex-shrink-0 border-2 border-gray-300 text-green-600 rounded focus:ring-2 focus:ring-green-500 checked:border-green-600 transition-colors cursor-pointer disabled:opacity-50"
                                     />
                                     <div className="flex-1">
-                                        <span className="font-semibold text-green-900">
+                                        <span className="text-sm font-medium text-green-900">
                                             Incremental Parsing (Recommended)
                                         </span>
                                         <span className="text-sm text-green-700 ml-2">
@@ -768,7 +787,8 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                         </div>
                     </footer>
                 )}
+                </div>
             </div>
-        </div>
+        </>
     );
 };

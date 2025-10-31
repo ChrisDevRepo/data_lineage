@@ -22,8 +22,8 @@ export const Checkbox: React.FC<CheckboxProps> = ({
   // Generate ID if not provided (for label association)
   const checkboxId = id || `checkbox-${Math.random().toString(36).substr(2, 9)}`;
 
-  // Base checkbox styles
-  const checkboxStyles = 'w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-2 focus:ring-primary-600 focus:ring-offset-0 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed';
+  // Base checkbox styles - consistent size and visible border
+  const checkboxStyles = 'w-4 h-4 flex-shrink-0 rounded border-2 border-gray-300 text-primary-600 focus:ring-2 focus:ring-primary-600 focus:ring-offset-0 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed checked:border-primary-600';
 
   if (!label && !description) {
     // Standalone checkbox without label
@@ -53,7 +53,7 @@ export const Checkbox: React.FC<CheckboxProps> = ({
       />
       <div className="flex-1">
         {label && (
-          <span className="text-sm text-gray-800 select-none">
+          <span className="text-xs text-gray-800 select-none">
             {label}
           </span>
         )}

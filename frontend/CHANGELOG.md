@@ -6,7 +6,50 @@ All notable changes to the frontend application will be documented in this file.
 
 ## [2.9.0] - 2025-10-31
 
-### 🎨 UI Simplification & Feature Enhancements
+### 🎨 UI Redesign Phase 1: Unified Design System
+
+#### **Design System Standardization**
+- **Modern Header Design:** Added logo and colorful gradient accent bars to all modals and panels
+  - InfoModal: Logo + blue-teal-orange gradient
+  - Interactive Trace Panel: Green icon + green-teal-blue gradient
+- **Simplified Icons:** Changed InfoModal feature icons from colorful gradients to simple gray circles (bg-gray-100)
+- **Consistent Typography:**
+  - Standardized checkbox labels to `text-xs` across all components
+  - Updated section labels to use uppercase tracking (`uppercase tracking-wide text-xs font-semibold`)
+- **Performance Improvements:**
+  - Added performance logging throughout data loading, graph building, and layout calculation
+  - Removed artificial 500ms delay from data loading
+- **Minimap Enhancements:**
+  - Simplified to uniform gray color (#9ca3af) for all nodes
+  - Changed to white background with border for cleaner appearance
+  - Reduced stroke width from 3 to 1.5 for subtler visualization
+
+#### **Interactive Trace Panel Redesign**
+- **Modern Header:** Green gradient icon with colorful accent bar
+- **Improved Layout:**
+  - Cleaner section labels (removed numbered prefixes)
+  - Added contextual help text for trace mode
+  - Better visual grouping with divider between trace config and filters
+- **Enhanced Node Selection:**
+  - Autocomplete dropdowns show node name, schema, and type
+  - Selected nodes displayed in green-themed cards
+  - Improved hover states with green-50 background
+- **Trace Depth Controls:** Wrapped in gray background card for better visual grouping
+- **Professional Footer:** Gray background to separate from content
+
+#### **InfoModal Content Update**
+- **Accurate Features:** Removed outdated "Schema View" reference
+- **Updated Descriptions:**
+  - Visualize Data Lineage: Tables, views, stored procedures with schema colors
+  - Navigate the Canvas: Pan, zoom, click to highlight, layout toggle
+  - Advanced Search: Detail Search with DDL full-text search and Monaco editor
+  - Filter & Focus: Schema/type filtering and pattern exclusions
+  - Interactive Trace: Impact analysis with upstream/downstream or path-between-nodes
+  - Import & Export: JSON/Parquet import, SVG export, local data
+
+#### **SVG Export Improvements**
+- Fixed legend height calculation to show all schemas (not cut off)
+- Ensured minimap in exported SVGs uses uniform gray color
 
 #### **Removed: Schema View**
 - **Change:** Removed schema-level aggregation view (schema boxes with dependencies)
@@ -17,7 +60,7 @@ All notable changes to the frontend application will be documented in this file.
   - All features (search, SQL viewer, detail search, trace mode) now work without view mode restrictions
   - Cleaner, simpler interface focused on object-level lineage
 
-#### **New: Detail Search Modal Enhancements**
+#### **Detail Search Modal Enhancements**
 - **Resizable Panels:** Interactive draggable divider between search results and DDL viewer (drag to resize 15%-60%)
 - **Top Panel Sizing:** Reduced default height to 25% (from 35%) for better DDL viewing space
 - **Filter Dropdowns:** Added schema and object type filters next to search box
