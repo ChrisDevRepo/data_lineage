@@ -4,6 +4,33 @@ All notable changes to the frontend application will be documented in this file.
 
 ---
 
+## [2.9.1] - 2025-10-31
+
+### 🏷️ Branding & Code Cleanup
+
+#### **InfoModal Credits**
+- **Added Claude Code Branding:** InfoModal footer now includes "Built with Claude Code" alongside creator credits
+- **Design Details:**
+  - Inline layout with bullet separator: "Created by Christian Wagner • Built with Claude Code"
+  - Custom Claude Code icon (layered boxes SVG)
+  - Both credits are clickable links with hover effects
+  - LinkedIn icon for creator, custom icon for Claude Code
+
+#### **Code Cleanup & Architecture**
+- **Removed Deprecated Code:** Archived unused `dual_parser.py` to deprecated folder (481 lines)
+- **Deleted Old Files:** Removed `Toolbar_old_backup.tsx` backup file (293 lines)
+- **Updated Parser Architecture:** Clarified production uses single parser (QualityAwareParser) + AI
+- **Total Code Reduction:** 774 lines removed from active codebase (5% reduction)
+- **Updated Documentation:** Parser module `__init__.py` now reflects v3.7.0 architecture
+
+#### **Production Architecture (v3.7.0)**
+- ✅ QualityAwareParser: Main production parser (SQLGlot + regex baseline)
+- ✅ AIDisambiguator: Azure OpenAI integration for ambiguous references
+- ✅ QueryLogValidator: Runtime validation (0.85 → 0.95 confidence boost)
+- ❌ DualParser: Archived (no longer used)
+
+---
+
 ## [2.9.0] - 2025-10-31
 
 ### 🎨 UI Redesign Phase 1: Unified Design System
