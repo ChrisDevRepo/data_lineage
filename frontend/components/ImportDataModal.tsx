@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DataNode } from '../types';
 import { Button } from './ui/Button';
+import { API_BASE_URL } from '../config';
 
 type ImportDataModalProps = {
     isOpen: boolean;
@@ -167,7 +168,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
 
     const fetchMetadata = async () => {
         try {
-            const response = await fetch('http://localhost:8000/api/metadata');
+            const response = await fetch(`${API_BASE_URL}/api/metadata`);
             const metadata = await response.json();
             if (metadata.available) {
                 setLastUploadDate(metadata.upload_timestamp_human);
@@ -216,7 +217,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
         if (errors.length === 0) {
             // Auto-delete DuckDB workspace before importing JSON
             try {
-                await fetch('http://localhost:8000/api/clear-data', { method: 'DELETE' });
+                await fetch(`${API_BASE_URL}/api/clear-data`, { method: 'DELETE' });
             } catch (err) {
                 console.warn('Failed to clear backend data:', err);
                 // Continue anyway - JSON mode doesn't strictly need backend
@@ -258,8 +259,8 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
 
             // Add incremental flag as query parameter
             const url = useIncremental
-                ? 'http://localhost:8000/api/upload-parquet?incremental=true'
-                : 'http://localhost:8000/api/upload-parquet?incremental=false';
+                ? `${API_BASE_URL}/api/upload-parquet?incremental=true`
+                : `${API_BASE_URL}/api/upload-parquet?incremental=false`;
 
             const uploadResponse = await fetch(url, {
                 method: 'POST',
@@ -295,7 +296,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
 
         const poll = async () => {
             try {
-                const response = await fetch(`http://localhost:8000/api/status/${job_id}`);
+                const response = await fetch(`${API_BASE_URL}/api/status/${job_id}`);
                 const status: JobStatus = await response.json();
 
                 // Calculate elapsed time
@@ -310,7 +311,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                 // Check if complete
                 if (status.status === 'completed') {
                     // Fetch result
-                    const resultResponse = await fetch(`http://localhost:8000/api/result/${job_id}`);
+                    const resultResponse = await fetch(`${API_BASE_URL}/api/result/${job_id}`);
                     const result = await resultResponse.json();
 
                     // Extract data array from response
@@ -394,7 +395,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
         setIsClearing(true);
 
         try {
-            const response = await fetch('http://localhost:8000/api/clear-data', {
+            const response = await fetch(`${API_BASE_URL}/api/clear-data`, {
                 method: 'DELETE'
             });
 
