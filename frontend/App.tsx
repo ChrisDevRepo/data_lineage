@@ -824,27 +824,6 @@ function DataLineageVisualizer() {
         allData={allData}
         onClose={handleCloseDetailSearch}
       />
-
-      {/* Footer with credits */}
-      <footer className="flex-shrink-0 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 px-4 py-2">
-        <div className="flex items-center justify-center gap-2 text-xs text-gray-600">
-          <span>Created by Christian Wagner with</span>
-          <a
-            href="https://claude.ai/code"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-700 font-medium transition-colors"
-            title="Built with Claude Code"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#2563eb" opacity="0.8"/>
-              <path d="M2 17L12 22L22 17" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M2 12L12 17L22 12" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Claude Code
-          </a>
-        </div>
-      </footer>
     </div>
   );
 }
