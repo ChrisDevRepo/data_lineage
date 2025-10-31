@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { SpinnerContainer } from './ui/Spinner';
+import { API_BASE_URL } from '../config';
 
 type SqlViewerProps = {
   isOpen: boolean;
@@ -42,7 +43,7 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
       setError(null);
 
       try {
-        const url = `http://localhost:8000/api/ddl/${selectedNode.id}`;
+        const url = `${API_BASE_URL}/api/ddl/${selectedNode.id}`;
         const response = await fetch(url);
 
         if (!response.ok) {

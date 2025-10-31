@@ -47,6 +47,11 @@ START_TIME = time.time()
 # In-memory job tracking (lost on restart - acceptable per spec)
 active_jobs = {}  # job_id -> {"status": str, "thread": Thread}
 
+# Global upload lock for multi-user safety (simple blocking approach)
+# Prevents concurrent uploads from corrupting DuckDB workspace
+upload_lock = threading.Lock()
+current_upload_info = {"job_id": None, "started_at": None}
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -75,12 +80,15 @@ app = FastAPI(
 )
 
 # CORS configuration (allow frontend to call API)
+# Use environment variable for production deployment to Azure
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to specific domains
+    allow_origins=ALLOWED_ORIGINS,  # Configured via environment variable
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE"],  # Only methods we use
+    allow_headers=["Content-Type", "X-Requested-With"],
 )
 
 
@@ -125,6 +133,12 @@ def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = True):
     except Exception as e:
         print(f"Error processing job {job_id}: {e}")
         active_jobs[job_id]["status"] = "failed"
+    finally:
+        # Always release upload lock when done (success or failure)
+        upload_lock.release()
+        current_upload_info["job_id"] = None
+        current_upload_info["started_at"] = None
+        print(f"✅ Upload lock released for job {job_id}")
 
 
 # ============================================================================
@@ -408,10 +422,27 @@ async def upload_parquet(
     Returns:
         Job ID for status polling
     """
+    # Check if another upload is in progress (multi-user safety)
+    if not upload_lock.acquire(blocking=False):
+        # Another user is uploading - return friendly error
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error": "System busy",
+                "message": "Another upload is currently being processed. Please wait a few minutes and try again.",
+                "current_job_id": current_upload_info.get("job_id"),
+                "started_at": current_upload_info.get("started_at")
+            }
+        )
+
     # Generate unique job ID
     job_id = str(uuid.uuid4())
     job_dir = get_job_dir(job_id)
     job_dir.mkdir(parents=True, exist_ok=True)
+
+    # Track current upload
+    current_upload_info["job_id"] = job_id
+    current_upload_info["started_at"] = datetime.now().isoformat()
 
     # Track received files
     files_received = []
@@ -426,12 +457,24 @@ async def upload_parquet(
             if not upload_file.filename:
                 continue
 
+            # Sanitize filename to prevent path traversal attacks
+            filename = os.path.basename(upload_file.filename)  # Strip any path components
+
+            # Additional validation: reject suspicious characters
+            if '..' in filename or '/' in filename or '\\' in filename:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid filename '{upload_file.filename}' - path characters not allowed"
+                )
+
             # Ensure .parquet extension
-            filename = upload_file.filename
             if not filename.endswith('.parquet'):
                 raise HTTPException(status_code=400, detail=f"File '{filename}' is not a Parquet file")
 
-            file_path = job_dir / filename
+            # Validate resolved path stays within job directory
+            file_path = (job_dir / filename).resolve()
+            if not str(file_path).startswith(str(job_dir.resolve())):
+                raise HTTPException(status_code=400, detail="Path traversal detected")
             with open(file_path, 'wb') as f:
                 content = await upload_file.read()
                 f.write(content)
@@ -472,6 +515,11 @@ async def upload_parquet(
         )
 
     except Exception as e:
+        # Release lock on error (before thread starts)
+        upload_lock.release()
+        current_upload_info["job_id"] = None
+        current_upload_info["started_at"] = None
+
         # Clean up on error
         if job_dir.exists():
             shutil.rmtree(job_dir)

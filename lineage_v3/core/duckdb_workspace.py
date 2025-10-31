@@ -92,22 +92,13 @@ class DuckDBWorkspace:
             sqlglot_confidence REAL,
             sqlglot_quality_match REAL,
 
-            -- SQLLineage parser results (if dual-parser used)
-            sqllineage_sources_found INTEGER,
-            sqllineage_targets_found INTEGER,
-            sqllineage_quality_match REAL,
-
-            -- Dual-parser decision
-            dual_parser_agreement REAL,
-            dual_parser_decision TEXT,
-
             -- Final result
             final_sources_count INTEGER,
             final_targets_count INTEGER,
             final_confidence REAL,
-            final_source TEXT,  -- 'sqlglot', 'sqllineage', 'dual_parser', 'ai'
+            final_source TEXT,  -- 'sqlglot', 'regex', 'ai', 'query_log'
 
-            -- AI fallback (if used)
+            -- AI disambiguation (if used)
             ai_used BOOLEAN DEFAULT FALSE,
             ai_sources_found INTEGER,
             ai_targets_found INTEGER,
@@ -534,17 +525,18 @@ class DuckDBWorkspace:
                 # Assume dbo schema if not specified
                 lookup[name] = ('dbo', parts[0])
 
-        # Build WHERE clause for batch lookup
-        conditions = []
-        for schema, obj in lookup.values():
-            conditions.append(
-                f"(schema_name = '{schema}' AND object_name = '{obj}')"
-            )
-
-        if not conditions:
+        # Build WHERE clause for batch lookup using parameterized queries
+        if not lookup:
             return {}
 
-        where_clause = ' OR '.join(conditions)
+        # Use placeholders for SQL injection protection
+        placeholders = []
+        params = []
+        for schema, obj in lookup.values():
+            placeholders.append("(schema_name = ? AND object_name = ?)")
+            params.extend([schema, obj])
+
+        where_clause = ' OR '.join(placeholders)
 
         query = f"""
             SELECT
@@ -554,7 +546,7 @@ class DuckDBWorkspace:
             WHERE {where_clause}
         """
 
-        results = self.connection.execute(query).fetchall()
+        results = self.connection.execute(query, params).fetchall()
 
         # Build result map
         result_map = {row[0]: row[1] for row in results}

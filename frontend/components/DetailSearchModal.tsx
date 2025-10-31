@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import { DataNode } from '../types';
 import { tokens } from '../design-tokens';
 import { Checkbox } from './ui/Checkbox';
+import { API_BASE_URL } from '../config';
 
 // Debounce utility
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
@@ -133,7 +134,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
 
       try {
         const response = await fetch(
-          `http://localhost:8000/api/search-ddl?q=${encodeURIComponent(query)}`
+          `${API_BASE_URL}/api/search-ddl?q=${encodeURIComponent(query)}`
         );
 
         if (!response.ok) {
@@ -181,7 +182,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     setError(null);
 
     try {
-      const response = await fetch(`http://localhost:8000/api/ddl/${result.id}`);
+      const response = await fetch(`${API_BASE_URL}/api/ddl/${result.id}`);
 
       if (!response.ok) {
         throw new Error('Failed to load DDL');

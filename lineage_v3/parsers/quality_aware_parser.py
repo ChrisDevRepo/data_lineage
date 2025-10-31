@@ -827,13 +827,13 @@ class QualityAwareParser:
         """Fetch DDL from workspace."""
         validated_id = validate_object_id(object_id)
 
-        query = f"""
+        query = """
         SELECT definition
         FROM definitions
-        WHERE object_id = {validated_id}
+        WHERE object_id = ?
         """
 
-        results = self.workspace.query(query)
+        results = self.workspace.query(query, params=[validated_id])
         return results[0][0] if results else None
 
     def _resolve_table_names(self, table_names: Set[str]) -> List[int]:
@@ -856,14 +856,14 @@ class QualityAwareParser:
             except ValueError:
                 continue
 
-            query = f"""
+            query = """
             SELECT object_id
             FROM objects
-            WHERE LOWER(schema_name) = LOWER('{schema}')
-              AND LOWER(object_name) = LOWER('{obj_name}')
+            WHERE LOWER(schema_name) = LOWER(?)
+              AND LOWER(object_name) = LOWER(?)
             """
 
-            results = self.workspace.query(query)
+            results = self.workspace.query(query, params=[schema, obj_name])
             if results:
                 object_ids.append(results[0][0])
 
