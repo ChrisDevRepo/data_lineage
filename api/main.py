@@ -47,6 +47,11 @@ START_TIME = time.time()
 # In-memory job tracking (lost on restart - acceptable per spec)
 active_jobs = {}  # job_id -> {"status": str, "thread": Thread}
 
+# Global upload lock for multi-user safety (simple blocking approach)
+# Prevents concurrent uploads from corrupting DuckDB workspace
+upload_lock = threading.Lock()
+current_upload_info = {"job_id": None, "started_at": None}
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -125,6 +130,12 @@ def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = True):
     except Exception as e:
         print(f"Error processing job {job_id}: {e}")
         active_jobs[job_id]["status"] = "failed"
+    finally:
+        # Always release upload lock when done (success or failure)
+        upload_lock.release()
+        current_upload_info["job_id"] = None
+        current_upload_info["started_at"] = None
+        print(f"✅ Upload lock released for job {job_id}")
 
 
 # ============================================================================
@@ -408,10 +419,27 @@ async def upload_parquet(
     Returns:
         Job ID for status polling
     """
+    # Check if another upload is in progress (multi-user safety)
+    if not upload_lock.acquire(blocking=False):
+        # Another user is uploading - return friendly error
+        return JSONResponse(
+            status_code=409,
+            content={
+                "error": "System busy",
+                "message": "Another upload is currently being processed. Please wait a few minutes and try again.",
+                "current_job_id": current_upload_info.get("job_id"),
+                "started_at": current_upload_info.get("started_at")
+            }
+        )
+
     # Generate unique job ID
     job_id = str(uuid.uuid4())
     job_dir = get_job_dir(job_id)
     job_dir.mkdir(parents=True, exist_ok=True)
+
+    # Track current upload
+    current_upload_info["job_id"] = job_id
+    current_upload_info["started_at"] = datetime.now().isoformat()
 
     # Track received files
     files_received = []
@@ -472,6 +500,11 @@ async def upload_parquet(
         )
 
     except Exception as e:
+        # Release lock on error (before thread starts)
+        upload_lock.release()
+        current_upload_info["job_id"] = None
+        current_upload_info["started_at"] = None
+
         # Clean up on error
         if job_dir.exists():
             shutil.rmtree(job_dir)
