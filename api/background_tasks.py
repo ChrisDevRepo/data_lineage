@@ -46,7 +46,9 @@ class LineageProcessor:
         self.incremental = incremental
         self.status_file = job_dir / "status.json"
         self.result_file = job_dir / "result.json"
-        self.workspace_file = job_dir / "lineage_workspace.duckdb"
+        # Use persistent workspace in data directory (not job directory)
+        # This allows DDL queries after job cleanup
+        self.workspace_file = self.data_dir / "lineage_workspace.duckdb"
         self.start_time = time.time()
 
     def validate_parquet_files(self) -> Tuple[bool, List[str], List[str], Dict[str, Path]]:

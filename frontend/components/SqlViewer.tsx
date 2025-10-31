@@ -8,6 +8,7 @@ type SqlViewerProps = {
     name: string;
     schema: string;
     objectType: string;
+    ddl_text?: string | null; // Optional: only present in JSON uploads
   } | null;
 };
 
@@ -19,32 +20,38 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
 
   // Fetch DDL on demand when node changes
   useEffect(() => {
-    console.log('[SqlViewer] Effect triggered:', { selectedNode: selectedNode?.id, isOpen });
-
     if (!selectedNode || !isOpen) {
       setDdlText(null);
       setError(null);
+      setIsLoading(false);
       return;
     }
 
+    // Small Mode: Check if DDL is embedded in the node data (JSON upload)
+    if ('ddl_text' in selectedNode) {
+      setDdlText(selectedNode.ddl_text); // Could be null or actual DDL
+      setError(null);
+      setIsLoading(false);
+      return; // No API call needed!
+    }
+
+    // Large Mode: Fetch from DuckDB via API (Parquet upload)
     const fetchDDL = async () => {
-      console.log('[SqlViewer] Fetching DDL for object:', selectedNode.id);
       setIsLoading(true);
       setError(null);
 
       try {
         const url = `http://localhost:8000/api/ddl/${selectedNode.id}`;
-        console.log('[SqlViewer] Fetch URL:', url);
-
         const response = await fetch(url);
-        console.log('[SqlViewer] Response status:', response.status);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch DDL: ${response.statusText}`);
+          const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+          setError(errorData.detail || 'Failed to fetch DDL');
+          setDdlText(null);
+          return;
         }
 
         const data = await response.json();
-        console.log('[SqlViewer] DDL fetched, length:', data.ddl_text?.length);
         setDdlText(data.ddl_text);
       } catch (err) {
         console.error('[SqlViewer] Failed to fetch DDL:', err);

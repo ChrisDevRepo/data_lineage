@@ -148,17 +148,7 @@ class FrontendFormatter:
                 node['object_type']
             )
 
-            # Get DDL text if requested (for SQL Viewer feature)
-            ddl_text = None
-            if include_ddl:
-                if node['object_type'] in ['Stored Procedure', 'View']:
-                    # Query definitions table for DDL
-                    ddl_text = self._get_ddl_for_object(object_id)
-                elif node['object_type'] == 'Table':
-                    # Generate DDL from table_columns if available
-                    ddl_text = self._generate_table_ddl(object_id, node['schema'], node['name'])
-
-            # Create frontend node
+            # Create frontend node (base properties)
             frontend_node = {
                 'id': node_id,
                 'name': node['name'],
@@ -167,9 +157,22 @@ class FrontendFormatter:
                 'description': description,
                 'data_model_type': data_model_type,
                 'inputs': sorted(input_node_ids, key=lambda x: int(x)),
-                'outputs': sorted(output_node_ids, key=lambda x: int(x)),
-                'ddl_text': ddl_text  # SQL definition for SPs/Views, None for Tables
+                'outputs': sorted(output_node_ids, key=lambda x: int(x))
             }
+
+            # Conditionally add DDL text if requested (for JSON mode with embedded DDL)
+            # In Parquet mode (include_ddl=False), property is omitted entirely
+            if include_ddl:
+                if node['object_type'] in ['Stored Procedure', 'View']:
+                    # Query definitions table for DDL
+                    ddl_text = self._get_ddl_for_object(object_id)
+                elif node['object_type'] == 'Table':
+                    # Generate DDL from table_columns if available
+                    ddl_text = self._generate_table_ddl(object_id, node['schema'], node['name'])
+                else:
+                    ddl_text = None
+
+                frontend_node['ddl_text'] = ddl_text  # Add property only in JSON mode
 
             frontend_nodes.append(frontend_node)
 

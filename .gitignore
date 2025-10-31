@@ -43,3 +43,15 @@ testing/query_log_validation/results/*.md
 # API persistent data
 api/data/
 data/
+
+# Log files (should never be committed)
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# Build artifacts
+dist/
+build/
+*.egg-info/

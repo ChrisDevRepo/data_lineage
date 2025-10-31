@@ -251,17 +251,11 @@ async def get_ddl(object_id: int):
     Returns:
         JSON with ddl_text field, or 404 if not found
     """
-    # Check if we have a recent job
-    jobs = sorted(JOBS_DIR.glob("*"), key=lambda p: p.stat().st_mtime, reverse=True)
-    if not jobs:
-        raise HTTPException(status_code=404, detail="No lineage data available. Please upload data first.")
-
-    # Use most recent job's workspace
-    latest_job_dir = jobs[0]
-    workspace_file = latest_job_dir / "lineage_workspace.duckdb"
+    # Use persistent workspace in data directory
+    workspace_file = DATA_DIR / "lineage_workspace.duckdb"
 
     if not workspace_file.exists():
-        raise HTTPException(status_code=404, detail="Lineage workspace not found")
+        raise HTTPException(status_code=404, detail="No lineage data available. Please upload data first.")
 
     try:
         # Import here to avoid startup dependency
@@ -543,12 +537,13 @@ async def list_jobs():
 @app.delete("/api/clear-data", tags=["Admin"])
 async def clear_all_data():
     """
-    Clear all lineage data (DuckDB workspaces and JSON files).
+    Clear all lineage data (DuckDB workspace and JSON files).
 
     This endpoint:
-    1. Deletes all job workspaces
+    1. Deletes the persistent DuckDB workspace
     2. Removes the latest_frontend_lineage.json file
-    3. Cleans up all temporary job data
+    3. Deletes all temporary job directories
+    4. Clears in-memory job tracking
 
     Use this to start fresh before uploading new Parquet files.
 
@@ -558,19 +553,30 @@ async def clear_all_data():
     items_cleared = []
 
     try:
-        # 1. Clear all job directories (includes DuckDB workspaces)
+        # 1. Clear persistent DuckDB workspace
+        workspace_file = DATA_DIR / "lineage_workspace.duckdb"
+        if workspace_file.exists():
+            workspace_file.unlink()
+            items_cleared.append("DuckDB workspace")
+
+        # Also clean up WAL file if it exists
+        wal_file = DATA_DIR / "lineage_workspace.duckdb.wal"
+        if wal_file.exists():
+            wal_file.unlink()
+
+        # 2. Clear all job directories
         if JOBS_DIR.exists():
             for job_dir in JOBS_DIR.iterdir():
                 if job_dir.is_dir():
                     shutil.rmtree(job_dir)
-                    items_cleared.append(f"Job workspace: {job_dir.name}")
+                    items_cleared.append(f"Job directory: {job_dir.name}")
 
-        # 2. Clear latest data file
+        # 3. Clear latest data file
         if LATEST_DATA_FILE.exists():
             LATEST_DATA_FILE.unlink()
             items_cleared.append("Latest frontend lineage JSON")
 
-        # 3. Clear in-memory job tracking
+        # 4. Clear in-memory job tracking
         cleared_jobs = len(active_jobs)
         active_jobs.clear()
         if cleared_jobs > 0:

@@ -139,6 +139,7 @@ function DataLineageVisualizer() {
     name: string;
     schema: string;
     objectType: string;
+    ddl_text?: string | null; // Optional: only present in JSON uploads
   } | null>(null);
 
   // --- Memos for Derived State and Layouting ---
@@ -282,12 +283,19 @@ function DataLineageVisualizer() {
       if (selectedNodeForSql?.id !== node.id) {
         const originalNode = allDataMap.get(node.id);
         if (originalNode) {
-          setSelectedNodeForSql({
+          const nodeForSql: any = {
             id: originalNode.id,
             name: originalNode.name,
             schema: originalNode.schema,
             objectType: originalNode.object_type
-          });
+          };
+
+          // Only add ddl_text if it exists in source data (JSON mode)
+          if ('ddl_text' in originalNode) {
+            nodeForSql.ddl_text = originalNode.ddl_text;
+          }
+
+          setSelectedNodeForSql(nodeForSql);
         }
       }
     }
