@@ -43,6 +43,7 @@ import os
 
 from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
 from lineage_v3.utils.validators import validate_object_id, sanitize_identifier
+from lineage_v3.config import settings
 
 
 # Configure logging
@@ -198,14 +199,15 @@ class QualityAwareParser:
             input_ids = self._resolve_table_names(parser_sources_valid)
             output_ids = self._resolve_table_names(parser_targets_valid)
 
-            # STEP 6: AI Disambiguation (if confidence ≤ 0.85 and AI enabled)
+            # STEP 6: AI Disambiguation (if confidence ≤ threshold and AI enabled)
             ai_used = False
             ai_confidence = None
             ai_sources_found = 0
             ai_targets_found = 0
 
-            ai_enabled = os.getenv("AI_ENABLED", "true").lower() == "true"
-            ai_threshold = float(os.getenv("AI_CONFIDENCE_THRESHOLD", "0.85"))
+            # Use centralized config for AI settings
+            ai_enabled = settings.ai.enabled
+            ai_threshold = settings.ai.confidence_threshold
 
             if confidence <= ai_threshold and ai_enabled:
                 try:

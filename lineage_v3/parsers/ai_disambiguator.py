@@ -34,6 +34,7 @@ from openai import AzureOpenAI
 from openai import APIError, APITimeoutError
 
 from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
+from lineage_v3.config import settings
 
 
 # Configure logging
@@ -70,20 +71,20 @@ class AIDisambiguator:
         """
         self.workspace = workspace
 
-        # Initialize Azure OpenAI client
+        # Initialize Azure OpenAI client using centralized config
         self.client = AzureOpenAI(
-            api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview"),
-            azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-            api_key=os.getenv("AZURE_OPENAI_API_KEY")
+            api_version=settings.azure_openai.api_version,
+            azure_endpoint=settings.azure_openai.endpoint,
+            api_key=settings.azure_openai.api_key.get_secret_value()
         )
 
-        self.deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4.1-nano")
+        self.deployment = settings.azure_openai.deployment
         self.system_prompt = self._load_prompt()
 
-        # Configuration from environment
-        self.timeout = int(os.getenv("AI_TIMEOUT_SECONDS", "10"))
-        self.max_retries = int(os.getenv("AI_MAX_RETRIES", "2"))
-        self.min_confidence = float(os.getenv("AI_MIN_CONFIDENCE", "0.70"))
+        # Configuration from centralized settings
+        self.timeout = settings.ai.timeout_seconds
+        self.max_retries = settings.ai.max_retries
+        self.min_confidence = settings.ai.min_confidence
 
     def _load_prompt(self) -> str:
         """Load few-shot system prompt from production_prompt.txt."""

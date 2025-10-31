@@ -133,11 +133,14 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_en
     7. Merge all sources
     8. Generate output JSON files
     """
-    import os as os_module
+    # Override settings from CLI if provided (without modifying os.environ)
+    from lineage_v3.config import settings
 
-    # Set AI configuration from CLI options
-    os_module.environ["AI_ENABLED"] = "true" if ai_enabled else "false"
-    os_module.environ["AI_CONFIDENCE_THRESHOLD"] = str(ai_threshold)
+    # CLI arguments override config file settings
+    if not ai_enabled:
+        settings.ai.enabled = False
+    if ai_threshold != 0.85:  # Non-default value
+        settings.ai.confidence_threshold = ai_threshold
 
     click.echo(f"🚀 Vibecoding Lineage Parser v{__version__}")
     click.echo(f"📂 Parquet directory: {parquet}")
@@ -145,7 +148,7 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_en
     click.echo(f"🔄 Mode: {'Full Refresh' if full_refresh else 'Incremental'}")
     click.echo(f"📊 Format: {format}")
     click.echo(f"💾 Workspace: {workspace}")
-    click.echo(f"🤖 AI Disambiguation: {'Enabled' if ai_enabled else 'Disabled'} (threshold: {ai_threshold})")
+    click.echo(f"🤖 AI Disambiguation: {'Enabled' if settings.ai.enabled else 'Disabled'} (threshold: {settings.ai.confidence_threshold})")
     click.echo()
 
     try:
