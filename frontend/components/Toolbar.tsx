@@ -3,6 +3,8 @@ import { DataNode } from '../types';
 import { NotificationHistory } from './NotificationSystem';
 import { Notification } from '../types';
 import { Button } from './ui/Button';
+import { Select } from './ui/Select';
+import { Checkbox } from './ui/Checkbox';
 
 type ToolbarProps = {
     searchTerm: string;
@@ -127,7 +129,19 @@ export const Toolbar = (props: ToolbarProps) => {
                     {isSchemaFilterOpen && (
                         <div className="absolute top-full mt-2 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
                             <div className="space-y-2">
-                                {schemas.map(s => (<label key={s} className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={selectedSchemas.has(s)} onChange={() => { const newSet = new Set(selectedSchemas); if (newSet.has(s)) newSet.delete(s); else newSet.add(s); setSelectedSchemas(newSet); }} className="rounded text-blue-500 focus:ring-blue-500" /><span>{s}</span></label>))}
+                                {schemas.map(s => (
+                                    <Checkbox
+                                        key={s}
+                                        checked={selectedSchemas.has(s)}
+                                        onChange={() => {
+                                            const newSet = new Set(selectedSchemas);
+                                            if (newSet.has(s)) newSet.delete(s);
+                                            else newSet.add(s);
+                                            setSelectedSchemas(newSet);
+                                        }}
+                                        label={s}
+                                    />
+                                ))}
                             </div>
                         </div>
                     )}
@@ -140,17 +154,36 @@ export const Toolbar = (props: ToolbarProps) => {
                         {isTypeFilterOpen && (
                             <div className="absolute top-full mt-2 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
                                 <div className="space-y-2">
-                                    {dataModelTypes.map(t => (<label key={t} className="flex items-center gap-2 text-sm cursor-pointer"><input type="checkbox" checked={selectedTypes.has(t)} onChange={() => { const newSet = new Set(selectedTypes); if (newSet.has(t)) newSet.delete(t); else newSet.add(t); setSelectedTypes(newSet); }} className="rounded text-blue-500 focus:ring-blue-500" /><span>{t}</span></label>))}
+                                    {dataModelTypes.map(t => (
+                                        <Checkbox
+                                            key={t}
+                                            checked={selectedTypes.has(t)}
+                                            onChange={() => {
+                                                const newSet = new Set(selectedTypes);
+                                                if (newSet.has(t)) newSet.delete(t);
+                                                else newSet.add(t);
+                                                setSelectedTypes(newSet);
+                                            }}
+                                            label={t}
+                                        />
+                                    ))}
                                 </div>
                             </div>
                         )}
                     </div>
                 )}
-                <select value={layout} onChange={(e) => setLayout(e.target.value as 'LR' | 'TB')} className="h-10 appearance-none bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg pl-4 pr-10 focus:outline-none text-sm">
+                <Select value={layout} onChange={(e) => setLayout(e.target.value as 'LR' | 'TB')}>
                     <option value="LR">Layout: Horizontal</option>
                     <option value="TB">Layout: Vertical</option>
-                </select>
-                <label className={`flex items-center gap-2 text-sm cursor-pointer h-10 px-3 rounded-lg hover:bg-gray-200 ${isTraceModeActive ? 'opacity-50 cursor-not-allowed' : ''}`}><input type="checkbox" checked={hideUnrelated} onChange={(e) => setHideUnrelated(e.target.checked)} disabled={isTraceModeActive} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><span>Hide Unrelated</span></label>
+                </Select>
+                <div className={`flex items-center h-10 px-3 rounded-lg hover:bg-gray-100 ${isTraceModeActive ? 'opacity-50' : ''}`}>
+                    <Checkbox
+                        checked={hideUnrelated}
+                        onChange={(e) => setHideUnrelated(e.target.checked)}
+                        disabled={isTraceModeActive}
+                        label="Hide Unrelated"
+                    />
+                </div>
             </div>
             <div className="flex items-start gap-2 flex-wrap">
                 <Button onClick={onStartTrace} variant="primary" className="bg-blue-100 text-blue-700 hover:bg-blue-200" title="Start Interactive Trace">

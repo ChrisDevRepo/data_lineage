@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DataNode, TraceConfig } from '../types';
 import { Button } from './ui/Button';
+import { Select } from './ui/Select';
+import { Checkbox } from './ui/Checkbox';
 
 type InteractiveTracePanelProps = {
     isOpen: boolean;
@@ -127,10 +129,10 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
                 <main className="flex-grow p-4 overflow-y-auto space-y-6 text-sm">
                     <div>
                         <label className="font-semibold block mb-1">1. Trace Mode</label>
-                        <select value={traceMode} onChange={(e) => setTraceMode(e.target.value as 'levels' | 'path')} className="w-full p-2 border rounded-md bg-white">
+                        <Select value={traceMode} onChange={(e) => setTraceMode(e.target.value as 'levels' | 'path')} fullWidth>
                             <option value="levels">By Levels (upstream/downstream)</option>
                             <option value="path">Path Between Nodes</option>
-                        </select>
+                        </Select>
                     </div>
                     <div className="relative">
                         <label className="font-semibold block mb-1">2. Start Node</label>
@@ -190,13 +192,37 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
                     <div>
                         <label className="font-semibold block mb-1">{traceMode === 'path' ? '4' : '4'}. Included Schemas ({includedSchemas.size}/{availableSchemas.length})</label>
                         <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
-                            {availableSchemas.map(s => <label key={s} className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includedSchemas.has(s)} onChange={() => { const newSet = new Set(includedSchemas); if (newSet.has(s)) newSet.delete(s); else newSet.add(s); setIncludedSchemas(newSet); }} />{s}</label>)}
+                            {availableSchemas.map(s => (
+                                <Checkbox
+                                    key={s}
+                                    checked={includedSchemas.has(s)}
+                                    onChange={() => {
+                                        const newSet = new Set(includedSchemas);
+                                        if (newSet.has(s)) newSet.delete(s);
+                                        else newSet.add(s);
+                                        setIncludedSchemas(newSet);
+                                    }}
+                                    label={s}
+                                />
+                            ))}
                         </div>
                     </div>
                     <div>
                         <label className="font-semibold block mb-1">5. Included Types ({includedTypes.size}/{availableTypes.length})</label>
                         <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
-                            {availableTypes.map(t => <label key={t} className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includedTypes.has(t)} onChange={() => { const newSet = new Set(includedTypes); if (newSet.has(t)) newSet.delete(t); else newSet.add(t); setIncludedTypes(newSet); }} />{t}</label>)}
+                            {availableTypes.map(t => (
+                                <Checkbox
+                                    key={t}
+                                    checked={includedTypes.has(t)}
+                                    onChange={() => {
+                                        const newSet = new Set(includedTypes);
+                                        if (newSet.has(t)) newSet.delete(t);
+                                        else newSet.add(t);
+                                        setIncludedTypes(newSet);
+                                    }}
+                                    label={t}
+                                />
+                            ))}
                         </div>
                     </div>
                     <div>
