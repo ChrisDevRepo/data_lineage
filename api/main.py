@@ -80,12 +80,15 @@ app = FastAPI(
 )
 
 # CORS configuration (allow frontend to call API)
+# Use environment variable for production deployment to Azure
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', 'http://localhost:3000').split(',')
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict to specific domains
+    allow_origins=ALLOWED_ORIGINS,  # Configured via environment variable
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "DELETE"],  # Only methods we use
+    allow_headers=["Content-Type", "X-Requested-With"],
 )
 
 
