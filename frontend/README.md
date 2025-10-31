@@ -10,10 +10,23 @@
 
 ## 🚀 Current Status
 
-**Version:** 2.8.0 (Path-Based Tracing & SQL Viewer Enhancements)
+**Version:** 2.9.0 (UI Simplification & Detail Search Enhancements)
 **v3.0 Status:** Core features complete - Docker containerization pending
 
-### ✨ Latest Updates (v2.8.0 - 2025-10-29)
+### ✨ Latest Updates (v2.9.0 - 2025-10-31)
+
+**UI Simplification:**
+- 🗑️ **Removed Schema View** - Focused exclusively on Detail View for better UX
+  - Removed "Detail View / Schema View" toggle button
+  - Dagre layout now optimized only for object-level visualization
+  - Cleaner, simpler interface
+
+**Detail Search Enhancements:**
+- 📏 **Resizable Panels** - Drag divider to adjust search results vs DDL viewer height
+- 🔍 **Filter Dropdowns** - Added schema and object type filters next to search box
+- ❓ **Search Syntax Help** - Help button showing DuckDB FTS advanced operators
+
+### ✨ Previous Updates (v2.8.0 - 2025-10-29)
 
 **New Features:**
 - 🎯 **Path-Based Tracing Mode** - Find all direct lineage paths between two nodes

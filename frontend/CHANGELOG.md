@@ -4,6 +4,33 @@ All notable changes to the frontend application will be documented in this file.
 
 ---
 
+## [2.9.0] - 2025-10-31
+
+### 🎨 UI Simplification & Feature Enhancements
+
+#### **Removed: Schema View**
+- **Change:** Removed schema-level aggregation view (schema boxes with dependencies)
+- **Rationale:** Dagre layout algorithm optimized for detail view did not render well for schema-level nodes
+- **Impact:** Application now focuses exclusively on Detail View (individual database objects)
+- **UI Changes:**
+  - Removed "Detail View / Schema View" toggle button from toolbar
+  - All features (search, SQL viewer, detail search, trace mode) now work without view mode restrictions
+  - Cleaner, simpler interface focused on object-level lineage
+
+#### **New: Detail Search Modal Enhancements**
+- **Resizable Panels:** Interactive draggable divider between search results and DDL viewer (drag to resize 15%-60%)
+- **Top Panel Sizing:** Reduced default height to 25% (from 35%) for better DDL viewing space
+- **Filter Dropdowns:** Added schema and object type filters next to search box
+  - Filter by specific schema (e.g., CONSUMPTION_FINANCE)
+  - Filter by object type (Table, View, Stored Procedure)
+  - Clear Filters button appears when active
+- **Advanced Search Help:** Added "? Help" button showing DuckDB FTS syntax
+  - Boolean operators: `customer AND order`, `customer OR client`, `customer NOT temp`
+  - Phrase search: `"SELECT * FROM"`
+  - Wildcards: `cust*` (matches customer, customers, etc.)
+
+---
+
 ## [2.8.0] - 2025-10-29
 
 ### 🎯 Path-Based Tracing & SQL Viewer Enhancements

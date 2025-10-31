@@ -26,6 +26,11 @@ interface SearchResult {
   snippet: string;
 }
 
+interface FilterOptions {
+  schemas: string[];
+  objectTypes: string[];
+}
+
 export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, allData, onClose }) => {
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,11 +41,83 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
   const [isLoadingDdl, setIsLoadingDdl] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Resize state - default to 25% for top panel
+  const [topPanelHeight, setTopPanelHeight] = useState(25);
+  const [isResizing, setIsResizing] = useState(false);
+
+  // Filter state
+  const [selectedSchema, setSelectedSchema] = useState<string>('');
+  const [selectedObjectType, setSelectedObjectType] = useState<string>('');
+  const [showSearchHelp, setShowSearchHelp] = useState(false);
+
   const editorRef = useRef<any>(null);
+  const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+
+  // Extract unique schemas and object types from allData using useMemo to prevent re-renders
+  const filterOptions = useMemo<FilterOptions>(() => {
+    if (!allData || allData.length === 0) {
+      return { schemas: [], objectTypes: [] };
+    }
+
+    const schemas = new Set<string>();
+    const objectTypes = new Set<string>();
+
+    allData.forEach(node => {
+      if (node.schema) schemas.add(node.schema);
+      if (node.object_type) objectTypes.add(node.object_type);
+    });
+
+    return {
+      schemas: Array.from(schemas).sort(),
+      objectTypes: Array.from(objectTypes).sort()
+    };
+  }, [allData]);
+
+  // Handle resize mouse events
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    resizeRef.current = {
+      startY: e.clientY,
+      startHeight: topPanelHeight
+    };
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing || !resizeRef.current) return;
+
+      const deltaY = e.clientY - resizeRef.current.startY;
+      const viewportHeight = window.innerHeight;
+      const deltaPercent = (deltaY / viewportHeight) * 100;
+
+      let newHeight = resizeRef.current.startHeight + deltaPercent;
+
+      // Constrain between 15% and 60%
+      newHeight = Math.max(15, Math.min(60, newHeight));
+
+      setTopPanelHeight(newHeight);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      resizeRef.current = null;
+    };
+
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
 
   // Debounced search function
   const debouncedSearch = useMemo(
-    () => debounce(async (query: string) => {
+    () => debounce(async (query: string, schema: string, objectType: string) => {
       if (!query.trim()) {
         setResults([]);
         setIsSearching(false);
@@ -60,7 +137,16 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
           throw new Error(errorData.detail || 'Search failed');
         }
 
-        const data = await response.json();
+        let data = await response.json();
+
+        // Client-side filtering by schema and object type
+        if (schema) {
+          data = data.filter((result: SearchResult) => result.schema === schema);
+        }
+        if (objectType) {
+          data = data.filter((result: SearchResult) => result.type === objectType);
+        }
+
         setResults(data);
       } catch (err) {
         console.error('[DetailSearchModal] Search failed:', err);
@@ -73,16 +159,16 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     []
   );
 
-  // Trigger search when query changes
+  // Trigger search when query or filters change
   useEffect(() => {
     if (searchQuery.trim()) {
       setIsSearching(true);
-      debouncedSearch(searchQuery);
+      debouncedSearch(searchQuery, selectedSchema, selectedObjectType);
     } else {
       setResults([]);
       setIsSearching(false);
     }
-  }, [searchQuery, debouncedSearch]);
+  }, [searchQuery, selectedSchema, selectedObjectType, debouncedSearch]);
 
   // Handle result click - fetch full DDL
   const handleResultClick = async (result: SearchResult) => {
@@ -121,6 +207,9 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     setError(null);
     setIsSearching(false);
     setIsLoadingDdl(false);
+    setSelectedSchema('');
+    setSelectedObjectType('');
+    setShowSearchHelp(false);
   };
 
   // Handle editor mount
@@ -186,77 +275,204 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
         <div
           style={{
             display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
+            flexDirection: 'column',
+            gap: '0.75rem',
             padding: '1rem 1.5rem',
             background: '#252526',
             borderBottom: '1px solid #3e3e42',
           }}
         >
-          <span style={{ fontSize: '1.2rem' }}>🔍</span>
-          <input
-            type="text"
-            placeholder="Search DDL definitions..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            autoFocus
-            style={{
-              flex: 1,
-              padding: '0.5rem 1rem',
-              background: '#3c3c3c',
-              border: '1px solid #5a5a5a',
-              borderRadius: '4px',
-              color: '#d4d4d4',
-              fontSize: '14px',
-              outline: 'none',
-            }}
-          />
-          {isSearching && (
-            <div
+          {/* First row: Search input and close button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <span style={{ fontSize: '1.2rem' }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Search DDL definitions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
               style={{
-                width: '20px',
-                height: '20px',
-                border: '2px solid #555',
-                borderTopColor: '#569CD6',
-                borderRadius: '50%',
-                animation: 'spin 1s linear infinite',
+                flex: 1,
+                padding: '0.5rem 1rem',
+                background: '#3c3c3c',
+                border: '1px solid #5a5a5a',
+                borderRadius: '4px',
+                color: '#d4d4d4',
+                fontSize: '14px',
+                outline: 'none',
               }}
             />
+            {isSearching && (
+              <div
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid #555',
+                  borderTopColor: '#569CD6',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }}
+              />
+            )}
+            {results.length > 0 && !isSearching && (
+              <span style={{ fontSize: '13px', color: '#888', whiteSpace: 'nowrap' }}>
+                {results.length} {results.length === 1 ? 'match' : 'matches'}
+              </span>
+            )}
+            <button
+              onClick={handleClose}
+              style={{
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'transparent',
+                border: 'none',
+                color: '#d4d4d4',
+                fontSize: '20px',
+                cursor: 'pointer',
+                borderRadius: '4px',
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.background = '#3e3e42')}
+              onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
+              title="Close (ESC)"
+            >
+              ×
+            </button>
+          </div>
+
+          {/* Second row: Filters and help */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', paddingLeft: '2.2rem' }}>
+            {/* Schema filter */}
+            <select
+              value={selectedSchema}
+              onChange={(e) => setSelectedSchema(e.target.value)}
+              style={{
+                padding: '0.35rem 0.75rem',
+                background: '#3c3c3c',
+                border: '1px solid #5a5a5a',
+                borderRadius: '4px',
+                color: '#d4d4d4',
+                fontSize: '12px',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              <option value="">All Schemas</option>
+              {filterOptions.schemas.map(schema => (
+                <option key={schema} value={schema}>{schema}</option>
+              ))}
+            </select>
+
+            {/* Object type filter */}
+            <select
+              value={selectedObjectType}
+              onChange={(e) => setSelectedObjectType(e.target.value)}
+              style={{
+                padding: '0.35rem 0.75rem',
+                background: '#3c3c3c',
+                border: '1px solid #5a5a5a',
+                borderRadius: '4px',
+                color: '#d4d4d4',
+                fontSize: '12px',
+                cursor: 'pointer',
+                outline: 'none',
+              }}
+            >
+              <option value="">All Types</option>
+              {filterOptions.objectTypes.map(type => (
+                <option key={type} value={type}>{type}</option>
+              ))}
+            </select>
+
+            {/* Search help toggle */}
+            <button
+              onClick={() => setShowSearchHelp(!showSearchHelp)}
+              style={{
+                padding: '0.35rem 0.75rem',
+                background: showSearchHelp ? '#404040' : 'transparent',
+                border: '1px solid #5a5a5a',
+                borderRadius: '4px',
+                color: '#569CD6',
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+              }}
+              title="Search syntax help"
+            >
+              <span>?</span>
+              <span>Help</span>
+            </button>
+
+            {/* Clear filters button */}
+            {(selectedSchema || selectedObjectType) && (
+              <button
+                onClick={() => {
+                  setSelectedSchema('');
+                  setSelectedObjectType('');
+                }}
+                style={{
+                  padding: '0.35rem 0.75rem',
+                  background: 'transparent',
+                  border: '1px solid #5a5a5a',
+                  borderRadius: '4px',
+                  color: '#888',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                }}
+                title="Clear filters"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+
+          {/* Search help panel */}
+          {showSearchHelp && (
+            <div
+              style={{
+                padding: '0.75rem',
+                background: '#2d2d2d',
+                border: '1px solid #3e3e42',
+                borderRadius: '4px',
+                fontSize: '12px',
+                color: '#cccccc',
+                lineHeight: '1.6',
+                marginLeft: '2.2rem',
+              }}
+            >
+              <div style={{ fontWeight: 500, marginBottom: '0.5rem', color: '#569CD6' }}>
+                Advanced Search Syntax:
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1rem' }}>
+                <code style={{ color: '#ce9178' }}>customer AND order</code>
+                <span>Both words must appear</span>
+
+                <code style={{ color: '#ce9178' }}>customer OR client</code>
+                <span>Either word can appear</span>
+
+                <code style={{ color: '#ce9178' }}>customer NOT temp</code>
+                <span>Exclude results with "temp"</span>
+
+                <code style={{ color: '#ce9178' }}>"SELECT * FROM"</code>
+                <span>Exact phrase search</span>
+
+                <code style={{ color: '#ce9178' }}>cust*</code>
+                <span>Wildcard (matches customer, customers, etc.)</span>
+              </div>
+            </div>
           )}
-          {results.length > 0 && !isSearching && (
-            <span style={{ fontSize: '13px', color: '#888' }}>
-              {results.length} {results.length === 1 ? 'match' : 'matches'}
-            </span>
-          )}
-          <button
-            onClick={handleClose}
-            style={{
-              width: '32px',
-              height: '32px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'transparent',
-              border: 'none',
-              color: '#d4d4d4',
-              fontSize: '20px',
-              cursor: 'pointer',
-              borderRadius: '4px',
-            }}
-            onMouseOver={(e) => (e.currentTarget.style.background = '#3e3e42')}
-            onMouseOut={(e) => (e.currentTarget.style.background = 'transparent')}
-            title="Close (ESC)"
-          >
-            ×
-          </button>
         </div>
 
         {/* Content area */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {/* Results panel (top 35%) */}
+          {/* Results panel (top panel with dynamic height) */}
           <div
             style={{
-              height: '35%',
+              height: `${topPanelHeight}%`,
               background: '#1e1e1e',
               borderBottom: '1px solid #3e3e42',
               overflow: 'auto',
@@ -349,7 +565,43 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
             ))}
           </div>
 
-          {/* DDL viewer panel (bottom 65%) */}
+          {/* Resize divider */}
+          <div
+            onMouseDown={handleMouseDown}
+            style={{
+              height: '4px',
+              background: isResizing ? '#007acc' : '#3e3e42',
+              cursor: 'ns-resize',
+              transition: isResizing ? 'none' : 'background 0.2s',
+              position: 'relative',
+            }}
+            onMouseOver={(e) => {
+              if (!isResizing) {
+                e.currentTarget.style.background = '#007acc';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (!isResizing) {
+                e.currentTarget.style.background = '#3e3e42';
+              }
+            }}
+          >
+            {/* Visual indicator */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '40px',
+                height: '2px',
+                background: '#888',
+                borderRadius: '1px',
+              }}
+            />
+          </div>
+
+          {/* DDL viewer panel (bottom panel with dynamic height) */}
           <div style={{ flex: 1, background: '#1e1e1e', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             {/* DDL header */}
             <div

@@ -4,8 +4,6 @@ import { NotificationHistory } from './NotificationSystem';
 import { Notification } from '../types';
 
 type ToolbarProps = {
-    viewMode: 'detail' | 'schema';
-    setViewMode: (mode: 'detail' | 'schema') => void;
     searchTerm: string;
     setSearchTerm: (term: string) => void;
     executeSearch: (query: string) => void;
@@ -43,7 +41,7 @@ type ToolbarProps = {
 
 export const Toolbar = (props: ToolbarProps) => {
     const {
-        viewMode, setViewMode, searchTerm, setSearchTerm, executeSearch,
+        searchTerm, setSearchTerm, executeSearch,
         autocompleteSuggestions, setAutocompleteSuggestions,
         selectedSchemas, setSelectedSchemas, schemas,
         selectedTypes, setSelectedTypes, dataModelTypes,
@@ -89,10 +87,6 @@ export const Toolbar = (props: ToolbarProps) => {
     return (
         <div className="flex flex-wrap items-center justify-between gap-4 p-4 border-b border-gray-200">
             <div className="flex items-start gap-2 flex-wrap">
-                <div className="flex items-center rounded-lg bg-gray-200 p-0.5 h-10">
-                    <button onClick={() => setViewMode('detail')} disabled={isTraceModeActive} className={`h-full px-3 text-sm font-semibold rounded-md transition-colors ${viewMode === 'detail' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-black'} disabled:opacity-50 disabled:cursor-not-allowed`}>Detail View</button>
-                    <button onClick={() => setViewMode('schema')} disabled={isTraceModeActive} className={`h-full px-3 text-sm font-semibold rounded-md transition-colors ${viewMode === 'schema' ? 'bg-white shadow text-blue-600' : 'text-gray-600 hover:text-black'} disabled:opacity-50 disabled:cursor-not-allowed`}>Schema View</button>
-                </div>
                 <div className="relative">
                     <form onSubmit={handleSearch} className="flex items-center">
                         <input
@@ -101,10 +95,10 @@ export const Toolbar = (props: ToolbarProps) => {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onBlur={() => setTimeout(() => setAutocompleteSuggestions([]), 150)}
-                            disabled={viewMode === 'schema' || isTraceModeActive}
+                            disabled={isTraceModeActive}
                             className="text-sm h-10 w-72 pl-3 pr-10 border rounded-lg bg-gray-100 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         />
-                        <button type="submit" disabled={viewMode === 'schema' || isTraceModeActive} className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed" title="Search">
+                        <button type="submit" disabled={isTraceModeActive} className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed" title="Search">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                         </button>
                     </form>
@@ -151,7 +145,7 @@ export const Toolbar = (props: ToolbarProps) => {
                     <option value="LR">Layout: Horizontal</option>
                     <option value="TB">Layout: Vertical</option>
                 </select>
-                <label className={`flex items-center gap-2 text-sm cursor-pointer h-10 px-3 rounded-lg hover:bg-gray-200 ${viewMode === 'schema' || isTraceModeActive ? 'opacity-50 cursor-not-allowed' : ''}`}><input type="checkbox" checked={hideUnrelated} onChange={(e) => setHideUnrelated(e.target.checked)} disabled={viewMode === 'schema' || isTraceModeActive} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><span>Hide Unrelated</span></label>
+                <label className={`flex items-center gap-2 text-sm cursor-pointer h-10 px-3 rounded-lg hover:bg-gray-200 ${isTraceModeActive ? 'opacity-50 cursor-not-allowed' : ''}`}><input type="checkbox" checked={hideUnrelated} onChange={(e) => setHideUnrelated(e.target.checked)} disabled={isTraceModeActive} className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" /><span>Hide Unrelated</span></label>
             </div>
             <div className="flex items-start gap-2 flex-wrap">
                 <button onClick={onStartTrace} className="h-10 px-4 bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold rounded-lg text-sm flex items-center gap-2" title="Start Interactive Trace">
@@ -169,8 +163,6 @@ export const Toolbar = (props: ToolbarProps) => {
                     title={
                         !hasDdlData
                             ? 'No DDL data available. Upload Parquet files to view SQL.'
-                            : viewMode !== 'detail'
-                            ? 'Switch to Detail View to view SQL'
                             : sqlViewerOpen
                             ? 'Close SQL Viewer'
                             : 'View SQL Definitions'
@@ -183,13 +175,11 @@ export const Toolbar = (props: ToolbarProps) => {
                 </button>
                 <button
                     onClick={onOpenDetailSearch}
-                    disabled={!hasDdlData || viewMode !== 'detail'}
+                    disabled={!hasDdlData}
                     className="h-10 w-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                     title={
                         !hasDdlData
                             ? 'No DDL data available. Upload Parquet files to search.'
-                            : viewMode !== 'detail'
-                            ? 'Switch to Detail View to search DDL'
                             : 'Search All DDL Definitions'
                     }
                 >

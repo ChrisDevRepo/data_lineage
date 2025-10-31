@@ -80,7 +80,6 @@ function DataLineageVisualizer() {
     loadLatestData();
   }, []);
   const [layout, setLayout] = useState<'LR' | 'TB'>('LR');
-  const [viewMode, setViewMode] = useState<'detail' | 'schema'>('detail');
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
 
   // --- Custom Hooks for Logic Encapsulation ---
@@ -122,8 +121,8 @@ function DataLineageVisualizer() {
   // DDL is now fetched on-demand via API, so always available when data is loaded
   const hasDdlData = allData.length > 0;
 
-  // Enable SQL viewer only in Detail View
-  const sqlViewerEnabled = hasDdlData && viewMode === 'detail';
+  // Enable SQL viewer when DDL data is available
+  const sqlViewerEnabled = hasDdlData;
 
   // --- UI State ---
   const [isLegendCollapsed, setIsLegendCollapsed] = useState(true);
@@ -148,15 +147,12 @@ function DataLineageVisualizer() {
   const layoutedElements = useMemo(() => {
     return getDagreLayoutedElements({
       data: finalVisibleData,
-      viewMode,
       layout,
-      schemas,
-      selectedSchemas,
       schemaColorMap,
       lineageGraph,
       isTraceModeActive,
     });
-  }, [finalVisibleData, viewMode, layout, schemaColorMap, schemas, selectedSchemas, lineageGraph, isTraceModeActive]);
+  }, [finalVisibleData, layout, schemaColorMap, lineageGraph, isTraceModeActive]);
 
   // OPTIMIZATION: Create Map for O(1) lookups instead of O(n) find()
   const allDataMap = useMemo(() => {
@@ -266,9 +262,6 @@ function DataLineageVisualizer() {
 
   // --- Event Handlers ---
   const handleNodeClick = useCallback((_: React.MouseEvent, node: ReactFlowNode) => {
-    // In schema view, do nothing
-    if (viewMode === 'schema') return;
-
     // If locked, don't exit trace mode - just allow node interactions
     if (isTraceLocked) {
       // Allow highlighting within the locked subset, but don't clear the trace
@@ -313,7 +306,7 @@ function DataLineageVisualizer() {
       setFocusedNodeId(node.id);
       setHighlightedNodes(new Set([node.id]));
     }
-  }, [viewMode, isInTraceExitMode, isTraceLocked, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
+  }, [isInTraceExitMode, isTraceLocked, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
   
   const handleDataImport = (newData: DataNode[]) => {
     const processedData = newData.map(node => ({ ...node, schema: node.schema.toUpperCase() }));
@@ -335,7 +328,7 @@ function DataLineageVisualizer() {
   };
   
   const executeSearch = (query: string) => {
-    if (viewMode === 'schema' || isTraceModeActive) return;
+    if (isTraceModeActive) return;
     setFocusedNodeId(null);
     if (!query) {
       setHighlightedNodes(new Set());
@@ -509,7 +502,7 @@ function DataLineageVisualizer() {
   }, [isResizing]);
 
   const miniMapNodeColor = (node: ReactFlowNode): string => {
-    if (viewMode === 'schema' || !node.data.schema) return '#e2e8f0';
+    if (!node.data.schema) return '#e2e8f0';
     return schemaColorMap.get(node.data.schema) || '#e2e8f0';
   };
 
@@ -624,8 +617,6 @@ function DataLineageVisualizer() {
         <NotificationContainer activeToasts={activeToasts} onDismissToast={removeActiveToast} />
         <div className={`w-full h-full bg-white rounded-lg shadow-md flex flex-col text-gray-800 transition-all duration-300 ${isTraceModeActive ? 'pr-80' : ''}`}>
           <Toolbar
-            viewMode={viewMode}
-            setViewMode={setViewMode}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             executeSearch={executeSearch}
@@ -681,7 +672,7 @@ function DataLineageVisualizer() {
                 <Controls />
                 {isControlsVisible && <MiniMap nodeColor={miniMapNodeColor} nodeStrokeWidth={3} nodeBorderRadius={2} zoomable pannable className="bg-white/80" ariaLabel="Minimap" />}
                 <Background color={'#a1a1aa'} gap={16} />
-                {isControlsVisible && viewMode === 'detail' &&
+                {isControlsVisible &&
                   <Legend
                     isCollapsed={isLegendCollapsed}
                     onToggle={() => setIsLegendCollapsed(p => !p)}
