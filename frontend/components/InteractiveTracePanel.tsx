@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DataNode, TraceConfig } from '../types';
+import { Button } from './ui/Button';
 
 type InteractiveTracePanelProps = {
     isOpen: boolean;
@@ -119,9 +120,9 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
             <div className="flex flex-col h-full">
                 <header className="flex items-center justify-between p-4 border-b">
                     <h2 className="text-xl font-bold">Interactive Trace</h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200">
+                    <Button onClick={onClose} variant="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                    </button>
+                    </Button>
                 </header>
                 <main className="flex-grow p-4 overflow-y-auto space-y-6 text-sm">
                     <div>
@@ -159,18 +160,28 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
                                 <label className="font-medium text-gray-700">Ancestors (upstream)</label>
                                 <div className="flex items-center gap-2">
                                     <input type="number" min="0" max="99" value={upstream} onChange={e => setUpstream(parseInt(e.target.value, 10))} disabled={isUpstreamAll} className="w-16 p-1 border rounded-md disabled:bg-gray-100 disabled:opacity-70 text-center" />
-                                    <button onClick={() => setIsUpstreamAll(p => !p)} className={`w-14 px-2 py-1 text-xs font-semibold rounded-md transition-colors ${isUpstreamAll ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>
+                                    <Button
+                                        onClick={() => setIsUpstreamAll(p => !p)}
+                                        variant={isUpstreamAll ? 'primary' : 'secondary'}
+                                        size="sm"
+                                        className="w-14"
+                                    >
                                         {isUpstreamAll ? 'Limited' : 'All'}
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between">
                                 <label className="font-medium text-gray-700">Descendants (downstream)</label>
                                 <div className="flex items-center gap-2">
                                     <input type="number" min="0" max="99" value={downstream} onChange={e => setDownstream(parseInt(e.target.value, 10))} disabled={isDownstreamAll} className="w-16 p-1 border rounded-md disabled:bg-gray-100 disabled:opacity-70 text-center" />
-                                    <button onClick={() => setIsDownstreamAll(p => !p)} className={`w-14 px-2 py-1 text-xs font-semibold rounded-md transition-colors ${isDownstreamAll ? 'bg-blue-600 text-white' : 'bg-gray-200 hover:bg-gray-300'}`}>
+                                    <Button
+                                        onClick={() => setIsDownstreamAll(p => !p)}
+                                        variant={isDownstreamAll ? 'primary' : 'secondary'}
+                                        size="sm"
+                                        className="w-14"
+                                    >
                                         {isDownstreamAll ? 'Limited' : 'All'}
-                                    </button>
+                                    </Button>
                                 </div>
                             </div>
                         </div>
@@ -195,8 +206,8 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
                     </div>
                 </main>
                 <footer className="p-4 border-t flex justify-end gap-2">
-                    <button onClick={handleReset} className="h-10 px-4 bg-gray-200 hover:bg-gray-300 font-semibold rounded-lg text-sm">Reset</button>
-                    <button onClick={handleApplyClick} className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm">Apply Trace</button>
+                    <Button onClick={handleReset} variant="secondary">Reset</Button>
+                    <Button onClick={handleApplyClick} variant="primary">Apply Trace</Button>
                 </footer>
             </div>
         </div>

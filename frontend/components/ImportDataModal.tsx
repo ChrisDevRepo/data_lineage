@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { DataNode } from '../types';
+import { Button } from './ui/Button';
 
 type ImportDataModalProps = {
     isOpen: boolean;
@@ -424,34 +425,26 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                 <header className="p-4 border-b">
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-xl font-bold">Import Data</h2>
-                        <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200" disabled={isProcessing}>
+                        <Button onClick={onClose} variant="icon" disabled={isProcessing}>
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                        </button>
+                        </Button>
                     </div>
                     {/* Tab selector */}
                     <div className="flex gap-2">
-                        <button
-                            className={`px-4 py-2 font-semibold rounded-lg transition-colors ${
-                                uploadMode === 'json'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                        <Button
+                            variant={uploadMode === 'json' ? 'primary' : 'secondary'}
                             onClick={() => setUploadMode('json')}
                             disabled={isProcessing}
                         >
                             Import JSON
-                        </button>
-                        <button
-                            className={`px-4 py-2 font-semibold rounded-lg transition-colors ${
-                                uploadMode === 'parquet'
-                                    ? 'bg-blue-600 text-white'
-                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                            }`}
+                        </Button>
+                        <Button
+                            variant={uploadMode === 'parquet' ? 'primary' : 'secondary'}
                             onClick={() => setUploadMode('parquet')}
                             disabled={isProcessing}
                         >
                             Upload Parquet Files
-                        </button>
+                        </Button>
                     </div>
                 </header>
 
@@ -463,16 +456,16 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                             <textarea value={jsonText} onChange={(e) => setJsonText(e.target.value)} className="w-full flex-grow border rounded-md p-2 font-mono text-sm bg-gray-50 resize-none" spellCheck="false" />
                             <div className="flex items-center gap-2">
                                 <input type="file" ref={importFileRef} onChange={handleFileChange} accept=".json" className="hidden" />
-                                <button onClick={() => importFileRef.current?.click()} className="px-3 py-1.5 text-sm font-semibold bg-gray-200 hover:bg-gray-300 rounded-md">Upload File</button>
-                                <button onClick={() => setJsonText(defaultSampleString)} className="px-3 py-1.5 text-sm font-semibold bg-gray-200 hover:bg-gray-300 rounded-md">Load Sample Data</button>
+                                <Button onClick={() => importFileRef.current?.click()} variant="secondary" size="sm">Upload File</Button>
+                                <Button onClick={() => setJsonText(defaultSampleString)} variant="secondary" size="sm">Load Sample Data</Button>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 overflow-hidden">
                             <div className="flex items-center justify-between">
                                 <label className="font-semibold">{view === 'sample' ? 'Default Sample Data (read-only):' : 'Data Contract Definition:'}</label>
-                                <button onClick={() => setView(v => v === 'sample' ? 'definition' : 'sample')} className="px-3 py-1 text-sm font-semibold text-blue-600 hover:bg-blue-100 rounded-md">
+                                <Button onClick={() => setView(v => v === 'sample' ? 'definition' : 'sample')} variant="ghost" size="sm">
                                     {view === 'sample' ? 'Show Definition' : 'Show Sample Data'}
-                                </button>
+                                </Button>
                             </div>
                             <div className="flex-grow bg-gray-100 rounded-md p-3 overflow-y-auto text-sm">
                                 {view === 'sample' ? (
@@ -505,17 +498,14 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                                         <p className="text-sm font-semibold text-green-900">Data Available</p>
                                         <p className="text-xs text-green-700">Last upload: {lastUploadDate}</p>
                                     </div>
-                                    <button
+                                    <Button
                                         onClick={handleClearData}
                                         disabled={isClearing || isProcessing}
-                                        className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition-colors ${
-                                            isClearing || isProcessing
-                                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                                : 'bg-red-600 text-white hover:bg-red-700'
-                                        }`}
+                                        variant="danger"
+                                        size="sm"
                                     >
                                         {isClearing ? 'Clearing...' : 'Clear All Data'}
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
 
@@ -601,17 +591,15 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                             </div>
 
                             {/* Upload button */}
-                            <button
+                            <Button
                                 onClick={handleParquetUpload}
                                 disabled={isProcessing}
-                                className={`w-full py-3 px-4 font-semibold rounded-lg transition-colors ${
-                                    isProcessing
-                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                                }`}
+                                variant="primary"
+                                fullWidth
+                                className="py-3"
                             >
                                 {isProcessing ? 'Processing...' : 'Upload & Parse'}
-                            </button>
+                            </Button>
 
                             {/* Processing status */}
                             {isProcessing && jobStatus && (
@@ -677,12 +665,14 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                                 <div className="border border-green-200 rounded-lg p-4 bg-green-50">
                                     <div className="flex items-center justify-between">
                                         <h4 className="font-semibold text-green-900">✅ PARSING COMPLETE</h4>
-                                        <button
+                                        <Button
                                             onClick={() => setShowSummary(!showSummary)}
-                                            className="px-3 py-1 text-sm font-semibold text-green-600 hover:bg-green-100 rounded-md"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-green-600 hover:bg-green-100"
                                         >
                                             {showSummary ? 'Hide Summary' : 'Show Summary'}
-                                        </button>
+                                        </Button>
                                     </div>
 
                                     {showSummary && (
@@ -727,12 +717,14 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                                     {/* Close button when summary is shown */}
                                     {showSummary && (
                                         <div className="mt-4 pt-3 border-t border-green-300">
-                                            <button
+                                            <Button
                                                 onClick={onClose}
-                                                className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors"
+                                                variant="primary"
+                                                fullWidth
+                                                className="py-2 bg-green-600 hover:bg-green-700"
                                             >
                                                 Close & View Lineage
-                                            </button>
+                                            </Button>
                                         </div>
                                     )}
                                 </div>
@@ -771,8 +763,8 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                 {uploadMode === 'json' && (
                     <footer className="p-4 border-t flex items-center justify-end flex-shrink-0">
                         <div className="flex items-center gap-2">
-                            <button onClick={onClose} className="h-10 px-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg text-sm">Cancel</button>
-                            <button onClick={handleApply} className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm">Apply Changes</button>
+                            <Button onClick={onClose} variant="secondary">Cancel</Button>
+                            <Button onClick={handleApply} variant="primary">Apply Changes</Button>
                         </div>
                     </footer>
                 )}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
+import { SpinnerContainer } from './ui/Spinner';
 
 type SqlViewerProps = {
   isOpen: boolean;
@@ -108,10 +109,7 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
           </div>
         ) : isLoading ? (
           // Loading state
-          <div className="flex flex-col items-center justify-center h-full text-gray-500 text-center p-8">
-            <div className="w-10 h-10 border-4 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
-            <p className="mt-4 text-sm">Loading DDL...</p>
-          </div>
+          <SpinnerContainer message="Loading DDL..." />
         ) : error ? (
           // Error state
           <div className="flex flex-col items-center justify-center h-full text-red-600 text-center p-8">

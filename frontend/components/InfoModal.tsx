@@ -1,4 +1,5 @@
 import React from 'react';
+import { Button } from './ui/Button';
 
 type InfoModalProps = {
     isOpen: boolean;
@@ -31,9 +32,9 @@ export const InfoModal = ({ isOpen, onClose }: InfoModalProps) => {
             <div className="bg-white rounded-lg shadow-2xl w-full max-w-3xl h-auto max-h-[90vh] flex flex-col text-gray-800">
                 <header className="flex items-center justify-between p-4 border-b">
                     <h2 className="text-2xl font-bold">Welcome to the Data Lineage Visualizer!</h2>
-                    <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200">
+                    <Button onClick={onClose} variant="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                    </button>
+                    </Button>
                 </header>
                 <main className="flex-grow p-6 overflow-y-auto space-y-6">
                     <p className="text-center text-gray-700 italic">This tool helps you explore and understand the relationships between your data assets.</p>
@@ -63,7 +64,7 @@ export const InfoModal = ({ isOpen, onClose }: InfoModalProps) => {
                     </Feature>
                 </main>
                 <footer className="p-4 border-t flex items-center justify-end flex-shrink-0">
-                    <button onClick={onClose} className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg text-sm">Got it!</button>
+                    <Button onClick={onClose} variant="primary" className="px-6">Got it!</Button>
                 </footer>
             </div>
         </div>
