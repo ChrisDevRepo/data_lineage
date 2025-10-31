@@ -5,6 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>React Flow Data Lineage</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Tailwind CSS Configuration - extends with design tokens
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                        mono: ['Consolas', 'Monaco', '"Andale Mono"', '"Ubuntu Mono"', '"Courier New"', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/reactflow@11.11.3/dist/style.css" rel="stylesheet">
     <script type="importmap">
 {
