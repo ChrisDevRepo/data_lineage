@@ -13,8 +13,16 @@ Strategy:
 This gives us quality assurance built into the parser!
 
 Author: Vibecoding
-Version: 3.2.0
-Date: 2025-10-26
+Version: 3.6.0
+Date: 2025-10-28
+
+Changelog:
+- v3.6.0 (2025-10-28): Add self-referencing pattern support
+  Issue #2: Staging patterns (INSERT → SELECT → INSERT) not captured
+  Fix: Statement-level target exclusion instead of global exclusion
+- v3.5.0 (2025-10-28): Add TRUNCATE statement support
+  Issue: spLoadGLCognosData and other SPs missing TRUNCATE outputs
+  Fix: Add exp.TruncateTable extraction in _extract_from_ast()
 """
 
 from typing import List, Dict, Any, Set, Tuple, Optional
@@ -85,24 +93,31 @@ class QualityAwareParser:
         # CATCH blocks contain error handling, logging, rollback - not business lineage
         # Example: BEGIN /* CATCH */ INSERT INTO ErrorLog ... END /* CATCH */
         # Uses re.DOTALL to match across newlines (. matches \n)
-        (r'BEGIN\s+/\*\s*CATCH\s*\*/.*?END\s+/\*\s*CATCH\s*\*/', '-- CATCH block removed', re.DOTALL),
+        # IMPORTANT: Use empty string to avoid comments that break SQLGlot parsing
+        (r'BEGIN\s+/\*\s*CATCH\s*\*/.*?END\s+/\*\s*CATCH\s*\*/', '', re.DOTALL),
 
         # Remove EXEC commands (stored procedure calls)
         # EXEC calls other SPs - lineage should trace to the SP definition, not the call
         # Example: EXEC [dbo].[spLogMessage] 'Processing complete'
         # Pattern: EXEC [schema].[proc_name] params...
-        (r'\bEXEC\s+\[?[^\]]+\]?\.\[?[^\]]+\]?[^;]*;?', '-- EXEC removed', 0),
+        (r'\bEXEC\s+\[?[^\]]+\]?\.\[?[^\]]+\]?[^;]*;?', '', 0),
 
         # Remove DECLARE statements (variable declarations clutter parsing)
         # Variables are implementation details, not data lineage
         # Example: DECLARE @StartDate DATETIME = GETDATE()
-        (r'\bDECLARE\s+@\w+\s+[^;]+;', '-- DECLARE removed', 0),
+        (r'\bDECLARE\s+@\w+\s+[^;]+;', '', 0),
 
         # Remove SET statements (variable assignments)
         # Variable assignments are not table dependencies
         # Example: SET @RowCount = (SELECT COUNT(*) FROM dbo.Table)
         # Note: This removes the SET, but SELECT in subquery might still be parsed
-        (r'\bSET\s+@\w+\s*=\s*[^;]+;', '-- SET removed', 0),
+        (r'\bSET\s+@\w+\s*=\s*[^;]+;', '', 0),
+
+        # Remove SET session options (NOCOUNT, XACT_ABORT, etc.)
+        # Session settings don't affect data lineage
+        # Example: SET NOCOUNT ON, SET XACT_ABORT ON, SET ANSI_NULLS ON
+        # Critical: This prevents "SET NOCOUNT ON select ..." from being parsed as SET command
+        (r'\bSET\s+(NOCOUNT|XACT_ABORT|ANSI_NULLS|QUOTED_IDENTIFIER|ANSI_PADDING|ANSI_WARNINGS|ARITHABORT|CONCAT_NULL_YIELDS_NULL|NUMERIC_ROUNDABORT)\s+(ON|OFF)\b', '', 0),
     ]
 
     def __init__(self, workspace: DuckDBWorkspace):
@@ -539,11 +554,55 @@ class QualityAwareParser:
         return statements
 
     def _extract_from_ast(self, parsed: exp.Expression) -> Tuple[Set[str], Set[str]]:
-        """Extract tables from SQLGlot AST."""
+        """
+        Extract tables from SQLGlot AST.
+
+        Enhanced to handle SELECT INTO statements correctly:
+        - SELECT ... INTO #temp FROM source_table
+        - #temp is a target (temp table, filtered from lineage)
+        - source_table is a source (should be included)
+        """
         sources = set()
         targets = set()
+        select_into_targets = set()  # Track SELECT INTO temp tables separately
 
-        # STEP 1: Extract targets FIRST (INSERT, UPDATE, MERGE, DELETE)
+        # STEP 1a: Extract SELECT INTO targets (temp tables only)
+        # Pattern: SELECT ... INTO #temp FROM ...
+        for select in parsed.find_all(exp.Select):
+            if select.args.get('into'):
+                # This is a SELECT INTO statement
+                into_node = select.args['into']
+
+                # Handle different node types for INTO clause
+                # SQLGlot wraps INTO in exp.Into object
+                if isinstance(into_node, exp.Into):
+                    # Extract table from Into.this
+                    into_table = into_node.this
+                    if isinstance(into_table, exp.Table):
+                        name = self._get_table_name(into_table)
+                    else:
+                        name = None
+                elif isinstance(into_node, exp.Table):
+                    name = self._get_table_name(into_node)
+                elif isinstance(into_node, exp.Schema):
+                    # Schema wraps table (bracketed identifiers)
+                    if into_node.this and isinstance(into_node.this, exp.Table):
+                        name = self._get_table_name(into_node.this)
+                    else:
+                        name = None
+                else:
+                    name = None
+
+                # Track ALL SELECT INTO targets separately
+                # Key insight: SELECT INTO #temp FROM source_table
+                # - #temp is a target (will be filtered by _is_excluded later)
+                # - source_table is a source (should NOT be excluded)
+                if name:
+                    select_into_targets.add(name)
+                    # Also add to targets (temp tables will be filtered by _is_excluded later)
+                    targets.add(name)
+
+        # STEP 1b: Extract DML targets (INSERT, UPDATE, MERGE, DELETE)
         for insert in parsed.find_all(exp.Insert):
             name = self._extract_dml_target(insert.this)
             if name:
@@ -564,10 +623,35 @@ class QualityAwareParser:
             if name:
                 targets.add(name)
 
-        # STEP 2: Extract sources (FROM, JOIN) - exclude targets
+        # STEP 1c: Extract TRUNCATE targets (v3.5.0 - 2025-10-28)
+        # Issue: spLoadGLCognosData missing outputs due to TRUNCATE not being captured
+        # TRUNCATE TABLE [schema].[table] is a DML operation that clears table data
+        # Syntax: TRUNCATE TABLE target → target is the table being truncated
+        for truncate in parsed.find_all(exp.TruncateTable):
+            # TruncateTable.this contains the table node (similar to DELETE/UPDATE)
+            if truncate.this:
+                name = self._extract_dml_target(truncate.this)
+                if name:
+                    targets.add(name)
+
+        # STEP 2: Extract sources (FROM, JOIN) - with self-reference support (v3.6.0 - 2025-10-28)
+        # Issue #2: Self-referencing pattern where SP writes to table then reads from it
+        # Previous logic: Excluded ALL targets from sources globally (across entire SP)
+        # New logic: Allow self-references for staging patterns (INSERT → SELECT → INSERT)
+        #
+        # Simplified approach:
+        # - Include ALL tables found in FROM/JOIN clauses
+        # - Don't exclude targets (allow self-references)
+        # - Exception: Temp tables from SELECT INTO should still be excluded
+
         for table in parsed.find_all(exp.Table):
             name = self._get_table_name(table)
-            if name and name not in targets:
+            if name:
+                # Only skip temp tables that are SELECT INTO targets
+                # These are internal and shouldn't appear as dependencies
+                if name in select_into_targets:
+                    continue
+
                 sources.add(name)
 
         return sources, targets

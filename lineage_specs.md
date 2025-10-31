@@ -60,14 +60,36 @@ The system is a file-based batch processor. Its boundary is defined by Parquet f
 
 ## 3. Input Interface: Parquet Snapshots
 
-The system *must* read the following four Parquet files. The `Helper Extractor` component is responsible for their generation.
+The system *must* read the following Parquet files. The `Helper Extractor` component is responsible for their generation.
+
+### 3.1. Required Files (3)
 
 | File | Source DMV(s) | Purpose |
 | :--- | :--- | :--- |
 | `objects.parquet` | `sys.objects`, `sys.schemas` | Authoritative catalog of all objects (schema, name, type, **object_id**). |
 | `dependencies.parquet` | `sys.sql_expression_dependencies` | The primary, high-confidence dependency links (using **object_id**). |
-| `definitions.parquet` | `sys.sql_modules` | The DDL text (e.g., `CREATE PROC...`) for parsing. |
-| `query_logs.parquet` | `sys.dm_pdw_exec_requests`, etc. | **OPTIONAL.** Runtime execution text for validation and discovery. *Note: DMV retains only ~10,000 recent queries - use sparingly.* |
+| `definitions.parquet` | `sys.sql_modules` | The DDL text (e.g., `CREATE PROC...`, `CREATE VIEW...`) for parsing stored procedures and views. |
+
+### 3.2. Optional Files (2)
+
+| File | Source DMV(s) | Purpose |
+| :--- | :--- | :--- |
+| `query_logs.parquet` | `sys.dm_pdw_exec_requests` | **OPTIONAL.** Runtime execution text for validation and discovery. *Note: DMV retains only ~10,000 recent queries - use sparingly.* |
+| `table_columns.parquet` | `sys.tables`, `sys.columns`, `sys.types` | **OPTIONAL.** Table column metadata for DDL generation. Enables CREATE TABLE statement reconstruction for SQL Viewer feature. |
+
+**Table Columns Schema:**
+
+The `table_columns.parquet` file (if provided) must contain:
+- `object_id` (int) - Links to objects.parquet
+- `schema_name` (string)
+- `table_name` (string)
+- `column_name` (string)
+- `data_type` (string) - SQL Server data type name
+- `max_length` (int) - Maximum length for string types (-1 for MAX)
+- `precision` (int) - Precision for numeric types
+- `scale` (int) - Scale for numeric types
+- `is_nullable` (bool)
+- `column_id` (int) - Column ordinal position
 
 **Incremental Load Support:**
 
@@ -96,22 +118,28 @@ SQLGlot is the required SQL parser. It is the optimal choice due to its robust T
 ---
 
 ## 5. Lineage Construction Logic
+## 5. Lineage Construction Logic
 
 The system must execute the following steps in order:
 
 1.  **Ingest:** Load all `.parquet` snapshots into DuckDB tables.
 2.  **Build Baseline (DMV):** Create the primary lineage set from `objects` and `dependencies` using `object_id`. Assign `provenance` as "dmv" and `confidence` as 1.0.
-3.  **Enhance (Query Logs):** Parse `query_logs.parquet` text.
-    * **Optimization:** Filter for DML/DDL statements (e.g., `INSERT...SELECT`, `SELECT INTO`, `CREATE TABLE AS`, `MERGE`).
-    * Resolve string table names to their `object_id`s via the `objects` table.
-    * Identify dependencies not found in the baseline. Assign `provenance` as "query_log" and `confidence` as 0.9.
-4.  **Detect Gaps:** Identify any Stored Procedures that have a `definition` but no resolved inputs or outputs.
-5.  **Run Parser (SQLGlot):** For each "gapped" SP, parse its DDL from `definitions.parquet`. Resolve extracted table names to `object_id`s. Assign `provenance` as "parser" and `confidence` as 0.85.
-6.  **Run AI Fallback:** For any SPs *still* unresolved, invoke the AI Fallback Framework. Assign `provenance` as "ai" and `confidence` as 0.7.
-7.  **Normalize & Merge:** Consolidate all dependency sources for each object.
-    * The final `confidence` for an object *must* be the `max()` of all its supporting sources (see Confidence Model).
-    * The `provenance.sources` array *must* list all unique sources (e.g., `["dmv", "parser"]`).
-8.  **Emit Artifacts:** Generate the final `lineage.json` and `lineage_summary.json` files.
+3.  **Detect Gaps:** Identify any Stored Procedures that have a `definition` but no resolved inputs or outputs.
+4.  **Run Parser (Dual Parser):** For all Stored Procedures, parse DDL from `definitions.parquet`. Resolve extracted table names to `object_id`s. Assign `provenance` as "parser" or "dual_parser" and `confidence` as 0.85 (high-quality parse) or 0.50 (low-quality parse).
+5.  **Query Log Validation (NEW - v3.4.0):** Cross-validate high-confidence parsed SPs (≥0.85) with runtime execution evidence.
+    * Load DML queries from `query_logs.parquet` (INSERT/UPDATE/MERGE only).
+    * For each high-confidence SP, match its parsed table dependencies against query log entries.
+    * If matching queries found: Boost confidence from 0.85 → 0.95.
+    * Assign `validation_source` as "query_log" in provenance.
+    * **Note:** This is validation only - no new lineage objects created.
+6.  **Run AI Fallback:** For any low-confidence SPs (confidence < 0.85), invoke the AI Fallback Framework. Assign `provenance` as "ai" and `confidence` as 0.7. **(DEFERRED - Phase 5)**
+7.  **Bidirectional Graph (Reverse Lookup):** Populate reverse dependencies for Tables/Views.
+    * For each SP/View that reads from a Table → Add SP/View to Table's `outputs`.
+    * For each SP that writes to a Table → Add SP to Table's `inputs`.
+    * This ensures React Flow can render edges in both directions.
+8.  **Emit Artifacts:** Generate the final `lineage.json`, `frontend_lineage.json`, and `lineage_summary.json` files.
+    * This ensures React Flow can render edges in both directions.
+8.  **Emit Artifacts:** Generate the final `lineage.json`, `frontend_lineage.json`, and `lineage_summary.json` files.
 
 ---
 
@@ -296,27 +324,28 @@ A separate `frontend_lineage.json` file *must* be generated with the following s
 
 ```json
 {
-  "id": "node_0",
+  "id": "1986106116",
   "name": "object_name",
   "schema": "schema",
   "object_type": "Table|View|Stored Procedure",
-  "description": "",
-  "data_model_type": "Dimension|Fact|Other",
-  "inputs": ["node_1", "node_2"],
-  "outputs": ["node_3"]
+  "description": "Confidence: 0.85",
+  "data_model_type": "Dimension|Fact|Other|Lookup",
+  "inputs": ["46623209", "350624292"],
+  "outputs": ["366624349"]
 }
 ```
+
+**Note:** IDs are string-cast database `object_id` values (e.g., `"1986106116"`), NOT sequential `"node_0"` format. This preserves traceability to `sys.objects.object_id`.
 
 ### 10.2. Transformation Rules
 
 | Internal Field | Frontend Field | Transformation |
 | :--- | :--- | :--- |
-| `id` (integer) | `id` (string) | Map `object_id` → `"node_X"` sequentially |
-| `provenance` | *(removed)* | Confidence data excluded from frontend |
-| *(inferred)* | `description` | Default to empty string `""` |
-| *(inferred)* | `data_model_type` | Classify based on name prefix:<br>• `Dim*` → `"Dimension"`<br>• `Fact*` → `"Fact"`<br>• Other → `"Other"` |
-| `inputs` (int[]) | `inputs` (string[]) | Convert object_ids to node_ids |
-| `outputs` (int[]) | `outputs` (string[]) | Convert object_ids to node_ids |
+| `id` (integer) | `id` (string) | Cast `object_id` to string (e.g., `1986106116` → `"1986106116"`) |
+| `provenance` | `description` | Format confidence: `"Confidence: 0.85"` or `"Confidence: 1.00"` |
+| *(inferred)* | `data_model_type` | Classify based on name prefix:<br>• `Dim*` → `"Dimension"`<br>• `Fact*` → `"Fact"`<br>• `Lookup*` → `"Lookup"`<br>• Other → `"Other"` |
+| `inputs` (int[]) | `inputs` (string[]) | Cast each object_id to string |
+| `outputs` (int[]) | `outputs` (string[]) | Cast each object_id to string |
 
 ### 10.3. Validation
 

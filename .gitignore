@@ -34,9 +34,24 @@ lineage_workspace.*
 # Parquet snapshots (may contain sensitive data)
 parquet_snapshots/*.parquet
 
-# Lineage output (optional - uncomment if you don't want to track lineage results)
-# lineage_output/*.json
+# Lineage output (generated files should not be tracked)
+lineage_output/*.json
 
 # Testing results (query log validation)
 testing/query_log_validation/results/*.json
 testing/query_log_validation/results/*.md
+# API persistent data
+api/data/
+data/
+
+# Log files (should never be committed)
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# Build artifacts
+dist/
+build/
+*.egg-info/

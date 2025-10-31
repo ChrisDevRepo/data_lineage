@@ -10,6 +10,8 @@ type UseDataFilteringProps = {
     isTraceModeActive: boolean;
     traceConfig: TraceConfig | null;
     performInteractiveTrace: (config: TraceConfig) => Set<string>;
+    isInTraceExitMode: boolean;
+    traceExitNodes: Set<string>;
 };
 
 export function useDataFiltering({
@@ -19,7 +21,9 @@ export function useDataFiltering({
     dataModelTypes,
     isTraceModeActive,
     traceConfig,
-    performInteractiveTrace
+    performInteractiveTrace,
+    isInTraceExitMode,
+    traceExitNodes
 }: UseDataFilteringProps) {
     const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
     const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -65,21 +69,45 @@ export function useDataFiltering({
         setAutocompleteSuggestions(suggestions);
     }, [searchTerm, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes]);
 
+    // Static pre-filter: Apply "Hide Unrelated" BEFORE any other filters
+    // This is memoized separately so it doesn't recalculate when clicking nodes
+    const preFilteredData = useMemo(() => {
+        if (hideUnrelated) {
+            // Filter out nodes with NO connections in the complete graph
+            return allData.filter(node => {
+                if (lineageGraph.hasNode(node.id)) {
+                    const neighbors = lineageGraph.neighbors(node.id);
+                    return neighbors.length > 0; // Keep only nodes with at least one connection
+                }
+                return false; // Remove nodes not in graph
+            });
+        }
+        return allData; // No pre-filtering if hideUnrelated is off
+    }, [allData, lineageGraph, hideUnrelated]);
+
     const finalVisibleData = useMemo(() => {
         // If in trace mode, the trace config's filters take precedence.
         if (isTraceModeActive && traceConfig) {
             const tracedIds = performInteractiveTrace(traceConfig);
-            return allData.filter(node => tracedIds.has(node.id));
+            return preFilteredData.filter(node => tracedIds.has(node.id));
         }
 
-        // If a node is highlighted and we want to hide unrelated, this acts as a "focus mode".
-        if (hideUnrelated && highlightedNodes.size > 0) {
-            return allData.filter(node => highlightedNodes.has(node.id));
+        // If in trace exit mode, show only the traced nodes (preserve trace results)
+        // but still allow filtering by schemas and types within this subset
+        if (isInTraceExitMode && traceExitNodes.size > 0) {
+            return preFilteredData.filter(node =>
+                traceExitNodes.has(node.id) &&
+                selectedSchemas.has(node.schema) &&
+                (dataModelTypes.length === 0 || !node.data_model_type || selectedTypes.has(node.data_model_type))
+            );
         }
 
         // Default behavior: filter by selected schemas and types.
         const baseVisibleNodes: DataNode[] = [];
         lineageGraph.forEachNode((nodeId, attributes) => {
+            // Only process nodes that passed the pre-filter
+            if (!preFilteredData.find(n => n.id === nodeId)) return;
+
             if (
                 selectedSchemas.has(attributes.schema) &&
                 (dataModelTypes.length === 0 || !attributes.data_model_type || selectedTypes.has(attributes.data_model_type))
@@ -87,20 +115,9 @@ export function useDataFiltering({
                 baseVisibleNodes.push(attributes as DataNode);
             }
         });
-        
-        // When no node is selected, "Hide Unrelated" filters out nodes that are isolated from other visible nodes.
-        if (hideUnrelated) {
-            const baseVisibleNodeIds = new Set(baseVisibleNodes.map(n => n.id));
 
-            return baseVisibleNodes.filter(node => {
-                const neighbors = lineageGraph.neighbors(node.id);
-                // Keep the node if any of its neighbors are also in the visible set.
-                return neighbors.some(neighborId => baseVisibleNodeIds.has(neighborId));
-            });
-        }
-        
         return baseVisibleNodes;
-    }, [allData, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes, hideUnrelated, highlightedNodes, isTraceModeActive, traceConfig, performInteractiveTrace]);
+    }, [preFilteredData, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, allData]);
 
     return {
         finalVisibleData,

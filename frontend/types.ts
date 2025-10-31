@@ -6,14 +6,17 @@ export type DataNode = {
   description?: string;
   data_model_type?: 'Dimension' | 'Fact' | 'Lookup' | 'Other';
   inputs: string[];
-  outputs:string[];
+  outputs: string[];
+  ddl_text?: string | null;  // SQL definition for Views and Stored Procedures (v3.0 SQL Viewer feature)
 };
 
 export type TraceConfig = {
   startNodeId: string | null;
+  endNodeId?: string | null;  // Optional: if provided, trace path between start and end
   upstreamLevels: number;
   downstreamLevels: number;
   includedSchemas: Set<string>;
+  includedTypes: Set<string>;
   exclusionPatterns: string[];
 };
 

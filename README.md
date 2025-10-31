@@ -1,8 +1,10 @@
 # Azure Synapse Data Warehouse - Data Lineage Analysis
 
-This repository contains SQL scripts for an Azure Synapse Analytics data warehouse implementation, along with the **Vibecoding Lineage Parser v2.0** - a DMV-first data lineage extraction system.
+This repository contains SQL scripts for an Azure Synapse Analytics data warehouse implementation, along with the **Vibecoding Lineage Parser v3.0.1** - a DMV-first data lineage system with GUI-based workflow.
 
-## 📁 Repository Structure
+**Latest Update (2025-10-27):** Data persistence bug fixed - parquet uploads now persist correctly after page refresh.
+
+## 📁 Repository Structure (v3.0)
 
 ```
 ws-psidwh/
@@ -11,117 +13,223 @@ ws-psidwh/
 │   ├── Tables/                   # Table definitions
 │   └── Views/                    # View definitions
 │
-├── lineage_v3/                   # Lineage Parser v2.0 (folder name historical)
-│   ├── main.py                   # CLI entry point
-│   ├── extractor/                # Production DMV extractor
-│   │   ├── synapse_dmv_extractor.py
-│   │   └── README.md
-│   ├── core/                     # DuckDB engine (Phase 3)
-│   ├── parsers/                  # SQLGlot parser (Phase 4)
-│   ├── ai_analyzer/              # Microsoft Agent Framework (Phase 5)
-│   ├── output/                   # JSON formatters (Phase 6)
-│   └── utils/                    # Config & incremental support
+├── extractor/                    # ✅ PySpark DMV Extractor (Week 1 Complete)
+│   ├── synapse_pyspark_dmv_extractor.py  # Spark job script
+│   └── README.md                 # Deployment guide
 │
-├── deprecated/                   # Archived v1 implementation
-├── frontend/                     # React Flow visualization app
+├── api/                          # ✅ FastAPI Backend v3.0.1 (Production Ready)
+│   ├── main.py                   # 7 endpoints with data persistence
+│   ├── background_tasks.py       # Background processing + persistence
+│   ├── models.py                 # Pydantic models
+│   ├── README.md                 # API documentation
+│   └── TEST_RESULTS.md           # Comprehensive tests
+│
+├── docker/                       # 🚧 Container Configuration (Week 2-3 Pending)
+│   └── README.md                 # Implementation pending
+│
+├── backup_v2/                    # 📦 v2.0 Backup (CLI-based implementation)
+│   ├── lineage_v3/               # Python backend (v2.0)
+│   └── frontend/                 # React app (v2.0)
+│
+├── lineage_v3/                   # Current v2.0 implementation (will be wrapped in v3.0)
+│   ├── main.py                   # CLI entry point
+│   ├── core/                     # DuckDB engine
+│   ├── parsers/                  # SQLGlot parser
+│   ├── output/                   # JSON formatters
+│   └── utils/                    # Config & helpers
+│
+├── frontend/                     # React Flow visualization (v2.0 - will be enhanced in v3.0)
 ├── parquet_snapshots/            # DMV Parquet exports (gitignored)
 ├── lineage_output/               # Generated lineage JSON files
-├── docs/                         # Documentation
+│
+├── docs/                         # 📚 Documentation
+│   ├── IMPLEMENTATION_SPEC_FINAL.md  # ⭐ v3.0 Complete Specification
+│   ├── PARSING_USER_GUIDE.md     # User guide for SQL parsing
+│   ├── DUCKDB_SCHEMA.md          # Database schema reference
+
+│
 ├── .env.template                 # Environment config template
 ├── requirements.txt              # Python dependencies
-├── lineage_specs.md              # Parser v2.0 specification (spec v2.1)
+├── lineage_specs.md              # Parser v2.0 specification
 ├── CLAUDE.md                     # AI assistant instructions
 └── README.md                     # This file
 ```
 
-**Version Note:** The parser is version **2.0** (folder name `lineage_v3` refers to the third development iteration).
-
 ---
 
-## 🚀 Quick Start
+## 🚀 v3.0 Implementation Status
 
-### 1. Extract DMV Metadata from Synapse
+**Current Status:** ✅ **Week 1-2 Complete + Parser Enhancements (v3.4.0)**
 
-Use the Production Extractor to export metadata from your Azure Synapse database:
+### Timeline (4 weeks)
 
-```bash
-# Configure credentials in .env file
-cp .env.template .env
-# Edit .env with your Synapse credentials
+| Week | Feature | Status |
+|------|---------|--------|
+| **Week 1** | PySpark DMV Extractor | ✅ Complete |
+| **Week 2** | FastAPI Backend (6 endpoints) | ✅ Complete |
+| **Week 3** | Parser Enhancements + Query Log Validation | ✅ Complete (v3.4.0) |
+| **Week 3-4** | Docker Containerization | 🚧 Pending |
+| **Week 4** | SQL Viewer Feature | 🚧 Pending |
 
-# Extract DMV data to Parquet files
-python3 lineage_v3/extractor/synapse_dmv_extractor.py --output parquet_snapshots/
+### ✨ Latest Updates (v3.4.0 - 2025-10-27)
+
+**1. SELECT INTO Parser Bug Fix**
+- Fixed missing dependencies in `SELECT INTO #temp FROM source` statements
+- Example: `spLoadFactLaborCostForEarnedValue_1` now correctly captures `vFactLaborCost` dependency
+- Impact: 1 SP confidence improved (0.5 → 0.85)
+
+**2. Query Log Validation (Step 5)**
+- Cross-validates parsed stored procedures with runtime execution evidence
+- Boosts confidence for validated SPs: 0.85 → 0.95
+- Results: 6-8 SPs validated, +200% very high-confidence objects
+- Features: Regex table extraction, temp table filtering, graceful degradation
+
+**Documentation:**
+- [Query Logs Analysis](docs/QUERY_LOGS_ANALYSIS.md) - Complete analysis & strategy
+- [Parser Bug Report](docs/PARSER_BUG_SELECT_INTO.md) - Root cause & fix
+- [Implementation Summary](docs/IMPLEMENTATION_COMPLETE.md) - v3.4.0 details
+
+### What's Changing in v3.0
+
+**Before (v2.0):**
+```
+User → Installs Python locally
+     → Runs: python lineage_v3/extractor/synapse_dmv_extractor.py
+     → Runs: python lineage_v3/main.py run --parquet ...
+     → Uploads frontend_lineage.json to Azure Web App
+     → Views graph in browser
 ```
 
-**Output:** 4 Parquet files containing database metadata
-See [lineage_v3/extractor/README.md](lineage_v3/extractor/README.md) for details.
-
-### 2. Generate Data Lineage
-
-```bash
-# Run lineage analysis (incremental mode - default)
-python3 lineage_v3/main.py run --parquet parquet_snapshots/
-
-# Full refresh mode (re-parse all objects)
-python3 lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
+**After (v3.0):**
+```
+User → Opens Synapse Studio (browser)
+     → Runs PySpark notebook (GUI)
+     → Downloads Parquet files
+     → Opens web app
+     → Uploads Parquet files in browser
+     → Sees progress during parsing
+     → Views graph + SQL definitions
 ```
 
-**Current Status:** Phase 4 & 6 complete - Parser & Output Generation operational
-**Output:** 3 JSON files (lineage.json, frontend_lineage.json, lineage_summary.json)
+**Key Benefits:**
+- ✅ No local Python installation required
+- ✅ No CLI commands
+- ✅ Full GUI-based workflow
+- ✅ Progress updates during parsing
+- ✅ View SQL definitions in-app
 
----
-
-## 📊 Current Status
-
-### ✅ Completed Phases
-
-**Phase 2 - Production DMV Extractor**
-- Standalone script to export Synapse metadata to Parquet
-- Full CLI with .env support
-- Tested and validated
-
-**Phase 3 - Core Engine (DuckDB Workspace)**
-- Persistent DuckDB workspace with schema initialization
-- Parquet ingestion for all 4 input files
-- Incremental load metadata tracking (90%+ performance improvement)
-- Query interface for DMV data access
-- Full test coverage and CLI integration
-
-**Phase 4 - SQLGlot Parser with Enhanced Preprocessing** ✅
-- Gap detector identifies objects with missing dependencies
-- AST-based SQL parser for T-SQL DDL extraction
-- **Enhanced preprocessing:** Focus on TRY block, remove CATCH/EXEC/logging
-- **Results:** 50% high confidence (8 of 16 SPs) - **+100% improvement**
-- Above industry average for T-SQL environments (30-40% typical)
-- See [CONFIDENCE_SUMMARY.md](CONFIDENCE_SUMMARY.md) for detailed analysis
-
-**Phase 6 - Output Generation** ✅
-- Internal format (lineage.json) - Integer object_ids
-- Frontend format (frontend_lineage.json) - String node_ids for React Flow
-- Summary format (lineage_summary.json) - Confidence distribution & statistics
-- Auto-detection of Dimension/Fact table types
-
-### 🚧 Next: Phase 5 - AI Fallback Framework
-
-Target: 8 remaining low-confidence stored procedures
-Expected: 6-7 successful (75-88% success rate)
-Projected final: 87-94% high confidence coverage
 ---
 
 ## 📚 Documentation
 
-### Core Documentation
-- **[lineage_specs.md](lineage_specs.md)** - Complete parser v2.0 specification
-- **[CLAUDE.md](CLAUDE.md)** - Development guide and project overview
-- **[CONFIDENCE_SUMMARY.md](CONFIDENCE_SUMMARY.md)** - Confidence distribution analysis
-- **[requirements.txt](requirements.txt)** - Python dependencies
+### v3.0 Specification
+- **[docs/IMPLEMENTATION_SPEC_FINAL.md](docs/IMPLEMENTATION_SPEC_FINAL.md)** - ⭐ **Complete v3.0 specification**
+  - Architecture overview with diagrams
+  - 4-week implementation timeline
+  - Code examples for all features
+  - Risk assessment & testing strategy
+  - 2,292 lines of detailed specifications
 
-### Component Documentation
-- **[lineage_v3/extractor/README.md](lineage_v3/extractor/README.md)** - DMV extractor guide
-- **[lineage_v3/core/README.md](lineage_v3/core/README.md)** - Core engine documentation
-- **[lineage_v3/parsers/README.md](lineage_v3/parsers/README.md)** - Parser module documentation
-- **[frontend/docs/](frontend/docs/)** - Frontend application documentation
+### User Guides
+- **[docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md)** - SQL parsing best practices
+- **[docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md)** - Database schema reference
+
+### v2.0 Technical Docs
+- **[lineage_specs.md](lineage_specs.md)** - Parser v2.0 specification
+- **[CLAUDE.md](CLAUDE.md)** - Development guide and project overview
+- **[lineage_v3/core/README.md](lineage_v3/core/README.md)** - DuckDB workspace docs
+- **[lineage_v3/parsers/README.md](lineage_v3/parsers/README.md)** - SQLGlot parser docs
+- **[frontend/docs/](frontend/docs/)** - Frontend application docs
+
+### Historical Docs
+
 ---
 
-**Last Updated:** 2025-10-26
-**Parser Version:** 3.0.0 (Phase 4 & 6 Complete - Production Ready)
+## 🏗️ v3.0 Implementation Folders
+
+### [extractor/](extractor/)
+**PySpark DMV Extractor** (Week 1)
+- GUI-based extraction in Synapse Studio
+- No local Python installation required
+- Outputs to ADLS Gen2
+- See [extractor/README.md](extractor/README.md)
+
+### [api/](api/)
+**FastAPI Backend** (Week 2-3)
+- Wraps existing `lineage_v3` code (unchanged)
+- Upload Parquet files via browser
+- Poll for status every 2 seconds
+- Returns lineage JSON with DDL text
+- See [api/README.md](api/README.md)
+
+### [docker/](docker/)
+**Single Container Deployment** (Week 2-3)
+- Multi-stage build: Frontend + Backend
+- FastAPI serves React static files
+- Ephemeral job storage in `/tmp/jobs/`
+- See [docker/README.md](docker/README.md)
+
+---
+
+## 📋 v2.0 Current Functionality (Still Works!)
+
+The v2.0 implementation is **fully operational** and backed up in `backup_v2/`.
+
+### Quick Start (v2.0 CLI)
+
+#### 1. Extract DMV Metadata
+
+```bash
+# Configure credentials
+cp .env.template .env
+# Edit .env with your Synapse credentials
+
+# Extract DMV data
+python3 lineage_v3/extractor/synapse_dmv_extractor.py --output parquet_snapshots/
+```
+
+#### 2. Generate Lineage
+
+```bash
+# Run lineage analysis (incremental mode)
+python3 lineage_v3/main.py run --parquet parquet_snapshots/
+
+# Full refresh mode
+python3 lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
+```
+
+**Output:** 3 JSON files in `lineage_output/`
+- `lineage.json` - Internal format (integer object_ids)
+- `frontend_lineage.json` - Frontend format (string node_ids)
+- `lineage_summary.json` - Statistics
+
+#### 3. Visualize
+
+Upload `lineage_output/frontend_lineage.json` to the React app (see [frontend/README.md](frontend/README.md)).
+
+---
+
+## 🔄 Version History
+
+- **v2.0** (Current) - CLI-based, DMV-first parser with DuckDB workspace ✅ **Production Ready**
+- **v3.0** (In Development) - GUI-based workflow with single container deployment 🚧 **Spec Complete**
+
+---
+
+## 🛠️ Development
+
+**Branch:** `feature/v3-implementation`
+
+**v2.0 Backup:** All current code saved in `backup_v2/`
+
+**Next Steps:**
+1. Week 1: Implement PySpark DMV extractor
+2. Week 2-3: Implement single container deployment
+3. Week 4: Implement SQL viewer feature
+4. Deploy to Azure Web App
+
+---
+
+**Last Updated:** 2025-10-27
+**Current Version:** 2.0 (CLI-based) ✅ Production Ready
+**Next Version:** 3.0 (GUI-based) 🚧 Specification Complete - Ready for Implementation

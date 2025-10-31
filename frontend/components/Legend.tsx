@@ -19,11 +19,11 @@ export const Legend = ({ isCollapsed, onToggle, schemas, schemaColorMap }: Legen
 
     return (
         <div className={`
-            absolute top-4 left-4 text-xs rounded-lg bg-white/80 backdrop-blur-sm shadow-lg 
+            absolute top-4 left-4 text-xs rounded-lg bg-white/80 backdrop-blur-sm shadow-lg
             pointer-events-auto z-10 transition-all duration-300 ease-in-out overflow-hidden
-            ${isCollapsed ? 'w-14 h-14' : 'w-64'}
+            ${isCollapsed ? 'w-14 h-14' : 'w-80'}
         `}>
-            <div className="w-64">
+            <div className="w-80">
                 <div
                     className="flex items-center justify-between cursor-pointer select-none p-4 h-14"
                     onClick={onToggle}
@@ -58,11 +58,11 @@ export const Legend = ({ isCollapsed, onToggle, schemas, schemaColorMap }: Legen
                     `}
                 >
                     <div className="overflow-y-auto max-h-[calc(40vh-56px)]">
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                        <div className="grid grid-cols-1 gap-y-1.5">
                             {schemasToShow.map(s => (
-                                <div key={s} className="flex items-center gap-2 truncate" title={s}>
+                                <div key={s} className="flex items-center gap-2" title={s}>
                                     <span style={{ backgroundColor: schemaColorMap.get(s) }} className="w-3 h-3 inline-block rounded-sm ring-1 ring-black/20 flex-shrink-0"></span>
-                                    <span className="truncate text-gray-700">{s}</span>
+                                    <span className="text-gray-700">{s}</span>
                                 </div>
                             ))}
                         </div>

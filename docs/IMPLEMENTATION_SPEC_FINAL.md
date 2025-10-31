@@ -304,20 +304,10 @@ def extract_to_parquet(query, output_filename, description):
         .options(**jdbc_properties) \
         .load()
 
-    # Convert to pandas for single-file write
-    # (avoids multiple part files from Spark)
-    pdf = df.toPandas()
-
-    # Save to local temp
-    local_temp = f"/tmp/{output_filename}"
-    pdf.to_parquet(local_temp, index=False, engine='pyarrow', compression='snappy')
-
-    # Upload to ADLS
-    mssparkutils.fs.cp(f"file://{local_temp}", f"{OUTPUT_PATH}{output_filename}")
-
-    # Clean up
-    import os
-    os.remove(local_temp)
+    # Write to ADLS using Spark native (creates directory output)
+    # .coalesce(1) ensures single partition (single part file)
+    output_path = f"{OUTPUT_PATH}{output_filename}"
+    df.coalesce(1).write.mode("overwrite").parquet(output_path)
 
 # CELL 4-7: Extract each DMV
 extract_to_parquet(QUERY_OBJECTS, "objects.parquet", "objects")
@@ -401,38 +391,45 @@ QUERY_LOGS = """
 
 **Decision:** Start with Synapse only, add Databricks later if requested
 
-### 4.5. Single File Output Strategy
+### 4.5. Parquet Output Strategy
 
-**Problem:** Spark defaults to partitioned output:
+**Spark Native Behavior:** Spark writes partitioned output to directories:
 ```
 objects.parquet/
   ├── _SUCCESS
-  ├── part-00000.parquet
-  ├── part-00001.parquet
-  └── part-00002.parquet  ❌ Multiple files
+  └── part-00000-abc123.snappy.parquet  ✅ Single partition (via .coalesce(1))
 ```
 
-**Solution:** Use `.coalesce(1)` + pandas:
+**Solution:** Use `.coalesce(1)` for single partition, DuckDB reads directories natively:
 ```python
 df = spark.read.jdbc(...)
-df_coalesced = df.coalesce(1)  # Force single partition
-pdf = df_coalesced.toPandas()  # Convert to pandas
-pdf.to_parquet("objects.parquet", index=False)  # ✅ Single file
+df.coalesce(1).write.mode("overwrite").parquet(output_path)
+# Creates: objects.parquet/part-00000-{uuid}.parquet
 ```
 
-**Why pandas?**
-- ✅ Guarantees single file (no part-* files)
-- ✅ DMV data is small (<10 MB) - safe for driver memory
-- ✅ Simpler than Spark native + file renaming
+**Why This Works:**
+- ✅ **No pandas needed** - Spark native output
+- ✅ **DuckDB compatible** - `read_parquet()` supports directories
+- ✅ **Simpler deployment** - No additional dependencies
+- ✅ **Scalable** - Works for any data size
 
-**Memory Analysis:**
-| File | Expected Size | Pandas Memory |
+**DuckDB Reading:**
+```python
+# DuckDB automatically reads from directories
+SELECT * FROM read_parquet('objects.parquet/*.parquet')
+
+# Or use glob pattern for specific files
+SELECT * FROM read_parquet('objects.parquet/part-*.parquet')
+```
+
+**Data Size Analysis:**
+| File | Expected Size | Spark Memory |
 |------|---------------|---------------|
-| objects.parquet | <1 MB | <10 MB |
-| dependencies.parquet | <5 MB | <50 MB |
-| definitions.parquet | <10 MB | <100 MB |
-| query_logs.parquet | <5 MB | <50 MB |
-| **TOTAL** | **<20 MB** | **<200 MB** ✅ Safe |
+| objects.parquet/ | <1 MB | <10 MB (one partition) |
+| dependencies.parquet/ | <5 MB | <50 MB (one partition) |
+| definitions.parquet/ | <10 MB | <100 MB (one partition) |
+| query_logs.parquet/ | <5 MB | <50 MB (one partition) |
+| **TOTAL** | **<20 MB** | **<200 MB** ✅ Safe for small executor |
 
 ---
 
@@ -1276,24 +1273,49 @@ async def serve_spa(full_path: str):
 
 ### 6.1. Overview
 
-Add "View SQL" feature that displays DDL in a split view when user right-clicks an object.
+Add "View SQL" feature that displays DDL in a split view via a toggle button. The SQL viewer is only active in Detail View when Parquet files are uploaded (DDL included).
+
+**Key Design Decisions:**
+- **Toggle Button** (not right-click): Button appears in toolbar next to "Hide Overlays"
+- **Split Screen**: 50/50 layout (graph left, SQL viewer right)
+- **Click-to-View**: User clicks nodes in the graph to see their SQL in the right panel
+- **Conditional Activation**: Only enabled when:
+  - Data loaded via **Parquet upload** (includes DDL text)
+  - **Detail View** mode is active (not Overview mode)
+- **Interactive Selection**: Clicking different nodes updates the SQL viewer panel
 
 ### 6.2. User Workflow
 
-1. User sees graph with objects
-2. User right-clicks a Stored Procedure or View
-3. Context menu appears: "View SQL Definition"
-4. User clicks "View SQL Definition"
-5. Screen splits:
-   - Left side (50%): Graph (remains visible)
-   - Right side (50%): SQL viewer
-     - Syntax-highlighted DDL (like SQL editor)
-     - Full-text search box at top
-     - Read-only view (no editing)
-     - Scrollbars for navigation
-6. User can search for keywords (e.g., "INSERT INTO")
-7. Matching text highlights in yellow
-8. User closes SQL viewer by clicking X or clicking outside
+**Prerequisites:**
+- Data loaded via **Parquet upload** (includes DDL text)
+- **Detail View** mode active (not Overview mode)
+
+**Workflow:**
+1. User sees toolbar with control buttons (left side):
+   - "Hide Overlays" button (existing)
+   - **"View SQL" button** (NEW) - appears next to Hide Overlays
+2. **SQL button states:**
+   - **Active** (clickable): When in Detail View + Parquet uploaded
+   - **Inactive** (grayed out): When in Overview mode OR JSON imported (no DDL)
+3. User clicks "View SQL" toggle button
+4. Screen splits 50/50:
+   - **Left side (50%)**: Graph with all objects (remains interactive)
+   - **Right side (50%)**: SQL viewer panel
+     - Header: "SQL Definition Viewer"
+     - Message: "Click on any Stored Procedure or View to see its SQL"
+     - Empty content area (syntax-highlighted placeholder)
+5. User clicks on a Stored Procedure or View node in the graph
+6. Node highlights (selected state)
+7. Right panel updates:
+   - Header shows: `{schema}.{object_name} - SQL Definition`
+   - SQL content displays with syntax highlighting
+   - Search box appears at top
+8. User can:
+   - Search for keywords (e.g., "INSERT INTO") - matches highlight in yellow
+   - Click different nodes to view their SQL
+   - Scroll through SQL content
+9. User clicks "View SQL" button again (toggle off)
+10. Split view closes, graph returns to full width
 
 ### 6.3. Frontend Implementation
 
@@ -1327,16 +1349,16 @@ import 'prismjs/components/prism-sql';       // SQL syntax
 
 type SqlViewerProps = {
     isOpen: boolean;
-    onClose: () => void;
-    nodeName: string;
-    ddlText: string;
+    selectedNode: {
+        name: string;
+        schema: string;
+        ddlText: string | null;
+    } | null;
 };
 
 export const SqlViewer: React.FC<SqlViewerProps> = ({
     isOpen,
-    onClose,
-    nodeName,
-    ddlText
+    selectedNode
 }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [highlightedDdl, setHighlightedDdl] = useState('');
@@ -1344,16 +1366,17 @@ export const SqlViewer: React.FC<SqlViewerProps> = ({
 
     // Syntax highlight DDL
     useEffect(() => {
-        if (ddlText) {
+        if (selectedNode?.ddlText) {
             // Use Prism.js for syntax highlighting
             const highlighted = Prism.highlight(
-                ddlText,
+                selectedNode.ddlText,
                 Prism.languages.sql,
                 'sql'
             );
             setHighlightedDdl(highlighted);
+            setSearchQuery(''); // Reset search when node changes
         }
-    }, [ddlText]);
+    }, [selectedNode]);
 
     // Handle search
     useEffect(() => {
@@ -1383,38 +1406,51 @@ export const SqlViewer: React.FC<SqlViewerProps> = ({
         <div className="sql-viewer-panel">
             {/* Header */}
             <div className="sql-viewer-header">
-                <h2>{nodeName} - SQL Definition</h2>
+                <h2>
+                    {selectedNode
+                        ? `${selectedNode.schema}.${selectedNode.name} - SQL Definition`
+                        : 'SQL Definition Viewer'
+                    }
+                </h2>
 
-                {/* Search box */}
-                <input
-                    type="text"
-                    placeholder="Search SQL..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="sql-search"
-                />
-
-                {/* Close button */}
-                <button onClick={onClose} className="close-button">
-                    ✕
-                </button>
+                {/* Search box - only show when SQL is loaded */}
+                {selectedNode?.ddlText && (
+                    <input
+                        type="text"
+                        placeholder="Search SQL..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="sql-search"
+                    />
+                )}
             </div>
 
             {/* SQL content */}
             <div className="sql-viewer-content">
-                <pre ref={codeRef} className="language-sql">
-                    <code
-                        className="language-sql"
-                        dangerouslySetInnerHTML={{ __html: highlightedDdl }}
-                    />
-                </pre>
+                {!selectedNode ? (
+                    <div className="sql-viewer-empty">
+                        <p>Click on any Stored Procedure or View to see its SQL definition</p>
+                    </div>
+                ) : selectedNode.ddlText ? (
+                    <pre ref={codeRef} className="language-sql">
+                        <code
+                            className="language-sql"
+                            dangerouslySetInnerHTML={{ __html: highlightedDdl }}
+                        />
+                    </pre>
+                ) : (
+                    <div className="sql-viewer-empty">
+                        <p>No SQL definition available for this object</p>
+                        <p className="hint">(Tables don't have DDL text)</p>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 ```
 
-#### Update CustomNode with Context Menu
+#### Update CustomNode with Click Handler
 
 ```typescript
 // frontend/components/CustomNode.tsx
@@ -1423,24 +1459,23 @@ import React from 'react';
 import { Handle, Position } from 'reactflow';
 
 export const CustomNode = ({ data }) => {
-    const handleContextMenu = (event: React.MouseEvent) => {
-        event.preventDefault();
-
-        // Only show context menu for objects with DDL
-        if (!data.ddl_text) return;
-
-        // Open SQL viewer
-        data.onOpenSqlViewer({
-            nodeName: data.name,
-            ddlText: data.ddl_text
-        });
+    const handleClick = () => {
+        // Only trigger SQL viewer if it's open and node has DDL
+        if (data.sqlViewerOpen && data.ddl_text) {
+            data.onNodeClick({
+                id: data.id,
+                name: data.name,
+                schema: data.schema,
+                ddlText: data.ddl_text
+            });
+        }
     };
 
     return (
         <div
-            className="custom-node"
-            onContextMenu={handleContextMenu}
-            title="Right-click to view SQL definition"
+            className={`custom-node ${data.sqlViewerOpen && data.ddl_text ? 'sql-clickable' : ''}`}
+            onClick={handleClick}
+            title={data.sqlViewerOpen && data.ddl_text ? "Click to view SQL definition" : ""}
         >
             <Handle type="target" position={Position.Left} />
             <div className="node-content">
@@ -1453,62 +1488,114 @@ export const CustomNode = ({ data }) => {
 };
 ```
 
-#### Update App with Split View
+#### Update App with Split View and Toggle Button
 
 ```typescript
 // frontend/App.tsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { SqlViewer } from './components/SqlViewer';
 
 export default function App() {
-    const [sqlViewerState, setSqlViewerState] = useState<{
-        isOpen: boolean;
-        nodeName: string;
-        ddlText: string;
-    }>({
-        isOpen: false,
-        nodeName: '',
-        ddlText: ''
-    });
+    // Track if data was loaded via Parquet (has DDL)
+    const [hasDdlData, setHasDdlData] = useState(false);
 
-    const handleOpenSqlViewer = (nodeName: string, ddlText: string) => {
-        setSqlViewerState({
-            isOpen: true,
-            nodeName,
-            ddlText
-        });
+    // Track current view mode (overview vs detail)
+    const [viewMode, setViewMode] = useState<'overview' | 'detail'>('detail');
+
+    // SQL Viewer state
+    const [sqlViewerOpen, setSqlViewerOpen] = useState(false);
+    const [selectedNode, setSelectedNode] = useState<{
+        id: string;
+        name: string;
+        schema: string;
+        ddlText: string | null;
+    } | null>(null);
+
+    // Check if data has DDL when loaded
+    useEffect(() => {
+        // After data import, check if any nodes have ddl_text
+        const anyNodeHasDdl = nodes.some(node => node.data.ddl_text != null);
+        setHasDdlData(anyNodeHasDdl);
+    }, [nodes]);
+
+    // Determine if SQL viewer button should be enabled
+    const sqlViewerEnabled = hasDdlData && viewMode === 'detail';
+
+    const handleToggleSqlViewer = () => {
+        if (!sqlViewerEnabled) return;
+
+        setSqlViewerOpen(!sqlViewerOpen);
+        if (sqlViewerOpen) {
+            // Closing viewer, clear selection
+            setSelectedNode(null);
+        }
     };
 
-    const handleCloseSqlViewer = () => {
-        setSqlViewerState({ isOpen: false, nodeName: '', ddlText: '' });
+    const handleNodeClick = (nodeData: {
+        id: string;
+        name: string;
+        schema: string;
+        ddlText: string | null;
+    }) => {
+        if (sqlViewerOpen) {
+            setSelectedNode(nodeData);
+        }
     };
 
     return (
         <div className="app-container">
-            <div className={`graph-container ${sqlViewerState.isOpen ? 'split-view' : ''}`}>
-                <ReactFlow
-                    nodes={nodes.map(n => ({
-                        ...n,
-                        data: {
-                            ...n.data,
-                            onOpenSqlViewer: (data) => handleOpenSqlViewer(data.nodeName, data.ddlText)
-                        }
-                    }))}
-                    edges={edges}
-                />
+            {/* Toolbar */}
+            <div className="toolbar">
+                {/* Existing buttons */}
+                <button onClick={handleHideOverlays}>
+                    Hide Overlays
+                </button>
+
+                {/* NEW: SQL Viewer Toggle Button */}
+                <button
+                    onClick={handleToggleSqlViewer}
+                    disabled={!sqlViewerEnabled}
+                    className={`sql-viewer-toggle ${sqlViewerOpen ? 'active' : ''}`}
+                    title={
+                        !hasDdlData
+                            ? 'Upload Parquet files to view SQL'
+                            : viewMode !== 'detail'
+                            ? 'Switch to Detail View to view SQL'
+                            : sqlViewerOpen
+                            ? 'Close SQL Viewer'
+                            : 'View SQL Definitions'
+                    }
+                >
+                    {sqlViewerOpen ? '✕ Close SQL' : '📄 View SQL'}
+                </button>
             </div>
 
-            {sqlViewerState.isOpen && (
-                <div className="sql-viewer-container">
-                    <SqlViewer
-                        isOpen={sqlViewerState.isOpen}
-                        onClose={handleCloseSqlViewer}
-                        nodeName={sqlViewerState.nodeName}
-                        ddlText={sqlViewerState.ddlText}
+            {/* Main content area */}
+            <div className="main-content">
+                <div className={`graph-container ${sqlViewerOpen ? 'split-view' : ''}`}>
+                    <ReactFlow
+                        nodes={nodes.map(n => ({
+                            ...n,
+                            data: {
+                                ...n.data,
+                                sqlViewerOpen,
+                                onNodeClick: handleNodeClick
+                            }
+                        }))}
+                        edges={edges}
                     />
                 </div>
-            )}
+
+                {sqlViewerOpen && (
+                    <div className="sql-viewer-container">
+                        <SqlViewer
+                            isOpen={sqlViewerOpen}
+                            selectedNode={selectedNode}
+                        />
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
@@ -1519,10 +1606,37 @@ export default function App() {
 ```css
 /* frontend/styles/sql-viewer.css */
 
+/* Toolbar button styling */
+.sql-viewer-toggle {
+    padding: 0.5rem 1rem;
+    background: #007acc;
+    border: none;
+    border-radius: 4px;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.sql-viewer-toggle:hover:not(:disabled) {
+    background: #005a9e;
+}
+
+.sql-viewer-toggle.active {
+    background: #ff6b6b;
+}
+
+.sql-viewer-toggle:disabled {
+    background: #555555;
+    color: #888888;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
 /* Split view layout */
-.app-container {
+.main-content {
     display: flex;
-    height: 100vh;
+    height: calc(100vh - 60px);  /* Account for toolbar height */
     width: 100vw;
 }
 
@@ -1537,7 +1651,7 @@ export default function App() {
 
 .sql-viewer-container {
     flex: 0 0 50%;  /* 50% width */
-    border-left: 1px solid #ccc;
+    border-left: 2px solid #3e3e42;
 }
 
 /* SQL viewer panel */
@@ -1565,7 +1679,7 @@ export default function App() {
 }
 
 .sql-search {
-    width: 200px;
+    width: 250px;
     padding: 0.5rem;
     border: 1px solid #3e3e42;
     border-radius: 4px;
@@ -1578,17 +1692,27 @@ export default function App() {
     border-color: #007acc;
 }
 
-.close-button {
-    padding: 0.5rem 1rem;
-    background: transparent;
-    border: none;
-    color: #ffffff;
-    cursor: pointer;
-    font-size: 1.5rem;
+/* Empty state */
+.sql-viewer-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #888888;
+    text-align: center;
+    padding: 2rem;
 }
 
-.close-button:hover {
-    color: #ff0000;
+.sql-viewer-empty p {
+    margin: 0.5rem 0;
+    font-size: 16px;
+}
+
+.sql-viewer-empty .hint {
+    font-size: 14px;
+    color: #666666;
+    font-style: italic;
 }
 
 /* SQL content */
@@ -1640,6 +1764,16 @@ export default function App() {
     padding: 2px 4px;
     border-radius: 2px;
     font-weight: bold;
+}
+
+/* Clickable node styling (when SQL viewer is open) */
+.custom-node.sql-clickable {
+    cursor: pointer;
+}
+
+.custom-node.sql-clickable:hover {
+    box-shadow: 0 0 8px rgba(0, 122, 204, 0.6);
+    border-color: #007acc;
 }
 
 /* Scrollbar styling (webkit browsers) */
@@ -1734,7 +1868,7 @@ class FrontendFormatter:
 **Day 1-2: Create PySpark Script**
 - [ ] Convert Python queries to PySpark JDBC
 - [ ] Implement platform detection (Synapse)
-- [ ] Implement single-file output (`.coalesce(1)` + pandas)
+- [ ] Implement directory output (`.coalesce(1)` for single partition)
 - [ ] Test connection to Synapse SQL Pool
 
 **Day 3: Create Synapse Notebook**
@@ -1745,7 +1879,7 @@ class FrontendFormatter:
 
 **Day 4: Testing**
 - [ ] Test on production Synapse workspace
-- [ ] Verify Parquet files (single file, correct schema)
+- [ ] Verify Parquet directories (single partition, correct schema)
 - [ ] Test download from ADLS
 
 **Day 5: Documentation**

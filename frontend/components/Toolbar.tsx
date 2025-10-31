@@ -28,8 +28,16 @@ type ToolbarProps = {
     onOpenImport: () => void;
     onOpenInfo: () => void;
     onExportSVG: () => void;
+    onResetView: () => void;
+    sqlViewerOpen: boolean;
+    onToggleSqlViewer: () => void;
+    sqlViewerEnabled: boolean;
+    hasDdlData: boolean;
     notificationHistory: Notification[];
     onClearNotificationHistory: () => void;
+    isTraceLocked: boolean;
+    isInTraceExitMode: boolean;
+    onToggleLock: () => void;
 };
 
 export const Toolbar = (props: ToolbarProps) => {
@@ -40,7 +48,10 @@ export const Toolbar = (props: ToolbarProps) => {
         selectedTypes, setSelectedTypes, dataModelTypes,
         layout, setLayout, hideUnrelated, setHideUnrelated,
         isTraceModeActive, onStartTrace, isControlsVisible,
-        onToggleControls, onOpenImport, onOpenInfo, onExportSVG, notificationHistory, onClearNotificationHistory
+        onToggleControls, onOpenImport, onOpenInfo, onExportSVG, onResetView,
+        sqlViewerOpen, onToggleSqlViewer, sqlViewerEnabled, hasDdlData,
+        notificationHistory, onClearNotificationHistory,
+        isTraceLocked, isInTraceExitMode, onToggleLock
     } = props;
     
     const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
@@ -89,14 +100,14 @@ export const Toolbar = (props: ToolbarProps) => {
                             onChange={(e) => setSearchTerm(e.target.value)}
                             onBlur={() => setTimeout(() => setAutocompleteSuggestions([]), 150)}
                             disabled={viewMode === 'schema' || isTraceModeActive}
-                            className="text-sm h-10 w-48 pl-3 pr-10 border rounded-lg bg-gray-100 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                            className="text-sm h-10 w-72 pl-3 pr-10 border rounded-lg bg-gray-100 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         />
                         <button type="submit" disabled={viewMode === 'schema' || isTraceModeActive} className="absolute right-0 top-0 h-10 w-10 flex items-center justify-center text-gray-500 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed" title="Search">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                         </button>
                     </form>
                     {autocompleteSuggestions.length > 0 && (
-                        <div className="absolute top-full mt-1 w-48 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-40 overflow-y-auto">
+                        <div className="absolute top-full mt-1 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-40 overflow-y-auto">
                             <ul className="py-1">
                                 {autocompleteSuggestions.map(node => (
                                     <li
@@ -144,6 +155,55 @@ export const Toolbar = (props: ToolbarProps) => {
                 <button onClick={onStartTrace} className="h-10 px-4 bg-blue-100 text-blue-700 hover:bg-blue-200 font-semibold rounded-lg text-sm flex items-center gap-2" title="Start Interactive Trace">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75v6.75m-4.5-3.5h9M3.75 12a9 9 0 0 1 18 0v.001a9 9 0 0 1-18 0V12Z" /></svg>
                     Start Trace
+                </button>
+                <button
+                    onClick={onToggleSqlViewer}
+                    disabled={!sqlViewerEnabled}
+                    className={`h-10 px-4 font-semibold rounded-lg text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                        sqlViewerOpen
+                            ? 'bg-red-500 hover:bg-red-600 text-white'
+                            : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
+                    }`}
+                    title={
+                        !hasDdlData
+                            ? 'No DDL data available. Upload Parquet files to view SQL.'
+                            : viewMode !== 'detail'
+                            ? 'Switch to Detail View to view SQL'
+                            : sqlViewerOpen
+                            ? 'Close SQL Viewer'
+                            : 'View SQL Definitions'
+                    }
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                    </svg>
+                    {sqlViewerOpen ? 'Close SQL' : 'View SQL'}
+                </button>
+                {isInTraceExitMode && (
+                    <button
+                        onClick={onToggleLock}
+                        className={`h-10 w-10 flex items-center justify-center rounded-lg transition-colors ${
+                            isTraceLocked
+                                ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                        }`}
+                        title={isTraceLocked ? "Unlock - Allow full view" : "Lock - Preserve traced subset"}
+                    >
+                        {isTraceLocked ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+                            </svg>
+                        )}
+                    </button>
+                )}
+                <button onClick={onResetView} disabled={isTraceModeActive} className="h-10 w-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed" title="Reset View to Default">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-gray-800">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                    </svg>
                 </button>
                 <button onClick={onToggleControls} className="h-10 w-10 flex items-center justify-center bg-gray-200 hover:bg-gray-300 rounded-lg" title={isControlsVisible ? "Hide Overlays" : "Show Overlays"}>
                     {isControlsVisible ? (

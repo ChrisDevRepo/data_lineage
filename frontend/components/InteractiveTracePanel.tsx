@@ -6,42 +6,71 @@ type InteractiveTracePanelProps = {
     onClose: () => void;
     onApply: (config: Omit<TraceConfig, 'rawExclusionPatterns'>) => void;
     availableSchemas: string[];
+    inheritedSchemaFilter: Set<string>;
+    availableTypes: string[];
+    inheritedTypeFilter: Set<string>;
     allData: DataNode[];
     addNotification: (text: string, type: 'info' | 'error') => void;
 };
 
-export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchemas, allData, addNotification }: InteractiveTracePanelProps) => {
+export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchemas, inheritedSchemaFilter, availableTypes, inheritedTypeFilter, allData, addNotification }: InteractiveTracePanelProps) => {
+    const [traceMode, setTraceMode] = useState<'levels' | 'path'>('levels'); // 'levels' = level-based, 'path' = start-to-end path
     const [startNodeSearch, setStartNodeSearch] = useState('');
-    const [suggestions, setSuggestions] = useState<DataNode[]>([]);
+    const [startSuggestions, setStartSuggestions] = useState<DataNode[]>([]);
     const [selectedNode, setSelectedNode] = useState<DataNode | null>(null);
+    const [endNodeSearch, setEndNodeSearch] = useState('');
+    const [endSuggestions, setEndSuggestions] = useState<DataNode[]>([]);
+    const [selectedEndNode, setSelectedEndNode] = useState<DataNode | null>(null);
     const [upstream, setUpstream] = useState(3);
     const [isUpstreamAll, setIsUpstreamAll] = useState(false);
     const [downstream, setDownstream] = useState(3);
     const [isDownstreamAll, setIsDownstreamAll] = useState(false);
     const [includedSchemas, setIncludedSchemas] = useState(new Set(availableSchemas));
-    const [exclusions, setExclusions] = useState("_TEMP_*;STG_*");
+    const [includedTypes, setIncludedTypes] = useState(new Set(availableTypes));
+    const [exclusions, setExclusions] = useState("*_TMP;*_BAK");
 
+    // Inherit schema and type filters from detail mode when opening trace mode
     useEffect(() => {
         if (isOpen) {
-            setIncludedSchemas(new Set(availableSchemas));
+            // Use inherited schema filter from detail mode
+            setIncludedSchemas(new Set(inheritedSchemaFilter));
+            // Use inherited type filter from detail mode
+            setIncludedTypes(new Set(inheritedTypeFilter));
         }
-    }, [isOpen, availableSchemas]);
+    }, [isOpen, inheritedSchemaFilter, inheritedTypeFilter]);
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleStartSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setStartNodeSearch(value);
         if (value) {
-            setSuggestions(allData.filter(n => n.name.toLowerCase().includes(value.toLowerCase())).slice(0, 5));
+            setStartSuggestions(allData.filter(n => n.name.toLowerCase().includes(value.toLowerCase())).slice(0, 5));
         } else {
-            setSuggestions([]);
+            setStartSuggestions([]);
             setSelectedNode(null);
         }
     };
-    
-    const selectNode = (node: DataNode) => {
+
+    const selectStartNode = (node: DataNode) => {
         setSelectedNode(node);
         setStartNodeSearch(node.name);
-        setSuggestions([]);
+        setStartSuggestions([]);
+    };
+
+    const handleEndSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setEndNodeSearch(value);
+        if (value) {
+            setEndSuggestions(allData.filter(n => n.name.toLowerCase().includes(value.toLowerCase())).slice(0, 5));
+        } else {
+            setEndSuggestions([]);
+            setSelectedEndNode(null);
+        }
+    };
+
+    const selectEndNode = (node: DataNode) => {
+        setSelectedEndNode(node);
+        setEndNodeSearch(node.name);
+        setEndSuggestions([]);
     };
 
     const handleApplyClick = () => {
@@ -49,25 +78,40 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
             addNotification('Please select a valid start node.', 'error');
             return;
         }
+        if (traceMode === 'path' && !selectedEndNode) {
+            addNotification('Please select a valid end node for path tracing.', 'error');
+            return;
+        }
+        if (traceMode === 'path' && selectedNode.id === selectedEndNode?.id) {
+            addNotification('Start and end nodes must be different.', 'error');
+            return;
+        }
         onApply({
             startNodeId: selectedNode.id,
+            endNodeId: traceMode === 'path' ? selectedEndNode?.id : null,
             upstreamLevels: isUpstreamAll ? Number.MAX_SAFE_INTEGER : upstream,
             downstreamLevels: isDownstreamAll ? Number.MAX_SAFE_INTEGER : downstream,
             includedSchemas: includedSchemas,
+            includedTypes: includedTypes,
             exclusionPatterns: exclusions.split(';').map(p => p.trim()).filter(p => p !== ''),
         });
     };
 
     const handleReset = () => {
+        setTraceMode('levels');
         setSelectedNode(null);
         setStartNodeSearch('');
-        setSuggestions([]);
+        setStartSuggestions([]);
+        setSelectedEndNode(null);
+        setEndNodeSearch('');
+        setEndSuggestions([]);
         setUpstream(3);
         setDownstream(3);
         setIsUpstreamAll(false);
         setIsDownstreamAll(false);
         setIncludedSchemas(new Set(availableSchemas));
-        setExclusions("_TEMP_*;STG_*");
+        setIncludedTypes(new Set(availableTypes));
+        setExclusions("*_TMP;*_BAK");
     };
 
     return (
@@ -80,17 +124,36 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
                     </button>
                 </header>
                 <main className="flex-grow p-4 overflow-y-auto space-y-6 text-sm">
+                    <div>
+                        <label className="font-semibold block mb-1">1. Trace Mode</label>
+                        <select value={traceMode} onChange={(e) => setTraceMode(e.target.value as 'levels' | 'path')} className="w-full p-2 border rounded-md bg-white">
+                            <option value="levels">By Levels (upstream/downstream)</option>
+                            <option value="path">Path Between Nodes</option>
+                        </select>
+                    </div>
                     <div className="relative">
-                        <label className="font-semibold block mb-1">1. Start Node</label>
-                        <input type="text" placeholder="Search for a node..." value={startNodeSearch} onChange={handleSearchChange} className="w-full p-2 border rounded-md" />
-                        {suggestions.length > 0 && (
+                        <label className="font-semibold block mb-1">2. Start Node</label>
+                        <input type="text" placeholder="Search for start node..." value={startNodeSearch} onChange={handleStartSearchChange} className="w-full p-2 border rounded-md" />
+                        {startSuggestions.length > 0 && (
                             <div className="absolute top-full mt-1 w-full bg-white border rounded-md shadow-lg z-30">
-                                {suggestions.map(node => <div key={node.id} onMouseDown={() => selectNode(node)} className="p-2 hover:bg-blue-100 cursor-pointer">{node.name}</div>)}
+                                {startSuggestions.map(node => <div key={node.id} onMouseDown={() => selectStartNode(node)} className="p-2 hover:bg-blue-100 cursor-pointer">{node.name}</div>)}
                             </div>
                         )}
                     </div>
+                    {traceMode === 'path' && (
+                        <div className="relative">
+                            <label className="font-semibold block mb-1">3. End Node</label>
+                            <input type="text" placeholder="Search for end node..." value={endNodeSearch} onChange={handleEndSearchChange} className="w-full p-2 border rounded-md" />
+                            {endSuggestions.length > 0 && (
+                                <div className="absolute top-full mt-1 w-full bg-white border rounded-md shadow-lg z-30">
+                                    {endSuggestions.map(node => <div key={node.id} onMouseDown={() => selectEndNode(node)} className="p-2 hover:bg-blue-100 cursor-pointer">{node.name}</div>)}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                    {traceMode === 'levels' && (
                     <div>
-                        <label className="font-semibold block mb-2">2. Trace Levels</label>
+                        <label className="font-semibold block mb-2">3. Trace Levels</label>
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <label className="font-medium text-gray-700">Ancestors (upstream)</label>
@@ -112,15 +175,22 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
                             </div>
                         </div>
                     </div>
+                    )}
                     <div>
-                        <label className="font-semibold block mb-1">3. Included Schemas ({includedSchemas.size}/{availableSchemas.length})</label>
+                        <label className="font-semibold block mb-1">{traceMode === 'path' ? '4' : '4'}. Included Schemas ({includedSchemas.size}/{availableSchemas.length})</label>
                         <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
                             {availableSchemas.map(s => <label key={s} className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includedSchemas.has(s)} onChange={() => { const newSet = new Set(includedSchemas); if (newSet.has(s)) newSet.delete(s); else newSet.add(s); setIncludedSchemas(newSet); }} />{s}</label>)}
                         </div>
                     </div>
                     <div>
-                        <label htmlFor="exclusions-input" className="font-semibold block mb-1">4. Exclusion Patterns</label>
-                        <input type="text" id="exclusions-input" value={exclusions} onChange={e => setExclusions(e.target.value)} className="w-full p-2 border rounded-md font-mono text-xs" placeholder="e.g. _TEMP_*;STG_*" />
+                        <label className="font-semibold block mb-1">5. Included Types ({includedTypes.size}/{availableTypes.length})</label>
+                        <div className="max-h-32 overflow-y-auto border rounded-md p-2 space-y-1">
+                            {availableTypes.map(t => <label key={t} className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={includedTypes.has(t)} onChange={() => { const newSet = new Set(includedTypes); if (newSet.has(t)) newSet.delete(t); else newSet.add(t); setIncludedTypes(newSet); }} />{t}</label>)}
+                        </div>
+                    </div>
+                    <div>
+                        <label htmlFor="exclusions-input" className="font-semibold block mb-1">6. Exclusion Patterns</label>
+                        <input type="text" id="exclusions-input" value={exclusions} onChange={e => setExclusions(e.target.value)} className="w-full p-2 border rounded-md font-mono text-xs" placeholder="e.g. *_TMP;*_BAK" />
                         <p className="text-xs text-gray-500 mt-1">Separate patterns with a semicolon (;).</p>
                     </div>
                 </main>

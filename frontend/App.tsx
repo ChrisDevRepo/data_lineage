@@ -18,6 +18,7 @@ import { ImportDataModal } from './components/ImportDataModal';
 import { InfoModal } from './components/InfoModal';
 import { InteractiveTracePanel } from './components/InteractiveTracePanel';
 import { NotificationContainer, NotificationHistory } from './components/NotificationSystem';
+import { SqlViewer } from './components/SQLViewer';
 import { useGraphology } from './hooks/useGraphology';
 import { useNotifications } from './hooks/useNotifications';
 import { useInteractiveTrace } from './hooks/useInteractiveTrace';
@@ -34,8 +35,49 @@ function DataLineageVisualizer() {
   const { fitView, setCenter, getNodes, getEdges } = useReactFlow();
 
   // --- State Management ---
-  const [allData, setAllData] = useState<DataNode[]>(generateSampleData);
+  // Start with empty data, load from API asynchronously
+  const [allData, setAllData] = useState<DataNode[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   const [sampleData] = useState<DataNode[]>(() => generateSampleData());
+
+  // Load data from API on mount (async to avoid blocking UI)
+  useEffect(() => {
+    const loadLatestData = async () => {
+      const startTime = Date.now();
+
+      try {
+        const response = await fetch('http://localhost:8000/api/latest-data');
+
+        if (!response.ok) {
+          throw new Error(`API returned ${response.status}`);
+        }
+
+        const data = await response.json();
+        const headerValue = response.headers.get('x-data-available');
+
+        // Simple check: if we got an array with data, use it
+        if (Array.isArray(data) && data.length > 0) {
+          setAllData(data);
+        } else {
+          setAllData(generateSampleData());
+        }
+      } catch (error) {
+        console.error('Failed to load from API:', error);
+        setAllData(generateSampleData());
+      } finally {
+        // Ensure loading screen shows for at least 500ms for better UX
+        const elapsed = Date.now() - startTime;
+        const minDelay = 500;
+        if (elapsed < minDelay) {
+          setTimeout(() => setIsLoadingData(false), minDelay - elapsed);
+        } else {
+          setIsLoadingData(false);
+        }
+      }
+    };
+
+    loadLatestData();
+  }, []);
   const [layout, setLayout] = useState<'LR' | 'TB'>('LR');
   const [viewMode, setViewMode] = useState<'detail' | 'schema'>('detail');
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
@@ -44,6 +86,11 @@ function DataLineageVisualizer() {
   const { addNotification, activeToasts, removeActiveToast, notificationHistory, clearNotificationHistory } = useNotifications();
   const { lineageGraph, schemas, schemaColorMap, dataModelTypes } = useGraphology(allData);
   const { traceConfig, isTraceModeActive, setIsTraceModeActive, performInteractiveTrace, handleApplyTrace, handleExitTraceMode } = useInteractiveTrace(addNotification, lineageGraph);
+  // Store previous trace results for when we exit trace mode (as state for reactivity)
+  const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
+  const [isInTraceExitMode, setIsInTraceExitMode] = useState(false);
+  const [isTraceLocked, setIsTraceLocked] = useState(false);
+
   const {
     finalVisibleData,
     selectedSchemas,
@@ -58,13 +105,42 @@ function DataLineageVisualizer() {
     setHighlightedNodes,
     autocompleteSuggestions,
     setAutocompleteSuggestions,
-  } = useDataFiltering({ allData, lineageGraph, schemas, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace });
+  } = useDataFiltering({
+    allData,
+    lineageGraph,
+    schemas,
+    dataModelTypes,
+    isTraceModeActive,
+    traceConfig,
+    performInteractiveTrace,
+    isInTraceExitMode,
+    traceExitNodes
+  });
+
+  // --- Detect DDL Availability (memoized for performance) ---
+  // DDL is now fetched on-demand via API, so always available when data is loaded
+  const hasDdlData = allData.length > 0;
+
+  // Enable SQL viewer only in Detail View
+  const sqlViewerEnabled = hasDdlData && viewMode === 'detail';
 
   // --- UI State ---
   const [isLegendCollapsed, setIsLegendCollapsed] = useState(true);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isControlsVisible, setIsControlsVisible] = useState(true);
+
+  // --- SQL Viewer State ---
+  const [sqlViewerOpen, setSqlViewerOpen] = useState(false);
+  const [sqlViewerWidth, setSqlViewerWidth] = useState(33); // Default 33% (1/3 of screen)
+  const [isResizing, setIsResizing] = useState(false);
+  const [selectedNodeForSql, setSelectedNodeForSql] = useState<{
+    id: string;
+    name: string;
+    schema: string;
+    objectType: string;
+    ddl_text?: string | null; // Optional: only present in JSON uploads
+  } | null>(null);
 
   // --- Memos for Derived State and Layouting ---
   const layoutedElements = useMemo(() => {
@@ -80,21 +156,49 @@ function DataLineageVisualizer() {
     });
   }, [finalVisibleData, viewMode, layout, schemaColorMap, schemas, selectedSchemas, lineageGraph, isTraceModeActive]);
 
-  const finalNodes = useMemo(() => {
-    const currentHighlights = isTraceModeActive && traceConfig?.startNodeId
-      ? new Set([traceConfig.startNodeId])
-      : highlightedNodes;
+  // OPTIMIZATION: Create Map for O(1) lookups instead of O(n) find()
+  const allDataMap = useMemo(() => {
+    return new Map(allData.map(node => [node.id, node]));
+  }, [allData]);
 
-    return layoutedElements.nodes.map(n => ({
-      ...n,
-      data: {
-        ...n.data,
-        isHighlighted: currentHighlights.has(n.id),
-        isDimmed: !isTraceModeActive && highlightedNodes.size > 0 && !highlightedNodes.has(n.id),
-        layoutDir: layout
-      }
-    }));
-  }, [layoutedElements.nodes, highlightedNodes, layout, isTraceModeActive, traceConfig]);
+  const finalNodes = useMemo(() => {
+    // Build set of level 1 neighbors (nodes directly connected to highlighted node)
+    const level1Neighbors = new Set<string>();
+    if (highlightedNodes.size > 0) {
+      highlightedNodes.forEach(nodeId => {
+        if (lineageGraph.hasNode(nodeId)) {
+          const neighbors = lineageGraph.neighbors(nodeId);
+          neighbors.forEach(neighborId => level1Neighbors.add(neighborId));
+        }
+      });
+    }
+
+    return layoutedElements.nodes.map(n => {
+      // OPTIMIZATION: Use Map for O(1) lookup instead of O(n) find()
+      const originalNode = allDataMap.get(n.id);
+
+      const isHighlighted = highlightedNodes.has(n.id);
+
+      // Dim nodes that are MORE THAN 1 level away:
+      // - If there ARE highlighted nodes AND
+      // - This node is NOT highlighted AND
+      // - This node is NOT a level 1 neighbor
+      const shouldBeDimmed = highlightedNodes.size > 0 &&
+                             !isHighlighted &&
+                             !level1Neighbors.has(n.id);
+
+      return {
+        ...n,
+        data: {
+          ...n.data,
+          isHighlighted: isHighlighted,
+          isDimmed: shouldBeDimmed,
+          layoutDir: layout,
+          ddl_text: originalNode?.ddl_text
+        }
+      };
+    });
+  }, [layoutedElements.nodes, highlightedNodes, layout, allDataMap, lineageGraph]);
 
   // --- Effects to Synchronize State with React Flow ---
   useEffect(() => {
@@ -102,12 +206,19 @@ function DataLineageVisualizer() {
     setEdges(layoutedElements.edges);
   }, [finalNodes, layoutedElements.edges, setNodes, setEdges]);
 
+  // Track if this is the initial load to only fitView once
+  const hasInitiallyFittedRef = useRef(false);
+
   useEffect(() => {
-    if (nodes.length > 0) {
-      const timeoutId = setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 150);
+    if (nodes.length > 0 && !hasInitiallyFittedRef.current) {
+      // Only auto-fit on initial load
+      const timeoutId = setTimeout(() => {
+        fitView({ padding: 0.2, duration: 500 });
+        hasInitiallyFittedRef.current = true;
+      }, 150);
       return () => clearTimeout(timeoutId);
     }
-  }, [nodes.length, fitView, isTraceModeActive]);
+  }, [nodes.length, fitView]);
   
   // --- Effect for handling window resize ---
   useEffect(() => {
@@ -128,39 +239,95 @@ function DataLineageVisualizer() {
     };
   }, [fitView]); // Dependency on fitView ensures it's not stale
 
+  // --- Effect to store trace results when in trace mode ---
+  useEffect(() => {
+    if (isTraceModeActive && traceConfig) {
+      // Reset trace exit mode when entering trace mode
+      setIsInTraceExitMode(false);
+      const tracedIds = performInteractiveTrace(traceConfig);
+      setTraceExitNodes(tracedIds);
+    }
+  }, [isTraceModeActive, traceConfig, performInteractiveTrace]);
+
+  // --- Effect to preserve selection when exiting trace mode ---
+  useEffect(() => {
+    if (!isTraceModeActive && traceExitNodes.size > 0 && !isInTraceExitMode) {
+      // Apply the stored trace results as highlighted nodes in detail mode
+      // This shows the traced objects at the same depth level as in trace mode
+      setHighlightedNodes(traceExitNodes);
+      // Mark that we're in trace exit mode (showing trace results in detail view)
+      setIsInTraceExitMode(true);
+      // Automatically lock the trace results
+      setIsTraceLocked(true);
+    }
+  }, [isTraceModeActive, setHighlightedNodes, isInTraceExitMode, traceExitNodes]);
+
   // --- Event Handlers ---
-  const handleNodeClick = (_: React.MouseEvent, node: ReactFlowNode) => {
-    if (viewMode === 'schema' || isTraceModeActive) return;
-  
+  const handleNodeClick = useCallback((_: React.MouseEvent, node: ReactFlowNode) => {
+    // In schema view, do nothing
+    if (viewMode === 'schema') return;
+
+    // If locked, don't exit trace mode - just allow node interactions
+    if (isTraceLocked) {
+      // Allow highlighting within the locked subset, but don't clear the trace
+      // Just update the focused node for SQL viewer, etc.
+    } else if (isInTraceExitMode) {
+      // Exit trace exit mode if we're clicking a node and not locked
+      setIsInTraceExitMode(false);
+      setTraceExitNodes(new Set());
+    }
+
+    // Update SQL viewer if it's open (only in detail view, not in trace mode)
+    // OPTIMIZATION: Only update if node actually changed (prevents unnecessary re-renders)
+    if (sqlViewerOpen && !isTraceModeActive) {
+      if (selectedNodeForSql?.id !== node.id) {
+        const originalNode = allDataMap.get(node.id);
+        if (originalNode) {
+          const nodeForSql: any = {
+            id: originalNode.id,
+            name: originalNode.name,
+            schema: originalNode.schema,
+            objectType: originalNode.object_type
+          };
+
+          // Only add ddl_text if it exists in source data (JSON mode)
+          if ('ddl_text' in originalNode) {
+            nodeForSql.ddl_text = originalNode.ddl_text;
+          }
+
+          setSelectedNodeForSql(nodeForSql);
+        }
+      }
+    }
+
+    // Simple toggle logic: click to highlight (yellow), click again to unhighlight
     if (focusedNodeId === node.id) {
-      // If the already-focused node is clicked again, clear the focus.
+      // Clicking the same node again - unhighlight it
       setFocusedNodeId(null);
       setHighlightedNodes(new Set());
     } else {
-      // Focus on the new node and highlight its immediate neighborhood.
+      // Clicking a different node - highlight it in yellow
+      // All other nodes remain visible (no dimming)
       setFocusedNodeId(node.id);
-      const nodesToHighlight = new Set<string>([node.id]);
-      if (lineageGraph.hasNode(node.id)) {
-        // Use `neighbors` to get both incoming and outgoing connections (level 1 parents and children)
-        const neighbors = lineageGraph.neighbors(node.id);
-        neighbors.forEach(neighborId => {
-          nodesToHighlight.add(neighborId);
-        });
-      }
-      setHighlightedNodes(nodesToHighlight);
+      setHighlightedNodes(new Set([node.id]));
     }
-  };
+  }, [viewMode, isInTraceExitMode, isTraceLocked, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
   
   const handleDataImport = (newData: DataNode[]) => {
     const processedData = newData.map(node => ({ ...node, schema: node.schema.toUpperCase() }));
     setAllData(processedData);
-    
+
+    // Note: Only parquet uploads via API are persisted to backend
+    // JSON imports are temporary and will be lost on page refresh
+    // To persist data, upload parquet files instead
+
     // Reset view state for a clean slate after import
     setFocusedNodeId(null);
     setHighlightedNodes(new Set());
     setSearchTerm('');
+    hasInitiallyFittedRef.current = false; // Allow fitView on new data
 
-    addNotification('Data imported successfully! The view has been refreshed.', 'info');
+    addNotification('Data imported successfully! Note: JSON imports are temporary. Upload parquet files to persist data.', 'info');
     setIsImportModalOpen(false);
   };
   
@@ -192,11 +359,131 @@ function DataLineageVisualizer() {
   };
 
   const handlePaneClick = () => {
-    if (!isTraceModeActive) {
-      setHighlightedNodes(new Set());
-      setFocusedNodeId(null);
+    // If locked, don't clear anything - just return
+    if (isTraceLocked) {
+      return;
+    }
+
+    // Clear highlights and focused node when clicking outside
+    setHighlightedNodes(new Set());
+    setFocusedNodeId(null);
+
+    // If in trace exit mode, clear the trace results and exit that mode
+    if (isInTraceExitMode) {
+      setTraceExitNodes(new Set());
+      setIsInTraceExitMode(false);
     }
   };
+
+  const handleResetView = () => {
+    // Reset all filters and selections to default
+    setSelectedSchemas(new Set(schemas));
+    setSelectedTypes(new Set(dataModelTypes));
+    setHighlightedNodes(new Set());
+    setFocusedNodeId(null);
+    setSearchTerm('');
+    setHideUnrelated(false);
+    setViewMode('detail');
+    setTraceExitNodes(new Set());
+    setIsInTraceExitMode(false);
+    setIsTraceLocked(false);
+
+    // Also close SQL viewer and clear selection
+    setSqlViewerOpen(false);
+    setSelectedNodeForSql(null);
+
+    // Fit view after reset
+    setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
+
+    addNotification('View reset to default.', 'info');
+  };
+
+  // Wrapper for trace apply that adds auto-fit and highlight
+  const handleApplyTraceWithFit = useCallback((config: Parameters<typeof handleApplyTrace>[0]) => {
+    // Call original handler
+    handleApplyTrace(config);
+
+    // Highlight the start node
+    setHighlightedNodes(new Set([config.startNodeId]));
+
+    // Auto-fit view after a short delay (to let layout calculate)
+    setTimeout(() => {
+      fitView({ padding: 0.2, duration: 800 });
+    }, 200);
+  }, [handleApplyTrace, fitView]);
+
+  // --- Lock Toggle Handler ---
+  const handleToggleLock = () => {
+    setIsTraceLocked(prev => {
+      const newState = !prev;
+      if (newState) {
+        addNotification('Trace locked - node subset preserved', 'info');
+      } else {
+        // When unlocking, clear the trace
+        setIsInTraceExitMode(false);
+        setTraceExitNodes(new Set());
+        addNotification('Trace unlocked - full view restored', 'info');
+      }
+      return newState;
+    });
+  };
+
+  // --- SQL Viewer Toggle Handler ---
+  const handleToggleSqlViewer = () => {
+    if (!sqlViewerEnabled) return;
+
+    setSqlViewerOpen(!sqlViewerOpen);
+    if (sqlViewerOpen) {
+      setSelectedNodeForSql(null); // Clear selection when closing
+    }
+  };
+
+  // --- SQL Viewer Resize Handler ---
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // Get the main container element (the flex parent)
+      const mainContainer = document.querySelector('.flex-grow.rounded-b-lg.flex') as HTMLElement;
+      if (!mainContainer) return;
+
+      const containerRect = mainContainer.getBoundingClientRect();
+      const containerWidth = containerRect.width;
+
+      // Calculate distance from right edge
+      const distanceFromRight = containerRect.right - e.clientX;
+
+      // Convert to percentage
+      const newWidthPercent = (distanceFromRight / containerWidth) * 100;
+
+      // Constrain between 20% and 60%
+      const constrainedWidth = Math.min(Math.max(newWidthPercent, 20), 60);
+      setSqlViewerWidth(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    // Add cursor style to body during resize
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
 
   const miniMapNodeColor = (node: ReactFlowNode): string => {
     if (viewMode === 'schema' || !node.data.schema) return '#e2e8f0';
@@ -275,6 +562,36 @@ function DataLineageVisualizer() {
     addNotification('SVG export started.', 'info');
   }, [getNodes, getEdges, addNotification, schemaColorMap, layout]);
 
+  // Show loading screen while data is being loaded from API
+  if (isLoadingData) {
+    return (
+      <div className="w-screen h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center max-w-md px-6">
+          {/* Animated spinner */}
+          <div className="inline-block animate-spin rounded-full h-20 w-20 border-b-4 border-blue-600 mb-6"></div>
+
+          {/* Main message */}
+          <h2 className="text-gray-800 text-2xl font-bold mb-3">Loading Lineage Data</h2>
+
+          {/* Status message */}
+          <p className="text-gray-600 text-base mb-4">
+            Fetching latest data from server...
+          </p>
+
+          {/* Progress indicator */}
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-4 overflow-hidden">
+            <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
+          </div>
+
+          {/* Additional info */}
+          <p className="text-gray-500 text-sm italic">
+            This may take a moment for large datasets
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-screen h-screen flex flex-col font-sans">
       <header className="flex items-center justify-between p-3 bg-white shadow-md flex-shrink-0 z-20 border-b border-gray-200 text-gray-800">
@@ -308,45 +625,78 @@ function DataLineageVisualizer() {
             onOpenImport={() => setIsImportModalOpen(true)}
             onOpenInfo={() => setIsInfoModalOpen(true)}
             onExportSVG={handleExportSVG}
+            onResetView={handleResetView}
+            sqlViewerOpen={sqlViewerOpen}
+            onToggleSqlViewer={handleToggleSqlViewer}
+            sqlViewerEnabled={sqlViewerEnabled}
+            hasDdlData={hasDdlData}
             notificationHistory={notificationHistory}
             onClearNotificationHistory={clearNotificationHistory}
+            isTraceLocked={isTraceLocked}
+            isInTraceExitMode={isInTraceExitMode}
+            onToggleLock={handleToggleLock}
           />
-          <div className="relative flex-grow rounded-b-lg">
-            {isTraceModeActive && (
-              <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
-                <span className="font-semibold">You are in Interactive Trace Mode.</span>
-                <button onClick={handleExitTraceMode} className="text-blue-100 hover:text-white underline font-bold">Exit</button>
-              </div>
+          <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
+            {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
+            <div className={`relative ${!isResizing ? 'transition-all duration-300' : ''}`} style={{ width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%' }}>
+              {isTraceModeActive && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
+                  <span className="font-semibold">You are in Interactive Trace Mode.</span>
+                  <button onClick={handleExitTraceMode} className="text-blue-100 hover:text-white underline font-bold">Exit</button>
+                </div>
+              )}
+              <ReactFlow
+                nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+                nodeTypes={nodeTypes}
+                onPaneClick={handlePaneClick}
+                onNodeClick={handleNodeClick}
+                fitView
+                minZoom={0.1}
+                proOptions={{ hideAttribution: true }}
+              >
+                <Controls />
+                {isControlsVisible && <MiniMap nodeColor={miniMapNodeColor} nodeStrokeWidth={3} nodeBorderRadius={2} zoomable pannable className="bg-white/80" ariaLabel="Minimap" />}
+                <Background color={'#a1a1aa'} gap={16} />
+                {isControlsVisible && viewMode === 'detail' &&
+                  <Legend
+                    isCollapsed={isLegendCollapsed}
+                    onToggle={() => setIsLegendCollapsed(p => !p)}
+                    schemas={schemas}
+                    schemaColorMap={schemaColorMap}
+                  />}
+              </ReactFlow>
+            </div>
+
+            {/* SQL Viewer Container - Dynamic width with resize handle */}
+            {sqlViewerOpen && (
+              <>
+                {/* Resize Handle */}
+                <div
+                  onMouseDown={handleMouseDown}
+                  className={`w-1 bg-gray-300 hover:bg-blue-500 cursor-col-resize transition-colors ${isResizing ? 'bg-blue-500' : ''}`}
+                  style={{ userSelect: 'none' }}
+                />
+                {/* SQL Viewer Panel */}
+                <div style={{ width: `${sqlViewerWidth}%`, height: '100%' }} className="border-l border-gray-300">
+                  <SqlViewer
+                    isOpen={sqlViewerOpen}
+                    selectedNode={selectedNodeForSql}
+                  />
+                </div>
+              </>
             )}
-            <ReactFlow
-              nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-              nodeTypes={nodeTypes}
-              onPaneClick={handlePaneClick}
-              onNodeClick={handleNodeClick}
-              fitView
-              minZoom={0.1}
-              proOptions={{ hideAttribution: true }}
-            >
-              <Controls />
-              {isControlsVisible && <MiniMap nodeColor={miniMapNodeColor} nodeStrokeWidth={3} nodeBorderRadius={2} zoomable pannable className="bg-white/80" ariaLabel="Minimap" />}
-              <Background color={'#a1a1aa'} gap={16} />
-              {isControlsVisible && viewMode === 'detail' && 
-                <Legend 
-                  isCollapsed={isLegendCollapsed} 
-                  onToggle={() => setIsLegendCollapsed(p => !p)} 
-                  schemas={schemas} 
-                  schemaColorMap={schemaColorMap} 
-                />}
-            </ReactFlow>
           </div>
         </div>
-        <InteractiveTracePanel 
-          isOpen={isTraceModeActive} 
-          onClose={handleExitTraceMode} 
-          onApply={handleApplyTrace} 
-          availableSchemas={schemas} 
-          allData={allData} 
-          addNotification={addNotification} 
+        <InteractiveTracePanel
+          isOpen={isTraceModeActive}
+          onClose={handleExitTraceMode}
+          onApply={handleApplyTraceWithFit}
+          availableSchemas={schemas}
+          inheritedSchemaFilter={selectedSchemas}
+          availableTypes={dataModelTypes}
+          inheritedTypeFilter={selectedTypes}
+          allData={allData}
+          addNotification={addNotification}
         />
       </main>
       <ImportDataModal 
