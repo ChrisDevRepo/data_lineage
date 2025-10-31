@@ -328,7 +328,8 @@ function DataLineageVisualizer() {
     hasInitiallyFittedRef.current = false; // Allow fitView on new data
 
     addNotification('Data imported successfully! Note: JSON imports are temporary. Upload parquet files to persist data.', 'info');
-    setIsImportModalOpen(false);
+    // Don't auto-close modal - let user close it after viewing summary
+    // setIsImportModalOpen(false);
   };
   
   const executeSearch = (query: string) => {

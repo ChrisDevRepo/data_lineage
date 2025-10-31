@@ -297,37 +297,33 @@ class LineageProcessor:
                 gap_detector = GapDetector(db)
                 gaps = gap_detector.detect_gaps()
 
-                # Step 4: Parse ALL Stored Procedures with Dual-Parser
+                # Step 4: Parse Stored Procedures (respecting incremental mode)
                 self.update_status("processing", 40, "Parsing stored procedures", "Analyzing SQL definitions...")
 
-                all_sps = db.query("""
-                    SELECT object_id, schema_name, object_name, modify_date
-                    FROM objects
-                    WHERE object_type = 'Stored Procedure'
-                    ORDER BY schema_name, object_name
-                """)
+                # Filter objects_to_parse for SPs only
+                sps_to_parse = [obj for obj in objects_to_parse if obj['object_type'] == 'Stored Procedure']
 
-                if all_sps:
+                if sps_to_parse:
                     dual_parser = DualParser(db)
 
-                    for i, sp in enumerate(all_sps):
+                    for i, sp_dict in enumerate(sps_to_parse):
                         # Update progress
-                        sp_progress = 40 + (40 * (i + 1) / len(all_sps))  # 40% to 80%
+                        sp_progress = 40 + (40 * (i + 1) / len(sps_to_parse))  # 40% to 80%
                         self.update_status(
                             "processing",
                             sp_progress,
-                            f"Parsing stored procedures ({i+1}/{len(all_sps)})",
-                            f"Analyzing {sp[1]}.{sp[2]}..."
+                            f"Parsing stored procedures ({i+1}/{len(sps_to_parse)})",
+                            f"Analyzing {sp_dict['schema_name']}.{sp_dict['object_name']}..."
                         )
 
                         try:
                             # Parse with dual-parser
-                            result = dual_parser.parse_object(sp[0])
+                            result = dual_parser.parse_object(sp_dict['object_id'])
 
                             # Persist result to lineage_metadata
                             db.update_metadata(
-                                object_id=sp[0],
-                                modify_date=sp[3],
+                                object_id=sp_dict['object_id'],
+                                modify_date=sp_dict['modify_date'],
                                 primary_source=result.get('source', 'dual_parser'),
                                 confidence=result['confidence'],
                                 inputs=result.get('inputs', []),

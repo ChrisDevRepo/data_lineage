@@ -419,6 +419,9 @@ class QualityAwareParser:
         """
         Calculate quality metrics by comparing regex baseline to parser results.
 
+        KEY FIX: If BOTH regex and parser find zero dependencies, this indicates
+        a PARSE FAILURE (DDL too complex), not a perfect match. Returns 0.0.
+
         Returns:
             {
                 'source_match': float (0.0-1.0),
@@ -427,23 +430,36 @@ class QualityAwareParser:
                 'needs_ai': bool
             }
         """
+        # CRITICAL FIX: Detect parse failure (both found nothing)
+        # This means the DDL is too complex for both regex AND parser to handle
+        if (regex_sources == 0 and regex_targets == 0 and
+            parser_sources == 0 and parser_targets == 0):
+            return {
+                'source_match': 0.0,
+                'target_match': 0.0,
+                'overall_match': 0.0,  # FAIL, not 1.0!
+                'needs_ai': True
+            }
+
         # Calculate match percentages
         if regex_sources > 0:
             source_match = min(parser_sources / regex_sources, 1.0)
         else:
-            source_match = 1.0 if parser_sources == 0 else 0.0
+            # If regex found nothing but parser found something, that's good
+            source_match = 1.0 if parser_sources == 0 else 1.0
 
         if regex_targets > 0:
             target_match = min(parser_targets / regex_targets, 1.0)
         else:
-            target_match = 1.0 if parser_targets == 0 else 0.0
+            # If regex found nothing but parser found something, that's good
+            target_match = 1.0 if parser_targets == 0 else 1.0
 
         # Overall match (weighted average - targets more important)
         overall_match = (source_match * 0.4) + (target_match * 0.6)
 
         # Flag for AI if either is significantly off
-        source_diff = abs(regex_sources - parser_sources) / max(regex_sources, 1)
-        target_diff = abs(regex_targets - parser_targets) / max(regex_targets, 1)
+        source_diff = abs(regex_sources - parser_sources) / max(regex_sources, parser_sources, 1)
+        target_diff = abs(regex_targets - parser_targets) / max(regex_targets, parser_targets, 1)
 
         needs_ai = (source_diff > self.THRESHOLD_FAIR or
                    target_diff > self.THRESHOLD_FAIR)
