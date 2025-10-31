@@ -1,0 +1,12 @@
+{
+  "metadata": {
+    "generated_at": "2025-10-31",
+    "source_lineage": "data/latest_frontend_lineage.json",
+    "source_definitions": "parquet_snapshots/part-00000-bd25fa2d-0094-4cf8-a48f-1868715121f7-c000.snappy.parquet",
+    "total_low_confidence": 0,
+    "total_high_confidence": 0,
+    "description": "Real production SPs with confidence scores and ambiguous table references"
+  },
+  "low_confidence_cases": [],
+  "high_confidence_cases": []
+}

@@ -1,0 +1,170 @@
+[
+  {
+    "test_id": 1,
+    "test_name": "GL_Staging - STAGING schema disambiguation",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.9,
+      "ai_resolved": "STAGING_CADENCE.GL_Staging",
+      "expected": "STAGING_CADENCE.GL_Staging",
+      "parser_confidence": 0.5,
+      "ai_reasoning": "The procedure is within the [CONSUMPTION_FINANCE] schema, and the TRUNCATE statement references STAGING_CADENCE.GL_Staging, indicating that this is the intended staging table. The other options (STAGING_FINANCE and dbo) are less likely given the context and naming conventions, but the strong schema match and direct reference support this choice.",
+      "status": "CORRECT"
+    },
+    "tokens": 444
+  },
+  {
+    "test_id": 2,
+    "test_name": "DimCustomers - Cross-schema dimension lookup",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.9,
+      "ai_resolved": "CONSUMPTION_FINANCE.DimCustomers",
+      "expected": "CONSUMPTION_FINANCE.DimCustomers",
+      "parser_confidence": 0.85,
+      "ai_reasoning": "The stored procedure is within the CONSUMPTION_FINANCE schema, and the variable 'c' is used to join with 'c.IsActive', indicating a dimension table related to customer data. While 'DimCustomers' exists in multiple schemas, the most contextually relevant and conventional choice is the CONSUMPTION_FINANCE.DimCustomers table, as it aligns with the schema of the procedure and the typical naming conventions for dimension tables in a data warehouse.",
+      "status": "CORRECT"
+    },
+    "tokens": 434
+  },
+  {
+    "test_id": 3,
+    "test_name": "ProjectMaster - Multiple staging areas",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.9,
+      "ai_resolved": "STAGING_FINANCE.ProjectMaster",
+      "expected": "STAGING_FINANCE.ProjectMaster",
+      "parser_confidence": 0.5,
+      "ai_reasoning": "The stored procedure is within the CONSUMPTION_FINANCE schema, and the use of 'ProjectMaster' without schema qualification suggests referencing a staging table related to finance. Among the candidates, STAGING_FINANCE.ProjectMaster aligns with the naming conventions and context, making it the most probable match. The other options are less likely due to schema mismatch and business context.",
+      "status": "CORRECT"
+    },
+    "tokens": 412
+  },
+  {
+    "test_id": 4,
+    "test_name": "t_Company_filter - Cognos staging pattern",
+    "evaluation": {
+      "correct": false,
+      "ai_confidence": 0.9,
+      "ai_resolved": "STAGING_FINANCE.t_Company_filter",
+      "expected": "STAGING_FINANCE_COGNOS.t_Company_filter",
+      "parser_confidence": 0.5,
+      "ai_reasoning": "The stored procedure is within the CONSUMPTION_FINANCE schema, and the table name 't_Company_filter' aligns with the 'STAGING_FINANCE' schema naming convention for staging tables. Among the candidates, 'STAGING_FINANCE.t_Company_filter' is the most contextually appropriate match, given the typical separation of staging and production schemas. The 'dbo' schema is less likely since the procedure is in CONSUMPTION_FINANCE, and the 'STAGING_FINANCE_COGNOS' schema appears more specialized, less aligned with the procedure's schema. Therefore, the most probable reference is 'STAGING_FINANCE.t_Company_filter' with high confidence.",
+      "status": "INCORRECT"
+    },
+    "tokens": 488
+  },
+  {
+    "test_id": 5,
+    "test_name": "FactGL - Same table name across consumption schemas",
+    "evaluation": {
+      "correct": false,
+      "ai_confidence": 0.85,
+      "ai_resolved": "CONSUMPTION_FINANCE.FactGL",
+      "expected": "CONSUMPTION_POWERBI.FactGL",
+      "parser_confidence": 0.7,
+      "ai_reasoning": "The stored procedure is within the CONSUMPTION_POWERBI schema, but the table FactGL is referenced without schema qualification. Given the context, FactGL is likely a core financial fact table, which commonly resides in a finance schema. Among the candidates, CONSUMPTION_FINANCE.FactGL aligns with typical naming conventions for financial data. Although CONSUMPTION_POWERBI.FactGL is a possibility, it is less likely since Power BI schemas often contain views or reports rather than core fact tables. The dbo.FactGL is a generic default schema, but less specific than CONSUMPTION_FINANCE. Therefore, the most probable match is CONSUMPTION_FINANCE.FactGL with high confidence.",
+      "status": "INCORRECT"
+    },
+    "tokens": 460
+  },
+  {
+    "test_id": 6,
+    "test_name": "ArAnalyticsMetrics - Quarterly aggregation",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.9,
+      "ai_resolved": "CONSUMPTION_FINANCE.ArAnalyticsMetrics",
+      "expected": "CONSUMPTION_FINANCE.ArAnalyticsMetrics",
+      "parser_confidence": 0.95,
+      "ai_reasoning": "The stored procedure is within the CONSUMPTION_FINANCE schema, and the query references 'ArAnalyticsMetrics' without schema qualification. Given the context, it is most likely referencing the table within the same schema, which aligns with common naming conventions. The STAGING_FINANCE table is less likely since the procedure appears to be working with production or finalized data, not staging data.",
+      "status": "CORRECT"
+    },
+    "tokens": 428
+  },
+  {
+    "test_id": 7,
+    "test_name": "BudgetData - Cadence vs Prima",
+    "evaluation": {
+      "correct": false,
+      "ai_confidence": 0.9,
+      "ai_resolved": "CONSUMPTION_ClinOpsFinance.BudgetData",
+      "expected": "STAGING_CADENCE.BudgetData",
+      "parser_confidence": 0.6,
+      "ai_reasoning": "The stored procedure is within the schema CONSUMPTION_ClinOpsFinance, and the table name BudgetData is used without schema qualification. Typically, in such cases, the reference points to a table within the same schema, making CONSUMPTION_ClinOpsFinance.BudgetData the most likely match. The other options are in different schemas (STAGING_CADENCE and STAGING_PRIMA), which are less probable given the context.",
+      "status": "INCORRECT"
+    },
+    "tokens": 408
+  },
+  {
+    "test_id": 8,
+    "test_name": "ErrorLog - Common utility table",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.9,
+      "ai_resolved": "dbo.ErrorLog",
+      "expected": "dbo.ErrorLog",
+      "parser_confidence": 0.4,
+      "ai_reasoning": "The stored procedure is within the CONSUMPTION_FINANCE schema, and the ErrorLog table is referenced without schema qualification. By default, unqualified table references are resolved to the dbo schema unless context indicates otherwise. Among the candidates, dbo.ErrorLog is the most common default choice for logging tables. The other options, STAGING_FINANCE.ErrorLog and CONSUMPTION_FINANCE.ErrorLog, are less likely unless explicitly specified or documented. Given typical conventions and the absence of schema qualification, dbo.ErrorLog is the most probable target.",
+      "status": "CORRECT"
+    },
+    "tokens": 449
+  },
+  {
+    "test_id": 9,
+    "test_name": "CustomerMaster - Same name, different contexts",
+    "evaluation": {
+      "correct": false,
+      "ai_confidence": 0.9,
+      "ai_resolved": "STAGING_FINANCE.CustomerMaster",
+      "expected": "dbo.CustomerMaster",
+      "parser_confidence": 0.75,
+      "ai_reasoning": "The stored procedure is within the STAGING_FINANCE schema, and the referenced table 'CustomerMaster' appears without schema qualification. By convention, unqualified references in a procedure typically point to tables within the same schema. Among the candidates, STAGING_FINANCE.CustomerMaster matches the schema context and is the most likely target. The other options, dbo.CustomerMaster and CONSUMPTION_FINANCE.CustomerMaster, are less probable given the schema context and naming conventions.",
+      "status": "INCORRECT"
+    },
+    "tokens": 395
+  },
+  {
+    "test_id": 10,
+    "test_name": "vw_ActiveProjects - View with schema inference",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.95,
+      "ai_resolved": "CONSUMPTION_FINANCE.vw_ActiveProjects",
+      "expected": "CONSUMPTION_FINANCE.vw_ActiveProjects",
+      "parser_confidence": 0.9,
+      "ai_reasoning": "The stored procedure is within the CONSUMPTION_FINANCE schema, and the view name 'vw_ActiveProjects' aligns with the schema's naming conventions. The most direct and contextually relevant match is CONSUMPTION_FINANCE.vw_ActiveProjects. The other options, dbo and STAGING_FINANCE, are less likely given the procedure's schema and typical naming patterns.",
+      "status": "CORRECT"
+    },
+    "tokens": 397
+  },
+  {
+    "test_id": 11,
+    "test_name": "LaborCosts - ClinOps specific table",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.9,
+      "ai_resolved": "CONSUMPTION_ClinOpsFinance.LaborCosts",
+      "expected": "CONSUMPTION_ClinOpsFinance.LaborCosts",
+      "parser_confidence": 0.85,
+      "ai_reasoning": "The stored procedure is within the schema [CONSUMPTION_ClinOpsFinance], and the table 'LaborCosts' appears without schema qualification. By convention, unqualified table references in a procedure typically refer to tables within the same schema. Among the candidates, CONSUMPTION_ClinOpsFinance.LaborCosts matches the schema context and naming pattern, making it the most likely reference. The other options are less probable due to schema mismatch and business context.",
+      "status": "CORRECT"
+    },
+    "tokens": 432
+  },
+  {
+    "test_id": 12,
+    "test_name": "AccountHierarchy - Dimension with staging variant",
+    "evaluation": {
+      "correct": false,
+      "ai_confidence": 0.9,
+      "ai_resolved": "CONSUMPTION_FINANCE.AccountHierarchy",
+      "expected": "STAGING_FINANCE.AccountHierarchy",
+      "parser_confidence": 0.8,
+      "ai_reasoning": "The stored procedure is within the CONSUMPTION_FINANCE schema, and the reference to 'AccountHierarchy' appears unqualified, implying it defaults to the same schema. Among the candidates, CONSUMPTION_FINANCE.AccountHierarchy matches the schema context and is most likely intended. The other options are less probable: STAGING_FINANCE.AccountHierarchy is a staging table, and dbo.AccountHierarchy is in the default dbo schema, which is less aligned with the procedure's schema.",
+      "status": "INCORRECT"
+    },
+    "tokens": 412
+  }
+]

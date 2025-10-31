@@ -1,0 +1,170 @@
+[
+  {
+    "test_id": 1,
+    "test_name": "GL_Staging - STAGING schema disambiguation",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.95,
+      "ai_resolved": "STAGING_CADENCE.GL_Staging",
+      "expected": "STAGING_CADENCE.GL_Staging",
+      "parser_confidence": 0.5,
+      "ai_reasoning": "The procedure explicitly references STAGING_CADENCE.GL_Staging in the TRUNCATE statement, indicating that this is the target table being truncated and used in subsequent SELECT statements. According to the context rules, explicit references within the procedure take precedence, especially when the same table name appears multiple times. Therefore, 'GL_Staging' refers to STAGING_CADENCE.GL_Staging with high confidence.",
+      "status": "CORRECT"
+    },
+    "tokens": 1621
+  },
+  {
+    "test_id": 2,
+    "test_name": "DimCustomers - Cross-schema dimension lookup",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.92,
+      "ai_resolved": "CONSUMPTION_FINANCE.DimCustomers",
+      "expected": "CONSUMPTION_FINANCE.DimCustomers",
+      "parser_confidence": 0.85,
+      "ai_reasoning": "The procedure is in the CONSUMPTION_FINANCE schema and is performing an insert into FactRevenue, indicating a data load or transformation pattern. It joins with DimCustomers without schema qualification, and based on the context, it is most consistent that the join references the dimension table within the same schema, i.e., CONSUMPTION_FINANCE.DimCustomers. The candidate from STAGING_FINANCE is less likely, as staging schemas are typically sources, not joined for dimension lookups in consumption procedures.",
+      "status": "CORRECT"
+    },
+    "tokens": 1611
+  },
+  {
+    "test_id": 3,
+    "test_name": "ProjectMaster - Multiple staging areas",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.94,
+      "ai_resolved": "STAGING_FINANCE.ProjectMaster",
+      "expected": "STAGING_FINANCE.ProjectMaster",
+      "parser_confidence": 0.5,
+      "ai_reasoning": "The procedure [CONSUMPTION_FINANCE].[spLoadDimProjects] follows the ETL pattern where CONSUMPTION schemas load data from STAGING schemas. The table 'ProjectMaster' is used in a MERGE statement to load dimension data, indicating it is sourcing from a staging area. Given the naming conventions, 'STAGING_FINANCE.ProjectMaster' is the most likely source, especially since the procedure is in the CONSUMPTION_FINANCE schema and the pattern suggests sourcing from STAGING_FINANCE for dimension loading.",
+      "status": "CORRECT"
+    },
+    "tokens": 1614
+  },
+  {
+    "test_id": 4,
+    "test_name": "t_Company_filter - Cognos staging pattern",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.95,
+      "ai_resolved": "STAGING_FINANCE_COGNOS.t_Company_filter",
+      "expected": "STAGING_FINANCE_COGNOS.t_Company_filter",
+      "parser_confidence": 0.5,
+      "ai_reasoning": "The table name 't_Company_filter' with the 't_' prefix strongly indicates a Cognos extract, which is typically stored in the STAGING_FINANCE_COGNOS schema. The procedure is in CONSUMPTION_FINANCE, and the use of 't_' prefix aligns with Cognos conventions for extracted tables. No explicit schema qualifier is present, but based on naming patterns and conventions, the most probable source is STAGING_FINANCE_COGNOS.",
+      "status": "CORRECT"
+    },
+    "tokens": 1615
+  },
+  {
+    "test_id": 5,
+    "test_name": "FactGL - Same table name across consumption schemas",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.92,
+      "ai_resolved": "CONSUMPTION_POWERBI.FactGL",
+      "expected": "CONSUMPTION_POWERBI.FactGL",
+      "parser_confidence": 0.7,
+      "ai_reasoning": "The procedure is within the CONSUMPTION_POWERBI schema, and it queries FactGL without schema qualification. According to the schema architecture rules, procedures typically query tables within their own schema for reporting purposes, especially in Power BI context. Therefore, the most logical match is CONSUMPTION_POWERBI.FactGL.",
+      "status": "CORRECT"
+    },
+    "tokens": 1548
+  },
+  {
+    "test_id": 6,
+    "test_name": "ArAnalyticsMetrics - Quarterly aggregation",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.92,
+      "ai_resolved": "CONSUMPTION_FINANCE.ArAnalyticsMetrics",
+      "expected": "CONSUMPTION_FINANCE.ArAnalyticsMetrics",
+      "parser_confidence": 0.95,
+      "ai_reasoning": "The procedure is in the CONSUMPTION_FINANCE schema and performs a TRUNCATE on its own table before inserting data. The SELECT statement references 'ArAnalyticsMetrics' without schema qualification, and given the pattern, it is most consistent that it queries the same schema's table. This aligns with the typical pattern where procedures in a schema query their own tables unless explicitly referencing external schemas.",
+      "status": "CORRECT"
+    },
+    "tokens": 1598
+  },
+  {
+    "test_id": 7,
+    "test_name": "BudgetData - Cadence vs Prima",
+    "evaluation": {
+      "correct": false,
+      "ai_confidence": 0.9,
+      "ai_resolved": "CONSUMPTION_ClinOpsFinance.BudgetData",
+      "expected": "STAGING_CADENCE.BudgetData",
+      "parser_confidence": 0.6,
+      "ai_reasoning": "The procedure is within the CONSUMPTION_ClinOpsFinance schema, and it queries BudgetData without schema qualification. Given the context, it is most likely referencing a table within its own schema for operational or reporting purposes, rather than an external staging table. The naming pattern suggests it is a dimension or fact table relevant to clinical operations finance, aligning with the schema's domain.",
+      "status": "INCORRECT"
+    },
+    "tokens": 1563
+  },
+  {
+    "test_id": 8,
+    "test_name": "ErrorLog - Common utility table",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.95,
+      "ai_resolved": "dbo.ErrorLog",
+      "expected": "dbo.ErrorLog",
+      "parser_confidence": 0.4,
+      "ai_reasoning": "The procedure is in the CONSUMPTION_FINANCE schema and contains an explicit INSERT into ErrorLog without schema qualification. Given the context, ErrorLog is most likely a utility table in dbo, which is common for logging purposes. The pattern suggests that ErrorLog is a shared utility table in dbo, not a schema-specific or staging table.",
+      "status": "CORRECT"
+    },
+    "tokens": 1577
+  },
+  {
+    "test_id": 9,
+    "test_name": "CustomerMaster - Same name, different contexts",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.95,
+      "ai_resolved": "dbo.CustomerMaster",
+      "expected": "dbo.CustomerMaster",
+      "parser_confidence": 0.75,
+      "ai_reasoning": "The procedure is in the STAGING_FINANCE schema and is performing an extract operation into STAGING_FINANCE.CustomerStaging. According to the schema architecture rules, such extract procedures typically source data from the raw data layer, which resides in dbo. The unqualified reference 'CustomerMaster' is most likely to dbo.CustomerMaster, aligning with the ETL pattern where staging procedures extract from dbo tables.",
+      "status": "CORRECT"
+    },
+    "tokens": 1547
+  },
+  {
+    "test_id": 10,
+    "test_name": "vw_ActiveProjects - View with schema inference",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.92,
+      "ai_resolved": "CONSUMPTION_FINANCE.vw_ActiveProjects",
+      "expected": "CONSUMPTION_FINANCE.vw_ActiveProjects",
+      "parser_confidence": 0.9,
+      "ai_reasoning": "The procedure is within the CONSUMPTION_FINANCE schema and queries vw_ActiveProjects without schema qualification. Given the context, it most likely references a view in its own schema for reporting purposes, following the pattern of querying own schema tables/views for active project data.",
+      "status": "CORRECT"
+    },
+    "tokens": 1542
+  },
+  {
+    "test_id": 11,
+    "test_name": "LaborCosts - ClinOps specific table",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.9,
+      "ai_resolved": "CONSUMPTION_ClinOpsFinance.LaborCosts",
+      "expected": "CONSUMPTION_ClinOpsFinance.LaborCosts",
+      "parser_confidence": 0.85,
+      "ai_reasoning": "The procedure is within the CONSUMPTION_ClinOpsFinance schema, and the table 'LaborCosts' is referenced without schema qualification. Given the context, it is most consistent with the procedure's schema, indicating it likely queries its own schema's table. Additionally, the pattern suggests that ClinOpsFinance procedures operate on their own data, not directly sourcing from staging or dbo raw tables.",
+      "status": "CORRECT"
+    },
+    "tokens": 1586
+  },
+  {
+    "test_id": 12,
+    "test_name": "AccountHierarchy - Dimension with staging variant",
+    "evaluation": {
+      "correct": true,
+      "ai_confidence": 0.95,
+      "ai_resolved": "STAGING_FINANCE.AccountHierarchy",
+      "expected": "STAGING_FINANCE.AccountHierarchy",
+      "parser_confidence": 0.8,
+      "ai_reasoning": "The procedure [CONSUMPTION_FINANCE].[spLoadDimAccount] follows the ETL pattern where CONSUMPTION schemas load data from STAGING schemas. Since the table AccountHierarchy is referenced without schema qualification, the most probable source is the STAGING_FINANCE.AccountHierarchy, aligning with the typical data flow and naming conventions.",
+      "status": "CORRECT"
+    },
+    "tokens": 1550
+  }
+]
