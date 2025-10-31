@@ -1,11 +1,11 @@
 # Vibecoding — Data Lineage Parser Specification
 
-**Specification Version:** 2.1
-**Parser Version:** 2.0
-**Date:** 2025-10-26
-**Status:** Updated with frontend compatibility, incremental load support, and Microsoft Agent Framework integration
+**Specification Version:** 2.2
+**Parser Version:** 3.7.0 (Planned)
+**Date:** 2025-10-31
+**Status:** Updated with AI-assisted disambiguation (Phase 4 ready)
 
-**Note:** This specification (v2.1) describes the Vibecoding Lineage Parser v2.0. The folder name `lineage_v3` refers to the third iteration of development, but the product version is v2.0.
+**Note:** This specification (v2.2) describes the planned Vibecoding Lineage Parser v3.7.0. The folder name `lineage_v3` refers to the third iteration of development. Current production version is v3.6.0.
 
 ## 1. Objective
 
@@ -276,9 +276,16 @@ Confidence scores are static and *must* be assigned based on the source of the l
 | Source | Confidence | Description |
 | :--- | :--- | :--- |
 | DMV | **1.0** | Authoritative system metadata. |
-| Query Log | **0.9** | Confirmed runtime execution. |
+| Query Log (Validation) | **0.95** | AI-parsed result confirmed by runtime execution. |
 | Parser (SQLGlot) | **0.85** | High-confidence static analysis. |
-| AI | **0.7** | Fallback estimation; advisory. |
+| AI (Validated) | **0.85-0.95** | AI disambiguation with 3-layer validation. |
+| Parser (Regex Baseline) | **0.50** | Low-confidence fallback estimation. |
+
+**AI Confidence Calculation:**
+- Base AI confidence: 0.70-0.95 (from AI model)
+- Catalog validation passed: Use AI confidence as-is
+- Query log validation passed: Boost to 0.95
+- Validation failed: Fallback to parser result (0.50 or 0.85)
 
 **Merging Logic:** When merging sources (e.g., a DMV link validated by a Query Log), the `confidence` *must* be the highest value (1.0 in this case). The `provenance.primary_source` field should reflect the source with the highest confidence.
 
@@ -409,5 +416,6 @@ python main.py run --parquet parquet_snapshots/ --full-refresh
 
 | Version | Date | Changes |
 | :--- | :--- | :--- |
-| **2.1** | 2025-10-26 | • Added Microsoft Agent Framework integration<br>• Simplified provenance schema (removed `sources` array)<br>• Added bidirectional graph documentation<br>• Added frontend compatibility layer (Section 10)<br>• Added incremental load support (Section 11)<br>• Documented query log DMV limitations |
+| **2.2** | 2025-10-31 | • **Replaced Agent Framework with Direct Azure OpenAI API**<br>• Documented AI disambiguation architecture (single parser + AI fallback)<br>• Updated confidence model (AI: 0.85-0.95, validated by 3 layers)<br>• Added AI trigger logic (confidence ≤0.85)<br>• Removed DualParser complexity<br>• Added comprehensive AI specification reference (Section 6.6)<br>• Target: Parser v3.7.0 (Phase 4 implementation) |
+| **2.1** | 2025-10-26 | • Added Microsoft Agent Framework integration (DEPRECATED)<br>• Simplified provenance schema (removed `sources` array)<br>• Added bidirectional graph documentation<br>• Added frontend compatibility layer (Section 10)<br>• Added incremental load support (Section 11)<br>• Documented query log DMV limitations |
 | **2.0** | 2025-10-24 | Initial specification with DuckDB, SQLGlot, and AI fallback |
