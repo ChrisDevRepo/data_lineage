@@ -18,7 +18,7 @@ import { ImportDataModal } from './components/ImportDataModal';
 import { InfoModal } from './components/InfoModal';
 import { InteractiveTracePanel } from './components/InteractiveTracePanel';
 import { NotificationContainer, NotificationHistory } from './components/NotificationSystem';
-import { SqlViewer } from './components/SQLViewer';
+import { SqlViewer } from './components/SqlViewer';
 import { DetailSearchModal } from './components/DetailSearchModal';
 import { useGraphology } from './hooks/useGraphology';
 import { useNotifications } from './hooks/useNotifications';
