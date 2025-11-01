@@ -26,6 +26,11 @@ click>=8.3.0                     # Latest: 8.3.0 (Sep 2025) - CLI framework (req
 python-dotenv>=1.1.1             # Latest: 1.1.1 (Jun 2025) - Environment variable management
 
 # ------------------------------------------------------------------------------
+# AI & LLM Integration
+# ------------------------------------------------------------------------------
+openai>=1.0.0                    # Azure OpenAI integration for AI disambiguation
+
+# ------------------------------------------------------------------------------
 # Utilities & Logging
 # ------------------------------------------------------------------------------
 rich>=13.7.0                     # Rich console output with colors and formatting
@@ -56,7 +61,6 @@ pydantic-settings>=2.6.0         # Settings management from environment variable
 #    pip install -r requirements.txt black ruff mypy
 #
 # 4. Verify installation:
-#    python -c "import duckdb, sqlglot, agent_framework, azure.ai.inference; print('All imports successful')"
+#    python -c "import duckdb, sqlglot, openai; print('All imports successful')"
 #
 # ==============================================================================
-pydantic-settings>=2.6.0         # Settings management from environment variables

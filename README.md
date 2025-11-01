@@ -1,8 +1,8 @@
 # Data Lineage Visualizer
 
-**Interactive data lineage analysis for Azure Synapse Analytics**
+**Interactive lineage analysis for Azure Synapse Analytics**
 
-Visualize tables, views, and stored procedures with their dependencies in an interactive graph. Built for data engineers and analysts working with complex data warehouses.
+Visualize tables, views, and stored procedures with their dependencies. Built for data engineers working with complex data warehouses.
 
 ![Data Lineage Visualizer](tests/screenshots/frontend_smoke.png)
 
@@ -10,59 +10,68 @@ Visualize tables, views, and stored procedures with their dependencies in an int
 
 ## Features
 
-- **Interactive Graph Visualization** - Pan, zoom, and explore your data lineage with React Flow
-- **Path-Based Tracing** - Find lineage paths between any two objects (upstream/downstream analysis)
-- **SQL Viewer** - View DDL definitions with Monaco Editor (VS Code's editor) and full-text search
-- **Smart Filtering** - Filter by schema, object type, or pattern exclusions
-- **Export** - Export visualizations as SVG or JSON
-- **No Database Required** - Works entirely with pre-exported Parquet files
+- **Interactive Graph** - Pan, zoom, explore with React Flow
+- **Path Tracing** - Find upstream/downstream dependencies between objects
+- **SQL Viewer** - Monaco Editor (VS Code) with syntax highlighting
+- **Smart Filtering** - Schema, type, pattern-based filtering
+- **No Database Required** - Works with pre-exported Parquet files
 
 ---
 
 ## Quick Start
 
-### For Users
-
-**1. Start the Application**
+### 1. Start Services
 
 ```bash
 # Terminal 1 - Backend API
-cd ~/sandbox
-source venv/bin/activate
+cd /home/chris/sandbox
 python3 api/main.py
+# Server: http://localhost:8000
+# Docs: http://localhost:8000/docs
 
 # Terminal 2 - Frontend
-cd ~/sandbox/frontend
+cd /home/chris/sandbox/frontend
 npm run dev
+# Opens: http://localhost:3000
 ```
 
-**2. Open in Browser**
+### 2. Upload Data
 
-- Frontend: http://localhost:3000
-- Backend Health: http://localhost:8000/health
+**Upload Parquet files** via UI or curl:
 
-**3. Upload Your Data**
+```bash
+# Filenames don't matter - auto-detected by schema
+curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" \
+  -F "files=@part-00000.snappy.parquet" \
+  -F "files=@part-00001.snappy.parquet" \
+  -F "files=@part-00002.snappy.parquet"
+```
 
-Click "Upload Data" and select your Parquet files exported from Synapse
+**Required Files (3):**
+- Objects (from `sys.objects`, `sys.schemas`)
+- Dependencies (from `sys.sql_expression_dependencies`)
+- Definitions (from `sys.sql_modules`)
 
+**Optional Files (2):**
+- Query logs (from `sys.dm_pdw_exec_requests`) - for validation
+- Table columns (from `sys.tables`, `sys.columns`) - for DDL
 
-**4. Explore**
+### 3. Explore
 
-- Use the "Start Trace" button to analyze impact (upstream/downstream paths)
-- Click nodes to view SQL definitions in the Monaco editor
-- Use Detail Search (full-text) to find objects containing specific SQL patterns
-- Apply filters to focus on specific schemas or object types
+- **Trace Mode** - Analyze upstream/downstream impact
+- **SQL Viewer** - Click nodes to view definitions
+- **Detail Search** - Full-text search across all SQL
+- **Filters** - Focus on specific schemas/types
 
 ---
 
-### For Developers
+## Tech Stack
 
-**Tech Stack**
-- **Frontend:** React 18, TypeScript, React Flow, Monaco Editor, Tailwind CSS
-- **Backend:** Python 3.12, FastAPI, DuckDB, SQLGlot
-- **Parser:** DMV-first lineage analysis with 97.5% high-confidence parsing
+**Frontend:** React 18 + TypeScript + React Flow + Monaco Editor + Tailwind
+**Backend:** FastAPI + DuckDB + SQLGlot + Azure OpenAI
+**Parser:** DMV-first with 80.7% high-confidence (2x industry average)
 
-**Architecture**
+**Architecture:**
 ```
 Synapse DMVs → PySpark Extractor → Parquet Files
                                          ↓
@@ -71,143 +80,93 @@ Synapse DMVs → PySpark Extractor → Parquet Files
                                React Frontend (React Flow)
 ```
 
-**Project Structure**
+---
+
+## Repository Structure
+
 ```
-ws-psidwh/
-├── api/                  # FastAPI backend (7 endpoints)
-├── frontend/            # React visualization app
-├── lineage_v3/          # Core parser engine
+/home/chris/sandbox/
+├── api/                  # FastAPI backend
+├── frontend/            # React visualization
+├── lineage_v3/          # Core parser
 ├── extractor/           # PySpark DMV extractor
 ├── docs/                # Documentation
-└── tests/               # Test suite
+├── tests/               # Test suite
+├── README.md            # This file
+└── CLAUDE.md            # Developer guide
 ```
-
-**Key Components**
-- `lineage_v3/parsers/quality_aware_parser.py` - Main SQL parser (SQLGlot + regex)
-- `api/main.py` - FastAPI application with 7 REST endpoints
-- `frontend/App.tsx` - Main React Flow application
-- `frontend/components/InteractiveTracePanel.tsx` - Path-based tracing UI
-
----
-
-## Latest Updates (v2.9.1)
-
-### UI Redesign Phase 1
-- Modern gradient accents on all modals and panels
-- Unified design system with consistent typography
-- Simplified minimap with uniform gray colors
-
-### Path-Based Tracing (v2.8.0)
-- Find direct lineage paths between two specific nodes
-- Bidirectional search (upstream and downstream)
-- Respects all filters (schema, type, exclusion patterns)
-
-### Monaco Editor Integration (v2.7.0)
-- Professional SQL viewing with VS Code's editor
-- Built-in search with keyboard shortcuts (Ctrl+F)
-- Syntax highlighting and line numbers
-- Optimized for large SQL files (10K+ lines)
-
-### Data Persistence (v2.4.0)
-- Server-side storage survives container restarts
-- No more localStorage limitations
-- Faster page loads
-
-See [frontend/CHANGELOG.md](frontend/CHANGELOG.md) for full history.
-
----
-
-## Documentation
-
-### User Guides
-- [SQL Parsing Best Practices](docs/PARSING_USER_GUIDE.md) - How to write SQL for optimal parsing
-- [Frontend Architecture](frontend/docs/FRONTEND_ARCHITECTURE.md) - React Flow implementation details
-- [Local Development](frontend/docs/LOCAL_DEVELOPMENT.md) - Dev setup guide
-- [WSL Setup](docs/WSL_SETUP.md) - Windows Subsystem for Linux configuration
-
-### Developer Reference
-- [API Documentation](api/README.md) - FastAPI endpoints and request/response models
-- [DuckDB Schema](docs/DUCKDB_SCHEMA.md) - Database schema reference
-- [Parser Specification](lineage_specs.md) - Core parser implementation
-
-### Deployment
-- [Azure Deployment](frontend/docs/DEPLOYMENT_AZURE.md) - Deploy to Azure Web App
-- [Extractor Setup](extractor/README.md) - PySpark DMV extraction guide
 
 ---
 
 ## Performance
 
-**Parser Metrics (v3.6.0)**
-- Total Objects: 202 stored procedures
+**Current Metrics (v3.7.0):**
+- Total SPs: 202
 - High Confidence (≥0.85): 163 (80.7%)
-- **3.2x better than industry average** (30-40% typical for T-SQL)
+- Average Confidence: 0.800
 
-**Confidence Levels**
-- DMV (Views/Functions): 1.0 (system metadata)
-- Query Log Validated: 0.95 (runtime confirmed)
-- SQLGlot Parsed: 0.85 (static analysis)
-- Regex Baseline: 0.50 (fallback)
+**Confidence Model:**
+| Source | Confidence | Applied To |
+|--------|-----------|------------|
+| DMV | 1.0 | Views, Functions |
+| Query Log | 0.95 | Validated SPs |
+| SQLGlot Parser | 0.85 | Successfully parsed SPs |
+| AI (Validated) | 0.85-0.95 | Complex SPs |
+| Regex Fallback | 0.50 | Failed parses |
+
+---
+
+## Documentation
+
+**Essential:**
+- [CLAUDE.md](CLAUDE.md) - Complete developer guide
+- [lineage_specs.md](lineage_specs.md) - Parser specification
+- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL best practices
+
+**Component-Specific:**
+- [api/README.md](api/README.md) - API documentation
+- [frontend/README.md](frontend/README.md) - Frontend guide
+- [extractor/README.md](extractor/README.md) - Extractor setup
+
+**Advanced:**
+- [docs/AI_DISAMBIGUATION_SPEC.md](docs/AI_DISAMBIGUATION_SPEC.md) - AI implementation
+- [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
+- [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
 
 ---
 
 ## Requirements
 
-**System Dependencies**
+**System:**
 - Python 3.12+
 - Node.js 24+
-- WSL Ubuntu (for local development)
+- WSL2 Ubuntu (development)
 
-**Python Packages** (pre-installed in `venv/`)
-- FastAPI, Uvicorn, DuckDB, SQLGlot, Pandas, NetworkX
-
-**Node Packages** (see `frontend/package.json`)
-- React, React Flow, Monaco Editor, Tailwind CSS
-
----
-
-## Environment Setup
-
-**Quick Setup (WSL Ubuntu)**
-
+**Setup:**
 ```bash
-# 1. Install system dependencies
-sudo apt install python3.12-venv
+# Python packages
+pip install -r requirements.txt
 
-# 2. Activate virtual environment
-cd ~/sandbox
-source venv/bin/activate
-
-# 3. Verify installation
-python -c "import duckdb, sqlglot, fastapi; print('✅ Ready')"
-
-# 4. Install frontend dependencies (if needed)
-cd frontend
-npm install
+# Node packages
+cd frontend && npm install
 ```
 
-**Environment Variables** (Backend)
-
-Create `.env` file in project root.
+**Environment Variables:**
+```bash
+cp .env.template .env
+# Edit .env with Azure OpenAI credentials (for AI features)
+```
 
 ---
 
 ## Support
 
-**Issues:** Report bugs or request features in this repository's issue tracker
-
-**Documentation:** See [CLAUDE.md](CLAUDE.md) for complete developer guide
-
----
-
-## License
-
-Created by Christian Wagner
-
-Built with [Claude Code](https://claude.com/claude-code)
+**Issues:** Use GitHub issue tracker
+**Developer Guide:** See [CLAUDE.md](CLAUDE.md)
 
 ---
 
-**Version:** 2.9.1 (Frontend) | 3.6.0 (Parser)
+**Version:** v3.7.0 (Parser) | v2.9.0 (Frontend) | v3.0.1 (API)
 **Status:** Production Ready
-**Last Updated:** 2025-11-01
+**Author:** Christian Wagner
+**Built with:** [Claude Code](https://claude.com/claude-code)

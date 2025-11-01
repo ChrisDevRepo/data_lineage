@@ -1,79 +1,64 @@
 # Data Lineage Visualizer - Frontend
 
-**Interactive React application for visualizing Azure Synapse data lineage**
+**Version:** 2.9.0
+React application for visualizing Azure Synapse data lineage.
 
-[![React](https://img.shields.io/badge/React-19.2.0-blue.svg)](https://react.dev/)
-[![Vite](https://img.shields.io/badge/Vite-6.2.0-purple.svg)](https://vitejs.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.8.2-blue.svg)](https://www.typescriptlang.org/)
+## Quick Start
 
----
+```bash
+cd /home/chris/sandbox/frontend
+npm install
+npm run dev  # Opens at http://localhost:3000
+```
 
-## 🚀 Current Status
+**Restart after code changes:**
+```bash
+cd /home/chris/sandbox/frontend && lsof -ti:3000 | xargs -r kill && npm run dev
+```
 
-**Version:** 2.9.0 (UI Simplification & Detail Search Enhancements)
-**v3.0 Status:** Core features complete - Docker containerization pending
+## Technology Stack
 
-### ✨ Latest Updates (v2.9.0 - 2025-10-31)
+- React 19.2.0 + TypeScript 5.8.2
+- Vite 6.2.0 (build tool)
+- ReactFlow 11.11.4 (graph visualization)
+- Graphology 0.25.4 (graph algorithms)
+- Dagre 0.8.5 (layout engine)
+- Monaco Editor 4.7.0 (SQL viewer)
+- Tailwind CSS 3.x
 
-**UI Simplification:**
-- 🗑️ **Removed Schema View** - Focused exclusively on Detail View for better UX
-  - Removed "Detail View / Schema View" toggle button
-  - Dagre layout now optimized only for object-level visualization
-  - Cleaner, simpler interface
+## Key Features
 
-**Detail Search Enhancements:**
-- 📏 **Resizable Panels** - Drag divider to adjust search results vs DDL viewer height
-- 🔍 **Filter Dropdowns** - Added schema and object type filters next to search box
-- ❓ **Search Syntax Help** - Help button showing DuckDB FTS advanced operators
+- **Interactive Graph** - ReactFlow-based lineage visualization with zoom/pan
+- **Path Tracing** - Upstream/downstream exploration, path-between-nodes mode
+- **SQL Viewer** - Monaco Editor with syntax highlighting, search (Ctrl+F)
+- **Detail Search** - Full-text search with schema/type filters, resizable panels
+- **DDL Display** - View table structures and stored procedure definitions
+- **Smart Filtering** - Schema, object type, pattern-based filtering
+- **Trace Lock** - Preserve traced subset after exiting trace mode
 
-### ✨ Previous Updates (v2.8.0 - 2025-10-29)
+## Documentation
 
-**New Features:**
-- 🎯 **Path-Based Tracing Mode** - Find all direct lineage paths between two nodes
-  - Added "Path Between Nodes" option in Interactive Trace panel
-  - Two modes: "By Levels" (default) or "Path Between Nodes"
-  - Define start AND end nodes, see all intermediate steps
-  - Bidirectional search: downstream (start→end) and upstream (end→start)
-  - Direct paths only - no zigzag routes, follows data flow direction
-  - Use cases: "How does Table A flow to Table B?", "Show me the path between these SPs"
-- ✨ **SQL Viewer Dimming Persistence** - Node dimming effect now persists when SQL viewer is open
-  - Previously: Dimming disabled when SQL viewer opened
-  - Now: Consistent visual focus whether viewer is open or closed
-  - Distant nodes (>1 level away) stay blurred, adjacent nodes stay visible
+- **[CHANGELOG.md](./CHANGELOG.md)** - Version history
+- **[docs/FRONTEND_ARCHITECTURE.md](./docs/FRONTEND_ARCHITECTURE.md)** - Architecture deep dive
+- **[docs/LOCAL_DEVELOPMENT.md](./docs/LOCAL_DEVELOPMENT.md)** - Development guide
+- **[docs/DEPLOYMENT_AZURE.md](./docs/DEPLOYMENT_AZURE.md)** - Azure deployment
+- **[docs/UI_STANDARDIZATION_GUIDE.md](./docs/UI_STANDARDIZATION_GUIDE.md)** - UI design system
 
-### ✨ Previous Updates (v2.7.0 - 2025-10-28)
+## Build & Deploy
 
-**Major Upgrade:**
-- 🚀 **Monaco Editor Integration** - Replaced Prism.js with VS Code's Monaco Editor
-  - Professional SQL code viewing experience
-  - Built-in search dialog with next/previous navigation
-  - Match counter ("3 of 15 results")
-  - Overview ruler with yellow markers on scrollbar (Notepad++ style)
-  - Keyboard shortcuts: `Ctrl+F` to search, `F3` next, `Shift+F3` previous
-  - Optimized for large SQL files (10K+ lines) with virtual scrolling
-  - Case sensitive, whole word, and regex search support
-  - No auto-search lag (triggers on Enter/button, not every keystroke)
+```bash
+# Production build
+npm run build  # Output: dist/
 
+# Preview production build
+npm run preview
 
-## 🔧 Technology Stack
+# Type checking
+npm run type-check
+```
 
-| Category | Technology | Version | Purpose |
-|----------|-----------|---------|---------|
-| **Framework** | React | 19.2.0 | UI framework |
-| **Build Tool** | Vite | 6.2.0 | Fast dev server & build |
-| **Language** | TypeScript | 5.8.2 | Type safety |
-| **Visualization** | ReactFlow | 11.11.4 | Interactive graph rendering |
-| **Graph Engine** | Graphology | 0.25.4 | Graph algorithms (BFS, DFS) |
-| **Layout** | Dagre | 0.8.5 | Hierarchical layout |
-| **Styling** | Tailwind CSS | 3.x (CDN) | Utility-first CSS |
-| **Code Editor** | Monaco Editor | 4.7.0 | SQL viewer (VS Code engine) |
-
-**New in v3.0:**
-- **Monaco Editor** - Professional SQL syntax highlighting and search (✅ **IMPLEMENTED v2.7**)
-- **FastAPI Client** - HTTP polling for backend jobs
+**Azure Static Web Apps deployment:** See [docs/DEPLOYMENT_AZURE.md](./docs/DEPLOYMENT_AZURE.md)
 
 ---
 
-## 📖 Additional Documentation
-
-- **[CHANGELOG.md](./CHANGELOG.md)** - Detailed feature changes and version history
+**Last Updated:** 2025-10-31

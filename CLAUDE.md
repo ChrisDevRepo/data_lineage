@@ -1,599 +1,310 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Instructions for Claude Code when working with this repository.
+
+## Project Overview
+
+**Data Lineage Visualizer v3.7.0** - DMV-first lineage parser for Azure Synapse with React visualization.
+
+**Status:** Production Ready (80.7% high-confidence parsing, 2x industry average)
+
+**Stack:**
+- Backend: FastAPI + DuckDB + SQLGlot parser + Azure OpenAI
+- Frontend: React + React Flow + Monaco Editor
+- Extractor: PySpark (DMV → Parquet)
+
+---
 
 ## Development Environment
 
-**System Dependencies Installed:**
+**System:**
 - Python 3.12.3
-- Node.js (for frontend)
+- Node.js (frontend)
+- WSL2 (Linux 6.6.87.2-microsoft-standard-WSL2)
 
-**MCP Servers Configured:** ([.vscode/mcp.json](.vscode/mcp.json))
-- `microsoft-learn` - Microsoft documentation access (via mcp-remote)
+**Working Directory:** `/home/chris/sandbox`
 
-**Built-in Tools Available:**
-- `WebFetch` - Fetch and analyze web content
-- `WebSearch` - Search the web for current information
+**MCP Servers:** ([.vscode/mcp.json](.vscode/mcp.json))
+- `microsoft-learn` - Microsoft docs access
 
-
-**Git Guidelines:**
-- ✅ Commit frequently to `feature/v3-implementation`
-- ✅ Push to remote: `git push origin feature/v3-implementation`
-- ❌ **DO NOT** pull with rebase
-- ❌ **DO NOT** merge from other branches
-- ❌ **DO NOT** merge to main/master
-- 📋 Branch will be merged to main only after full v3.0 approval
-
-## Overview
-
-This repository contains:
-1. **Azure Synapse Data Warehouse** - SQL scripts for stored procedures, tables, and views
-2. **Vibecoding Lineage Parser v3.0** - DMV-first data lineage system with React-based visualization
-3. **AI-Assisted Disambiguation** - Azure OpenAI integration for resolving ambiguous table references
-
-**Current Status:** v3.7.0 Production Ready (97.5% high-confidence parsing, 3.2x industry average)
-
-**AI Enhancement Status:** Phase 4 Complete - Production ready with critical bug fixes applied
-
+---
 
 ## Repository Structure
 
 ```
-ws-psidwh/
-├── Synapse_Data_Warehouse/       # Azure Synapse SQL objects
-│   ├── Stored Procedures/        # ETL and data processing procedures
-│   ├── Tables/                   # Table definitions
-│   └── Views/                    # View definitions
+/home/chris/sandbox/
+├── api/                          # FastAPI backend (v3.0.1)
+│   ├── main.py                   # 7 REST endpoints
+│   ├── background_tasks.py       # Parquet processing
+│   ├── models.py                 # Pydantic schemas
+│   └── README.md
 │
-├── extractor/                    # ✅ PySpark DMV Extractor (Production Ready)
-│   ├── synapse_pyspark_dmv_extractor.py  # Spark Job script
-│   └── README.md                 # Deployment guide
+├── frontend/                     # React visualizer (v2.9.0)
+│   ├── src/
+│   │   ├── components/           # React Flow components
+│   │   ├── hooks/                # Custom hooks
+│   │   └── utils/
+│   ├── docs/
+│   │   └── UI_STANDARDIZATION_GUIDE.md
+│   └── README.md
 │
-├── api/                          # ✅ FastAPI Backend (Production Ready)
-│   ├── main.py                   # FastAPI application with 7 endpoints
-│   ├── background_tasks.py       # Background processing wrapper
-│   ├── models.py                 # Pydantic request/response models
-│   ├── requirements.txt          # API dependencies
-│   ├── README.md                 # Complete API documentation
-│   └── TEST_RESULTS.md           # Comprehensive test report
+├── lineage_v3/                   # Core parser (v3.7.0)
+│   ├── main.py                   # CLI entry point
+│   ├── core/
+│   │   ├── duckdb_workspace.py   # Persistent DuckDB
+│   │   └── gap_detector.py
+│   ├── parsers/
+│   │   ├── quality_aware_parser.py   # Main SQLGlot parser
+│   │   ├── ai_disambiguator.py       # Azure OpenAI fallback
+│   │   ├── query_log_validator.py    # Query log validation
+│   │   └── deprecated/               # Old parsers (archived)
+│   ├── output/
+│   │   ├── internal_formatter.py     # lineage.json
+│   │   └── frontend_formatter.py     # frontend_lineage.json
+│   └── ai_analyzer/
+│       ├── production_prompt.txt     # AI few-shot prompt
+│       └── test_azure_openai.py
 │
-├── lineage_v3/                   # ✅ Core Parser (v3.6.0)
-│   ├── main.py                   # CLI entry point & orchestration
-│   ├── core/                     # DuckDB workspace engine
-│   │   ├── duckdb_workspace.py   # Persistent database manager
-│   │   └── gap_detector.py       # Missing dependency detection
-│   ├── parsers/                  # SQL parsing implementations
-│   │   ├── quality_aware_parser.py  # ✅ ACTIVE: Main parser (v3.6.0)
-│   │   ├── dual_parser.py        # ✅ ACTIVE: Dual validation wrapper
-│   │   ├── query_log_validator.py  # ✅ ACTIVE: Query log cross-validation
-│   │   └── deprecated/           # Archived old implementations
-│   ├── ai_analyzer/              # 🧪 AI-Assisted Disambiguation (Phase 1)
-│   │   └── test_azure_openai.py  # Smoke test helper for Azure OpenAI
-│   ├── output/                   # JSON formatters
-│   │   ├── internal_formatter.py # lineage.json (int object_ids)
-│   │   ├── frontend_formatter.py # frontend_lineage.json (string ids)
-│   │   └── summary_formatter.py  # lineage_summary.json (stats)
-│   └── utils/                    # Dev helpers (internal use only)
+├── extractor/                    # PySpark DMV extractor
+│   ├── synapse_pyspark_dmv_extractor.py
+│   └── README.md
 │
-├── frontend/                     # ✅ React Visualizer (v2.9.0)
-│   ├── components/               # React Flow components
-│   ├── hooks/                    # Custom React hooks
-│   ├── utils/                    # Utility functions
-│   ├── docs/                     # Frontend documentation
-│   │   ├── FRONTEND_ARCHITECTURE.md  # Architecture deep dive
-│   │   ├── LOCAL_DEVELOPMENT.md      # Dev setup guide
-│   │   ├── DEPLOYMENT_AZURE.md       # Azure deployment
-│   │   └── UI_STANDARDIZATION_GUIDE.md  # UI design system guide
-│   ├── deploy/                   # Azure deployment configs
-│   ├── README.md                 # Quick start guide
-│   └── CHANGELOG.md              # Feature history
+├── docs/                         # Documentation
+│   ├── PARSING_USER_GUIDE.md     # SQL parsing guide
+│   ├── PARSER_EVOLUTION_LOG.md   # Version history
+│   ├── AI_DISAMBIGUATION_SPEC.md # AI implementation
+│   └── DUCKDB_SCHEMA.md
 │
-├── docs/                         # 📚 Core Documentation
-│   ├── PARSING_USER_GUIDE.md     # ⭐ SQL parsing best practices
-│   ├── PARSER_EVOLUTION_LOG.md   # Parser version history
-│   ├── DUCKDB_SCHEMA.md          # Database schema reference
-│   ├── QUERY_LOGS_ANALYSIS.md    # Query log validation strategy
-│   ├── AI_DISAMBIGUATION_SPEC.md # AI disambiguation specification
-│   ├── AI_PHASE4_ACTION_ITEMS.md # AI implementation action items
-│   ├── AI_MODEL_EVALUATION.md    # AI model evaluation results
-│   ├── DETAIL_SEARCH_SPEC.md     # Detail search specification
-│   └── UNIFIED_DDL_FEATURE.md    # Unified DDL feature docs
+├── tests/
+│   └── parser_regression_test.py # Parser regression testing
 │
-├── tests/                        # Testing & validation
-│   └── parser_regression_test.py # ⭐ Parser regression testing
-│
-├── baselines/                    # Parser performance baselines
-│   └── baseline_20251028_*.json  # Latest baseline snapshot
-│
-├── lineage_output/               # Generated lineage JSON (gitignored)
+├── baselines/                    # Parser baselines (for regression tests)
 ├── data/                         # API persistent storage (gitignored)
-├── .env.template                 # Environment config template
+├── .env.template                 # Config template
 ├── requirements.txt              # Python dependencies
-├── lineage_specs.md              # Parser v3.0 specification
-├── README.md                     # Main project overview
+├── lineage_specs.md              # Parser specification
+├── README.md                     # Main overview
 └── CLAUDE.md                     # This file
 ```
 
 ---
 
-## Quick Start Guide
+## Quick Start
 
-### Working with Frontend (v2.9.0)
+### 1. Backend API
 
 ```bash
-# Start frontend dev server
-cd /workspaces/ws-psidwh/frontend
-npm run dev  # Opens at http://localhost:3000
-
-# IMPORTANT: After making frontend code changes, ALWAYS restart the dev server
-cd /workspaces/ws-psidwh/frontend && lsof -ti:3000 | xargs -r kill && npm run dev
+cd /home/chris/sandbox/api
+python3 main.py
+# Server: http://localhost:8000
+# Docs: http://localhost:8000/docs
 ```
 
-**Frontend Documentation:**
-- Quick start: [frontend/README.md](frontend/README.md)
-- Changelog: [frontend/CHANGELOG.md](frontend/CHANGELOG.md)
-- Architecture: [frontend/docs/FRONTEND_ARCHITECTURE.md](frontend/docs/FRONTEND_ARCHITECTURE.md)
-- Deployment: [frontend/docs/DEPLOYMENT_AZURE.md](frontend/docs/DEPLOYMENT_AZURE.md)
-- UI Design System: [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md)
-
-**Latest Features (v2.9.0):**
-- 🎨 **UI Redesign Phase 1** - Unified design system with modern gradient accents
-- 🔍 **Path-Based Tracing** - Interactive upstream/downstream lineage exploration
-- 📝 **Monaco SQL Viewer** - Professional SQL editor with syntax highlighting
-- 🔒 **Trace Lock** - Preserve traced subset after exiting trace mode
-- 📊 **DDL Display** - View table structure and stored procedure definitions
-- 🎯 **Smart Filtering** - Schema, type, and pattern-based filtering
-
-**Dual-Mode DDL System:**
-
-The SQL Viewer automatically switches between two modes based on dataset size:
-
-1. **Small Mode (JSON ≤10MB)**:
-   - DDL is embedded directly in the JSON file
-   - No backend API calls needed
-   - Instant SQL display from memory
-   - Best for: Sample data, demos, small datasets
-
-2. **Large Mode (Parquet)**:
-   - DDL fetched on-demand from DuckDB via API
-   - Minimal memory footprint
-   - Scalable to thousands of objects
-   - Best for: Production data, full warehouse lineage
-
-**How it works:**
-- Frontend checks if `ddl_text` property exists in node data
-- If present → Uses embedded DDL (Small mode)
-- If absent → Calls `/api/ddl/{object_id}` (Large mode)
-- Automatic, transparent switching - no user configuration needed
-
-### Working with Backend API (v3.0.1)
-
+**Upload Parquet Files:**
 ```bash
-# Start FastAPI server
-cd /workspaces/ws-psidwh/api
-python3 main.py  # Opens at http://localhost:8000
-
-# Upload Parquet files via API
-# IMPORTANT: Filenames don't matter! Backend auto-detects file types by schema.
-curl -X POST http://localhost:8000/api/upload-parquet \
+# Filenames don't matter - auto-detected by schema
+curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" \
   -F "files=@part-00000.snappy.parquet" \
   -F "files=@part-00001.snappy.parquet" \
-  -F "files=@part-00002.snappy.parquet" \
-  -F "files=@part-00003.snappy.parquet" \
-  -F "files=@part-00004.snappy.parquet"
-
-# Incremental mode (default - recommended)
-curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" -F "files=@..."
-
-# Full refresh mode (re-parse everything)
-curl -X POST "http://localhost:8000/api/upload-parquet?incremental=false" -F "files=@..."
+  -F "files=@part-00002.snappy.parquet"
 ```
 
-**API Documentation:**
-- API guide: [api/README.md](api/README.md)
-- Test results: [api/TEST_RESULTS.md](api/TEST_RESULTS.md)
+**Required Parquet Files (3):**
+1. Objects metadata (from `sys.objects`, `sys.schemas`)
+2. Dependencies (from `sys.sql_expression_dependencies`)
+3. Definitions (from `sys.sql_modules`)
 
-**Required Parquet Files:**
-1. `objects.parquet` - Database objects metadata
-2. `dependencies.parquet` - DMV-based dependencies (views/functions)
-3. `definitions.parquet` - Object DDL from sys.sql_modules
+**Optional Parquet Files (2):**
+4. Query logs (from `sys.dm_pdw_exec_requests`) - for validation
+5. Table columns (from `sys.tables`, `sys.columns`) - for DDL generation
 
-**Optional Parquet Files:**
-4. `query_logs.parquet` - Runtime query execution (for validation)
-5. `table_columns.parquet` - Table column metadata (for DDL generation)
-
-### Working with CLI Parser (v3.6.0)
+### 2. Frontend
 
 ```bash
-# Run lineage analysis from Parquet snapshots
-cd /workspaces/ws-psidwh
-python lineage_v3/main.py run --parquet parquet_snapshots/
+cd /home/chris/sandbox/frontend
+npm run dev
+# Opens: http://localhost:3000
+```
 
-# Output: lineage_output/frontend_lineage.json (ready for frontend)
+**After frontend code changes:**
+```bash
+cd /home/chris/sandbox/frontend && lsof -ti:3000 | xargs -r kill && npm run dev
+```
+
+### 3. CLI Parser
+
+```bash
+cd /home/chris/sandbox
+
+# Incremental mode (default - recommended)
+python lineage_v3/main.py run --parquet parquet_snapshots/
 
 # Full refresh (re-parse everything)
 python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 
-# Validate environment setup
+# Validate environment
 python lineage_v3/main.py validate
-
-# Get help
-python lineage_v3/main.py --help
 ```
 
-**Parser Documentation:**
-- User guide: [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) ⭐ **Start here!**
-- Evolution log: [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md)
-- Specification: [lineage_specs.md](lineage_specs.md)
-
-
-### Working with AI Disambiguation (Phase 1 - Testing)
-
-```bash
-# Test Azure OpenAI connection and model performance
-cd /workspaces/ws-psidwh
-python3 lineage_v3/ai_analyzer/test_azure_openai.py
-
-# Prerequisites: Add to .env
-# AZURE_OPENAI_ENDPOINT=https://your-endpoint.cognitiveservices.azure.com/
-# AZURE_OPENAI_API_KEY=your-api-key
-# AZURE_OPENAI_MODEL_NAME=gpt-4.1-nano
-# AZURE_OPENAI_DEPLOYMENT=gpt-4.1-nano
-# AZURE_OPENAI_API_VERSION=2024-12-01-preview
-```
-
-**AI Documentation:**
-- **[docs/AI_DISAMBIGUATION_SPEC.md](docs/AI_DISAMBIGUATION_SPEC.md)** ⭐ **Complete implementation specification (Phase 4 ready)**
-- **[docs/AI_PHASE4_ACTION_ITEMS.md](docs/AI_PHASE4_ACTION_ITEMS.md)** ⭐ **Implementation checklist and action items**
-- **[docs/AI_MODEL_EVALUATION.md](docs/AI_MODEL_EVALUATION.md)** - Testing results (Phase 1-3)
-- [lineage_v3/ai_analyzer/README.md](lineage_v3/ai_analyzer/README.md) - Test overview and production artifacts
-- [lineage_v3/ai_analyzer/COST_ANALYSIS.md](lineage_v3/ai_analyzer/COST_ANALYSIS.md) - ROI analysis ($100/year, 18x ROI)
-- [lineage_v3/ai_analyzer/HALLUCINATION_ANALYSIS.md](lineage_v3/ai_analyzer/HALLUCINATION_ANALYSIS.md) - Risk assessment (LOW, 0% observed)
-- [lineage_v3/ai_analyzer/TRAINING_DECISION.md](lineage_v3/ai_analyzer/TRAINING_DECISION.md) - Fine-tuning not recommended
-- [lineage_v3/ai_analyzer/production_prompt.txt](lineage_v3/ai_analyzer/production_prompt.txt) - Production few-shot system prompt
-- Test scripts: Phase 1-3 in [lineage_v3/ai_analyzer/](lineage_v3/ai_analyzer/)
-
-**Phase 3 Results (2025-10-31):**
-- ✅ Model: `gpt-4.1-nano` validated
-- ✅ Accuracy: 91.7% on production scenarios (11/12 correct)
-- ✅ Few-shot prompt (+33.4% vs zero-shot baseline)
-- ✅ Cost: ~$0.0006 per disambiguation (~$0.15 per full parse run)
-- ✅ Ready for Phase 4: Production integration
-
-## Core Architecture
-
-### Data Flow Pipeline
-
-```
-[Synapse DMVs] → PySpark Extractor → [Parquet Snapshots]
-                                            ↓
-                              DuckDB Workspace (Persistent)
-                                            ↓
-              ┌──────────────────────────────┼──────────────────────────┐
-              ↓                              ↓                          ↓
-    DMV Dependencies (1.0)                              SQLGlot Parser (0.85)
-    (Views/Functions)                                   (Stored Procedures)
-              └──────────────────────────────┼──────────────────────────┘
-                                            ↓
-                              Query Log Validation (0.85 → 0.95)
-                              (Cross-validates parsed SPs)
-                                            ↓
-                              Lineage Merger (Bidirectional Graph)
-                                            ↓
-              ┌──────────────────────────────┼──────────────────────────┐
-              ↓                              ↓                          ↓
-    lineage.json (internal)    frontend_lineage.json        lineage_summary.json
-    (int object_ids)           (string node_ids)            (coverage stats)
-```
-
-### Confidence Model
-
-| Source | Confidence | Applied To | Description |
-|--------|-----------|------------|-------------|
-| **DMV** | 1.0 | Views, Functions | System metadata (`sys.sql_expression_dependencies`) |
-| **Query Log** | 0.95 | Stored Procedures | Runtime execution confirmation |
-| **SQLGlot Parser** | 0.85 | Stored Procedures | Static AST analysis of DDL |
-| **Regex Baseline** | 0.50 | Stored Procedures | Fallback when SQLGlot fails |
-
-**Current Performance (v3.6.0):**
-- Total Objects: 202 stored procedures
-- High Confidence (≥0.85): 163 (80.7%)
-- Average Confidence: 0.800
-- **2x better than industry average** (30-40% typical for T-SQL)
-
-### JSON Output Formats
-
-#### Internal Format (`lineage.json`)
-Uses integer `object_id` from `sys.objects`:
-```json
-{
-  "id": 1001,
-  "name": "DimCustomers",
-  "schema": "CONSUMPTION_FINANCE",
-  "object_type": "Table",
-  "inputs": [2002],
-  "outputs": [3003],
-  "provenance": {
-    "primary_source": "dmv",
-    "confidence": 1.0
-  }
-}
-```
-
-#### Frontend Format (`frontend_lineage.json`)
-Uses string representation for React Flow:
-```json
-{
-  "id": "1986106116",
-  "name": "DimCustomers",
-  "schema": "CONSUMPTION_FINANCE",
-  "object_type": "Table",
-  "description": "Confidence: 1.00",
-  "data_model_type": "Dimension",
-  "inputs": ["46623209"],
-  "outputs": ["350624292", "366624349"],
-  "ddl_text": "CREATE TABLE [CONSUMPTION_FINANCE].[DimCustomers] (\n    [CustomerID] int NOT NULL,\n    [CustomerName] nvarchar(200) NULL\n);"
-}
-```
-
-**Note:** `ddl_text` contains:
-- **Tables:** Generated CREATE TABLE statement (if `table_columns.parquet` provided)
-- **Views/SPs:** Full DDL from `sys.sql_modules`
-- `null` if metadata not available
+**Output:** `lineage_output/frontend_lineage.json` (ready for frontend)
 
 ---
 
-## Parsing Modes
+## Key Features
 
-### Incremental Parsing (Default - Recommended)
+### Incremental Parsing (Default)
 
 **How it works:**
-1. DuckDB workspace persists between uploads
-2. Fresh data loaded from Parquet files
-3. **Only modified objects are re-parsed** (compares `modify_date`)
-4. Objects parsed if:
-   - Never parsed before (new objects)
-   - Modified since last parse (`modify_date > last_parsed_modify_date`)
-   - Low confidence (<0.85, needs improvement)
-
-**Benefits:**
-- ⚡ **50-90% faster** for typical updates
-- ✅ Smart detection of changes
-- ✅ Preserves high-quality parse results
+- DuckDB workspace persists between runs
+- Only re-parses modified/new objects (checks `modify_date`)
+- Also re-parses low confidence objects (<0.85)
+- **50-90% faster** for typical updates
 
 **Usage:**
 ```bash
 # CLI (default)
 python lineage_v3/main.py run --parquet parquet_snapshots/
 
-# API (checkbox in UI, or query param)
+# API (default incremental=true)
 curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" -F "files=@..."
 ```
 
-### Full Refresh Mode (Optional)
+### Parquet File Detection
 
-**How it works:**
-1. All DuckDB tables are truncated
-2. Fresh data loaded from Parquet files
-3. **All objects re-parsed from scratch**
+**Auto-detection by schema** - Filenames don't matter!
 
-**When to use:**
-- ✅ Ensuring parser bug fixes are applied to all objects
-- ✅ Complete re-analysis needed
-- ✅ Testing with fresh state
+Backend checks column names:
+- `objects.parquet`: `object_id`, `schema_name`, `object_name`, `object_type`
+- `dependencies.parquet`: `referencing_object_id`, `referenced_object_id`
+- `definitions.parquet`: `object_id`, `definition`
 
-**Usage:**
-```bash
-# CLI
-python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
+### Confidence Model
 
-# API
-curl -X POST "http://localhost:8000/api/upload-parquet?incremental=false" -F "files=@..."
-```
+| Source | Confidence | Applied To |
+|--------|-----------|------------|
+| DMV | 1.0 | Views, Functions |
+| Query Log | 0.95 | Validated SPs |
+| SQLGlot Parser | 0.85 | Successfully parsed SPs |
+| AI (Validated) | 0.85-0.95 | Complex SPs (3-layer validation) |
+| Regex Fallback | 0.50 | Failed parses |
 
----
-
-**📘 Complete Guide:** See [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) for:
-- Supported SQL patterns (JOINs, CTEs, MERGE, etc.)
-- What's out of scope (temp tables, dynamic SQL)
-- Troubleshooting low confidence scores
-- Understanding parser results
+**Current Performance:**
+- Total SPs: 202
+- High Confidence (≥0.85): 163 (80.7%)
+- Average Confidence: 0.800
 
 ---
 
 ## Parser Development Guidelines
 
-### CRITICAL: Read Before Modifying Parser Code
-
-**Purpose:** Prevent regression and ensure continuous improvement of parser quality.
-
-**Key Documents:**
-- **Evolution Log:** [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Track all changes
-- **Regression Test:** [tests/parser_regression_test.py](tests/parser_regression_test.py) - Automated testing
-- **User Guide:** [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL patterns
+**CRITICAL: Read before modifying parser code**
 
 ### Mandatory Process for Parser Changes
 
-**NEVER modify parser code without following this process:**
-
-#### Step 1: Document Issue
-1. Identify the specific parsing problem (which SP fails, why?)
-2. Document in [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md)
-3. Include root cause, expected improvement, potential risks
-
-#### Step 2: Capture Baseline
-```bash
-python tests/parser_regression_test.py --capture-baseline baselines/baseline_$(date +%Y%m%d).json
-```
-
-#### Step 3: Make Parser Changes
-- Modify [lineage_v3/parsers/quality_aware_parser.py](lineage_v3/parsers/quality_aware_parser.py)
-- Update version number in docstring
-- Add detailed comments explaining WHY
-
-#### Step 4: Run Regression Test
-```bash
-# Re-run parser with changes
-python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
-
-# Compare against baseline
-python tests/parser_regression_test.py --compare baselines/baseline_YYYYMMDD.json
-```
-
-**Requirements to Pass:**
-- ✅ Zero regressions (no high-confidence SPs drop below 0.85)
-- ✅ At least one SP improves as expected
-- ✅ Average confidence increases or stays same
-
-#### Step 5: Update Documentation
-- Update [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md)
-- Document lessons learned
-- Update baseline metrics
-
-#### Step 6: Commit with Descriptive Message
-```bash
-git commit -m "Parser: Fix TRUNCATE handling - improves 2 SPs to 0.85
-
-- Add TruncateTable extraction in _extract_from_ast()
-- Zero regressions in baseline SPs
-- Updated PARSER_EVOLUTION_LOG.md"
-```
-
-**Current Parser Status (v3.6.0):**
-- Total SPs: 202
-- High Confidence (≥0.85): 163 (80.7%)
-- Average Confidence: 0.800
-- Known Limitations: Ultra-complex SPs (11+ nested CTEs, 40K+ chars) exceed SQLGlot capability
+1. **Document Issue** in [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md)
+2. **Capture Baseline:**
+   ```bash
+   python tests/parser_regression_test.py --capture-baseline baselines/baseline_$(date +%Y%m%d).json
+   ```
+3. **Modify Parser** ([lineage_v3/parsers/quality_aware_parser.py](lineage_v3/parsers/quality_aware_parser.py))
+4. **Run Regression Test:**
+   ```bash
+   python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
+   python tests/parser_regression_test.py --compare baselines/baseline_YYYYMMDD.json
+   ```
+5. **Requirements to Pass:**
+   - Zero regressions (no high-confidence SPs drop below 0.85)
+   - At least one SP improves as expected
+6. **Update Documentation** ([docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md))
+7. **Commit with descriptive message**
 
 ---
 
-## Testing
+## Git Guidelines
 
-### Smoke Tests
+**Branch:** `feature/frontend-ui-fixes`
+**Main Branch:** `main`
 
-Automated smoke tests validate critical paths without requiring GUI/browser:
+**DO:**
+- ✅ Commit frequently
+- ✅ Push to remote: `git push origin feature/frontend-ui-fixes`
 
+**DON'T:**
+- ❌ Pull with rebase
+- ❌ Merge from other branches
+- ❌ Merge to main/master (requires approval)
+
+---
+
+## Environment Setup
+
+**Create `.env` file:**
 ```bash
-# Backend health check
-curl http://localhost:8000/health
-
-# Frontend serving
-curl http://localhost:3000 | grep -q "react" && echo "✅ Frontend OK"
-
-# API integration with CORS
-curl -H "Origin: http://localhost:3000" http://localhost:8000/api/metadata
+cp .env.template .env
 ```
 
-**Current Status:** ✅ All 8 smoke tests pass (see docs/OPTIMIZATION_COMPLETE.md)
+**Required for AI features:**
+```
+AZURE_OPENAI_ENDPOINT=https://your-endpoint.cognitiveservices.azure.com/
+AZURE_OPENAI_API_KEY=your-api-key
+AZURE_OPENAI_MODEL_NAME=gpt-4.1-nano
+AZURE_OPENAI_DEPLOYMENT=gpt-4.1-nano
+AZURE_OPENAI_API_VERSION=2024-12-01-preview
+```
 
-**Documentation:** [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md#e2e-testing-with-playwright-post-uat)
+---
+
+## Essential Documentation
+
+**Start Here:**
+- [README.md](README.md) - Project overview
+- [lineage_specs.md](lineage_specs.md) - Parser specification
+- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing best practices
+
+**API & Frontend:**
+- [api/README.md](api/README.md) - API documentation
+- [frontend/README.md](frontend/README.md) - Frontend guide
+
+**AI Features:**
+- [docs/AI_DISAMBIGUATION_SPEC.md](docs/AI_DISAMBIGUATION_SPEC.md) - AI implementation
+- [docs/AI_PHASE4_ACTION_ITEMS.md](docs/AI_PHASE4_ACTION_ITEMS.md) - Implementation checklist
+- [docs/AI_MODEL_EVALUATION.md](docs/AI_MODEL_EVALUATION.md) - Testing results
+
+**Additional:**
+- [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
+- [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
+- [docs/QUERY_LOGS_ANALYSIS.md](docs/QUERY_LOGS_ANALYSIS.md) - Query log strategy
+- [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md) - UI design system
 
 ---
 
 ## Troubleshooting
 
-### Common Issues
-
 **Import Errors:**
 ```bash
-python lineage_v3/main.py validate  # Check all dependencies
-pip install -r requirements.txt     # Reinstall if needed
+python lineage_v3/main.py validate  # Check dependencies
+pip install -r requirements.txt     # Reinstall
 ```
 
-**Missing .env File:**
+**Missing .env:**
 ```bash
 cp .env.template .env
-# Edit .env with your credentials
+# Edit with your credentials
 ```
 
-**Parquet Files Not Found:**
-- Ensure Parquet files are in `parquet_snapshots/` directory
-- In dev: Run extractor script
-- In prod: Obtain Parquet exports from DBA team
-
-**Low Confidence Scores (<0.85):**
-- Review [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) for SQL best practices
-- Check `lineage_summary.json` for coverage stats
+**Low Confidence (<0.85):**
+- Review [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md)
+- Check `lineage_output/frontend_lineage.json` for coverage
 - Review `provenance.primary_source` to identify weak dependencies
-- Consider manual validation for critical objects
 
-**Frontend Not Loading Data:**
-- Verify JSON file path in Import Data modal
+**Frontend Not Loading:**
+- Verify JSON path in Import Data modal
 - Check browser console for errors
-- Ensure JSON format matches expected schema
+- Ensure JSON format matches schema
 
 ---
 
-## Git Safety & Cleanup
-
-### What's Gitignored
-
-The repository is configured to exclude:
-- **Log files:** `*.log`
-- **Database files:** `*.db`, `*.sqlite`, `lineage_workspace.*`
-- **Generated output:** `lineage_output/*.json`, `data/latest_frontend_lineage.json`
-- **Build artifacts:** `dist/`, `build/`, `node_modules/`, `__pycache__/`
-- **Credentials:** `.env`, `.env.local`
-- **Parquet snapshots:** `parquet_snapshots/*.parquet` (may contain sensitive data)
-
----
-
-## For More Information
-
-### Essential Documentation
-- **User Guide:** [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) ⭐ **SQL parsing best practices**
-- **Main README:** [README.md](README.md) - Project overview
-- **Specification:** [lineage_specs.md](lineage_specs.md) - Parser v3.0 spec
-- **Frontend Guide:** [frontend/README.md](frontend/README.md) - Frontend quick start
-- **API Guide:** [api/README.md](api/README.md) - API documentation
-
-### Additional Resources
-- **Parser Evolution:** [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md)
-- **DuckDB Schema:** [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md)
-- **Query Logs Analysis:** [docs/QUERY_LOGS_ANALYSIS.md](docs/QUERY_LOGS_ANALYSIS.md)
-- **AI Disambiguation:** [docs/AI_DISAMBIGUATION_SPEC.md](docs/AI_DISAMBIGUATION_SPEC.md)
-- **AI Phase 4 Actions:** [docs/AI_PHASE4_ACTION_ITEMS.md](docs/AI_PHASE4_ACTION_ITEMS.md)
-- **AI Model Evaluation:** [docs/AI_MODEL_EVALUATION.md](docs/AI_MODEL_EVALUATION.md)
-- **Detail Search Spec:** [docs/DETAIL_SEARCH_SPEC.md](docs/DETAIL_SEARCH_SPEC.md)
-- **Unified DDL Feature:** [docs/UNIFIED_DDL_FEATURE.md](docs/UNIFIED_DDL_FEATURE.md)
-- **Frontend Architecture:** [frontend/docs/FRONTEND_ARCHITECTURE.md](frontend/docs/FRONTEND_ARCHITECTURE.md)
-- **Azure Deployment:** [frontend/docs/DEPLOYMENT_AZURE.md](frontend/docs/DEPLOYMENT_AZURE.md)
-
----
-
-**Last Updated:** 2025-10-31
-**Parser Version:** v3.6.0 (Production Ready)
-**Frontend Version:** v2.9.0 (Production Ready - UI Redesign Phase 1)
+**Last Updated:** 2025-11-01
+**Parser Version:** v3.7.0 (Production Ready)
+**Frontend Version:** v2.9.0 (Production Ready)
 **API Version:** v3.0.1 (Production Ready)
-
----
-
-## Testing
-
-### Smoke Tests (Devcontainer-Compatible)
-
-Automated smoke tests validate critical paths without requiring GUI/browser:
-
-```bash
-# Backend health check
-curl http://localhost:8000/health
-
-# Frontend serving
-curl http://localhost:3000 | grep -q "react" && echo "✅ Frontend OK"
-
-# API integration with CORS
-curl -H "Origin: http://localhost:3000" http://localhost:8000/api/metadata
-```
-
-**Current Status:** ✅ All 8 smoke tests pass (see [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md))
-
-**CI/CD Integration:**
-See example GitHub Actions workflow in [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md)
-
-**Recommended Test Cases:**
-- Concurrent upload blocking (HTTP 409)
-- CORS security validation
-- Frontend console error detection
-- Upload workflow end-to-end
-
-**Documentation:** [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md#e2e-testing-with-playwright-post-uat)

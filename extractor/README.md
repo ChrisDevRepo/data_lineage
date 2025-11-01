@@ -1,25 +1,16 @@
 # PySpark DMV Extractor
 
-**Status:** ✅ **Week 1 Complete** - Ready for deployment
+**Status:** ✅ Production Ready
 
-## Overview
-
-Standalone Python script for extracting DMV metadata from Azure Synapse Dedicated SQL Pool.
-
-**Replaces:** `lineage_v3/extractor/synapse_dmv_extractor.py` (Python + ODBC)
-
-**New Approach:**
-- Uses `shared_utils.process_spark_base` wheel (no JDBC/ODBC)
-- Runs as Synapse Spark Job (not notebook)
-- Directory output with single partition per table (DuckDB compatible)
+Standalone PySpark script for extracting DMV metadata from Azure Synapse Dedicated SQL Pool.
 
 ## Files
 
-- `synapse_pyspark_dmv_extractor.py` - Standalone Python script for Spark Job
+- `synapse_pyspark_dmv_extractor.py` - Main extraction script
 
 ## Configuration
 
-Edit the configuration section in the script:
+Edit configuration section in script:
 
 ```python
 SERVER = "your-synapse-workspace.sql.azuresynapse.net"
@@ -40,49 +31,47 @@ SKIP_QUERY_LOGS = False  # Set True if no VIEW SERVER STATE permission
 
 ## Deployment
 
-### Prerequisites
+**Prerequisites:**
 1. Azure Synapse Workspace with Spark pool
 2. `shared_utils.process_spark_base` wheel installed on Spark pool
 3. ADLS Gen2 storage account with write permissions
 
+**Steps:**
+1. Upload `synapse_pyspark_dmv_extractor.py` to Synapse Studio
+2. Create new Spark Job definition
+3. Configure script file path and Spark pool
+4. Run job
+5. Download Parquet files from OUTPUT_PATH
+
 ## Usage Workflow
 
 ```
-1. Run PySpark Extractor in Synapse Studio
-   ↓
-2. Download Parquet files from ADLS to local machine
-   ↓
-3. Upload Parquet files to v3.0 web application
-   ↓
-4. Web app processes lineage in background
-   ↓
-5. View interactive lineage graph + SQL definitions
+Synapse Studio → Run PySpark Extractor
+     ↓
+Download Parquet files from ADLS
+     ↓
+Upload to v3.0 web application
+     ↓
+View lineage graph + SQL definitions
 ```
 
 ## Troubleshooting
 
-**Error: "shared_utils.process_spark_base not found"**
-- Ensure wheel is installed on Spark pool
-- Check Spark pool configuration → Packages
+**"shared_utils.process_spark_base not found"**
+- Install wheel on Spark pool (Packages tab)
 
-**Error: "Permission denied on OUTPUT_PATH"**
+**"Permission denied on OUTPUT_PATH"**
 - Verify ADLS Gen2 path is correct
 - Check Spark pool managed identity has Storage Blob Data Contributor role
 
-**Error: "Cannot connect to SERVER"**
-- Verify Synapse SQL pool endpoint is correct
-- Check Spark pool can access SQL pool (firewall rules)
+**"Cannot connect to SERVER"**
+- Verify SQL pool endpoint
+- Check firewall rules allow Spark pool access
 
 **Query logs failed but continuing:**
-- This is expected if no VIEW SERVER STATE permission
+- Expected if no VIEW SERVER STATE permission
 - Set `SKIP_QUERY_LOGS = True` to suppress warning
-
-
-## Reference
-
-See [docs/IMPLEMENTATION_SPEC_FINAL.md](../docs/IMPLEMENTATION_SPEC_FINAL.md) - Section 4 (Feature 1: PySpark DMV Extractor)
 
 ---
 
 **Last Updated:** 2025-10-27
-**Status:** ✅ Production Ready - Week 1 Complete
