@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { DataNode } from '../types';
 import { NotificationHistory } from './NotificationSystem';
 import { Notification } from '../types';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
 import { Checkbox } from './ui/Checkbox';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 type ToolbarProps = {
     searchTerm: string;
@@ -62,18 +63,9 @@ export const Toolbar = (props: ToolbarProps) => {
     const schemaFilterRef = useRef<HTMLDivElement>(null);
     const typeFilterRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (schemaFilterRef.current && !schemaFilterRef.current.contains(event.target as Node)) {
-                setIsSchemaFilterOpen(false);
-            }
-            if (typeFilterRef.current && !typeFilterRef.current.contains(event.target as Node)) {
-                setIsTypeFilterOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    // Close dropdowns when clicking outside
+    useClickOutside(schemaFilterRef, () => setIsSchemaFilterOpen(false));
+    useClickOutside(typeFilterRef, () => setIsTypeFilterOpen(false));
 
     const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();

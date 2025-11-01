@@ -28,6 +28,7 @@ import { getDagreLayoutedElements } from './utils/layout';
 import { generateSampleData } from './utils/data';
 import { DataNode } from './types';
 import { CONSTANTS } from './constants';
+import { INTERACTION_CONSTANTS } from './interaction-constants';
 
 // --- Main App Component ---
 function DataLineageVisualizer() {
@@ -132,7 +133,7 @@ function DataLineageVisualizer() {
 
   // --- SQL Viewer State ---
   const [sqlViewerOpen, setSqlViewerOpen] = useState(false);
-  const [sqlViewerWidth, setSqlViewerWidth] = useState(33); // Default 33% (1/3 of screen)
+  const [sqlViewerWidth, setSqlViewerWidth] = useState(INTERACTION_CONSTANTS.SQL_VIEWER_WIDTH_DEFAULT_PCT);
   const [isResizing, setIsResizing] = useState(false);
   const [selectedNodeForSql, setSelectedNodeForSql] = useState<{
     id: string;
@@ -211,9 +212,12 @@ function DataLineageVisualizer() {
     if (nodes.length > 0 && !hasInitiallyFittedRef.current) {
       // Only auto-fit on initial load
       const timeoutId = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 500 });
+        fitView({
+          padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+          duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS
+        });
         hasInitiallyFittedRef.current = true;
-      }, 150);
+      }, INTERACTION_CONSTANTS.INITIAL_FIT_VIEW_DELAY_MS);
       return () => clearTimeout(timeoutId);
     }
   }, [nodes.length, fitView]);

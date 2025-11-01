@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DataNode, TraceConfig } from '../types';
 import Graph from 'graphology';
+import { INTERACTION_CONSTANTS } from '../interaction-constants';
 
 type UseDataFilteringProps = {
     allData: DataNode[];
@@ -47,23 +48,17 @@ export function useDataFiltering({
         }
 
         const suggestions: DataNode[] = [];
-        // This logic is complex because `findNode` is not available in all graphology versions,
-        // and we need to break early from the loop for performance.
-        try {
-            lineageGraph.forEachNode((nodeId, attributes) => {
-                if (suggestions.length >= 5) {
-                    throw new Error('Break'); // Early exit from forEachNode
-                }
-                if (
-                    attributes.name.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
-                    selectedSchemas.has(attributes.schema) &&
-                    (dataModelTypes.length === 0 || !attributes.data_model_type || selectedTypes.has(attributes.data_model_type))
-                ) {
-                    suggestions.push(attributes as DataNode);
-                }
-            });
-        } catch (e) {
-            if ((e as Error).message !== 'Break') throw e;
+        // Use for...of loop with break for early exit (cleaner than try/catch pattern)
+        for (const [nodeId, attributes] of lineageGraph.nodeEntries()) {
+            if (suggestions.length >= INTERACTION_CONSTANTS.AUTOCOMPLETE_MAX_RESULTS) break;
+
+            if (
+                attributes.name.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
+                selectedSchemas.has(attributes.schema) &&
+                (dataModelTypes.length === 0 || !attributes.data_model_type || selectedTypes.has(attributes.data_model_type))
+            ) {
+                suggestions.push(attributes as DataNode);
+            }
         }
 
         setAutocompleteSuggestions(suggestions);
