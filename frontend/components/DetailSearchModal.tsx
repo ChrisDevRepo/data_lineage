@@ -120,6 +120,20 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     };
   }, [isResizing]);
 
+  // Handle ESC key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
+
   // Debounced search function
   const debouncedSearch = useMemo(
     () => debounce(async (query: string, schemas: Set<string>, objectTypes: Set<string>) => {
