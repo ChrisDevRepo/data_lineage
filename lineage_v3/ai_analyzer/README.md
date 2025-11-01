@@ -101,23 +101,12 @@ Phase 3 should produce:
 
 The production-ready system prompt (`production_prompt.txt`) includes:
 
-### Schema Architecture Rules
-1. **ETL Direction:** CONSUMPTION schemas load FROM STAGING schemas
-2. **Raw Data Layer:** `dbo` schema contains raw ingested data
-3. **Same-Schema Preference:** Procedures typically query own schema first (unless ETL)
 
-### Special Schema Conventions
-- `STAGING_FINANCE_COGNOS.*` - Cognos extracts (often `t_` prefix)
-- `STAGING_CADENCE.*` - Cadence system data
-- `CONSUMPTION_FINANCE.*` - Finance dimensions/facts
-- `dbo.*` - Common utilities and raw data
-
-### 5 Few-Shot Examples
+### 4 Few-Shot Examples
 1. ETL Pattern (CONSUMPTION → STAGING)
-2. Cognos Table Pattern (`t_` prefix)
-3. Same-Schema Reference
-4. dbo Raw Data Layer
-5. Context Clues (TRUNCATE/explicit reference)
+2. Same-Schema Reference
+3. dbo Raw Data Layer
+3. Context Clues (TRUNCATE/explicit reference)
 
 ### Decision Framework
 Priority-based rules for disambiguation with confidence scoring guidance.
@@ -148,13 +137,6 @@ Priority-based rules for disambiguation with confidence scoring guidance.
 - 3.7x increase vs zero-shot (due to few-shot examples in prompt)
 - Still cost-effective (<$2 per full parse run)
 
-## Next Steps (Phase 4)
-
-1. ✅ **Production prompt documented** - `production_prompt.txt` ready for integration
-2. ⬜ **Integrate into parser pipeline** - Use AI when parser confidence <0.85
-3. ⬜ **Add fallback logic** - Gracefully handle API failures
-4. ⬜ **Monitor production metrics** - Track accuracy, cost, latency
-5. ⬜ **Collect edge cases** - Refine prompt based on real-world failures
 
 ## Documentation
 

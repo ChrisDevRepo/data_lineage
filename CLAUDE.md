@@ -4,12 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Environment
 
-**Devcontainer:** This project runs in a VSCode devcontainer using `mcr.microsoft.com/devcontainers/base:noble` (Ubuntu 24.04)
-
 **System Dependencies Installed:**
 - Python 3.12.3
-- Microsoft ODBC Driver 18 for SQL Server (v18.5.1.1)
-- unixODBC libraries
 - Node.js (for frontend)
 
 **MCP Servers Configured:** ([.vscode/mcp.json](.vscode/mcp.json))
@@ -19,33 +15,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `WebFetch` - Fetch and analyze web content
 - `WebSearch` - Search the web for current information
 
-### ⚠️ VSCode Devcontainer Safety Guidelines
-
-**CRITICAL:** This project runs in a VSCode devcontainer. When managing processes and ports:
-
-**✅ SAFE to kill:**
-- Frontend dev server: `lsof -ti:3000 | xargs -r kill` (port 3000)
-- Backend API server: `lsof -ti:8000 | xargs -r kill` (port 8000)
-- Python processes: `pkill -f "python lineage_v3/main.py"` (specific scripts)
-- Node processes: `pkill -f "vite"` (specific processes)
-
-**❌ NEVER kill:**
-- VSCode server processes (ports 8080-8082, or any process with "vscode" in name)
-- SSH/Remote connection processes
-- Docker/container runtime processes
-- System services (systemd, dbus, etc.)
-
-**Best Practices:**
-1. **Be specific:** Target exact ports or process names, never use `pkill -9 python` or `killall node`
-2. **Check first:** Use `lsof -i :PORT` or `ps aux | grep PROCESS` to identify processes before killing
-3. **Use `-r` flag:** Always use `xargs -r` to prevent errors when no processes are found
-4. **Graceful shutdown:** Prefer `SIGTERM` (default) over `SIGKILL` (`-9`) when possible
-
-## Git Workflow
-
-**Current Branch:** `feature/v3-implementation`
-
-**IMPORTANT:** All v3.0 development work stays in the `feature/v3-implementation` branch until approved for merge.
 
 **Git Guidelines:**
 - ✅ Commit frequently to `feature/v3-implementation`
@@ -66,7 +35,6 @@ This repository contains:
 
 **AI Enhancement Status:** Phase 4 Complete - Production ready with critical bug fixes applied
 
-The codebase supports finance, clinical operations, and reporting workloads across multiple schemas.
 
 ## Repository Structure
 
@@ -425,60 +393,6 @@ curl -X POST "http://localhost:8000/api/upload-parquet?incremental=false" -F "fi
 
 ---
 
-## SQL Parsing Best Practices
-
-### For DBAs and Developers
-
-To achieve the best parsing results (confidence ≥0.85), follow these guidelines when writing stored procedures:
-
-**✅ DO:**
-
-1. **Use semicolons** to separate SQL statements
-   ```sql
-   TRUNCATE TABLE dbo.Staging;  -- ← Semicolon
-   INSERT INTO dbo.Target SELECT * FROM dbo.Source;
-   ```
-
-2. **Use schema-qualified table names**
-   ```sql
-   -- GOOD: Explicit schema
-   SELECT * FROM CONSUMPTION_FINANCE.DimCustomers;
-
-   -- ACCEPTABLE: Defaults to dbo
-   SELECT * FROM Customers;
-   ```
-
-3. **Separate error handling from business logic**
-   ```sql
-   BEGIN TRY
-       -- Core business logic here (parsed)
-       INSERT INTO dbo.Target SELECT * FROM dbo.Source;
-   END TRY
-   BEGIN CATCH
-       -- Error handling (automatically filtered)
-       EXEC dbo.LogError;
-   END CATCH
-   ```
-
-**❌ DON'T:**
-
-1. **Mix business logic with logging**
-   ```sql
-   -- BAD: ErrorLog appears in lineage
-   INSERT INTO dbo.ErrorLog VALUES ('Starting...');
-   INSERT INTO dbo.Target SELECT * FROM dbo.Source;
-   ```
-
-2. **Use dynamic SQL when static SQL works**
-   ```sql
-   -- BAD: Can't parse at compile time
-   DECLARE @sql NVARCHAR(MAX) = 'SELECT * FROM ' + @TableName;
-   EXEC(@sql);
-
-   -- GOOD: Use static SQL when table is known
-   SELECT * FROM dbo.Customers;
-   ```
-
 **📘 Complete Guide:** See [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) for:
 - Supported SQL patterns (JOINs, CTEs, MERGE, etc.)
 - What's out of scope (temp tables, dynamic SQL)
@@ -553,65 +467,9 @@ git commit -m "Parser: Fix TRUNCATE handling - improves 2 SPs to 0.85
 
 ---
 
-## Synapse Data Warehouse Schema Architecture
-
-The data warehouse uses a layered architecture with distinct schemas:
-
-### STAGING Schemas
-- **STAGING_CADENCE**: Staging tables for Cadence system data processing
-
-### CONSUMPTION Schemas
-- **CONSUMPTION_FINANCE**: Finance domain consumption layer
-  - Dimension tables (DimProjects, DimCustomers, DimAccount, etc.)
-  - Fact tables (FactGLSAP, FactGLCognos, FactAgingSAP, etc.)
-
-- **CONSUMPTION_ClinOpsFinance**: Clinical Operations Finance integration
-  - Cadence budget data, labor costs, earned value calculations
-
-- **CONSUMPTION_POWERBI**: Tables optimized for Power BI reporting
-
-- **CONSUMPTION_PRIMA**: Prima system data
-
-- **CONSUMPTION_PRIMAREPORTING**: Prima reporting views
-
-### Key SQL Patterns
-
-**Stored Procedure Naming:**
-- Pattern: `[Schema].[spLoad{TargetTable}]`
-- Suffixes: `_Post`, `_Aggregations`, `_ETL`
-
-**Error Handling:**
-- All procedures use `BEGIN TRY...END TRY / BEGIN CATCH...END CATCH`
-- Centralized logging: `dbo.LogMessage`, `dbo.spLastRowCount`
-
-**Table Distribution:**
-- `DISTRIBUTION = REPLICATE` - Small dimension tables
-- `DISTRIBUTION = HASH([columns])` - Large fact tables
-- `CLUSTERED COLUMNSTORE INDEX` - Fact tables
-
----
-
-## Development Tools (Internal Use Only)
-
-The following tools are for Vibecoding development team only, NOT for external distribution:
-
-### Synapse Query Helper
-- **File:** [lineage_v3/utils/synapse_query_helper.py](lineage_v3/utils/synapse_query_helper.py)
-- **Usage:** `python lineage_v3/utils/synapse_query_helper.py`
-- **Purpose:** Quick Synapse connection testing and DMV exploration during development
-
-### Workspace Query Helper
-- **File:** [lineage_v3/utils/workspace_query_helper.py](lineage_v3/utils/workspace_query_helper.py)
-- **Usage:** `python lineage_v3/utils/workspace_query_helper.py`
-- **Purpose:** DuckDB workspace queries, parser stats, debugging
-
-**Note:** External users should use the production extractor ([extractor/synapse_pyspark_dmv_extractor.py](extractor/synapse_pyspark_dmv_extractor.py)) to generate Parquet files.
-
----
-
 ## Testing
 
-### Smoke Tests (Devcontainer-Compatible)
+### Smoke Tests
 
 Automated smoke tests validate critical paths without requiring GUI/browser:
 
@@ -627,36 +485,6 @@ curl -H "Origin: http://localhost:3000" http://localhost:8000/api/metadata
 ```
 
 **Current Status:** ✅ All 8 smoke tests pass (see docs/OPTIMIZATION_COMPLETE.md)
-
-### E2E Testing with Playwright (Outside Docker)
-
-For comprehensive UI/UX testing, use Playwright **on your local machine or in CI/CD**:
-
-**Why not in devcontainer?**
-- Requires ~150MB of system libraries (chromium, libnss3, libatk, etc.)
-- Adds unnecessary complexity to development environment
-- Better suited for local development or GitHub Actions
-
-**Setup (Local Machine):**
-```bash
-# On your local machine (NOT in devcontainer)
-cd frontend/
-npm install -D @playwright/test
-npx playwright install chromium
-
-# Run tests
-npx playwright test
-npx playwright test --headed  # With visible browser
-```
-
-**CI/CD Integration:**
-See example GitHub Actions workflow in `docs/OPTIMIZATION_COMPLETE.md`
-
-**Recommended Test Cases:**
-- Concurrent upload blocking (HTTP 409)
-- CORS security validation
-- Frontend console error detection
-- Upload workflow end-to-end
 
 **Documentation:** [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md#e2e-testing-with-playwright-post-uat)
 
@@ -758,27 +586,6 @@ curl -H "Origin: http://localhost:3000" http://localhost:8000/api/metadata
 ```
 
 **Current Status:** ✅ All 8 smoke tests pass (see [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md))
-
-### E2E Testing with Playwright (Outside Docker)
-
-For comprehensive UI/UX testing, use Playwright **on your local machine or in CI/CD**:
-
-**Why not in devcontainer?**
-- Requires ~150MB of system libraries (chromium, libnss3, libatk, etc.)
-- Adds unnecessary complexity to development environment  
-- Better suited for local development or GitHub Actions
-
-**Setup (Local Machine):**
-```bash
-# On your local machine (NOT in devcontainer)
-cd frontend/
-npm install -D @playwright/test
-npx playwright install chromium
-
-# Run tests
-npx playwright test
-npx playwright test --headed  # With visible browser
-```
 
 **CI/CD Integration:**
 See example GitHub Actions workflow in [docs/OPTIMIZATION_COMPLETE.md](docs/OPTIMIZATION_COMPLETE.md)

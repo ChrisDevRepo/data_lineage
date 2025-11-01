@@ -13,37 +13,11 @@ pyarrow>=22.0.0                  # Latest: 22.0.0 - Apache Arrow for Parquet I/O
 pandas>=2.3.3                    # Latest: 2.3.3 (Sep 2025) - Data manipulation
 
 # ------------------------------------------------------------------------------
-# Synapse Connection (Dev Only - Helper Extractor)
-# ------------------------------------------------------------------------------
-# These are only needed during development for extracting DMV data
-# Production systems use pre-exported Parquet files
-pyodbc>=5.0.0                    # ODBC driver for SQL Server/Synapse
-sqlalchemy>=2.0.44               # Latest: 2.0.44 (Oct 2025) - Python 3.14 support
-
-# Optional: For better Synapse integration
-# sqlalchemy-pyodbc-mssql>=0.1.0
-
-# ------------------------------------------------------------------------------
 # SQL Parsing
 # ------------------------------------------------------------------------------
 sqlglot>=27.28.1                 # Latest: 27.28.1 (Oct 2025) - Supports 31 SQL dialects
                                  # Used for T-SQL AST traversal and dependency extraction
 
-sqllineage>=1.5.3                # Latest: 1.5.3 - Multi-parser lineage extraction (sqlfluff + sqlparse)
-                                 # Used for dual-parser cross-validation to improve accuracy
-
-# ------------------------------------------------------------------------------
-# Microsoft Agent Framework & Azure AI
-# ------------------------------------------------------------------------------
-agent-framework>=1.0.0b251016    # Latest beta (Oct 2025) - Multi-agent orchestration
-azure-ai-inference>=1.0.0b7      # Latest: 1.0.0b7 (Jan 2025) - Azure AI Foundry client
-azure-core>=1.30.0               # Azure SDK core - Required for AzureKeyCredential
-azure-identity>=1.15.0           # Azure authentication (if using managed identity)
-
-# Optional: For OpenTelemetry observability
-# opentelemetry-api>=1.20.0
-# opentelemetry-sdk>=1.20.0
-# opentelemetry-exporter-otlp>=1.20.0
 
 # ------------------------------------------------------------------------------
 # CLI & Configuration
@@ -58,8 +32,6 @@ rich>=13.7.0                     # Rich console output with colors and formattin
 pydantic>=2.5.0                  # Data validation and settings management
 pydantic-settings>=2.6.0         # Settings management from environment variables
 
-# Optional: For better error tracking
-# sentry-sdk>=1.40.0
 
 # ------------------------------------------------------------------------------
 # Development & Testing (Optional)

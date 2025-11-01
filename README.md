@@ -43,12 +43,8 @@ npm run dev
 
 **3. Upload Your Data**
 
-Click "Upload Data" and select your Parquet files exported from Synapse:
-- `objects.parquet` - Database objects metadata
-- `dependencies.parquet` - DMV-based dependencies
-- `definitions.parquet` - Object DDL definitions
-- `query_logs.parquet` - Query execution logs (optional)
-- `table_columns.parquet` - Column metadata (optional)
+Click "Upload Data" and select your Parquet files exported from Synapse
+
 
 **4. Explore**
 
@@ -133,7 +129,6 @@ See [frontend/CHANGELOG.md](frontend/CHANGELOG.md) for full history.
 - [API Documentation](api/README.md) - FastAPI endpoints and request/response models
 - [DuckDB Schema](docs/DUCKDB_SCHEMA.md) - Database schema reference
 - [Parser Specification](lineage_specs.md) - Core parser implementation
-- [Query Logs Analysis](docs/QUERY_LOGS_ANALYSIS.md) - Validation strategy
 
 ### Deployment
 - [Azure Deployment](frontend/docs/DEPLOYMENT_AZURE.md) - Deploy to Azure Web App
@@ -193,16 +188,7 @@ npm install
 
 **Environment Variables** (Backend)
 
-Create `.env` file in project root:
-```bash
-AZURE_OPENAI_ENDPOINT=https://your-endpoint.cognitiveservices.azure.com/
-AZURE_OPENAI_API_KEY=your-api-key
-AZURE_OPENAI_MODEL_NAME=gpt-4.1-nano
-AZURE_OPENAI_DEPLOYMENT=gpt-4.1-nano
-AZURE_OPENAI_API_VERSION=2024-12-01-preview
-AI_ENABLED=true
-ALLOWED_ORIGINS=http://localhost:3000
-```
+Create `.env` file in project root.
 
 ---
 

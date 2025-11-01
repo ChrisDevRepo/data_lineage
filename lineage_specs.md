@@ -1,4 +1,4 @@
-# Vibecoding — Data Lineage Parser Specification
+# Data Lineage Parser Specification
 
 **Specification Version:** 2.2
 **Parser Version:** 3.7.0 (Planned)
@@ -17,7 +17,7 @@ To extract table-level data lineage from **Azure Synapse Dedicated SQL Pool** me
 
 * **DMV-First Model:** Synapse metadata (`sys.sql_expression_dependencies`) is the authoritative source. Query logs and parsing are used *only* to fill documented gaps.
 
-* **JSON-Only Output:** All artifacts *must* be JSON, optimized for machine-to-machine consumption (e.g., by a frontend application).
+* **File-Only Output:** All artifacts *must* be JSON or Parquet, optimized for machine-to-machine consumption (e.g., by a frontend application).
 
 * **Object-Level Only:** The system *must not* process or infer column-level lineage.
 
@@ -31,7 +31,7 @@ The system is a file-based batch processor. Its boundary is defined by Parquet f
 [External] --> Helper Extractor --> (Input Interface)
                                         |
 +---------------------------------------+
-|         PARSER SYSTEM      |
+|         PARSER SYSTEM                 |
 |                                       |
 |  1. Core Engine (DuckDB)              |
 |     - Ingests Parquet snapshots       |
@@ -41,8 +41,7 @@ The system is a file-based batch processor. Its boundary is defined by Parquet f
 |  2. Parser Extension (SQLGlot)        |
 |     - Parses DDL for gap-filling      |
 |                                       |
-|  3. AI Fallback (Microsoft Agent      |
-|     Framework)                        |
+|  3. AI Fallback                       |
 |     - Resolves remaining complex SPs  |
 |                                       |
 +---------------------------------------+
@@ -117,7 +116,6 @@ SQLGlot is the required SQL parser. It is the optimal choice due to its robust T
 
 ---
 
-## 5. Lineage Construction Logic
 ## 5. Lineage Construction Logic
 
 The system must execute the following steps in order:
