@@ -4,545 +4,152 @@ Instructions for Claude Code when working with this repository.
 
 ## Workflow Guidelines
 
-**When working with the user, always follow this pattern:**
-
-1. **Provide Brief Summary**: At the end of each response, include a concise summary of:
-   - What was implemented
-   - What is pending
-   - Current status of all tasks
-
-2. **Use Bullet Points with Status Flags**:
-   - ✅ **Task name** - Completed and verified
-   - ⏳ **Task name** - Implemented, awaiting verification/testing
-   - ❌ **Task name** - Not started or blocked
-   - ⚠️ **Task name** - Needs user input or clarification
-
-3. **Ask Clarifying Questions Last**:
-   - Complete all analysis and provide findings first
-   - Group all questions at the end of the response
-   - Number questions for easy reference
-   - Be specific about what information is needed
-
-4. **Do Not Start Coding Without Clarity**:
-   - If requirements are ambiguous, explain the issue and ask for clarification
-   - Provide detailed explanations when requested
-   - Only proceed with implementation after user approval
-
-5. **Track Progress with TodoWrite**:
-   - Use the TodoWrite tool to manage tasks
-   - Keep the todo list up to date
-   - Mark tasks as in_progress before starting
-   - Mark tasks as completed immediately after finishing
+- **Provide Brief Summary**: End each response with status (completed/pending tasks)
+- **Use Status Flags**: ✅ Completed | ⏳ Awaiting verification | ❌ Not started | ⚠️ Needs clarification
+- **Ask Questions Last**: Complete analysis first, group questions at end
+- **Clarify Before Coding**: Never proceed with ambiguous requirements
+- **Track Progress**: Use TodoWrite tool, update immediately after completing tasks
 
 ---
 
 ## Project Overview
 
-**Data Lineage Visualizer v3.7.0** - DMV-first lineage parser for Azure Synapse with React visualization.
+**Data Lineage Visualizer v3.7.0** - DMV-first lineage parser for Azure Synapse with React visualization
 
-**Status:** Production Ready (80.7% high-confidence parsing, 2x industry average)
-
-**Stack:**
-- Backend: FastAPI + DuckDB + SQLGlot parser + Azure OpenAI
-- Frontend: React + React Flow + Monaco Editor
-- Extractor: PySpark (DMV → Parquet)
-
----
-
-## Development Environment
-
-**System:**
-- Python 3.12.3
-- Node.js (frontend)
-- WSL2 (Linux 6.6.87.2-microsoft-standard-WSL2)
-
-**Working Directory:** `/home/chris/sandbox`
-
-**MCP Servers:** ([.vscode/mcp.json](.vscode/mcp.json))
-- `microsoft-learn` - Microsoft docs access
-
----
-
-## Repository Structure
-
-```
-/home/chris/sandbox/
-├── api/                          # FastAPI backend (v3.0.1)
-│   ├── main.py                   # 7 REST endpoints
-│   ├── background_tasks.py       # Parquet processing
-│   ├── models.py                 # Pydantic schemas
-│   └── README.md
-│
-├── frontend/                     # React visualizer (v2.9.0)
-│   ├── src/
-│   │   ├── components/           # React Flow components
-│   │   ├── hooks/                # Custom hooks
-│   │   └── utils/
-│   ├── docs/
-│   │   └── UI_STANDARDIZATION_GUIDE.md
-│   └── README.md
-│
-├── lineage_v3/                   # Core parser (v3.7.0)
-│   ├── main.py                   # CLI entry point
-│   ├── core/
-│   │   ├── duckdb_workspace.py   # Persistent DuckDB
-│   │   └── gap_detector.py
-│   ├── parsers/
-│   │   ├── quality_aware_parser.py   # Main SQLGlot parser
-│   │   ├── ai_disambiguator.py       # Azure OpenAI fallback
-│   │   ├── query_log_validator.py    # Query log validation
-│   │   └── deprecated/               # Old parsers (archived)
-│   ├── output/
-│   │   ├── internal_formatter.py     # lineage.json
-│   │   └── frontend_formatter.py     # frontend_lineage.json
-│   └── ai_analyzer/
-│       ├── production_prompt.txt     # AI few-shot prompt
-│       └── test_azure_openai.py
-│
-├── extractor/                    # PySpark DMV extractor
-│   ├── synapse_pyspark_dmv_extractor.py
-│   └── README.md
-│
-├── docs/                         # Documentation
-│   ├── PARSING_USER_GUIDE.md     # SQL parsing guide
-│   ├── PARSER_EVOLUTION_LOG.md   # Version history
-│   ├── AI_DISAMBIGUATION_SPEC.md # AI implementation
-│   └── DUCKDB_SCHEMA.md
-│
-├── data/                         # API persistent storage (gitignored)
-│
-├── evaluation/                   # Parsing evaluation subagent
-│   ├── baseline_manager.py       # Baseline CRUD operations
-│   ├── evaluation_runner.py      # Run all 3 methods (regex, SQLGlot, AI)
-│   ├── score_calculator.py       # Precision/recall/F1 metrics
-│   ├── report_generator.py       # Console + JSON reports
-│   └── schemas.py                # DuckDB schemas
-│
-├── evaluation_baselines/         # Evaluation data storage
-│   ├── baseline_v3.7.0.duckdb    # Frozen baseline snapshot
-│   ├── current_evaluation.duckdb # Evaluation run history
-│   └── README.md                 # Baseline documentation
-│
-├── optimization_reports/         # JSON evaluation reports
-│   └── run_YYYYMMDD_HHMMSS.json  # Detailed per-run reports
-│
-├── screenshots/                  # Frontend test screenshots
-│   └── (generated by /sub_DL_TestFrontend)
-│
-├── .claude/commands/             # Slash commands (subagents)
-│   ├── sub_DL_OptimizeParsing.md # Parser evaluation subagent
-│   └── sub_DL_TestFrontend.md    # Frontend testing subagent
-│
-├── .env.template                 # Config template
-├── requirements.txt              # Python dependencies
-├── lineage_specs.md              # Parser specification
-├── README.md                     # Main overview
-└── CLAUDE.md                     # This file
-```
-
----
-
-## Sub-Agents
-
-### `/sub_DL_OptimizeParsing` - Parsing Evaluation & Optimization
-
-**Purpose:** Autonomous evaluation tool to track parsing quality improvements over time.
-
-**What it does:**
-- Runs all 3 methods (regex, SQLGlot, AI) independently on each SP
-- Compares results against frozen baseline with verified dependencies
-- Calculates precision, recall, F1 scores for each method
-- Auto-detects DDL changes and updates baseline
-- Tracks historical scores to measure progress toward 95%+ confidence goal
-
-**Quick Start:**
-```bash
-# 1. Create baseline from current production data
-/sub_DL_OptimizeParsing init --name baseline_v3.7.0
-
-# 2. Run evaluation (all objects, all methods)
-/sub_DL_OptimizeParsing run --mode full --baseline baseline_v3.7.0
-
-# 3. View results
-/sub_DL_OptimizeParsing report --latest
-```
-
-**Use Cases:**
-- **Before parser changes:** Create baseline to prevent regressions
-- **After parser changes:** Run evaluation to measure improvement
-- **Track progress:** Compare runs over time to see trend toward 95% goal
-- **Debug low scores:** Identify which method works best for each SP pattern
-
-**Documentation:**
-- [.claude/commands/sub_DL_OptimizeParsing.md](.claude/commands/sub_DL_OptimizeParsing.md) - Command reference
-- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md) - Complete specification
-- [evaluation_baselines/README.md](evaluation_baselines/README.md) - Baseline lifecycle
-
-**Key Features:**
-- ✅ **Autonomous** - Does NOT modify production parser code
-- ✅ **Auto-Update** - DDL changes detected and logged automatically
-- ✅ **Historical** - Tracks scores over time for trend analysis
-- ✅ **Comprehensive** - Tests regex, SQLGlot, and AI independently
-- ✅ **Goal-Oriented** - Measures progress toward 95%+ confidence
-
----
-
-### `/sub_DL_TestFrontend` - Frontend Testing & Validation
-
-**Purpose:** Automated browser testing for React frontend using MCP Playwright.
-
-**What it does:**
-- Tests React frontend at http://localhost:3000
-- Validates UI elements, search, graph interaction, export features
-- Captures screenshots for visual regression testing
-- Monitors console for JavaScript errors
-- Adapts to UI changes automatically (no test code maintenance)
-
-**Quick Start:**
-```bash
-# Prerequisites: Frontend server must be running
-cd frontend && npm run dev
-
-# Smoke test (5 seconds)
-/sub_DL_TestFrontend smoke
-
-# Comprehensive test suite (30-45 seconds)
-/sub_DL_TestFrontend full
-
-# Visual regression testing
-/sub_DL_TestFrontend visual
-```
-
-**Use Cases:**
-- **Before commits:** Quick smoke test to verify frontend works
-- **After UI changes:** Full test suite to catch regressions
-- **Before releases:** Visual regression testing with screenshots
-- **Debug UI issues:** Test specific features dynamically
-
-**Documentation:**
-- [.claude/commands/sub_DL_TestFrontend.md](.claude/commands/sub_DL_TestFrontend.md) - Command reference
-
-**Key Features:**
-- ✅ **Zero Maintenance** - No static test files to update
-- ✅ **Self-Healing** - Adapts to UI changes automatically
-- ✅ **Natural Language** - Test scenarios in plain English
-- ✅ **Screenshots** - Visual regression testing built-in
-- ✅ **MCP Integrated** - Uses Playwright MCP server (already configured)
+- **Status:** Production Ready (80.7% high-confidence parsing)
+- **Stack:** FastAPI + DuckDB + SQLGlot + Azure OpenAI | React + React Flow
+- **System:** Python 3.12.3, Node.js, WSL2
+- **Working Directory:** `/home/chris/sandbox`
 
 ---
 
 ## Quick Start
 
-### 1. Backend API
-
+### Backend
 ```bash
-cd /home/chris/sandbox/api
-python3 main.py
-# Server: http://localhost:8000
-# Docs: http://localhost:8000/docs
+cd /home/chris/sandbox/api && python3 main.py
+# http://localhost:8000 | Docs: http://localhost:8000/docs
 ```
 
-**Upload Parquet Files:**
+### Frontend
 ```bash
-# Filenames don't matter - auto-detected by schema
-curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" \
-  -F "files=@part-00000.snappy.parquet" \
-  -F "files=@part-00001.snappy.parquet" \
-  -F "files=@part-00002.snappy.parquet"
+cd /home/chris/sandbox/frontend && npm run dev
+# http://localhost:3000
 ```
 
-**Required Parquet Files (3):**
-1. Objects metadata (from `sys.objects`, `sys.schemas`)
-2. Dependencies (from `sys.sql_expression_dependencies`)
-3. Definitions (from `sys.sql_modules`)
-
-**Optional Parquet Files (2):**
-4. Query logs (from `sys.dm_pdw_exec_requests`) - for validation
-5. Table columns (from `sys.tables`, `sys.columns`) - for DDL generation
-
-### 2. Frontend
-
+### CLI Parser
 ```bash
-cd /home/chris/sandbox/frontend
-npm run dev
-# Opens: http://localhost:3000
-```
-
-**After frontend code changes:**
-```bash
-cd /home/chris/sandbox/frontend && lsof -ti:3000 | xargs -r kill && npm run dev
-```
-
-### 3. CLI Parser
-
-```bash
-cd /home/chris/sandbox
-
-# Incremental mode (default - recommended)
-python lineage_v3/main.py run --parquet parquet_snapshots/
-
-# Full refresh (re-parse everything)
+python lineage_v3/main.py run --parquet parquet_snapshots/  # Incremental (default)
 python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
-
-# Validate environment
-python lineage_v3/main.py validate
 ```
 
-**Output:** `lineage_output/frontend_lineage.json` (ready for frontend)
+---
+
+## Parser Development (MANDATORY PROCESS)
+
+**🚨 ALWAYS use `/sub_DL_OptimizeParsing` for parser changes 🚨**
+
+### Required Steps
+1. **Before changes:** Create baseline
+   ```bash
+   /sub_DL_OptimizeParsing init --name baseline_$(date +%Y%m%d)_before_description
+   /sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD_before_description
+   ```
+
+2. **Make parser changes** (quality_aware_parser.py, ai_disambiguator.py, etc.)
+
+3. **After changes:** Run evaluation (MANDATORY)
+   ```bash
+   /sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD_before_description
+   /sub_DL_OptimizeParsing compare --run1 run_YYYYMMDD_HHMMSS --run2 run_YYYYMMDD_HHMMSS
+   ```
+
+4. **Pass Criteria:**
+   - ✅ Zero regressions (no objects ≥0.85 drop below 0.85)
+   - ✅ Expected improvements verified
+   - ✅ Progress toward 95% goal
+
+5. **Update:** [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) with results
+
+**DO NOT:**
+- ❌ Skip evaluation "because change is small"
+- ❌ Commit parser changes without running subagent
+- ❌ Rely on manual testing or spot-checks
+
+---
+
+## Sub-Agents
+
+### `/sub_DL_OptimizeParsing` - Parser Evaluation
+- Runs all 3 methods (regex, SQLGlot, AI) independently
+- Calculates precision/recall/F1 scores
+- Tracks progress toward 95% confidence goal
+- Docs: [.claude/commands/sub_DL_OptimizeParsing.md](.claude/commands/sub_DL_OptimizeParsing.md)
+
+### `/sub_DL_TestFrontend` - Frontend Testing
+- Automated browser testing using MCP Playwright
+- Validates UI, search, graph, export features
+- Captures screenshots for visual regression
+- Docs: [.claude/commands/sub_DL_TestFrontend.md](.claude/commands/sub_DL_TestFrontend.md)
+
+### `/sub_DL_Clean` - Documentation Cleanup
+- Archives outdated docs to `docs/archive/YYYY-MM-DD/`
+- Optimizes CLAUDE.md (target: 100-200 lines)
+- Verifies documentation links
+- Docs: [.claude/commands/sub_DL_Clean.md](.claude/commands/sub_DL_Clean.md)
+
+### `/sub_DL_Build` - Azure Deployment
+- Builds deployment package for Azure Synapse
+- Docs: [.claude/commands/sub_DL_Build.md](.claude/commands/sub_DL_Build.md)
+
+### `/sub_DL_GitPush` - Git Push
+- Commits and pushes changes to remote
+- Docs: [.claude/commands/sub_DL_GitPush.md](.claude/commands/sub_DL_GitPush.md)
+
+### `/sub_DL_Restart` - Server Restart
+- Kills ports 3000/8000 and restarts both servers
+- Docs: [.claude/commands/sub_DL_Restart.md](.claude/commands/sub_DL_Restart.md)
 
 ---
 
 ## Key Features
 
 ### Incremental Parsing (Default)
-
-**How it works:**
-- DuckDB workspace persists between runs
-- Only re-parses modified/new objects (checks `modify_date`)
-- Also re-parses low confidence objects (<0.85)
-- **50-90% faster** for typical updates
-
-**Usage:**
-```bash
-# CLI (default)
-python lineage_v3/main.py run --parquet parquet_snapshots/
-
-# API (default incremental=true)
-curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" -F "files=@..."
-```
+- DuckDB persists between runs
+- Only re-parses modified/new objects + low confidence (<0.85)
+- 50-90% faster for typical updates
 
 ### Parquet File Detection
-
-**Auto-detection by schema** - Filenames don't matter!
-
-Backend checks column names:
-- `objects.parquet`: `object_id`, `schema_name`, `object_name`, `object_type`
-- `dependencies.parquet`: `referencing_object_id`, `referenced_object_id`
-- `definitions.parquet`: `object_id`, `definition`
+- Auto-detects by schema (filenames don't matter)
+- Required: objects, dependencies, definitions
+- Optional: query_logs, table_columns
 
 ### Confidence Model
-
 | Source | Confidence | Applied To |
 |--------|-----------|------------|
 | DMV | 1.0 | Views, Functions |
 | Query Log | 0.95 | Validated SPs |
-| SQLGlot Parser | 0.85 | Successfully parsed SPs |
-| AI (Validated) | 0.85-0.95 | Complex SPs (3-layer validation) |
+| SQLGlot | 0.85 | Successfully parsed SPs |
+| AI (Validated) | 0.85-0.95 | Complex SPs |
 | Regex Fallback | 0.50 | Failed parses |
 
-**Current Performance:**
-- Total SPs: 202
-- High Confidence (≥0.85): 163 (80.7%)
-- Average Confidence: 0.800
-
----
-
-## Parser Development Guidelines
-
-**🚨 MANDATORY: ALWAYS use `/sub_DL_OptimizeParsing` for ANY parser changes 🚨**
-
-**This applies to ALL modifications in:**
-- [lineage_v3/parsers/quality_aware_parser.py](lineage_v3/parsers/quality_aware_parser.py)
-- [lineage_v3/parsers/ai_disambiguator.py](lineage_v3/parsers/ai_disambiguator.py)
-- Any other parsing-related code
-
-**NO EXCEPTIONS:** You MUST run the subagent evaluation before and after parser changes to compare results.
-
-### Mandatory Process for Parser Changes
-
-**Step 1: Create Baseline** (BEFORE making any code changes):
-```bash
-/sub_DL_OptimizeParsing init --name baseline_$(date +%Y%m%d)_before_change_description
-```
-
-**Step 2: Run Baseline Evaluation** (establish current scores):
-```bash
-/sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD_before_change_description
-```
-*Save the run_id from output (e.g., `run_20251102_143022`)*
-
-**Step 3: Modify Parser Code**
-- Make your changes to parser files
-- Document issue in [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md)
-
-**Step 4: Run Evaluation Again** (MANDATORY - measure impact):
-```bash
-/sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD_before_change_description
-```
-*This compares new parser output against the frozen baseline*
-
-**Step 5: Compare Results** (MANDATORY):
-```bash
-/sub_DL_OptimizeParsing compare --run1 run_YYYYMMDD_HHMMSS --run2 run_YYYYMMDD_HHMMSS
-```
-
-**Step 6: Requirements to Pass:**
-- ✅ **Zero regressions** (no objects ≥0.85 drop below 0.85)
-- ✅ **Expected improvements verified** (at least one SP improves as intended)
-- ✅ **Progress toward 95% goal** (objects_above_095 increases or stays same)
-- ✅ **Review report** for unintended side effects
-
-**Step 7: Update Documentation**
-- Update [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) with results
-- Include before/after confidence scores
-- Note any regressions or unexpected changes
-
-**Step 8: Commit** (only if evaluation passed)
-```bash
-git add lineage_v3/parsers/
-git commit -m "parser: <description> (confidence: X → Y, objects ≥0.95: A → B)"
-```
-
----
-
-### Why This Process is Mandatory
-
-**Quality Assurance:**
-- Tests all 3 methods (regex, SQLGlot, AI) independently on ALL 202+ objects
-- Calculates precision/recall/F1 for each method (comprehensive quality metrics)
-- Detects regressions immediately (prevents shipping broken parser code)
-
-**Traceability:**
-- Auto-detects DDL changes and updates baseline
-- Tracks historical progress toward 95% confidence goal
-- Provides quantitative evidence of improvements
-
-**Automation:**
-- Subagent runs autonomously (no manual testing needed)
-- Generates detailed reports (console summary + JSON)
-- Compares runs automatically (prevents subjective evaluation)
-
-**DO NOT:**
-- ❌ Skip evaluation "because change is small"
-- ❌ Commit parser changes without running subagent
-- ❌ Rely on manual testing or spot-checks
-- ❌ Trust that "it should work" without verification
-
----
-
-## Testing Strategy
-
-**All testing is done via subagents - no static test files needed.**
-
-### Parser Evaluation: `/sub_DL_OptimizeParsing`
-
-**Purpose:** Quality assurance for parser code changes
-
-**When to use:**
-- ✅ **MANDATORY** before and after ANY parser code changes
-- ✅ When debugging parsing issues
-- ✅ When tracking progress toward 95% confidence goal
-
-**Usage:**
-```bash
-# Create baseline before changes
-/sub_DL_OptimizeParsing init --name baseline_$(date +%Y%m%d)_before_change
-
-# Run evaluation
-/sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD
-
-# Compare runs
-/sub_DL_OptimizeParsing compare --run1 run_A --run2 run_B
-```
-
-**What it does:**
-- Tests ALL 3 methods (regex, SQLGlot, AI) independently on ALL 202+ objects
-- Calculates precision/recall/F1 scores per method
-- Compares against frozen baseline with expected dependencies
-- Auto-detects DDL changes and updates baseline
-- Tracks historical progress toward 95% confidence goal
-- Generates console summary + detailed JSON reports
-
-**Documentation:** [.claude/commands/sub_DL_OptimizeParsing.md](.claude/commands/sub_DL_OptimizeParsing.md)
-
----
-
-### Frontend Testing: `/sub_DL_TestFrontend`
-
-**Purpose:** Automated browser testing using MCP Playwright
-
-**Prerequisites:**
-```bash
-# Frontend server must be running
-cd /home/chris/sandbox/frontend && npm run dev
-```
-
-**When to use:**
-- ✅ Before committing frontend changes (smoke test)
-- ✅ After significant UI changes (full test)
-- ✅ Before releases (visual regression test)
-
-**Usage:**
-```bash
-# Quick smoke test (5 seconds)
-/sub_DL_TestFrontend smoke
-
-# Comprehensive test suite (30-45 seconds)
-/sub_DL_TestFrontend full
-
-# Visual regression testing (screenshots)
-/sub_DL_TestFrontend visual
-
-# Test specific feature
-/sub_DL_TestFrontend feature --name "search functionality"
-```
-
-**What it does:**
-- Tests React frontend at http://localhost:3000
-- Validates UI elements, search, graph interaction, export features
-- Captures screenshots for visual regression testing
-- Monitors console for errors
-- Adapts to UI changes automatically (no test code maintenance)
-
-**Screenshots:** Saved to [screenshots/](screenshots/) directory
-
-**Documentation:** [.claude/commands/sub_DL_TestFrontend.md](.claude/commands/sub_DL_TestFrontend.md)
-
----
-
-### Testing Philosophy
-
-**Why subagents instead of static test files?**
-
-| Aspect | Static Test Files | Subagent Approach |
-|--------|-------------------|-------------------|
-| **Maintenance** | Manual updates needed | Zero maintenance |
-| **Flexibility** | Fixed scenarios | Dynamic exploration |
-| **Adaptation** | Breaks on changes | Self-healing |
-| **Coverage** | Pre-defined only | Comprehensive |
-| **Debugging** | Limited context | Full environment |
-| **Natural Language** | No | Yes |
-
-**Benefits:**
-- ✅ **No test code to maintain** - Claude adapts automatically
-- ✅ **Natural language scenarios** - easier to understand and modify
-- ✅ **Self-healing tests** - adapt to UI/code changes
-- ✅ **Comprehensive coverage** - dynamic edge case discovery
-- ✅ **Integrated tooling** - uses MCP Playwright, DuckDB, Python modules
+**Current:** 202 SPs, 163 (80.7%) high confidence (≥0.85)
 
 ---
 
 ## Git Guidelines
 
-**Branch:** `feature/frontend-ui-fixes`
-**Main Branch:** `main`
-
-**DO:**
-- ✅ Commit frequently
-- ✅ Push to remote: `git push origin feature/frontend-ui-fixes`
-
-**DON'T:**
-- ❌ Pull with rebase
-- ❌ Merge from other branches
-- ❌ Merge to main/master (requires approval)
+- **Branch:** `feature/frontend-ui-fixes`
+- **Main:** `main`
+- **DO:** Commit frequently, push to origin
+- **DON'T:** Pull with rebase, merge from other branches, merge to main (requires approval)
 
 ---
 
 ## Environment Setup
 
-**Create `.env` file:**
 ```bash
-cp .env.template .env
+cp .env.template .env  # Edit with your credentials
 ```
 
 **Required for AI features:**
@@ -561,27 +168,22 @@ AZURE_OPENAI_API_VERSION=2024-12-01-preview
 **Start Here:**
 - [README.md](README.md) - Project overview
 - [lineage_specs.md](lineage_specs.md) - Parser specification
-- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing best practices
+- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing guide
 
 **API & Frontend:**
 - [api/README.md](api/README.md) - API documentation
 - [frontend/README.md](frontend/README.md) - Frontend guide
+- [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md) - UI design system
 
-**AI Features:**
+**AI & Evaluation:**
 - [docs/AI_DISAMBIGUATION_SPEC.md](docs/AI_DISAMBIGUATION_SPEC.md) - AI implementation
-- [docs/AI_PHASE4_ACTION_ITEMS.md](docs/AI_PHASE4_ACTION_ITEMS.md) - Implementation checklist
-- [docs/AI_MODEL_EVALUATION.md](docs/AI_MODEL_EVALUATION.md) - Testing results
-
-**Parser Evaluation:**
-- [.claude/commands/sub_DL_OptimizeParsing.md](.claude/commands/sub_DL_OptimizeParsing.md) - Subagent command reference
-- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md) - Complete specification
-- [evaluation_baselines/README.md](evaluation_baselines/README.md) - Baseline lifecycle guide
+- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md) - Parser evaluation spec
+- [evaluation_baselines/README.md](evaluation_baselines/README.md) - Baseline lifecycle
 
 **Additional:**
 - [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
 - [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
 - [docs/QUERY_LOGS_ANALYSIS.md](docs/QUERY_LOGS_ANALYSIS.md) - Query log strategy
-- [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md) - UI design system
 
 ---
 
@@ -589,30 +191,28 @@ AZURE_OPENAI_API_VERSION=2024-12-01-preview
 
 **Import Errors:**
 ```bash
-python lineage_v3/main.py validate  # Check dependencies
-pip install -r requirements.txt     # Reinstall
-```
-
-**Missing .env:**
-```bash
-cp .env.template .env
-# Edit with your credentials
+python lineage_v3/main.py validate
+pip install -r requirements.txt
 ```
 
 **Low Confidence (<0.85):**
 - Use `/sub_DL_OptimizeParsing` to analyze parsing quality
-- Review detailed metrics (precision, recall, F1) in evaluation report
-- Identify which method (regex/SQLGlot/AI) works best for each SP
-- Review [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) for best practices
+- Review [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md)
 
 **Frontend Not Loading:**
-- Verify JSON path in Import Data modal
+- Check JSON path in Import Data modal
+- Verify JSON format matches schema
 - Check browser console for errors
-- Ensure JSON format matches schema
+
+**Port Conflicts:**
+```bash
+lsof -ti:8000 | xargs -r kill  # Backend
+lsof -ti:3000 | xargs -r kill  # Frontend
+```
 
 ---
 
-**Last Updated:** 2025-11-01
-**Parser Version:** v3.7.0 (Production Ready)
-**Frontend Version:** v2.9.0 (Production Ready)
-**API Version:** v3.0.1 (Production Ready)
+**Last Updated:** 2025-11-02
+**Parser Version:** v3.7.0
+**Frontend Version:** v2.9.0
+**API Version:** v3.0.1
