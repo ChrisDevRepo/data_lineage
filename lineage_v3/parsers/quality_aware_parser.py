@@ -994,3 +994,104 @@ class QualityAwareParser:
             'failed': row[4],
             'success_rate': (total - row[4]) / total * 100 if total > 0 else 0
         }
+
+    # ============================================================================
+    # PUBLIC EVALUATION WRAPPERS (for sub_DL_OptimizeParsing subagent)
+    # ============================================================================
+    # These methods expose internal parsing logic for evaluation purposes.
+    # They do NOT affect production parsing behavior.
+
+    def extract_regex_dependencies(self, ddl: str) -> Dict[str, Any]:
+        """
+        Public wrapper for regex extraction (used by evaluation subagent).
+
+        Runs regex pattern matching to extract table dependencies.
+        This is the baseline method used for quality checking.
+
+        Args:
+            ddl: SQL DDL text
+
+        Returns:
+            {
+                'sources': Set[str],           # Raw schema.table names found
+                'targets': Set[str],           # Raw schema.table names found
+                'sources_validated': Set[str], # After catalog validation
+                'targets_validated': Set[str], # After catalog validation
+                'sources_count': int,
+                'targets_count': int
+            }
+        """
+        # Use existing internal regex scan
+        sources, targets = self._regex_scan(ddl)
+
+        # Validate against catalog (same as production)
+        sources_validated = self._validate_against_catalog(sources)
+        targets_validated = self._validate_against_catalog(targets)
+
+        return {
+            'sources': sources,
+            'targets': targets,
+            'sources_validated': sources_validated,
+            'targets_validated': targets_validated,
+            'sources_count': len(sources_validated),
+            'targets_count': len(targets_validated)
+        }
+
+    def extract_sqlglot_dependencies(self, ddl: str) -> Dict[str, Any]:
+        """
+        Public wrapper for SQLGlot extraction (used by evaluation subagent).
+
+        Runs SQLGlot AST parsing with preprocessing.
+        Includes quality check metrics (comparison to regex baseline).
+
+        Args:
+            ddl: SQL DDL text
+
+        Returns:
+            {
+                'sources': Set[str],
+                'targets': Set[str],
+                'sources_validated': Set[str],
+                'targets_validated': Set[str],
+                'sources_count': int,
+                'targets_count': int,
+                'quality_check': {
+                    'regex_sources': int,
+                    'regex_targets': int,
+                    'parser_sources': int,
+                    'parser_targets': int,
+                    'source_match': float,
+                    'target_match': float,
+                    'overall_match': float,
+                    'needs_ai': bool
+                }
+            }
+        """
+        # Preprocess DDL (same as production)
+        cleaned_ddl = self._preprocess_ddl(ddl)
+
+        # Parse with SQLGlot
+        sources, targets = self._sqlglot_parse(cleaned_ddl, ddl)
+
+        # Validate against catalog
+        sources_validated = self._validate_against_catalog(sources)
+        targets_validated = self._validate_against_catalog(targets)
+
+        # Run quality check (compare to regex baseline)
+        regex_result = self.extract_regex_dependencies(ddl)
+        quality = self._calculate_quality(
+            len(regex_result['sources_validated']),
+            len(regex_result['targets_validated']),
+            len(sources_validated),
+            len(targets_validated)
+        )
+
+        return {
+            'sources': sources,
+            'targets': targets,
+            'sources_validated': sources_validated,
+            'targets_validated': targets_validated,
+            'sources_count': len(sources_validated),
+            'targets_count': len(targets_validated),
+            'quality_check': quality
+        }

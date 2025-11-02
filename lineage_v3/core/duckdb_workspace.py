@@ -721,11 +721,25 @@ class DuckDBWorkspace:
                 GROUP BY tc.correct_object_id, tc.schema_name, tc.table_name
             """)
 
-        # Create view with UNION ALL if we have multiple parts
-        if len(view_parts) == 1:
-            view_sql = f"CREATE OR REPLACE VIEW unified_ddl AS {view_parts[0]}"
-        else:
-            view_sql = f"CREATE OR REPLACE VIEW unified_ddl AS {view_parts[0]} UNION ALL {view_parts[1]}"
+        # Part 3: Fallback for tables without column metadata (ensures ALL tables are searchable)
+        view_parts.append("""
+            SELECT
+                o.object_id,
+                o.schema_name,
+                o.object_name,
+                o.object_type,
+                'CREATE TABLE [' || o.schema_name || '].[' || o.object_name || '] (' || chr(10) ||
+                '    /* Column information not available - table_columns.parquet not provided */' || chr(10) ||
+                ');' as ddl_text
+            FROM objects o
+            WHERE o.object_type = 'Table'
+            AND NOT EXISTS (
+                SELECT 1 FROM table_columns tc WHERE tc.correct_object_id = o.object_id
+            )
+        """)
+
+        # Create view with UNION ALL for all parts
+        view_sql = "CREATE OR REPLACE VIEW unified_ddl AS " + " UNION ALL ".join(view_parts)
 
         self.connection.execute(view_sql)
 

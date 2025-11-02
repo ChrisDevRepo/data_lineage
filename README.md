@@ -22,17 +22,28 @@ Visualize tables, views, and stored procedures with their dependencies. Built fo
 
 ### 1. Start Services
 
+**Automated (Recommended):**
+```bash
+cd /home/chris/sandbox
+./start-app.sh
+# Starts both backend (8000) and frontend (3000)
+# Logs: /tmp/backend.log and /tmp/frontend.log
+```
+
+**Manual (Alternative):**
 ```bash
 # Terminal 1 - Backend API
 cd /home/chris/sandbox
 python3 api/main.py
-# Server: http://localhost:8000
-# Docs: http://localhost:8000/docs
 
 # Terminal 2 - Frontend
 cd /home/chris/sandbox/frontend
 npm run dev
-# Opens: http://localhost:3000
+```
+
+**Stop Services:**
+```bash
+./stop-app.sh
 ```
 
 ### 2. Upload Data

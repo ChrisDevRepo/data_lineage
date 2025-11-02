@@ -47,6 +47,12 @@ export function useDataFiltering({
             return;
         }
 
+        // Safety check: ensure lineageGraph is initialized before accessing
+        if (!lineageGraph || typeof lineageGraph.nodeEntries !== 'function') {
+            setAutocompleteSuggestions([]);
+            return;
+        }
+
         const suggestions: DataNode[] = [];
         // Use for...of loop with break for early exit (cleaner than try/catch pattern)
         for (const [nodeId, attributes] of lineageGraph.nodeEntries()) {

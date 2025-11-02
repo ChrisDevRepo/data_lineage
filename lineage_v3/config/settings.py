@@ -22,15 +22,15 @@ class AzureOpenAISettings(BaseSettings):
     """
     Azure OpenAI configuration for AI-assisted disambiguation.
 
-    Required for AI features in parser v3.7.0+
+    Optional - AI features will be disabled if not configured
     """
-    endpoint: str = Field(
-        ...,
+    endpoint: Optional[str] = Field(
+        default=None,
         description="Azure OpenAI endpoint URL",
         examples=["https://your-endpoint.openai.azure.com/"]
     )
-    api_key: SecretStr = Field(
-        ...,
+    api_key: Optional[SecretStr] = Field(
+        default=None,
         description="Azure OpenAI API key (kept secret)"
     )
     model_name: str = Field(
@@ -48,7 +48,10 @@ class AzureOpenAISettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix='AZURE_OPENAI_',
+        env_file='.env',
+        env_file_encoding='utf-8',
         case_sensitive=False,
+        extra='ignore',  # Ignore non-AZURE_OPENAI env vars
         protected_namespaces=()  # Allow 'model_' prefix in field names
     )
 
@@ -223,22 +226,70 @@ class Settings(BaseSettings):
         extra='ignore'  # Ignore extra env vars not defined here
     )
 
+    @property
+    def ai_available(self) -> bool:
+        """Check if Azure OpenAI is properly configured and available."""
+        return (
+            self.ai.enabled and
+            self.azure_openai.endpoint is not None and
+            self.azure_openai.api_key is not None
+        )
+
 
 # Singleton instance - import this throughout the application
+from pydantic_core import ValidationError
+
 try:
     settings = Settings()
-except Exception as e:
-    # Graceful fallback if .env is missing or Azure OpenAI not configured
-    # This allows the parser to run without AI if AI_ENABLED=false
-    import os
-    if os.getenv('AI_ENABLED', 'true').lower() == 'false':
-        # If AI is explicitly disabled, create settings with minimal config
-        settings = Settings(
-            azure_openai=AzureOpenAISettings(
-                endpoint="https://not-configured.openai.azure.com",
-                api_key=SecretStr("not-configured")
+except ValidationError as e:
+    # Graceful fallback for Pydantic nested BaseSettings validation bug
+    # This happens when nested settings fail to inherit env vars properly
+    error_str = str(e)
+    if 'AzureOpenAISettings' in error_str or 'AZURE_OPENAI' in error_str:
+        import os
+        import warnings
+        from pathlib import Path
+
+        # Manually load .env file since Pydantic failed
+        # Path: settings.py → config/ → lineage_v3/ → sandbox/ → .env
+        env_file = Path(__file__).parent.parent.parent / '.env'
+        env_vars = {}
+        if env_file.exists():
+            with open(env_file) as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        env_vars[key.strip()] = value.strip()
+
+        endpoint = env_vars.get('AZURE_OPENAI_ENDPOINT') or os.getenv('AZURE_OPENAI_ENDPOINT')
+        api_key = env_vars.get('AZURE_OPENAI_API_KEY') or os.getenv('AZURE_OPENAI_API_KEY')
+
+        if endpoint and api_key:
+            # Credentials exist in .env - manually create settings
+            settings = Settings(
+                azure_openai=AzureOpenAISettings(
+                    endpoint=endpoint,
+                    api_key=SecretStr(api_key),
+                    model_name=env_vars.get('AZURE_OPENAI_MODEL_NAME', 'gpt-4.1-nano'),
+                    deployment=env_vars.get('AZURE_OPENAI_DEPLOYMENT', 'gpt-4.1-nano'),
+                    api_version=env_vars.get('AZURE_OPENAI_API_VERSION', '2024-12-01-preview')
+                )
             )
-        )
+        else:
+            # Credentials actually missing - disable AI
+            warnings.warn(
+                "Azure OpenAI configuration missing. "
+                "AI-assisted parsing will be disabled. "
+                "Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY in .env to enable AI features.",
+                UserWarning
+            )
+            settings = Settings(
+                azure_openai=AzureOpenAISettings()  # Empty - AI disabled
+            )
     else:
-        # AI is enabled but config is missing - re-raise error
+        # Different validation error - re-raise
         raise
+except Exception as e:
+    # Non-validation error - re-raise
+    raise

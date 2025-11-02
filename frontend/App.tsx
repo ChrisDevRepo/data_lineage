@@ -226,15 +226,36 @@ function DataLineageVisualizer() {
   const hasMinimapInitializedRef = useRef(false);
   useEffect(() => {
     if (layoutedElements.nodes.length > 0 && !hasMinimapInitializedRef.current) {
+      // Detect graph size and use appropriate delay for rendering
+      const nodeCount = layoutedElements.nodes.length;
+      let minimapDelay: number;
+
+      if (nodeCount > 500) {
+        // Very large graph (Parquet imports) - need substantial delay
+        minimapDelay = 4000;
+      } else if (nodeCount > 300) {
+        // Large graph - moderate delay
+        minimapDelay = 2000;
+      } else if (nodeCount > 100) {
+        // Medium graph - small delay
+        minimapDelay = 1200;
+      } else {
+        // Small graph - minimal delay
+        minimapDelay = 800;
+      }
+
+      console.log(`[Minimap] Detected ${nodeCount} nodes, using ${minimapDelay}ms delay`);
+
       // Wait for layout to be applied and rendered, then remount minimap once
       const timeoutId = setTimeout(() => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             setMinimapKey(prev => prev + 1);
             hasMinimapInitializedRef.current = true;
+            console.log('[Minimap] Initialized successfully');
           });
         });
-      }, 800);
+      }, minimapDelay); // Use dynamic delay based on graph size
       return () => clearTimeout(timeoutId);
     }
   }, [layoutedElements.nodes.length]);
@@ -351,30 +372,35 @@ function DataLineageVisualizer() {
   };
   
   const executeSearch = (query: string) => {
-    if (isTraceModeActive) return;
-    setFocusedNodeId(null);
-    if (!query) {
-      setHighlightedNodes(new Set());
-      fitView({ duration: 500 });
-      return;
+    try {
+      if (isTraceModeActive) return;
+      setFocusedNodeId(null);
+      if (!query) {
+        setHighlightedNodes(new Set());
+        fitView({ duration: 500 });
+        return;
+      }
+      const foundNodeData = allData.find(d => d.name.toLowerCase() === query.toLowerCase());
+      if (!foundNodeData) {
+        addNotification('No object found with that name.', 'error');
+        return;
+      }
+      const reactFlowNode = nodes.find(n => n.id === foundNodeData.id);
+      if (!reactFlowNode) {
+        addNotification('Object found, but it is not visible with the current filters.', 'error');
+        return;
+      }
+      setHighlightedNodes(new Set([foundNodeData.id]));
+      setCenter(
+        reactFlowNode.position.x + (reactFlowNode.width || 192) / 2,
+        reactFlowNode.position.y + (reactFlowNode.height || 48) / 2,
+        { zoom: 1.2, duration: 800 }
+      );
+      setSearchTerm('');
+    } catch (error) {
+      console.error('Search error:', error);
+      addNotification('An error occurred while searching. Please try again.', 'error');
     }
-    const foundNodeData = allData.find(d => d.name.toLowerCase() === query.toLowerCase());
-    if (!foundNodeData) {
-      addNotification('No object found with that name.', 'error');
-      return;
-    }
-    const reactFlowNode = nodes.find(n => n.id === foundNodeData.id);
-    if (!reactFlowNode) {
-      addNotification('Object found, but it is not visible with the current filters.', 'error');
-      return;
-    }
-    setHighlightedNodes(new Set([foundNodeData.id]));
-    setCenter(
-      reactFlowNode.position.x + (reactFlowNode.width || 192) / 2,
-      reactFlowNode.position.y + (reactFlowNode.height || 48) / 2,
-      { zoom: 1.2, duration: 800 }
-    );
-    setSearchTerm('');
   };
 
   const handlePaneClick = () => {
@@ -649,7 +675,6 @@ function DataLineageVisualizer() {
 
       <!-- Schema Legend -->
       <g id="legend">
-        <rect x="10" y="${HEADER_HEIGHT + 10}" width="${LEGEND_WIDTH}" height="${legendHeight}" rx="8" fill="rgba(255,255,255,0.95)" stroke="#d1d5db" stroke-width="1"/>
         <text x="20" y="${HEADER_HEIGHT + 40}" font-family="sans-serif" font-size="16px" font-weight="bold" fill="#1f2937">Schemas</text>
         ${legendItems}
       </g>
@@ -812,12 +837,13 @@ function DataLineageVisualizer() {
           addNotification={addNotification}
         />
       </main>
-      <ImportDataModal 
-        isOpen={isImportModalOpen} 
-        onClose={() => setIsImportModalOpen(false)} 
-        onImport={handleDataImport} 
-        currentData={allData} 
-        defaultSampleData={sampleData} 
+      <ImportDataModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleDataImport}
+        currentData={allData}
+        defaultSampleData={sampleData}
+        addNotification={addNotification} 
       />
       <InfoModal
         isOpen={isInfoModalOpen}
