@@ -68,15 +68,35 @@ export const Toolbar = (props: ToolbarProps) => {
     useClickOutside(typeFilterRef, () => setIsTypeFilterOpen(false));
 
     const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setAutocompleteSuggestions([]);
-        executeSearch(searchTerm.trim());
+        try {
+            event.preventDefault();
+            setAutocompleteSuggestions([]);
+            executeSearch(searchTerm.trim());
+        } catch (error) {
+            console.error('[Toolbar] Error during search submission:', error);
+            setAutocompleteSuggestions([]);
+        }
     };
 
     const handleSuggestionClick = (node: DataNode) => {
-        setSearchTerm(node.name);
-        setAutocompleteSuggestions([]);
-        executeSearch(node.name);
+        try {
+            setSearchTerm(node.name);
+            setAutocompleteSuggestions([]);
+            executeSearch(node.name);
+        } catch (error) {
+            console.error('[Toolbar] Error during suggestion click:', error);
+            setAutocompleteSuggestions([]);
+        }
+    };
+
+    const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setSearchTerm(e.target.value);
+        } catch (error) {
+            console.error('[Toolbar] Error during search input change:', error);
+            // Reset to empty string on error
+            setSearchTerm('');
+        }
     };
 
     return (
@@ -90,7 +110,7 @@ export const Toolbar = (props: ToolbarProps) => {
                             type="text"
                             placeholder="Search objects..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={handleSearchInputChange}
                             onBlur={() => setTimeout(() => setAutocompleteSuggestions([]), 150)}
                             disabled={isTraceModeActive}
                             className="text-sm h-9 w-56 pl-3 pr-9 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"

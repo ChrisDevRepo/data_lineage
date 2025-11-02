@@ -88,8 +88,9 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 
 ### `/sub_DL_TestFrontend` - Frontend Testing
 - Automated browser testing using MCP Playwright
-- Validates UI, search, graph, export features
-- Captures screenshots for visual regression
+- Functional tests: UI, search, graph, export features
+- Visual regression: 3 baseline screenshots (desktop 1920x1080)
+- Screenshots: `/tmp/` (auto-cleanup), baselines: `test_baselines/desktop/` (versioned)
 - Docs: [.claude/commands/sub_DL_TestFrontend.md](.claude/commands/sub_DL_TestFrontend.md)
 
 ### `/sub_DL_Clean` - Documentation Cleanup

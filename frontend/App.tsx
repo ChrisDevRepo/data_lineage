@@ -380,7 +380,15 @@ function DataLineageVisualizer() {
         fitView({ duration: 500 });
         return;
       }
-      const foundNodeData = allData.find(d => d.name.toLowerCase() === query.toLowerCase());
+
+      // Safety check: ensure query is a valid string
+      if (typeof query !== 'string') {
+        console.error('[Search] Invalid query type:', typeof query);
+        addNotification('Invalid search query. Please try again.', 'error');
+        return;
+      }
+
+      const foundNodeData = allData.find(d => d.name && d.name.toLowerCase() === query.toLowerCase());
       if (!foundNodeData) {
         addNotification('No object found with that name.', 'error');
         return;
@@ -398,7 +406,7 @@ function DataLineageVisualizer() {
       );
       setSearchTerm('');
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('[Search] Error during search:', error);
       addNotification('An error occurred while searching. Please try again.', 'error');
     }
   };
