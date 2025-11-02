@@ -361,16 +361,50 @@ See [API Testing Guide](../docs/API_TESTING.md) for comprehensive testing instru
 
 Currently allows all origins (`allow_origins=["*"]`) for development.
 
-**Production:** Update CORS to restrict origins:
+### Production Security: CORS + Azure Authentication
+
+When deploying to Azure, you'll use **two complementary security layers**:
+
+**1. CORS (Cross-Origin Resource Sharing)**
+- **What it does:** Browser-level security that controls *which websites* can make requests to your API
+- **Purpose:** Prevents unauthorized websites from calling your API from users' browsers
+- **Configuration:** Restrict to your frontend domain only
+
+**2. Azure Built-in Authentication (Easy Auth)**
+- **What it does:** Identity-level security that authenticates *who the user is*
+- **Purpose:** Ensures only authenticated users can access the application
+- **Configuration:** Configured in Azure App Service settings (not in code)
+
+**Why you need both:**
+- CORS protects against malicious websites trying to call your API
+- Azure Auth protects against unauthorized users accessing your application
+- They work together: CORS validates the website origin, Azure Auth validates the user identity
+
+### Production Deployment Checklist
+
+**1. Update CORS origins in .env:**
+```bash
+ALLOWED_ORIGINS=https://your-frontend-domain.azurewebsites.net
+```
+
+**2. Ensure api/main.py reads from environment variable:**
 ```python
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://your-frontend-domain.azurewebsites.net"],
-    allow_credentials=True,
+    allow_origins=settings.ALLOWED_ORIGINS.split(','),
+    allow_credentials=True,  # REQUIRED for Azure Auth to work!
     allow_methods=["*"],
     allow_headers=["*"],
 )
 ```
+
+**IMPORTANT:** `allow_credentials=True` is **required** for Azure Authentication to work. This allows the browser to send authentication cookies from Azure to your API.
+
+**3. Configure Azure Built-in Authentication:**
+- In Azure Portal → App Service → Authentication
+- Enable authentication provider (Microsoft Entra ID, Google, etc.)
+- Set "Action to take when request is not authenticated" to "Log in with [Provider]"
+- Azure will handle authentication before requests reach your FastAPI application
 
 ## Error Handling
 
