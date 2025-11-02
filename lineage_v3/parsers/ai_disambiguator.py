@@ -336,7 +336,7 @@ Return JSON with resolved_table, confidence, and reasoning."""
                 SELECT COUNT(*) FROM objects
                 WHERE schema_name = ? AND object_name = ? AND object_type = 'Table'
             """
-            result = self.workspace.conn.execute(query, [schema, table]).fetchone()
+            result = self.workspace.connection.execute(query, [schema, table]).fetchone()
 
             return result[0] > 0
 
@@ -405,7 +405,7 @@ Return JSON with resolved_table, confidence, and reasoning."""
         """
         try:
             # Check if query logs are available
-            query_log_check = self.workspace.conn.execute(
+            query_log_check = self.workspace.connection.execute(
                 "SELECT COUNT(*) FROM query_logs LIMIT 1"
             ).fetchone()
 
@@ -428,7 +428,7 @@ Return JSON with resolved_table, confidence, and reasoning."""
             table_pattern1 = f"%{resolved_table}%"
             table_pattern2 = f"%{resolved_table.replace('.', '].[').replace('.', '.')}%"  # [schema].[table] format
 
-            result = self.workspace.conn.execute(
+            result = self.workspace.connection.execute(
                 query, [sp_pattern, table_pattern1, table_pattern2]
             ).fetchone()
 
@@ -496,7 +496,7 @@ Return JSON with resolved_table, confidence, and reasoning."""
                 SELECT object_id FROM objects
                 WHERE schema_name = ? AND object_name = ? AND object_type = 'Table'
             """
-            result = self.workspace.conn.execute(query, [schema, table]).fetchone()
+            result = self.workspace.connection.execute(query, [schema, table]).fetchone()
 
             return result[0] if result else None
 
