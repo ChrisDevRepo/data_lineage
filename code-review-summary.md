@@ -25,13 +25,51 @@ Conducted a comprehensive review of the Data Lineage Visualizer codebase focusin
 **Code Quality Metrics:**
 - Python modules: 29 (excluding deprecated)
 - React components: 16
-- Lines of code: ~5,000 (core modules)
-- Documentation files: 30+
+- Lines of code: ~18,000 (Python: 13,000 | TypeScript: 4,970)
+- Documentation files: 33 (after consolidation, down from 41)
 - Test coverage: Integration tests via evaluation framework + visual regression
 
 ---
 
-## Immediate Fixes Applied
+## Documentation Consolidation (2025-11-02)
+
+**Branch:** `feature/prod-cleanup`
+**Status:** ✅ Complete - Production Cleanup
+
+### Changes Applied
+
+Archived 8 historical/stale documentation files to `docs/archive/v3.7.0_pre_prod/`:
+
+| File Archived | Reason | Original Location |
+|---------------|--------|-------------------|
+| CHANGELOG.md | Historical changes (superseded by git history) | frontend/ |
+| PERFORMANCE_OPTIMIZATIONS.md | Outdated optimization notes from earlier versions | frontend/ |
+| PARSER_EVOLUTION_LOG.md | Parser version history and evolution notes | docs/ |
+| PARSER_ISSUE_DECLARE_PATTERN.md | Resolved parser bug documentation | docs/ |
+| QUERY_LOGS_ANALYSIS.md | Query log design analysis (implemented in v3.4.0) | docs/ |
+| AI_TOKEN_OPTIMIZATION.md | AI implementation notes (completed) | docs/ |
+| DETAIL_SEARCH_SPEC.md | Feature specification (implemented) | docs/ |
+| TRAINING_DECISION.md | AI training decision documentation (historical) | lineage_v3/ai_analyzer/ |
+
+### Result
+
+- **Before:** 41 documentation files
+- **After:** 33 documentation files (20% reduction)
+- **Target:** Keep only production-relevant, non-stale documentation
+- **Archive README:** Created `docs/archive/v3.7.0_pre_prod/README.md` explaining archived content
+
+### Remaining Core Documentation
+
+All retained documentation is production-relevant and actively maintained:
+- Project essentials: README.md, CLAUDE.md, STARTUP.md, lineage_specs.md
+- Component docs: api/README.md, frontend/README.md
+- User guides: docs/PARSING_USER_GUIDE.md
+- Technical specs: docs/DUCKDB_SCHEMA.md, docs/AI_DISAMBIGUATION_SPEC.md, docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md
+- Module docs: evaluation_baselines/README.md, extractor/README.md, etc.
+
+---
+
+## Immediate Fixes Applied (2025-11-02)
 
 All changes committed in: `fbf0612 - docs: fix documentation inaccuracies and remove obsolete references`
 
