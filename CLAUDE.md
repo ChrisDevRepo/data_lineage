@@ -19,7 +19,7 @@ Instructions for Claude Code when working with this repository.
 - **Status:** Production Ready (80.7% high-confidence parsing)
 - **Stack:** FastAPI + DuckDB + SQLGlot + Azure OpenAI | React + React Flow
 - **System:** Python 3.12.3, Node.js, WSL2
-- **Working Directory:** `/home/chris/sandbox`
+- **Working Directory:** `.`
 
 ---
 
@@ -27,13 +27,13 @@ Instructions for Claude Code when working with this repository.
 
 ### Backend
 ```bash
-cd /home/chris/sandbox/api && python3 main.py
+cd api && python3 main.py
 # http://localhost:8000 | Docs: http://localhost:8000/docs
 ```
 
 ### Frontend
 ```bash
-cd /home/chris/sandbox/frontend && npm run dev
+cd frontend && npm run dev
 # http://localhost:3000
 ```
 

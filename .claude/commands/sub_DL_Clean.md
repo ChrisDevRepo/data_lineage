@@ -36,7 +36,7 @@ Run this command when:
 
 ### Step 1: Identify Outdated Documentation
 
-Scan `/home/chris/sandbox/docs/` for files that may be outdated:
+Scan `docs/` for files that may be outdated:
 
 **Criteria for archival:**
 - Files marked with "deprecated", "old", or "archive" in filename
@@ -66,7 +66,7 @@ Scan `/home/chris/sandbox/docs/` for files that may be outdated:
 Create dated archive folder:
 ```bash
 ARCHIVE_DATE=$(date +%Y-%m-%d)
-ARCHIVE_DIR="/home/chris/sandbox/docs/archive/$ARCHIVE_DATE"
+ARCHIVE_DIR="docs/archive/$ARCHIVE_DATE"
 mkdir -p "$ARCHIVE_DIR"
 ```
 
@@ -160,7 +160,7 @@ documentation which includes detailed explanations of how the parser works...
 
 ### Step 5: Update Documentation Index
 
-If `/home/chris/sandbox/README.md` has documentation links:
+If `README.md` has documentation links:
 1. Remove references to archived files
 2. Add links to new replacement docs
 3. Update structure diagrams

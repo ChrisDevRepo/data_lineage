@@ -24,7 +24,7 @@ Visualize tables, views, and stored procedures with their dependencies. Built fo
 
 **Automated (Recommended):**
 ```bash
-cd /home/chris/sandbox
+cd .
 ./start-app.sh
 # Starts both backend (8000) and frontend (3000)
 # Logs: /tmp/backend.log and /tmp/frontend.log
@@ -33,11 +33,11 @@ cd /home/chris/sandbox
 **Manual (Alternative):**
 ```bash
 # Terminal 1 - Backend API
-cd /home/chris/sandbox
+cd .
 python3 api/main.py
 
 # Terminal 2 - Frontend
-cd /home/chris/sandbox/frontend
+cd frontend
 npm run dev
 ```
 
@@ -96,7 +96,7 @@ Synapse DMVs → PySpark Extractor → Parquet Files
 ## Repository Structure
 
 ```
-/home/chris/sandbox/
+
 ├── api/                  # FastAPI backend
 ├── frontend/            # React visualization
 ├── lineage_v3/          # Core parser

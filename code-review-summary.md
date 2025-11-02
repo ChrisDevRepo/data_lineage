@@ -111,7 +111,7 @@ All changes committed in: `fbf0612 - docs: fix documentation inaccuracies and re
 
 ### Path References Note
 
-**Local Development:** `/home/chris/sandbox` (WSL2 Ubuntu environment)
+**Local Development:** `.` (WSL2 Ubuntu environment)
 **Azure Deployment:** Will use different paths (e.g., `/app`, `/home/site/wwwroot`)
 
 **Action Required:** Ensure deployment scripts and documentation use relative paths or environment variables rather than hardcoded absolute paths.
@@ -385,7 +385,7 @@ logger = logging.getLogger(__name__)
 **Files:** All README files, STARTUP.md
 **Implementation:**
 ```bash
-# Replace: cd /home/chris/sandbox
+# Replace: cd .
 # With: cd $PROJECT_ROOT
 # Or: cd $(git rev-parse --show-toplevel)
 ```

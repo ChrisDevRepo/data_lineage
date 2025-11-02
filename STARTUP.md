@@ -5,7 +5,7 @@
 ### Option 1: Using the Startup Script (Recommended)
 
 ```bash
-cd /home/chris/sandbox
+cd .
 ./start-app.sh
 ```
 
@@ -19,14 +19,14 @@ This will:
 
 #### Start Backend:
 ```bash
-cd /home/chris/sandbox/api
-source /home/chris/sandbox/venv/bin/activate
+cd api
+source venv/bin/activate
 python main.py
 ```
 
 #### Start Frontend (in a new terminal):
 ```bash
-cd /home/chris/sandbox/frontend
+cd frontend
 npm run dev
 ```
 
@@ -36,7 +36,7 @@ npm run dev
 
 ### Using the Stop Script:
 ```bash
-cd /home/chris/sandbox
+cd .
 ./stop-app.sh
 ```
 
@@ -89,7 +89,7 @@ lsof -i:3000
 ### Backend Not Starting
 ```bash
 # Check if virtual environment is activated
-source /home/chris/sandbox/venv/bin/activate
+source venv/bin/activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -101,7 +101,7 @@ tail -f /tmp/backend.log
 ### Frontend Not Starting
 ```bash
 # Install dependencies
-cd /home/chris/sandbox/frontend
+cd frontend
 npm install
 
 # Check logs
@@ -113,7 +113,7 @@ tail -f /tmp/frontend.log
 ## Directory Structure
 
 ```
-/home/chris/sandbox/
+
 ├── start-app.sh          # Start both services
 ├── stop-app.sh           # Stop both services
 ├── api/                  # Backend (FastAPI)
@@ -127,7 +127,7 @@ tail -f /tmp/frontend.log
 
 ## Parquet File Upload
 
-1. Copy your parquet files to `/home/chris/sandbox/parquet_snapshots/`
+1. Copy your parquet files to `parquet_snapshots/`
 2. Open http://localhost:3000
 3. Click "Import Data"
 4. Select "Parquet Upload" tab

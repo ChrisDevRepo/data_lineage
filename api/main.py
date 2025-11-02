@@ -138,7 +138,6 @@ def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = True):
         upload_lock.release()
         current_upload_info["job_id"] = None
         current_upload_info["started_at"] = None
-        print(f"✅ Upload lock released for job {job_id}")
 
 
 # ============================================================================
@@ -154,12 +153,6 @@ async def health_check():
         Health status, version, uptime, and AI availability
     """
     from lineage_v3.config import settings
-
-    # Debug logging
-    print(f"[DEBUG] AI enabled in settings: {settings.ai.enabled}")
-    print(f"[DEBUG] Azure OpenAI endpoint: {settings.azure_openai.endpoint}")
-    print(f"[DEBUG] Azure OpenAI has key: {settings.azure_openai.api_key is not None}")
-    print(f"[DEBUG] ai_available property: {settings.ai_available}")
 
     return HealthResponse(
         status="ok",
@@ -592,7 +585,6 @@ async def get_job_result(job_id: str):
                 shutil.rmtree(job_dir)
                 if job_id in active_jobs:
                     del active_jobs[job_id]
-                print(f"✓ Cleaned up job {job_id}")
             except Exception as cleanup_error:
                 # Log but don't fail the request
                 print(f"Warning: Failed to cleanup job {job_id}: {cleanup_error}")

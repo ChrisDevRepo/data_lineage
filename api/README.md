@@ -20,7 +20,7 @@ FastAPI backend that wraps existing `lineage_v3` Python code for web-based linea
 
 ```bash
 # Install dependencies (in addition to root requirements.txt)
-cd /home/chris/sandbox/api
+cd api
 pip install -r requirements.txt
 ```
 
@@ -28,7 +28,7 @@ pip install -r requirements.txt
 
 ```bash
 # Start development server (auto-reload enabled)
-cd /home/chris/sandbox/api
+cd api
 python3 main.py
 
 # Or use uvicorn directly
