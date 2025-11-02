@@ -51,9 +51,9 @@ class MetricsService:
                 'parsed': 201,
                 'parse_rate': 99.5,
                 'confidence': {
-                    'high': {'count': 160, 'pct': 79.2, 'threshold': '≥0.85'},
-                    'medium': {'count': 10, 'pct': 5.0, 'threshold': '0.75-0.84'},
-                    'low': {'count': 32, 'pct': 15.8, 'threshold': '<0.75'}
+                    'high': {'count': 170, 'pct': 84.2, 'threshold': '≥0.75'},
+                    'medium': {'count': 0, 'pct': 0.0, 'threshold': '0.65-0.74'},
+                    'low': {'count': 32, 'pct': 15.8, 'threshold': '<0.65'}
                 },
                 'by_source': {
                     'parser': 160,
@@ -81,9 +81,9 @@ class MetricsService:
             COUNT(CASE WHEN lm.confidence IS NOT NULL THEN 1 END) as parsed,
 
             -- Confidence distribution
-            COUNT(CASE WHEN lm.confidence >= 0.85 THEN 1 END) as high_confidence,
-            COUNT(CASE WHEN lm.confidence >= 0.75 AND lm.confidence < 0.85 THEN 1 END) as medium_confidence,
-            COUNT(CASE WHEN lm.confidence < 0.75 THEN 1 END) as low_confidence,
+            COUNT(CASE WHEN lm.confidence >= 0.75 THEN 1 END) as high_confidence,
+            COUNT(CASE WHEN lm.confidence >= 0.65 AND lm.confidence < 0.75 THEN 1 END) as medium_confidence,
+            COUNT(CASE WHEN lm.confidence < 0.65 THEN 1 END) as low_confidence,
 
             -- Source distribution
             COUNT(CASE WHEN lm.primary_source = 'parser' THEN 1 END) as source_parser,
@@ -126,17 +126,17 @@ class MetricsService:
                 'high': {
                     'count': high_conf,
                     'pct': round(high_pct, 1),
-                    'threshold': '≥0.85'
+                    'threshold': '≥0.75'
                 },
                 'medium': {
                     'count': medium_conf,
                     'pct': round(medium_pct, 1),
-                    'threshold': '0.75-0.84'
+                    'threshold': '0.65-0.74'
                 },
                 'low': {
                     'count': low_conf,
                     'pct': round(low_pct, 1),
-                    'threshold': '<0.75'
+                    'threshold': '<0.65'
                 }
             },
             'by_source': {
@@ -331,9 +331,9 @@ class MetricsService:
             'parsed': 0,
             'parse_rate': 0.0,
             'confidence': {
-                'high': {'count': 0, 'pct': 0.0, 'threshold': '≥0.85'},
-                'medium': {'count': 0, 'pct': 0.0, 'threshold': '0.75-0.84'},
-                'low': {'count': 0, 'pct': 0.0, 'threshold': '<0.75'}
+                'high': {'count': 0, 'pct': 0.0, 'threshold': '≥0.75'},
+                'medium': {'count': 0, 'pct': 0.0, 'threshold': '0.65-0.74'},
+                'low': {'count': 0, 'pct': 0.0, 'threshold': '<0.65'}
             },
             'by_source': {
                 'parser': 0,

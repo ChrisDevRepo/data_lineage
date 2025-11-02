@@ -14,9 +14,9 @@ Instructions for Claude Code when working with this repository.
 
 ## Project Overview
 
-**Data Lineage Visualizer v3.7.0** - DMV-first lineage parser for Azure Synapse with React visualization
+**Data Lineage Visualizer v3.8.0** - DMV-first lineage parser for Azure Synapse with React visualization
 
-- **Status:** Production Ready (80.7% high-confidence parsing)
+- **Status:** Production Ready (84.2% high-confidence parsing)
 - **Stack:** FastAPI + DuckDB + SQLGlot + Azure OpenAI | React + React Flow
 - **System:** Python 3.12.3, Node.js, WSL2
 - **Working Directory:** `.`
@@ -140,7 +140,7 @@ Commands are installed in both locations. If using CLI, you may need to restart 
 | AI (Validated) | 0.85-0.95 | Complex SPs |
 | Regex Fallback | 0.50 | Failed parses |
 
-**Current:** 202 SPs, 163 (80.7%) high confidence (≥0.85)
+**Current:** 202 SPs, 170 (84.2%) high confidence (≥0.75)
 
 ---
 
@@ -220,6 +220,6 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 ---
 
 **Last Updated:** 2025-11-02
-**Parser Version:** v3.7.0
+**Parser Version:** v3.8.0
 **Frontend Version:** v2.9.0
 **API Version:** v3.0.1

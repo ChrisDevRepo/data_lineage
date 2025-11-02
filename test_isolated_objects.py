@@ -241,6 +241,137 @@ def test_confidence_distribution(db_path: str) -> Tuple[int, int, int]:
     return high_conf, medium_conf, low_conf
 
 
+def test_ddl_fulltext_validation(conn: duckdb.DuckDBPyConnection) -> Tuple[int, int, bool]:
+    """
+    Test 5: DDL Full-Text Validation
+
+    Verifies that all table references in DDL (SELECT...INTO, INSERT INTO, etc.)
+    are captured in lineage_metadata outputs.
+
+    This test catches parser bugs where tables are referenced in DDL but not
+    captured as dependencies.
+
+    Returns: (total_objects, objects_with_missing_outputs, pass/fail)
+    """
+    print("\n" + "=" * 80)
+    print("TEST 5: DDL Full-Text Validation")
+    print("=" * 80)
+
+    # Get all SPs/Views with definitions
+    objects_with_ddl = conn.execute('''
+        SELECT o.object_id, o.schema_name, o.object_name, o.object_type, d.definition
+        FROM objects o
+        JOIN definitions d ON o.object_id = d.object_id
+        WHERE o.object_type IN ('Stored Procedure', 'View')
+    ''').fetchall()
+
+    missing_outputs = []
+
+    for obj_id, schema, name, obj_type, ddl in objects_with_ddl:
+        if not ddl:
+            continue
+
+        # Extract table references from DDL using regex
+        # Pattern 1: SELECT...INTO [schema].[table]
+        select_into_pattern = r'\bSELECT\s+.*?\s+INTO\s+\[?(\w+)\]?\.\[?(\w+)\]?'
+        # Pattern 2: INSERT INTO [schema].[table]
+        insert_pattern = r'\bINSERT\s+(?:INTO\s+)?\[?(\w+)\]?\.\[?(\w+)\]?'
+        # Pattern 3: UPDATE [schema].[table]
+        update_pattern = r'\bUPDATE\s+\[?(\w+)\]?\.\[?(\w+)\]?'
+        # Pattern 4: MERGE [schema].[table] (or MERGE INTO)
+        merge_pattern = r'\bMERGE\s+(?:INTO\s+)?\[?(\w+)\]?\.\[?(\w+)\]?'
+
+        # Use DOTALL to match across newlines
+        select_into_matches = re.findall(select_into_pattern, ddl, re.IGNORECASE | re.DOTALL)
+        insert_matches = re.findall(insert_pattern, ddl, re.IGNORECASE)
+        update_matches = re.findall(update_pattern, ddl, re.IGNORECASE)
+        merge_matches = re.findall(merge_pattern, ddl, re.IGNORECASE)
+
+        all_targets = set(select_into_matches + insert_matches + update_matches + merge_matches)
+
+        # Resolve to object_ids
+        expected_output_ids = set()
+        expected_names = {}
+        for tgt_schema, tgt_table in all_targets:
+            result = conn.execute('''
+                SELECT object_id FROM objects
+                WHERE LOWER(schema_name) = LOWER(?)
+                  AND LOWER(object_name) = LOWER(?)
+            ''', [tgt_schema, tgt_table]).fetchone()
+
+            if result:
+                expected_output_ids.add(result[0])
+                expected_names[result[0]] = f"{tgt_schema}.{tgt_table}"
+
+        # Get actual outputs from lineage_metadata
+        lineage = conn.execute('''
+            SELECT outputs FROM lineage_metadata WHERE object_id = ?
+        ''', [obj_id]).fetchone()
+
+        if lineage and lineage[0]:
+            actual_outputs = set(json.loads(lineage[0]))
+        else:
+            actual_outputs = set()
+
+        # Find missing
+        missing = expected_output_ids - actual_outputs
+
+        if missing:
+            # Get names for missing tables
+            missing_names = []
+            for mid in missing:
+                if mid in expected_names:
+                    missing_names.append(expected_names[mid])
+                else:
+                    # Lookup name
+                    obj_info = conn.execute('SELECT schema_name, object_name FROM objects WHERE object_id = ?', [mid]).fetchone()
+                    if obj_info:
+                        missing_names.append(f"{obj_info[0]}.{obj_info[1]}")
+                    else:
+                        missing_names.append(f"ID:{mid}")
+
+            missing_outputs.append({
+                'object_id': obj_id,
+                'name': f'{schema}.{name}',
+                'type': obj_type,
+                'expected_outputs': len(expected_output_ids),
+                'actual_outputs': len(actual_outputs),
+                'missing_count': len(missing),
+                'missing_ids': list(missing),
+                'missing_names': missing_names
+            })
+
+    # Report
+    total_objects = len(objects_with_ddl)
+    failed_objects = len(missing_outputs)
+    passed = (failed_objects == 0)
+
+    print(f"\nTotal objects checked: {total_objects}")
+    print(f"Objects with missing outputs: {failed_objects}")
+
+    if missing_outputs:
+        print(f"\n❌ FAILED - Missing outputs detected:\n")
+        # Show first 20
+        for i, obj in enumerate(missing_outputs[:20], 1):
+            print(f"{i}. {obj['name']} ({obj['type']})")
+            print(f"   Expected outputs: {obj['expected_outputs']}, Actual: {obj['actual_outputs']}, Missing: {obj['missing_count']}")
+            print(f"   Missing tables: {', '.join(obj['missing_names'][:5])}")  # Show first 5
+            if len(obj['missing_names']) > 5:
+                print(f"   ... and {len(obj['missing_names']) - 5} more")
+            print()
+
+        if len(missing_outputs) > 20:
+            print(f"... and {len(missing_outputs) - 20} more objects with missing outputs\n")
+
+        print(f"\n🚨 CRITICAL: Parser is missing {sum(obj['missing_count'] for obj in missing_outputs)} table outputs!")
+        print(f"This means {failed_objects} SPs/Views have incomplete lineage.")
+        print(f"\nRecommendation: Fix SELECT...INTO pattern handling in parser")
+    else:
+        print(f"\n✅ PASSED - All DDL table references captured")
+
+    return total_objects, failed_objects, passed
+
+
 def main():
     parser = argparse.ArgumentParser(description='Smoke test for parse results')
     parser.add_argument('--db', default='lineage_workspace.duckdb',
@@ -278,6 +409,7 @@ def main():
     total_sps, sps_with_deps, test2_pass = test_sp_parse_success_rate(json_data)
     isolated_total, isolated_fp, test3_pass = test_isolated_tables(json_data, conn)
     high_conf, med_conf, low_conf = test_confidence_distribution(args.db)  # Now uses MetricsService
+    total_objs, objs_missing, test5_pass = test_ddl_fulltext_validation(conn)
 
     conn.close()
 
@@ -286,13 +418,14 @@ def main():
     print("SUMMARY")
     print("=" * 80)
 
-    all_passed = test1_pass and test2_pass and test3_pass
+    all_passed = test1_pass and test2_pass and test3_pass and test5_pass
 
     print(f"\nTest Results:")
     print(f"  Test 1 (SP-to-SP deps): {'✅ PASS' if test1_pass else '❌ FAIL'} ({sp_to_sp_count} deps)")
     print(f"  Test 2 (Parse success): {'✅ PASS' if test2_pass else '❌ FAIL'} ({sps_with_deps}/{total_sps} = {sps_with_deps/total_sps*100:.1f}%)")
     print(f"  Test 3 (Isolated tables): {'✅ PASS' if test3_pass else '❌ FAIL'} ({isolated_fp} false positives)")
     print(f"  Test 4 (Confidence dist): INFO ({high_conf} high, {med_conf} med, {low_conf} low)")
+    print(f"  Test 5 (DDL validation): {'✅ PASS' if test5_pass else '❌ FAIL'} ({objs_missing}/{total_objs} objects missing outputs)")
 
     print(f"\n{'✅ ALL CRITICAL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
 
@@ -307,6 +440,10 @@ def main():
         if not test3_pass:
             print("  - CRITICAL: Successful SPs have missing dependencies")
             print("  - Review parser logic - silent failures detected")
+        if not test5_pass:
+            print("  - CRITICAL: Parser missing outputs from SELECT...INTO statements")
+            print("  - Fix regex patterns in quality_aware_parser.py")
+            print("  - See MISSING_OUTPUTS_BUG_ANALYSIS.md for details")
 
     return 0 if all_passed else 1
 

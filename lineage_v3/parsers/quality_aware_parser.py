@@ -66,9 +66,9 @@ class QualityAwareParser:
     """
 
     # Confidence scores
-    CONFIDENCE_HIGH = 0.85    # Regex and SQLGlot agree (±10%)
-    CONFIDENCE_MEDIUM = 0.75  # Partial agreement (±25%)
-    CONFIDENCE_LOW = 0.5      # Major difference (>25%) - needs AI review
+    CONFIDENCE_HIGH = 0.75    # Regex and SQLGlot agree (≥75% match)
+    CONFIDENCE_MEDIUM = 0.65  # Partial agreement (65-74% match)
+    CONFIDENCE_LOW = 0.5      # Major difference (<65%) - needs AI review
 
     # Quality check thresholds
     THRESHOLD_GOOD = 0.10     # ±10% difference
@@ -597,15 +597,15 @@ class QualityAwareParser:
         Determine confidence score based on quality check.
 
         Rules:
-        - Overall match ≥90% → 0.85 (high confidence)
-        - Overall match ≥75% → 0.75 (medium confidence)
-        - Overall match <75% → 0.5 (low confidence, needs AI)
+        - Overall match ≥75% → 0.75 (high confidence)
+        - Overall match ≥65% → 0.65 (medium confidence)
+        - Overall match <65% → 0.5 (low confidence, needs AI)
         """
         match = quality['overall_match']
 
-        if match >= 0.90:
+        if match >= 0.75:
             return self.CONFIDENCE_HIGH
-        elif match >= 0.75:
+        elif match >= 0.65:
             return self.CONFIDENCE_MEDIUM
         else:
             return self.CONFIDENCE_LOW
