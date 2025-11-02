@@ -116,7 +116,9 @@ class QualityAwareParser:
         # Remove DECLARE statements (variable declarations clutter parsing)
         # Variables are implementation details, not data lineage
         # Example: DECLARE @StartDate DATETIME = GETDATE()
-        (r'\bDECLARE\s+@\w+\s+[^;]+;', '', 0),
+        # FIXED: Use line-based pattern to prevent removing business logic
+        # Pattern stops at newline instead of searching for semicolon
+        (r'\bDECLARE\s+@\w+[^\n]*\n', '-- DECLARE removed\n', 0),
 
         # Remove SET statements (variable assignments)
         # Variable assignments are not table dependencies
@@ -180,6 +182,12 @@ class QualityAwareParser:
 
             # STEP 2: Preprocess and parse with SQLGlot
             cleaned_ddl = self._preprocess_ddl(ddl)
+
+            # Phase 1 Safety Check: Validate preprocessing didn't lose dependencies
+            if not self._validate_preprocessing(ddl, cleaned_ddl):
+                logger.warning(f"Preprocessing validation failed for object {object_id}. Using original DDL for SQLGlot.")
+                cleaned_ddl = ddl  # Fallback to original DDL
+
             parser_sources, parser_targets = self._sqlglot_parse(cleaned_ddl, ddl)
             parser_sources_valid = self._validate_against_catalog(parser_sources)
             parser_targets_valid = self._validate_against_catalog(parser_targets)
@@ -631,6 +639,38 @@ class QualityAwareParser:
         cleaned = re.sub(r'\s+', ' ', cleaned)        # Collapse multiple spaces
 
         return cleaned.strip()
+
+    def _validate_preprocessing(self, original_ddl: str, cleaned_ddl: str) -> bool:
+        """
+        Validate that preprocessing didn't lose table references.
+
+        Phase 1 Safety Check: Ensure DECLARE pattern fix doesn't remove business logic.
+
+        Args:
+            original_ddl: Raw DDL before preprocessing
+            cleaned_ddl: DDL after preprocessing
+
+        Returns:
+            True if preprocessing is safe (no dependencies lost)
+            False if table references were removed (unsafe)
+        """
+        # Quick validation: Count table references before and after
+        original_sources, original_targets = self._regex_scan(original_ddl)
+        cleaned_sources, cleaned_targets = self._regex_scan(cleaned_ddl)
+
+        original_count = len(original_sources) + len(original_targets)
+        cleaned_count = len(cleaned_sources) + len(cleaned_targets)
+
+        if cleaned_count < original_count:
+            logger.warning(
+                f"Preprocessing removed table references! "
+                f"Original: {original_count} tables, "
+                f"Cleaned: {cleaned_count} tables. "
+                f"Lost: {original_count - cleaned_count}"
+            )
+            return False
+
+        return True
 
     def _split_statements(self, sql: str) -> List[str]:
         """Split SQL into statements on GO/semicolon."""

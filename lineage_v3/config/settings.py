@@ -67,10 +67,10 @@ class AIDisambiguationSettings(BaseSettings):
         description="Enable AI disambiguation feature"
     )
     confidence_threshold: float = Field(
-        default=0.85,
+        default=0.90,
         ge=0.0,
         le=1.0,
-        description="Parser confidence threshold to trigger AI (SPs ≤ this value use AI)"
+        description="Parser confidence threshold to trigger AI (SPs ≤ this value use AI) - Phase 1: Raised to 0.90 for better accuracy"
     )
     min_confidence: float = Field(
         default=0.70,
@@ -101,7 +101,7 @@ class AIDisambiguationSettings(BaseSettings):
     def min_less_than_threshold(cls, v: float, info) -> float:
         """Validate that min_confidence < confidence_threshold."""
         # Note: info.data contains other field values
-        threshold = info.data.get('confidence_threshold', 0.85)
+        threshold = info.data.get('confidence_threshold', 0.90)
         if v >= threshold:
             raise ValueError(
                 f'min_confidence ({v}) must be < confidence_threshold ({threshold})'
