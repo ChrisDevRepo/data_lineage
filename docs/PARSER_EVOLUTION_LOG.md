@@ -43,8 +43,9 @@
 | spLoadSalesActualSAP | 0.50 | 1 | 1 | ⚠ Needs improvement |
 
 **Known Issues:**
-- TRUNCATE statements not captured in AST extraction
-- Complex CTEs (11+ nested) may fail parsing
+- 🔴 **CRITICAL**: DECLARE pattern removes business logic (Issue #3 - affects 10-20 SPs)
+- ✅ TRUNCATE statements now captured (fixed in v3.5.0)
+- Complex CTEs (11+ nested) may fail parsing (SQLGlot limitation)
 - SELECT INTO temp tables sometimes lose source references
 
 ---
@@ -52,6 +53,80 @@
 ## Change Log
 
 ### [Unreleased] - Proposed Changes
+
+#### Issue #3: DECLARE Pattern Removes Business Logic (CRITICAL)
+**Date**: 2025-11-02
+**Reporter**: Investigation of spLoadPrimaReportingSiteEventsWithAllocations
+**Impact**: 10-20% of low-confidence SPs (estimated 10-20 SPs affected)
+**Severity**: HIGH
+**Documentation**: [PARSER_ISSUE_DECLARE_PATTERN.md](PARSER_ISSUE_DECLARE_PATTERN.md)
+
+**Problem**:
+- The DECLARE removal pattern `\bDECLARE\s+@\w+\s+[^;]+;` is too greedy
+- `[^;]+` matches ANY characters until first semicolon
+- T-SQL doesn't require semicolons between statements
+- Pattern can match 3,000+ characters, removing:
+  - All DECLARE statements
+  - BEGIN /* TRY */ blocks
+  - TRUNCATE TABLE statements (outputs!)
+  - INSERT INTO statements (outputs!)
+  - SELECT/FROM/JOIN clauses (inputs!)
+  - Entire business logic sections
+
+**Example Impact** (spLoadPrimaReportingSiteEventsWithAllocations):
+- Regex found: 5 inputs, 1 output (CORRECT)
+- Parser found: 0 inputs, 0 outputs (BROKEN - business logic removed)
+- Confidence: 0.5 (should be 0.85+)
+- AI didn't help: Fully-qualified names, no ambiguity to resolve
+
+**Root Causes**:
+1. **Greedy regex**: `[^;]+` matches until first semicolon (could be 3,000 chars away)
+2. **No fallback to regex**: Parser discards regex results even when SQLGlot fails completely
+3. **AI limited scope**: Only handles disambiguation, not preprocessing failures
+
+**Proposed Solutions**:
+- **Option 1** (Fix pattern): Use `\bDECLARE\s+@\w+[^\n]*\n` to stop at newlines
+- **Option 2** (Fallback): Use regex results when SQLGlot finds 0 but regex finds >0
+- **Option 3** (Hybrid): Both fixes for maximum safety
+
+**Expected Improvement**:
+- spLoadPrimaReportingSiteEventsWithAllocations: 0.5 → 0.85+ (0→5 inputs, 0→1 output)
+- 10-20 affected SPs: Similar improvements
+- Overall: 80.7% → 84%+ high-confidence rate
+
+**Testing Plan**:
+```bash
+# 1. Create baseline
+/sub_DL_OptimizeParsing init --name baseline_before_declare_fix
+
+# 2. Apply fix (Option 1, 2, or 3)
+
+# 3. Run evaluation
+/sub_DL_OptimizeParsing run --mode full --baseline baseline_before_declare_fix
+
+# 4. Verify specific test case
+python3 << 'EOF'
+from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
+with DuckDBWorkspace("data/lineage_workspace.duckdb") as db:
+    result = db.connection.execute("""
+        SELECT lm.confidence, json_array_length(lm.inputs), json_array_length(lm.outputs)
+        FROM objects o JOIN lineage_metadata lm ON o.object_id = lm.object_id
+        WHERE o.object_name = 'spLoadPrimaReportingSiteEventsWithAllocations'
+    """).fetchone()
+    assert result[0] >= 0.75, f"Still low confidence: {result[0]}"
+    assert result[1] > 0, "No inputs found"
+    assert result[2] > 0, "No outputs found"
+EOF
+```
+
+**Status**: 🔴 **CRITICAL - Documented, Not Yet Fixed**
+
+**References**:
+- Issue Doc: [docs/PARSER_ISSUE_DECLARE_PATTERN.md](PARSER_ISSUE_DECLARE_PATTERN.md)
+- Affected File: `lineage_v3/parsers/quality_aware_parser.py:119`
+- Pattern: `ENHANCED_REMOVAL_PATTERNS[2]`
+
+---
 
 #### Issue #1: Missing TRUNCATE Support
 **Date**: 2025-10-28

@@ -28,6 +28,7 @@ import { getDagreLayoutedElements } from './utils/layout';
 import { generateSampleData } from './utils/data';
 import { DataNode } from './types';
 import { CONSTANTS } from './constants';
+import { INTERACTION_CONSTANTS } from './interaction-constants';
 
 // --- Main App Component ---
 function DataLineageVisualizer() {
@@ -132,7 +133,7 @@ function DataLineageVisualizer() {
 
   // --- SQL Viewer State ---
   const [sqlViewerOpen, setSqlViewerOpen] = useState(false);
-  const [sqlViewerWidth, setSqlViewerWidth] = useState(33); // Default 33% (1/3 of screen)
+  const [sqlViewerWidth, setSqlViewerWidth] = useState(INTERACTION_CONSTANTS.SQL_VIEWER_WIDTH_DEFAULT_PCT);
   const [isResizing, setIsResizing] = useState(false);
   const [selectedNodeForSql, setSelectedNodeForSql] = useState<{
     id: string;
@@ -211,9 +212,12 @@ function DataLineageVisualizer() {
     if (nodes.length > 0 && !hasInitiallyFittedRef.current) {
       // Only auto-fit on initial load
       const timeoutId = setTimeout(() => {
-        fitView({ padding: 0.2, duration: 500 });
+        fitView({
+          padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+          duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS
+        });
         hasInitiallyFittedRef.current = true;
-      }, 150);
+      }, INTERACTION_CONSTANTS.INITIAL_FIT_VIEW_DELAY_MS);
       return () => clearTimeout(timeoutId);
     }
   }, [nodes.length, fitView]);
@@ -222,15 +226,36 @@ function DataLineageVisualizer() {
   const hasMinimapInitializedRef = useRef(false);
   useEffect(() => {
     if (layoutedElements.nodes.length > 0 && !hasMinimapInitializedRef.current) {
+      // Detect graph size and use appropriate delay for rendering
+      const nodeCount = layoutedElements.nodes.length;
+      let minimapDelay: number;
+
+      if (nodeCount > 500) {
+        // Very large graph (Parquet imports) - need substantial delay
+        minimapDelay = 4000;
+      } else if (nodeCount > 300) {
+        // Large graph - moderate delay
+        minimapDelay = 2000;
+      } else if (nodeCount > 100) {
+        // Medium graph - small delay
+        minimapDelay = 1200;
+      } else {
+        // Small graph - minimal delay
+        minimapDelay = 800;
+      }
+
+      console.log(`[Minimap] Detected ${nodeCount} nodes, using ${minimapDelay}ms delay`);
+
       // Wait for layout to be applied and rendered, then remount minimap once
       const timeoutId = setTimeout(() => {
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             setMinimapKey(prev => prev + 1);
             hasMinimapInitializedRef.current = true;
+            console.log('[Minimap] Initialized successfully');
           });
         });
-      }, 800);
+      }, minimapDelay); // Use dynamic delay based on graph size
       return () => clearTimeout(timeoutId);
     }
   }, [layoutedElements.nodes.length]);
@@ -347,30 +372,43 @@ function DataLineageVisualizer() {
   };
   
   const executeSearch = (query: string) => {
-    if (isTraceModeActive) return;
-    setFocusedNodeId(null);
-    if (!query) {
-      setHighlightedNodes(new Set());
-      fitView({ duration: 500 });
-      return;
+    try {
+      if (isTraceModeActive) return;
+      setFocusedNodeId(null);
+      if (!query) {
+        setHighlightedNodes(new Set());
+        fitView({ duration: 500 });
+        return;
+      }
+
+      // Safety check: ensure query is a valid string
+      if (typeof query !== 'string') {
+        console.error('[Search] Invalid query type:', typeof query);
+        addNotification('Invalid search query. Please try again.', 'error');
+        return;
+      }
+
+      const foundNodeData = allData.find(d => d.name && d.name.toLowerCase() === query.toLowerCase());
+      if (!foundNodeData) {
+        addNotification('No object found with that name.', 'error');
+        return;
+      }
+      const reactFlowNode = nodes.find(n => n.id === foundNodeData.id);
+      if (!reactFlowNode) {
+        addNotification('Object found, but it is not visible with the current filters.', 'error');
+        return;
+      }
+      setHighlightedNodes(new Set([foundNodeData.id]));
+      setCenter(
+        reactFlowNode.position.x + (reactFlowNode.width || 192) / 2,
+        reactFlowNode.position.y + (reactFlowNode.height || 48) / 2,
+        { zoom: 1.2, duration: 800 }
+      );
+      setSearchTerm('');
+    } catch (error) {
+      console.error('[Search] Error during search:', error);
+      addNotification('An error occurred while searching. Please try again.', 'error');
     }
-    const foundNodeData = allData.find(d => d.name.toLowerCase() === query.toLowerCase());
-    if (!foundNodeData) {
-      addNotification('No object found with that name.', 'error');
-      return;
-    }
-    const reactFlowNode = nodes.find(n => n.id === foundNodeData.id);
-    if (!reactFlowNode) {
-      addNotification('Object found, but it is not visible with the current filters.', 'error');
-      return;
-    }
-    setHighlightedNodes(new Set([foundNodeData.id]));
-    setCenter(
-      reactFlowNode.position.x + (reactFlowNode.width || 192) / 2,
-      reactFlowNode.position.y + (reactFlowNode.height || 48) / 2,
-      { zoom: 1.2, duration: 800 }
-    );
-    setSearchTerm('');
   };
 
   const handlePaneClick = () => {
@@ -645,7 +683,6 @@ function DataLineageVisualizer() {
 
       <!-- Schema Legend -->
       <g id="legend">
-        <rect x="10" y="${HEADER_HEIGHT + 10}" width="${LEGEND_WIDTH}" height="${legendHeight}" rx="8" fill="rgba(255,255,255,0.95)" stroke="#d1d5db" stroke-width="1"/>
         <text x="20" y="${HEADER_HEIGHT + 40}" font-family="sans-serif" font-size="16px" font-weight="bold" fill="#1f2937">Schemas</text>
         ${legendItems}
       </g>
@@ -808,12 +845,13 @@ function DataLineageVisualizer() {
           addNotification={addNotification}
         />
       </main>
-      <ImportDataModal 
-        isOpen={isImportModalOpen} 
-        onClose={() => setIsImportModalOpen(false)} 
-        onImport={handleDataImport} 
-        currentData={allData} 
-        defaultSampleData={sampleData} 
+      <ImportDataModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleDataImport}
+        currentData={allData}
+        defaultSampleData={sampleData}
+        addNotification={addNotification} 
       />
       <InfoModal
         isOpen={isInfoModalOpen}

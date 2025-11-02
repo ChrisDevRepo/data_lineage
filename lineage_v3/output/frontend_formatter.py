@@ -133,14 +133,28 @@ class FrontendFormatter:
                 if out_id in self.object_id_to_node_id
             ]
             
-            # Get confidence for description
+            # Get confidence and parser type for description
             confidence = node['provenance']['confidence']
+            primary_source = node['provenance']['primary_source']
+
+            # Map primary_source to display name
+            parser_type_map = {
+                'sqlglot': 'sqlglot',
+                'ai': 'ai',
+                'regex': 'regex',
+                'dmv': 'dmv',
+                'query_log': 'validated',
+                'metadata': 'dmv',
+                'unparsed': 'unparsed'
+            }
+            parser_display = parser_type_map.get(primary_source, primary_source)
+
             if node['object_type'] == 'Stored Procedure':
-                # Show actual parsed confidence (variable)
-                description = f"Confidence: {confidence:.2f}"
+                # Show actual parsed confidence with parser type (variable)
+                description = f"Confidence: {confidence:.2f} ({parser_display})"
             else:
                 # Tables and Views always show 1.00 (they exist in metadata)
-                description = "Confidence: 1.00"
+                description = "Confidence: 1.00 (dmv)"
             
             # Classify data model type
             data_model_type = self._classify_data_model_type(

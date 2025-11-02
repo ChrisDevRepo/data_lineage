@@ -216,7 +216,7 @@ class LineageProcessor:
             self.update_status("processing", 8, "Preparing workspace", f"Initializing workspace in {mode_text} mode...")
 
             with DuckDBWorkspace(workspace_path=str(self.workspace_file)) as db:
-                # Conditionally truncate data tables
+                # Conditionally truncate data tables and delete persistent JSON
                 if not self.incremental:
                     # Full refresh: truncate all data tables (lineage_metadata will be rebuilt)
                     tables_to_truncate = ['objects', 'dependencies', 'definitions', 'query_logs', 'table_columns']
@@ -226,6 +226,15 @@ class LineageProcessor:
                         except Exception as e:
                             # Table might not exist yet, ignore
                             pass
+
+                    # Also delete the persistent frontend JSON file
+                    latest_data_file = self.data_dir / "latest_frontend_lineage.json"
+                    if latest_data_file.exists():
+                        try:
+                            latest_data_file.unlink()
+                            logger.info("Deleted existing frontend data file (full refresh mode)")
+                        except Exception as e:
+                            logger.warning(f"Failed to delete frontend data file: {e}")
                 # Incremental mode: don't truncate tables, lineage_metadata persists!
 
                 # Step 2: Load Parquet files using detected mappings

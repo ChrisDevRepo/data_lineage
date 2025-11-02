@@ -4,6 +4,7 @@ import { DataNode } from '../types';
 import { tokens } from '../design-tokens';
 import { Checkbox } from './ui/Checkbox';
 import { API_BASE_URL } from '../config';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 // Debounce utility
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
@@ -57,6 +58,12 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
 
   const editorRef = useRef<any>(null);
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
+  const schemaFilterRef = useRef<HTMLDivElement>(null);
+  const typeFilterRef = useRef<HTMLDivElement>(null);
+
+  // Auto-close dropdowns when clicking outside
+  useClickOutside(schemaFilterRef, () => setShowSchemaFilter(false));
+  useClickOutside(typeFilterRef, () => setShowTypeFilter(false));
 
   // Extract unique schemas and object types from allData using useMemo to prevent re-renders
   const filterOptions = useMemo<FilterOptions>(() => {
@@ -119,6 +126,20 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
       document.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isResizing]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   // Debounced search function
   const debouncedSearch = useMemo(
@@ -301,17 +322,34 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
           </div>
 
           {/* Schema filter - Multi-select */}
-          <div className="relative">
+          <div className="relative" ref={schemaFilterRef}>
             <button
-              onClick={() => setShowSchemaFilter(!showSchemaFilter)}
+              onClick={() => {
+                setShowSchemaFilter(!showSchemaFilter);
+                if (!showSchemaFilter) setShowTypeFilter(false); // Close other dropdown
+              }}
               className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedSchemas.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
               title={`Schemas (${selectedSchemas.size > 0 ? selectedSchemas.size : 'All'})`}
             >
               Schemas ({selectedSchemas.size > 0 ? selectedSchemas.size : filterOptions.schemas.length})
             </button>
             {showSchemaFilter && (
-              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
-                <div className="space-y-2">
+              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-60 overflow-hidden flex flex-col">
+                <div className="p-2 border-b border-gray-200 bg-gray-50">
+                  <button
+                    onClick={() => {
+                      if (selectedSchemas.size === filterOptions.schemas.length) {
+                        setSelectedSchemas(new Set());
+                      } else {
+                        setSelectedSchemas(new Set(filterOptions.schemas));
+                      }
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    {selectedSchemas.size === filterOptions.schemas.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
+                <div className="p-3 space-y-2 overflow-y-auto">
                   {filterOptions.schemas.map(schema => (
                     <Checkbox
                       key={schema}
@@ -331,17 +369,34 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
           </div>
 
           {/* Object type filter - Multi-select */}
-          <div className="relative">
+          <div className="relative" ref={typeFilterRef}>
             <button
-              onClick={() => setShowTypeFilter(!showTypeFilter)}
+              onClick={() => {
+                setShowTypeFilter(!showTypeFilter);
+                if (!showTypeFilter) setShowSchemaFilter(false); // Close other dropdown
+              }}
               className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedObjectTypes.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
               title={`Types (${selectedObjectTypes.size > 0 ? selectedObjectTypes.size : 'All'})`}
             >
               Types ({selectedObjectTypes.size > 0 ? selectedObjectTypes.size : filterOptions.objectTypes.length})
             </button>
             {showTypeFilter && (
-              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
-                <div className="space-y-2">
+              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-60 overflow-hidden flex flex-col">
+                <div className="p-2 border-b border-gray-200 bg-gray-50">
+                  <button
+                    onClick={() => {
+                      if (selectedObjectTypes.size === filterOptions.objectTypes.length) {
+                        setSelectedObjectTypes(new Set());
+                      } else {
+                        setSelectedObjectTypes(new Set(filterOptions.objectTypes));
+                      }
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                  >
+                    {selectedObjectTypes.size === filterOptions.objectTypes.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
+                <div className="p-3 space-y-2 overflow-y-auto">
                   {filterOptions.objectTypes.map(type => (
                     <Checkbox
                       key={type}

@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { DataNode } from '../types';
 import { NotificationHistory } from './NotificationSystem';
 import { Notification } from '../types';
 import { Button } from './ui/Button';
 import { Select } from './ui/Select';
 import { Checkbox } from './ui/Checkbox';
+import { useClickOutside } from '../hooks/useClickOutside';
 
 type ToolbarProps = {
     searchTerm: string;
@@ -62,29 +63,40 @@ export const Toolbar = (props: ToolbarProps) => {
     const schemaFilterRef = useRef<HTMLDivElement>(null);
     const typeFilterRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (schemaFilterRef.current && !schemaFilterRef.current.contains(event.target as Node)) {
-                setIsSchemaFilterOpen(false);
-            }
-            if (typeFilterRef.current && !typeFilterRef.current.contains(event.target as Node)) {
-                setIsTypeFilterOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    // Close dropdowns when clicking outside
+    useClickOutside(schemaFilterRef, () => setIsSchemaFilterOpen(false));
+    useClickOutside(typeFilterRef, () => setIsTypeFilterOpen(false));
 
     const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        setAutocompleteSuggestions([]);
-        executeSearch(searchTerm.trim());
+        try {
+            event.preventDefault();
+            setAutocompleteSuggestions([]);
+            executeSearch(searchTerm.trim());
+        } catch (error) {
+            console.error('[Toolbar] Error during search submission:', error);
+            setAutocompleteSuggestions([]);
+        }
     };
 
     const handleSuggestionClick = (node: DataNode) => {
-        setSearchTerm(node.name);
-        setAutocompleteSuggestions([]);
-        executeSearch(node.name);
+        try {
+            setSearchTerm(node.name);
+            setAutocompleteSuggestions([]);
+            executeSearch(node.name);
+        } catch (error) {
+            console.error('[Toolbar] Error during suggestion click:', error);
+            setAutocompleteSuggestions([]);
+        }
+    };
+
+    const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setSearchTerm(e.target.value);
+        } catch (error) {
+            console.error('[Toolbar] Error during search input change:', error);
+            // Reset to empty string on error
+            setSearchTerm('');
+        }
     };
 
     return (
@@ -98,7 +110,7 @@ export const Toolbar = (props: ToolbarProps) => {
                             type="text"
                             placeholder="Search objects..."
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={handleSearchInputChange}
                             onBlur={() => setTimeout(() => setAutocompleteSuggestions([]), 150)}
                             disabled={isTraceModeActive}
                             className="text-sm h-9 w-56 pl-3 pr-9 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"

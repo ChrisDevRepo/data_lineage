@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DataNode, TraceConfig } from '../types';
 import Graph from 'graphology';
+import { INTERACTION_CONSTANTS } from '../interaction-constants';
 
 type UseDataFilteringProps = {
     allData: DataNode[];
@@ -46,14 +47,24 @@ export function useDataFiltering({
             return;
         }
 
-        const suggestions: DataNode[] = [];
-        // This logic is complex because `findNode` is not available in all graphology versions,
-        // and we need to break early from the loop for performance.
+        // Safety check: ensure lineageGraph is initialized before accessing
+        if (!lineageGraph || typeof lineageGraph.nodeEntries !== 'function') {
+            setAutocompleteSuggestions([]);
+            return;
+        }
+
         try {
-            lineageGraph.forEachNode((nodeId, attributes) => {
-                if (suggestions.length >= 5) {
-                    throw new Error('Break'); // Early exit from forEachNode
+            const suggestions: DataNode[] = [];
+            // Use for...of loop with break for early exit
+            for (const [nodeId, attributes] of lineageGraph.nodeEntries()) {
+                if (suggestions.length >= INTERACTION_CONSTANTS.AUTOCOMPLETE_MAX_RESULTS) break;
+
+                // Safety check: ensure attributes and required properties exist
+                if (!attributes || typeof attributes.name !== 'string' || typeof attributes.schema !== 'string') {
+                    console.warn(`[Autocomplete] Skipping node ${nodeId} with invalid attributes:`, attributes);
+                    continue;
                 }
+
                 if (
                     attributes.name.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
                     selectedSchemas.has(attributes.schema) &&
@@ -61,12 +72,13 @@ export function useDataFiltering({
                 ) {
                     suggestions.push(attributes as DataNode);
                 }
-            });
-        } catch (e) {
-            if ((e as Error).message !== 'Break') throw e;
-        }
+            }
 
-        setAutocompleteSuggestions(suggestions);
+            setAutocompleteSuggestions(suggestions);
+        } catch (error) {
+            console.error('[Autocomplete] Error generating suggestions:', error);
+            setAutocompleteSuggestions([]);
+        }
     }, [searchTerm, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes]);
 
     // Static pre-filter: Apply "Hide Unrelated" BEFORE any other filters

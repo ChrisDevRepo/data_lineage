@@ -71,6 +71,20 @@ class AIDisambiguator:
         """
         self.workspace = workspace
 
+        # Check if Azure OpenAI is available before initializing client
+        if not settings.ai_available:
+            logger.warning(
+                "Azure OpenAI not configured - AI disambiguation disabled. "
+                "Parser will use regex/SQLGlot fallbacks only."
+            )
+            self.client = None
+            self.deployment = None
+            self.system_prompt = None
+            self.timeout = 0
+            self.max_retries = 0
+            self.min_confidence = 0
+            return
+
         # Initialize Azure OpenAI client using centralized config
         self.client = AzureOpenAI(
             api_version=settings.azure_openai.api_version,
@@ -130,6 +144,10 @@ Return JSON:
         Returns:
             AIResult if disambiguation succeeds and passes validation, None otherwise
         """
+        # Early return if AI not configured
+        if self.client is None:
+            return None
+
         if not candidates:
             logger.warning("No candidates provided for disambiguation")
             return None
@@ -485,3 +503,162 @@ Return JSON with resolved_table, confidence, and reasoning."""
         except Exception as e:
             logger.error(f"Object ID resolution error: {e}")
             return None
+
+
+# ============================================================================
+# STANDALONE AI EXTRACTION (for sub_DL_OptimizeParsing subagent)
+# ============================================================================
+
+def run_standalone_ai_extraction(
+    ddl: str,
+    workspace: DuckDBWorkspace,
+    object_id: int,
+    sp_name: str
+) -> Dict[str, Any]:
+    """
+    Standalone AI extraction for evaluation purposes.
+
+    Runs AI disambiguation independently without triggering conditions
+    (confidence threshold, ambiguous references, etc.). Used by evaluation
+    subagent to test AI parsing capability on all objects.
+
+    Args:
+        ddl: SQL DDL text
+        workspace: DuckDB workspace for catalog lookups
+        object_id: Object ID being parsed
+        sp_name: Stored procedure name (schema.name)
+
+    Returns:
+        {
+            'sources': List[int],        # Input object_ids
+            'targets': List[int],        # Output object_ids
+            'confidence': float,         # 0.85-0.95
+            'resolved_tables': List[str], # Qualified table names
+            'validation_passed': bool,
+            'execution_time_ms': int,
+            'cost_estimate_usd': float   # Optional: API cost
+        }
+    """
+    import time
+    import re
+
+    start_time = time.time()
+
+    try:
+        # Initialize disambiguator
+        disambiguator = AIDisambiguator(workspace)
+
+        # Extract ambiguous references from DDL using regex
+        # Look for unqualified table names
+        unqualified_pattern = r'\b(?:FROM|JOIN|INSERT\s+INTO|UPDATE|MERGE\s+INTO)\s+(\w+)\b'
+        matches = re.findall(unqualified_pattern, ddl, re.IGNORECASE)
+
+        reference = None
+        candidates = []
+
+        # Find first ambiguous reference
+        for table_name in set(matches):
+            # Skip temp tables and table variables
+            if table_name.startswith('#') or table_name.startswith('@'):
+                continue
+
+            # Find candidates from catalog
+            query = """
+                SELECT schema_name, object_name
+                FROM objects
+                WHERE LOWER(object_name) = LOWER(?)
+                  AND object_type = 'Table'
+            """
+            results = workspace.connection.execute(query, [table_name]).fetchall()
+
+            if len(results) > 1:
+                # Multiple candidates - ambiguous
+                reference = table_name
+                candidates = [f"{schema}.{name}" for schema, name in results]
+                break
+            elif len(results) == 1:
+                # Single candidate - still try AI
+                reference = table_name
+                candidates = [f"{results[0][0]}.{results[0][1]}"]
+                break
+
+        # If no reference found from unqualified names, try to extract from any table reference
+        if not reference:
+            # Fall back to regex scan to get any table references
+            from lineage_v3.parsers.quality_aware_parser import QualityAwareParser
+            parser = QualityAwareParser(workspace)
+            regex_sources, regex_targets = parser._regex_scan(ddl)
+
+            if regex_sources:
+                # Use first source as test case
+                first_source = list(regex_sources)[0]
+                reference = first_source.split('.')[-1]  # Get table name without schema
+                candidates = [first_source]
+
+        # Build parser result for validation
+        parser_result = {
+            'quality': {
+                'regex_sources': 1,
+                'regex_targets': 1,
+                'parser_sources': 0,
+                'parser_targets': 0
+            }
+        }
+
+        # Run AI disambiguation
+        if reference and candidates:
+            ai_result = disambiguator.disambiguate(
+                reference=reference,
+                candidates=candidates,
+                sql_context=ddl,
+                parser_result=parser_result,
+                sp_name=sp_name
+            )
+
+            execution_time_ms = int((time.time() - start_time) * 1000)
+
+            if ai_result and ai_result.is_valid:
+                return {
+                    'sources': ai_result.sources,
+                    'targets': ai_result.targets,
+                    'confidence': ai_result.confidence,
+                    'resolved_tables': [ai_result.resolved_table],
+                    'validation_passed': True,
+                    'execution_time_ms': execution_time_ms,
+                    'cost_estimate_usd': 0.001  # Approximate cost per call
+                }
+            else:
+                return {
+                    'sources': [],
+                    'targets': [],
+                    'confidence': 0.5,
+                    'resolved_tables': [],
+                    'validation_passed': False,
+                    'execution_time_ms': execution_time_ms,
+                    'cost_estimate_usd': 0.001
+                }
+        else:
+            # No candidates found - return empty result
+            return {
+                'sources': [],
+                'targets': [],
+                'confidence': 0.5,
+                'resolved_tables': [],
+                'validation_passed': False,
+                'execution_time_ms': int((time.time() - start_time) * 1000),
+                'cost_estimate_usd': 0.0,
+                'note': 'No ambiguous references found for AI testing'
+            }
+
+    except Exception as e:
+        logger.error(f"AI extraction failed for {sp_name}: {e}")
+        return {
+            'sources': [],
+            'targets': [],
+            'confidence': 0.0,
+            'resolved_tables': [],
+            'validation_passed': False,
+            'execution_time_ms': int((time.time() - start_time) * 1000),
+            'cost_estimate_usd': 0.0,
+            'error': str(e)
+        }
