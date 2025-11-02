@@ -16,8 +16,8 @@ sleep 1
 
 # Start Backend (FastAPI)
 echo "🔧 Starting Backend API on port 8000..."
-cd api
-source venv/bin/activate
+cd /home/chris/sandbox/api
+source ../venv/bin/activate
 nohup python main.py > /tmp/backend.log 2>&1 &
 BACKEND_PID=$!
 echo "   ✅ Backend started (PID: $BACKEND_PID)"
@@ -26,7 +26,7 @@ sleep 2
 
 # Start Frontend (Vite)
 echo "🎨 Starting Frontend on port 3000..."
-cd frontend
+cd /home/chris/sandbox/frontend
 nohup npm run dev > /tmp/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "   ✅ Frontend started (PID: $FRONTEND_PID)"

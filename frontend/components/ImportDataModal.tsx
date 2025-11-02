@@ -338,8 +338,8 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
 
                 // Check if complete
                 if (status.status === 'completed') {
-                    // Fetch result
-                    const resultResponse = await fetch(`${API_BASE_URL}/api/result/${job_id}`);
+                    // Fetch result (with cache busting to ensure fresh data)
+                    const resultResponse = await fetch(`${API_BASE_URL}/api/result/${job_id}?_t=${Date.now()}`);
                     const result = await resultResponse.json();
 
                     // Extract data array from response

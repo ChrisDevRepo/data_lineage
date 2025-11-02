@@ -1,15 +1,38 @@
 # DuckDB Workspace Schema Documentation
 
 **File:** `lineage_workspace.duckdb` (default location)
-**Version:** 3.0.0
-**Date:** 2025-10-26
+**Version:** 3.7.0
+**Date:** 2025-11-02
 
 ## Overview
 
 The DuckDB workspace is a persistent file-based database that stores:
 1. **Input Data** - Loaded from Parquet snapshots
-2. **Metadata** - Incremental load tracking
-3. **Results** - Final lineage graph (future)
+2. **Metadata** - Incremental load tracking, parse results
+3. **Results** - Final lineage graph exported to JSON
+
+## Data Flow Architecture
+
+**IMPORTANT:** Understanding where dependencies are stored:
+
+```
+DMV Dependencies (Views, Functions)
+└─> dependencies table (confidence: 1.0)
+    └─> Used for Views and Functions only
+
+Parser Dependencies (Stored Procedures)
+└─> lineage_metadata table (confidence: 0.5-0.95)
+    └─> Exported to JSON files
+    └─> NOT inserted into dependencies table (by design)
+
+Query Log Validation
+└─> query_logs table → validation only
+    └─> Boosts confidence of parsed results
+```
+
+**Key Insight for Testing:**
+- When checking for isolated objects, query **BOTH** `dependencies` AND `lineage_metadata`
+- Example: `test_isolated_objects.py` Test 3 checks both sources (fixed in v3.7.0)
 
 ## Database Structure
 
@@ -20,7 +43,14 @@ lineage_workspace.duckdb
 │   ├── objects          - All database objects catalog
 │   ├── dependencies     - DMV dependencies (confidence 1.0)
 │   ├── definitions      - DDL text for parsing
-│   └── query_logs       - Optional runtime execution logs
+│   ├── query_logs       - Optional runtime execution logs
+│   └── table_columns    - Optional table column metadata
+│
+├── Views (generated, managed by parser)
+│   └── unified_ddl      - Union of real DDL + generated CREATE TABLE statements
+│
+├── Search Tables (managed by parser)
+│   └── unified_ddl_materialized - Materialized view for full-text search
 │
 └── Metadata Tables (persistent, managed by parser)
     ├── lineage_metadata - Incremental load tracking
@@ -202,11 +232,194 @@ command_text: "INSERT INTO FactSales SELECT * FROM STAGING_CADENCE.SalesData"
 
 ---
 
+### 5. `table_columns` Table
+
+**Source:** `table_columns.parquet`
+**Purpose:** Table column metadata for generating CREATE TABLE DDL statements
+**Primary Key:** None (composite: schema_name + table_name + column_id)
+**Optional:** This table may not exist if table column metadata was skipped
+
+| Column | Type | Description | Example |
+|--------|------|-------------|---------|
+| `schema_name` | TEXT | Schema name | "CONSUMPTION_PRIMA" |
+| `table_name` | TEXT | Table name | "FeasibilityContacts" |
+| `column_name` | TEXT | Column name | "RECORD_ID" |
+| `column_id` | INTEGER | Column ordinal position | 1 |
+| `data_type` | TEXT | SQL Server data type | "int", "varchar", "datetime" |
+| `max_length` | INTEGER | Maximum length for char/varchar types | 255, -1 (MAX) |
+| `precision` | INTEGER | Precision for numeric types | 18 |
+| `scale` | INTEGER | Scale for numeric types | 2 |
+| `is_nullable` | BOOLEAN | NULL allowed | true, false |
+| `correct_object_id` | INTEGER | Resolved object_id from objects table | 1275862257 |
+
+**Sample Row:**
+```sql
+schema_name: CONSUMPTION_PRIMA
+table_name: FeasibilityContacts
+column_name: RECORD_ID
+column_id: 1
+data_type: int
+max_length: NULL
+precision: 10
+scale: 0
+is_nullable: true
+correct_object_id: 1275862257
+```
+
+**Important Notes:**
+- Used to generate CREATE TABLE statements for full-text search
+- `correct_object_id` is auto-populated by joining with `objects` table
+- Handles object_id changes between extractions
+- **This table is OPTIONAL** - unified_ddl view works without it (fallback DDL)
+
+**Typical Row Count:** 0 - 500,000 columns (10-50 columns per table)
+
+---
+
+## Views (Generated, Managed by Parser)
+
+These views are automatically created by the parser to provide unified access to DDL.
+
+### 6. `unified_ddl` View
+
+**Purpose:** Union of real DDL (SPs/Views) + generated CREATE TABLE statements
+**Managed By:** `DuckDBWorkspace.create_unified_ddl_view()`
+**Used For:** Full-text search, DDL retrieval
+
+| Column | Type | Description | Example |
+|--------|------|-------------|---------|
+| `object_id` | INTEGER | Object identifier | 1275862257 |
+| `schema_name` | TEXT | Schema name | "CONSUMPTION_PRIMA" |
+| `object_name` | TEXT | Object name | "FeasibilityContacts" |
+| `object_type` | TEXT | Object type | "Table", "Stored Procedure", "View" |
+| `ddl_text` | TEXT | DDL statement (real or generated) | "CREATE TABLE..." |
+
+**View Definition:**
+```sql
+CREATE OR REPLACE VIEW unified_ddl AS
+-- Part 1: Real DDL from definitions (Stored Procedures & Views)
+SELECT object_id, schema_name, object_name, object_type, definition as ddl_text
+FROM definitions d JOIN objects o ON d.object_id = o.object_id
+WHERE o.object_type IN ('Stored Procedure', 'View')
+
+UNION ALL
+
+-- Part 2: Generated CREATE TABLE DDL from table_columns (if available)
+SELECT correct_object_id, schema_name, table_name, 'Table',
+       'CREATE TABLE [schema].[table] (' || column_definitions || ');'
+FROM table_columns WHERE correct_object_id IS NOT NULL
+GROUP BY correct_object_id, schema_name, table_name
+
+UNION ALL
+
+-- Part 3: Fallback CREATE TABLE for tables without column metadata
+SELECT object_id, schema_name, object_name, 'Table',
+       'CREATE TABLE [schema].[table] (/* Column info not available */);'
+FROM objects WHERE object_type = 'Table'
+AND NOT EXISTS (SELECT 1 FROM table_columns WHERE correct_object_id = object_id)
+```
+
+**Sample Row:**
+```sql
+object_id: 1275862257
+schema_name: CONSUMPTION_PRIMA
+object_name: FeasibilityContacts
+object_type: Table
+ddl_text: "CREATE TABLE [CONSUMPTION_PRIMA].[FeasibilityContacts] (
+    [RECORD_ID] int NULL,
+    [CONTACT_DATE] datetime NULL,
+    [CONTACT_ORIGINATOR] int NULL,
+    ...
+);"
+```
+
+**Typical Row Count:** Same as total objects (tables + SPs + views)
+
+---
+
+## Search Tables (Managed by Parser)
+
+These tables are automatically created and maintained for full-text search functionality.
+
+### 7. `unified_ddl_materialized` Table
+
+**Purpose:** Materialized copy of unified_ddl view for full-text search indexing
+**Managed By:** `DuckDBWorkspace.create_fts_index()`
+**Used For:** Full-text search via BM25 ranking
+
+| Column | Type | Description | Example |
+|--------|------|-------------|---------|
+| `object_id` | INTEGER | Object identifier | 1275862257 |
+| `schema_name` | TEXT | Schema name | "CONSUMPTION_PRIMA" |
+| `object_name` | TEXT | Object name | "FeasibilityContacts" |
+| `object_type` | TEXT | Object type | "Table" |
+| `ddl_text` | TEXT | DDL statement (real or generated) | "CREATE TABLE..." |
+
+**Full-Text Search Index:**
+- **Index Name:** `fts_main_unified_ddl_materialized`
+- **Indexed Columns:** `object_name`, `ddl_text`
+- **Key Column:** `object_id`
+- **Features:** BM25 ranking, stemming, phrase search, wildcards, boolean operators
+
+**Creation:**
+```sql
+-- Step 1: Materialize the view (FTS can't index views)
+CREATE OR REPLACE TABLE unified_ddl_materialized AS
+SELECT * FROM unified_ddl;
+
+-- Step 2: Create FTS index
+PRAGMA create_fts_index(
+    'unified_ddl_materialized',
+    'object_id',
+    'object_name',
+    'ddl_text',
+    overwrite=1
+);
+```
+
+**Search Query Example:**
+```sql
+SELECT
+    object_id::TEXT as id,
+    object_name as name,
+    object_type as type,
+    schema_name as schema,
+    fts_main_unified_ddl_materialized.match_bm25(object_id, 'FeasibilityContacts') as score,
+    substr(ddl_text, 1, 150) as snippet
+FROM unified_ddl_materialized
+WHERE fts_main_unified_ddl_materialized.match_bm25(object_id, 'FeasibilityContacts') IS NOT NULL
+ORDER BY score DESC
+LIMIT 100;
+```
+
+**Sample Row:**
+```sql
+object_id: 1275862257
+schema_name: CONSUMPTION_PRIMA
+object_name: FeasibilityContacts
+object_type: Table
+ddl_text: "CREATE TABLE [CONSUMPTION_PRIMA].[FeasibilityContacts] (
+    [RECORD_ID] int NULL,
+    [CONTACT_DATE] datetime NULL,
+    ...
+);"
+```
+
+**Important Notes:**
+- Rebuilt whenever Parquet files are uploaded
+- Includes ALL object types: Tables, Stored Procedures, Views
+- Tables show generated CREATE TABLE statements (not available in definitions table)
+- Used by `/api/search-ddl` endpoint
+
+**Typical Row Count:** Same as total objects (tables + SPs + views)
+
+---
+
 ## Metadata Tables (Persistent, Managed by Parser)
 
 These tables are created and managed by the lineage parser to track progress and results.
 
-### 5. `lineage_metadata` Table
+### 8. `lineage_metadata` Table
 
 **Purpose:** Incremental load tracking - stores last parsed state for each object
 **Primary Key:** `object_id`
@@ -269,7 +482,7 @@ OR object_id NOT IN lineage_metadata
 
 ---
 
-### 6. `lineage_results` Table
+### 9. `lineage_results` Table
 
 **Purpose:** Final merged lineage graph (all sources combined)
 **Primary Key:** `object_id`
@@ -468,17 +681,19 @@ WHERE d.referencing_object_id IS NULL
 
 ### File Size Estimates
 
-| Table | Row Count | Est. Size |
+| Table/View | Row Count | Est. Size |
 |-------|-----------|-----------|
 | `objects` | 10,000 | ~2 MB |
 | `dependencies` | 50,000 | ~10 MB |
 | `definitions` | 5,000 | ~50 MB (large DDL text) |
 | `query_logs` | 10,000 | ~20 MB |
+| `table_columns` | 100,000 | ~5 MB |
+| `unified_ddl_materialized` | 10,000 | ~55 MB (includes generated DDL) |
 | `lineage_metadata` | 10,000 | ~2 MB |
 | `lineage_results` | 10,000 | ~2 MB |
-| **Total** | | **~86 MB** |
+| **Total** | | **~146 MB** |
 
-**Actual workspace file size:** ~100-150 MB (includes DuckDB metadata)
+**Actual workspace file size:** ~150-200 MB (includes DuckDB metadata + FTS index)
 
 ### Performance Characteristics
 
@@ -486,20 +701,22 @@ WHERE d.referencing_object_id IS NULL
 - **Incremental Query:** <1 second (indexed on object_id)
 - **Name Resolution:** <100ms for 1,000 table names (batch query)
 - **Metadata Update:** <10ms per object
+- **FTS Index Creation:** ~1-2 seconds for 10,000 objects
+- **Full-Text Search:** <100ms for typical queries (BM25 ranking)
 
 ---
 
 ## Schema Versioning
 
-**Current Version:** 3.0.0
+**Current Version:** 3.1.0
 
 **Schema Changes:**
+- v3.1.0 (2025-11-02): Added full-text search with unified_ddl_materialized table
 - v3.0.0 (2025-10-26): Initial schema with incremental load support
 
 **Future Changes:**
 - Add indexes on frequently queried columns
 - Add computed columns for common joins
-- Add full-text search on DDL definitions
 
 ---
 

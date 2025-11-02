@@ -48,7 +48,7 @@ class AzureOpenAISettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix='AZURE_OPENAI_',
-        env_file='.env',
+        env_file=Path(__file__).parent.parent.parent / '.env',  # Project root .env
         env_file_encoding='utf-8',
         case_sensitive=False,
         extra='ignore',  # Ignore non-AZURE_OPENAI env vars
@@ -220,7 +220,7 @@ class Settings(BaseSettings):
     )
 
     model_config = SettingsConfigDict(
-        env_file='.env',
+        env_file=Path(__file__).parent.parent.parent / '.env',  # Project root .env
         env_file_encoding='utf-8',
         case_sensitive=False,
         extra='ignore'  # Ignore extra env vars not defined here

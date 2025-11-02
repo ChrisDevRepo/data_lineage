@@ -80,6 +80,12 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 
 ## Sub-Agents
 
+**Note:** Slash commands work differently in CLI vs VSCode:
+- **VSCode Extension:** Reads from `.claude/commands/` in project directory
+- **Claude CLI:** Reads from `~/.config/claude/commands/` in home directory
+
+Commands are installed in both locations. If using CLI, you may need to restart your session.
+
 ### `/sub_DL_OptimizeParsing` - Parser Evaluation
 - Runs all 3 methods (regex, SQLGlot, AI) independently
 - Calculates precision/recall/F1 scores

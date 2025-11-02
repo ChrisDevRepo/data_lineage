@@ -105,12 +105,12 @@ if quality_result['confidence'] <= 0.85:
 ### 3.2. Configuration Options
 
 ```python
-# config.py or .env
-AI_CONFIDENCE_THRESHOLD = 0.85  # Parser confidence threshold to trigger AI
-AI_MIN_CONFIDENCE = 0.70        # Minimum AI confidence to accept result
-AI_MAX_RETRIES = 2              # Maximum retry attempts with refined prompts
-AI_TIMEOUT_SECONDS = 10         # API timeout
-AI_ENABLED = True               # Feature flag (disable for testing/cost control)
+# .env file configuration
+AI_CONFIDENCE_THRESHOLD=0.85  # Parser confidence threshold to trigger AI
+AI_MIN_CONFIDENCE=0.70        # Minimum AI confidence to accept result
+AI_MAX_RETRIES=2              # Maximum retry attempts with refined prompts
+AI_TIMEOUT_SECONDS=10         # API timeout
+AI_ENABLED=true               # Feature flag (disable for testing/cost control)
 ```
 
 ---
@@ -564,13 +564,13 @@ AZURE_OPENAI_API_VERSION=2024-12-01-preview
 ### 11.2. Runtime Configuration
 
 ```python
-# config.py or environment-based
-AI_ENABLED = True                  # Master switch (disable for testing)
-AI_CONFIDENCE_THRESHOLD = 0.85     # Parser confidence to trigger AI
-AI_MIN_CONFIDENCE = 0.70           # Minimum AI confidence to accept
-AI_MAX_RETRIES = 2                 # Retry attempts with refined prompts
-AI_TIMEOUT_SECONDS = 10            # API call timeout
-AI_CACHE_ENABLED = False           # Future: Cache common patterns (Phase 5)
+# .env file configuration
+AI_ENABLED=true                  # Master switch (disable for testing)
+AI_CONFIDENCE_THRESHOLD=0.85     # Parser confidence to trigger AI
+AI_MIN_CONFIDENCE=0.70           # Minimum AI confidence to accept
+AI_MAX_RETRIES=2                 # Retry attempts with refined prompts
+AI_TIMEOUT_SECONDS=10            # API call timeout
+# AI_CACHE_ENABLED=false         # Future: Cache common patterns (Phase 5)
 ```
 
 ### 11.3. CLI Flags

@@ -608,17 +608,17 @@ class DuckDBWorkspace:
         """
         Create full-text search index for DDL definitions.
 
-        Called after loading definitions table on data upload.
+        Called after loading definitions table and creating unified_ddl view on data upload.
 
         Features:
-        - Indexes: object_name, definition_text
+        - Indexes: object_name, ddl_text (includes generated CREATE TABLE statements)
         - Case-insensitive search
         - Automatic stemming (e.g., "customer" matches "customers")
         - BM25 relevance ranking
         - Supports phrase search, boolean operators, wildcards
 
         Raises:
-            RuntimeError: If not connected or definitions table doesn't exist
+            RuntimeError: If not connected or unified_ddl view doesn't exist
         """
         if not self.connection:
             raise RuntimeError("Not connected to DuckDB workspace")
@@ -628,19 +628,26 @@ class DuckDBWorkspace:
             self.connection.execute("INSTALL fts;")
             self.connection.execute("LOAD fts;")
 
-            # Create FTS index on definitions table
-            # Indexes both object_name and definition_text for comprehensive search
+            # Materialize unified_ddl view as a table (FTS can't index views)
+            # This creates a searchable table with all DDL (real + generated)
+            self.connection.execute("""
+                CREATE OR REPLACE TABLE unified_ddl_materialized AS
+                SELECT * FROM unified_ddl
+            """)
+
+            # Create FTS index on materialized table
+            # Indexes both object_name and ddl_text for comprehensive search
             self.connection.execute("""
                 PRAGMA create_fts_index(
-                    'definitions',
+                    'unified_ddl_materialized',
                     'object_id',
                     'object_name',
-                    'definition',
+                    'ddl_text',
                     overwrite=1
                 );
             """)
 
-            print("✅ FTS index created successfully on definitions table")
+            print("✅ FTS index created successfully on unified_ddl_materialized table")
 
         except Exception as e:
             print(f"❌ Failed to create FTS index: {e}")

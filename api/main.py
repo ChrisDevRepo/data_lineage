@@ -15,7 +15,7 @@ from typing import List, Optional
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -367,17 +367,17 @@ async def search_ddl(q: str = Query(..., min_length=1, max_length=200, descripti
         with DuckDBWorkspace(workspace_path=str(workspace_file)) as db:
             # Query FTS index for matching objects
             # Returns ranked results with BM25 relevance scores
+            # Uses unified_ddl_materialized table which includes tables with generated CREATE TABLE statements
             results = db.connection.execute("""
                 SELECT
-                    d.object_id::TEXT as id,
-                    d.object_name as name,
-                    o.object_type as type,
-                    d.schema_name as schema,
-                    fts_main_definitions.match_bm25(d.object_id, ?) as score,
-                    substr(d.definition, 1, 150) as snippet
-                FROM definitions d
-                JOIN objects o ON d.object_id = o.object_id
-                WHERE fts_main_definitions.match_bm25(d.object_id, ?) IS NOT NULL
+                    u.object_id::TEXT as id,
+                    u.object_name as name,
+                    u.object_type as type,
+                    u.schema_name as schema,
+                    fts_main_unified_ddl_materialized.match_bm25(u.object_id, ?) as score,
+                    substr(u.ddl_text, 1, 150) as snippet
+                FROM unified_ddl_materialized u
+                WHERE fts_main_unified_ddl_materialized.match_bm25(u.object_id, ?) IS NOT NULL
                 ORDER BY score DESC
                 LIMIT 100
             """, [q, q]).fetchdf()
@@ -561,17 +561,23 @@ async def get_job_status(job_id: str):
 
 
 @app.get("/api/result/{job_id}", response_model=LineageResultResponse, tags=["Lineage"])
-async def get_job_result(job_id: str):
+async def get_job_result(job_id: str, response: Response):
     """
     Get final lineage JSON when job is complete.
 
     Args:
         job_id: Job identifier
+        response: FastAPI response object (for setting headers)
 
     Returns:
         Lineage graph data (frontend format) and summary statistics
     """
     try:
+        # Prevent browser caching of lineage results
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
         # Check status first
         status_data = get_job_status_data(job_id)
 

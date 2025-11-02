@@ -1,7 +1,7 @@
 # SQL Parsing User Guide
 
-**Version:** 3.0.0
-**Last Updated:** 2025-10-26
+**Version:** 3.8.0
+**Last Updated:** 2025-11-02
 **For:** DBAs, Data Engineers, External Users
 
 ---
@@ -40,6 +40,129 @@ The Vibecoding Lineage Parser extracts data lineage from Azure Synapse stored pr
 | **DELETE/TRUNCATE** | `DELETE FROM t` | 0.85 |
 | **CTEs** | `WITH cte AS (...) SELECT * FROM cte` | 0.85 |
 | **Subqueries** | `SELECT * FROM (SELECT ...) AS sub` | 0.85 |
+| **EXEC SP Calls** | `EXEC [dbo].[spProcessOrders]` | 0.85 (v3.8.0+) |
+
+### ⚙️ SP-to-SP Dependencies (NEW in v3.8.0)
+
+The parser now tracks **stored procedure calls** via `EXEC`/`EXECUTE` statements:
+
+```sql
+-- Example: Master SP calling worker SPs
+CREATE PROC [dbo].[spMasterETL] AS
+BEGIN
+    EXEC [dbo].[spLoadStaging]      -- ✅ Tracked as dependency
+    EXEC [dbo].[spValidateData]     -- ✅ Tracked as dependency
+    EXEC [dbo].[LogMessage] @msg    -- ❌ Filtered (utility SP)
+END
+```
+
+**How It Works:**
+- **Regex Detection**: Pattern matching finds `EXEC [schema].[sp_name]`
+- **Selective Merge**: Only SPs from regex added (tables use SQLGlot)
+- **Utility Filtering**: Logging/admin SPs excluded (LogMessage, spLastRowCount, etc.)
+
+**Confidence Impact:**
+- SPs with EXEC calls → Confidence increases (more complete lineage)
+- ~63 SP-to-SP dependencies now captured
+- High-confidence rate: 71 → 78 SPs (35% → 39%)
+
+**What's Tracked:**
+- ✅ `EXEC [schema].[sp_name]` (explicit calls)
+- ✅ `EXECUTE [schema].[sp_name]` (full keyword)
+- ❌ `EXEC (@variable)` (dynamic SQL - can't resolve)
+- ❌ `EXEC sp_executesql` (dynamic SQL)
+
+### 🚫 Filtered Utility SPs (Excluded from Lineage)
+
+The parser automatically **excludes** utility and logging stored procedures from lineage tracking. These SPs don't represent data dependencies and would clutter the lineage graph if included.
+
+#### Excluded Stored Procedures
+
+| Category | SP Name | Why Excluded | Example Usage |
+|----------|---------|--------------|---------------|
+| **Logging** | LogMessage | Administrative logging only | `EXEC LogMessage @msg, @level` |
+| **Logging** | LogError | Error logging only | `EXEC LogError @error, @proc` |
+| **Logging** | LogInfo | Info logging only | `EXEC LogInfo @msg` |
+| **Logging** | LogWarning | Warning logging only | `EXEC LogWarning @msg` |
+| **Utility** | spLastRowCount | Returns row count (no data flow) | `EXEC spLastRowCount @count OUT` |
+
+#### How Filtering Works
+
+```sql
+-- Example: ETL stored procedure with mixed calls
+CREATE PROC [dbo].[spLoadCustomers] AS
+BEGIN
+    -- ✅ TRACKED: Business SP dependency
+    EXEC [dbo].[spValidateCustomers]
+
+    -- ❌ FILTERED: Logging (not data lineage)
+    EXEC [dbo].[LogMessage] @msg = 'Starting load', @level = 'INFO'
+
+    -- ✅ TRACKED: Business SP dependency
+    EXEC [dbo].[spTransformCustomers]
+
+    -- ❌ FILTERED: Utility SP (no data flow)
+    EXEC [dbo].[spLastRowCount] @rowCount OUT
+
+    -- ❌ FILTERED: Error logging
+    EXEC [dbo].[LogError] @error = 'Failed', @proc = 'spLoadCustomers'
+END
+```
+
+**Result in Lineage:**
+- **Inputs:** 2 SPs (`spValidateCustomers`, `spTransformCustomers`)
+- **Outputs:** Depends on table operations
+- **Excluded:** 3 calls (LogMessage, spLastRowCount, LogError)
+
+#### Why These SPs Are Filtered
+
+**Logging SPs:**
+- **Purpose:** Audit trail, debugging, monitoring
+- **Not Data Lineage:** Don't transform or move data
+- **Impact:** Would add ~682 noise edges to lineage graph
+- **User Benefit:** Cleaner, more focused lineage visualization
+
+**Utility SPs:**
+- **Purpose:** Helper functions (row counts, metadata queries)
+- **Not Data Lineage:** No table-to-table data flow
+- **Example:** `spLastRowCount` only queries system DMVs (`sys.dm_pdw_*`)
+- **User Benefit:** Focus on business data transformations
+
+#### Verification Example
+
+From smoke testing:
+
+```sql
+-- dbo.spLastRowCount (correctly excluded)
+CREATE PROC [dbo].[spLastRowCount] @Count [BIGINT] OUT AS
+BEGIN
+    SELECT @Count = SUM(row_count)
+    FROM sys.dm_pdw_sql_requests  -- System DMV (not business data)
+    WHERE row_count <> -1
+END
+```
+
+**Parser Result:**
+- Inputs: 0 (no business dependencies) ✅
+- Outputs: 0 (no table writes) ✅
+- Excluded from lineage graph: Yes ✅
+
+#### Adding Custom Filters
+
+If you have additional utility SPs that should be filtered, they can be added to the exclusion list in `quality_aware_parser.py`:
+
+```python
+EXCLUDED_UTILITY_SPS = {
+    # Logging
+    'logmessage', 'logerror', 'loginfo', 'logwarning',
+    # Utility
+    'splastrowcount',
+    # Add custom utility SPs here (lowercase)
+    # 'your_utility_sp',
+}
+```
+
+**Note:** SP names are case-insensitive in the filter.
 
 ### ❌ Out of Scope
 

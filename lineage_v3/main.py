@@ -350,13 +350,18 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_en
                         failed_count += 1
 
                 click.echo()
+                # Use MetricsService for consistent metrics (single source of truth)
+                from lineage_v3.metrics import MetricsService
+                metrics_service = MetricsService(db)
+                sp_metrics = metrics_service.get_parse_metrics(object_type='Stored Procedure')
+
                 click.echo(f"✅ Parser complete:")
-                click.echo(f"   - Total SPs: {len(all_sps):,}")
-                click.echo(f"   - Successfully parsed: {parsed_count:,} ({parsed_count/len(all_sps)*100:.1f}%)")
-                click.echo(f"     • High confidence (≥0.85): {high_confidence_count:,}")
-                click.echo(f"     • Medium confidence (0.75-0.84): {medium_confidence_count:,}")
-                click.echo(f"     • Low confidence (0.50-0.74): {low_confidence_count:,}")
-                click.echo(f"   - Failed: {failed_count:,} ({failed_count/len(all_sps)*100:.1f}%)")
+                click.echo(f"   - Scope: {sp_metrics['scope']}")
+                click.echo(f"   - Total: {sp_metrics['total']:,}")
+                click.echo(f"   - Successfully parsed: {sp_metrics['parsed']:,} ({sp_metrics['parse_rate']:.1f}%)")
+                click.echo(f"     • High confidence (≥0.85): {sp_metrics['confidence']['high']['count']:,} ({sp_metrics['confidence']['high']['pct']:.1f}%)")
+                click.echo(f"     • Medium confidence (0.75-0.84): {sp_metrics['confidence']['medium']['count']:,} ({sp_metrics['confidence']['medium']['pct']:.1f}%)")
+                click.echo(f"     • Low confidence (0.50-0.74): {sp_metrics['confidence']['low']['count']:,} ({sp_metrics['confidence']['low']['pct']:.1f}%)")
                 if ai_used_count > 0:
                     click.echo(f"   - AI disambiguations used: {ai_used_count:,} SPs ({ai_used_count/len(all_sps)*100:.1f}%)")
                 click.echo()
@@ -456,8 +461,22 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_en
                         reverse_outputs[output_id].append(obj_id)
 
             # Update Tables/Views with reverse dependencies
+            # NOTE: Do NOT update Stored Procedures here - they have parser metadata!
+            # SPs are parsed in Step 4 with their dependencies extracted from DDL.
+            # This step only adds reverse lookups to Tables/Views (which aren't parsed).
             tables_updated = 0
             for table_id, readers in reverse_inputs.items():
+                # Check object type - skip Stored Procedures
+                obj_type_result = db.query("""
+                    SELECT object_type
+                    FROM objects
+                    WHERE object_id = ?
+                """, params=[table_id])
+
+                if obj_type_result and obj_type_result[0][0] == 'Stored Procedure':
+                    # Skip SPs - they already have parser metadata
+                    continue
+
                 # This table is read by these objects
                 # Table.outputs should contain the readers
                 db.update_metadata(
