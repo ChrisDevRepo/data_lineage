@@ -256,7 +256,7 @@ The parser generates 3 JSON files in `lineage_output/`:
 
 ### Check Parser Statistics
 ```bash
-cd /workspaces/ws-psidwh
+cd /home/chris/sandbox
 python lineage_v3/utils/workspace_query_helper.py
 ```
 

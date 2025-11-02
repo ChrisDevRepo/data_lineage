@@ -42,7 +42,12 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
         borderColor: schemaColor,
     };
 
-    let nodeTitle = `Object: ${data.schema}.${data.name}\nObject Type: ${data.object_type}\nData Model Type: ${data.data_model_type || 'N/A'}\nDescription: ${data.description || 'No description provided.'}`;
+    // Only show confidence/parsing method for Stored Procedures
+    let nodeTitle = `Object: ${data.schema}.${data.name}\nObject Type: ${data.object_type}\nData Model Type: ${data.data_model_type || 'N/A'}`;
+
+    if (data.object_type === 'Stored Procedure') {
+        nodeTitle += `\nDescription: ${data.description || 'No description provided.'}`;
+    }
 
     if (isClickableForSql) {
         nodeTitle += `\n\n💡 Click to view SQL definition`;

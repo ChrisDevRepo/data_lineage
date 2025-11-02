@@ -254,7 +254,7 @@ class QualityAwareParser:
                         ai_result = disambiguator.disambiguate(
                             reference=reference,
                             candidates=candidates,
-                            sql_context=ddl,
+                            sql_context=ddl,  # Use raw DDL for AI (needs full context)
                             parser_result=parser_result,
                             sp_name=sp_name
                         )

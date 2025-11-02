@@ -18,7 +18,7 @@ Usage:
     python main.py run --parquet parquet_snapshots/ --format frontend
 
 Author: Vibecoding Team
-Version: 3.0.0
+Version: 3.7.0
 """
 
 import sys

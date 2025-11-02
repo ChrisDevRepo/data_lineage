@@ -42,7 +42,10 @@ export function useDataFiltering({
     }, [dataModelTypes]);
     
     useEffect(() => {
-        if (searchTerm.trim() === '') {
+        const trimmedSearch = searchTerm.trim();
+
+        // Don't show autocomplete if search term is empty or too short
+        if (trimmedSearch === '' || trimmedSearch.length < INTERACTION_CONSTANTS.AUTOCOMPLETE_MIN_CHARS) {
             setAutocompleteSuggestions([]);
             return;
         }
@@ -54,25 +57,37 @@ export function useDataFiltering({
         }
 
         try {
-            const suggestions: DataNode[] = [];
-            // Use for...of loop with break for early exit
-            for (const [nodeId, attributes] of lineageGraph.nodeEntries()) {
-                if (suggestions.length >= INTERACTION_CONSTANTS.AUTOCOMPLETE_MAX_RESULTS) break;
+            const startsWithMatches: DataNode[] = [];
+            const containsMatches: DataNode[] = [];
+            const lowerSearchTerm = trimmedSearch.toLowerCase();
 
+            // Collect matches, prioritizing startsWith over contains
+            lineageGraph.forEachNode((nodeId, attributes) => {
                 // Safety check: ensure attributes and required properties exist
                 if (!attributes || typeof attributes.name !== 'string' || typeof attributes.schema !== 'string') {
                     console.warn(`[Autocomplete] Skipping node ${nodeId} with invalid attributes:`, attributes);
-                    continue;
+                    return;
                 }
 
-                if (
-                    attributes.name.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
+                const lowerName = attributes.name.toLowerCase();
+                const matchesFilters =
                     selectedSchemas.has(attributes.schema) &&
-                    (dataModelTypes.length === 0 || !attributes.data_model_type || selectedTypes.has(attributes.data_model_type))
-                ) {
-                    suggestions.push(attributes as DataNode);
+                    (dataModelTypes.length === 0 || !attributes.data_model_type || selectedTypes.has(attributes.data_model_type));
+
+                if (matchesFilters) {
+                    if (lowerName.startsWith(lowerSearchTerm)) {
+                        startsWithMatches.push(attributes as DataNode);
+                    } else if (lowerName.includes(lowerSearchTerm)) {
+                        containsMatches.push(attributes as DataNode);
+                    }
                 }
-            }
+            });
+
+            // Combine results: startsWith first, then contains, up to max limit
+            const suggestions = [
+                ...startsWithMatches,
+                ...containsMatches
+            ].slice(0, INTERACTION_CONSTANTS.AUTOCOMPLETE_MAX_RESULTS);
 
             setAutocompleteSuggestions(suggestions);
         } catch (error) {

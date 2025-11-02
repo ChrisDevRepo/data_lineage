@@ -78,7 +78,7 @@ curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" \
 
 ## Tech Stack
 
-**Frontend:** React 18 + TypeScript + React Flow + Monaco Editor + Tailwind
+**Frontend:** React 19 + TypeScript + React Flow + Monaco Editor + Tailwind
 **Backend:** FastAPI + DuckDB + SQLGlot + Azure OpenAI
 **Parser:** DMV-first with 80.7% high-confidence (2x industry average)
 

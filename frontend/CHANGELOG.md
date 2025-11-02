@@ -4,6 +4,42 @@ All notable changes to the frontend application will be documented in this file.
 
 ---
 
+## [2.9.2] - 2025-11-02
+
+### 🧹 UI Simplification: Minimap Removal
+
+#### **Removed Minimap Feature**
+- **Removed:** React Flow minimap component from graph canvas
+- **Removed:** "Hide Minimap" / "Show Minimap" toggle button from toolbar
+- **Rationale:** Minimap had rendering issues with large graphs (500+ nodes) and added unnecessary complexity
+- **Impact:** Cleaner interface with Legend as the primary navigation aid
+
+#### **Enhanced Legend**
+- **Legend Always Visible:** Removed conditional rendering based on controls visibility
+- **Native Collapse/Expand:** Legend has its own toggle button (click icon to expand/collapse)
+- **Schema Overview:** Shows all schemas with color coding when expanded
+- **Collapsible Design:** Starts collapsed by default, showing only icon
+
+#### **Files Changed**
+- `App.tsx` - Removed all minimap-related code, state, and imports
+- `components/Toolbar.tsx` - Removed minimap visibility toggle button
+- `docs/MINIMAP_LARGE_GRAPH_FIX.md` - Archived (feature removed)
+
+#### **Technical Details**
+- Removed `MiniMap` import from `reactflow`
+- Removed `isMinimapReady`, `reactFlowInstanceRef`, `handleReactFlowInit` state/functions
+- Removed `miniMapNodeColor` function
+- Removed `isControlsVisible` state and toggle handler
+- Simplified ReactFlow children: Controls, Background, and Legend only
+
+#### **Benefits**
+- ✅ **Simpler Codebase:** 100+ lines of minimap logic removed
+- ✅ **Better Performance:** No minimap rendering overhead for large graphs
+- ✅ **Cleaner UI:** One less component to manage
+- ✅ **Reliable Navigation:** Legend provides stable schema overview
+
+---
+
 ## [2.9.1] - 2025-10-31
 
 ### 🏷️ Branding & Code Cleanup
@@ -46,10 +82,6 @@ All notable changes to the frontend application will be documented in this file.
 - **Performance Improvements:**
   - Added performance logging throughout data loading, graph building, and layout calculation
   - Removed artificial 500ms delay from data loading
-- **Minimap Enhancements:**
-  - Simplified to uniform gray color (#9ca3af) for all nodes
-  - Changed to white background with border for cleaner appearance
-  - Reduced stroke width from 3 to 1.5 for subtler visualization
 
 #### **Interactive Trace Panel Redesign**
 - **Modern Header:** Green gradient icon with colorful accent bar
@@ -76,7 +108,6 @@ All notable changes to the frontend application will be documented in this file.
 
 #### **SVG Export Improvements**
 - Fixed legend height calculation to show all schemas (not cut off)
-- Ensured minimap in exported SVGs uses uniform gray color
 
 #### **Removed: Schema View**
 - **Change:** Removed schema-level aggregation view (schema boxes with dependencies)
@@ -191,7 +222,7 @@ All notable changes to the frontend application will be documented in this file.
 #### **UI Changes**
 - **Removed:** Manual search input box in header
 - **Added:** "Press Ctrl+F to search" hint when SQL is loaded
-- **Disabled:** Minimap (code overview on right side) for cleaner view
+- **Disabled:** Monaco minimap (code overview on right side) for cleaner view
 - **Kept:** Line numbers, word wrap, scrollbar with overview ruler
 
 #### **Files Changed**

@@ -1,6 +1,6 @@
 # FastAPI Backend
 
-**Version:** 3.1.0
+**Version:** 3.0.1
 **Status:** ✅ Production Ready - Incremental parsing added (2025-10-27)
 
 ## Overview
@@ -20,15 +20,15 @@ FastAPI backend that wraps existing `lineage_v3` Python code for web-based linea
 
 ```bash
 # Install dependencies (in addition to root requirements.txt)
-cd /workspaces/ws-psidwh/api
-pip install --break-system-packages -r requirements.txt
+cd /home/chris/sandbox/api
+pip install -r requirements.txt
 ```
 
 ## Running the API
 
 ```bash
 # Start development server (auto-reload enabled)
-cd /workspaces/ws-psidwh/api
+cd /home/chris/sandbox/api
 python3 main.py
 
 # Or use uvicorn directly
@@ -269,30 +269,26 @@ with DuckDBWorkspace(workspace_path=workspace_file) as db:
 - Graceful error handling (errors saved to `result.json`)
 - All processing runs in background thread
 
-### Full Refresh Mode (Always Enabled)
+### Incremental vs Full Refresh Mode
 
-**Important:** The API **always performs a full refresh** on each upload:
+**Incremental Mode (Default):**
+- Only re-parses objects that are new, modified, or have low confidence (<0.85)
+- 50-90% faster for typical updates
+- Controlled by `incremental=true` query parameter (default)
 
-```python
-# Step 1: Truncate all tables before loading
-tables_to_truncate = ['objects', 'dependencies', 'definitions', 'query_logs', 'table_columns']
-for table_name in tables_to_truncate:
-    db.connection.execute(f"DROP TABLE IF EXISTS {table_name}")
+**Full Refresh Mode:**
+- Re-parses all objects from scratch
+- Use when parser bugs are fixed or complete re-analysis is needed
+- Controlled by `incremental=false` query parameter
 
-# Step 2: Load fresh data from uploaded Parquet files
-# All objects are re-parsed from scratch
+**Example:**
+```bash
+# Incremental (default, recommended)
+curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" -F "files=@..."
+
+# Full refresh
+curl -X POST "http://localhost:8000/api/upload-parquet?incremental=false" -F "files=@..."
 ```
-
-**Why Full Refresh:**
-- ✅ Ensures latest parser improvements are applied (e.g., SELECT INTO fix)
-- ✅ Guarantees consistency (no stale data)
-- ✅ Simplifies state management (no incremental tracking)
-- ✅ Performance is acceptable (~2-3 seconds for 85 objects)
-
-**Incremental Mode:**
-- 📋 Available in CLI (`lineage_v3/main.py --skip-incremental`)
-- ❌ **NOT** implemented in web API/GUI workflow
-- 🔮 Future: May add incremental mode for very large datasets (1000+ objects)
 
 ## Job Storage
 
