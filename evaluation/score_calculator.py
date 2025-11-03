@@ -4,13 +4,22 @@ Score Calculator for sub_DL_OptimizeParsing
 Calculates precision, recall, F1 scores for parsing evaluation.
 Compares found dependencies against expected (ground truth) dependencies.
 
+Now uses unified ConfidenceCalculator for consistency with parser.
+
 Author: Claude Code Agent
-Date: 2025-11-02
-Version: 1.0
+Date: 2025-11-03
+Version: 2.0
 """
 
+import sys
+from pathlib import Path
 from typing import List, Tuple, Set
 import logging
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from lineage_v3.utils.confidence_calculator import ConfidenceCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -84,24 +93,30 @@ class ScoreCalculator:
         return precision, recall, f1_score
 
     @staticmethod
-    def calculate_confidence_score(precision: float, recall: float) -> float:
+    def calculate_confidence_score(
+        precision: float,
+        recall: float,
+        use_bucketing: bool = True
+    ) -> float:
         """
         Calculate confidence score based on precision and recall.
 
-        Uses F1 score as confidence metric.
+        Uses unified ConfidenceCalculator for consistency with parser.
 
         Args:
             precision: Precision value (0.0-1.0)
             recall: Recall value (0.0-1.0)
+            use_bucketing: If True, map to standard thresholds (0.85/0.75/0.5)
+                          If False, return raw F1 score (0.0-1.0)
 
         Returns:
-            Confidence score (0.0-1.0)
+            Confidence score (bucketed or raw F1)
         """
-        if precision + recall == 0:
-            return 0.0
-
-        f1_score = 2 * (precision * recall) / (precision + recall)
-        return f1_score
+        return ConfidenceCalculator.from_precision_recall(
+            precision=precision,
+            recall=recall,
+            use_bucketing=use_bucketing
+        )
 
     @staticmethod
     def determine_best_method(
@@ -192,6 +207,14 @@ class ScoreCalculator:
             else:
                 overall_f1 = 2 * (overall_precision * overall_recall) / (overall_precision + overall_recall)
 
+        # Calculate confidence using unified calculator
+        # Use bucketing=False to keep raw F1 for detailed evaluation metrics
+        confidence = ConfidenceCalculator.from_precision_recall(
+            precision=overall_precision,
+            recall=overall_recall,
+            use_bucketing=False  # Keep raw F1 for evaluation
+        )
+
         return {
             'inputs_precision': round(inputs_precision, 4),
             'inputs_recall': round(inputs_recall, 4),
@@ -202,5 +225,5 @@ class ScoreCalculator:
             'overall_precision': round(overall_precision, 4),
             'overall_recall': round(overall_recall, 4),
             'overall_f1': round(overall_f1, 4),
-            'confidence': round(overall_f1, 4)  # Confidence = Overall F1
+            'confidence': round(confidence, 4)  # Unified confidence calculation
         }

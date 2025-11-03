@@ -234,6 +234,12 @@ class DuckDBWorkspace:
         # Create FTS index for full-text search in Detail Search feature
         self.create_fts_index()
 
+        # Clear orphaned metadata (objects removed since last upload)
+        # CRITICAL: Prevents stale confidence stats from old uploads
+        deleted = self.clear_orphaned_metadata()
+        if deleted > 0:
+            logger.info(f"Cache cleanup: Removed {deleted} orphaned metadata entries")
+
         return row_counts
 
     def load_parquet(
@@ -314,6 +320,12 @@ class DuckDBWorkspace:
 
         # Create FTS index for full-text search in Detail Search feature
         self.create_fts_index()
+
+        # Clear orphaned metadata (objects removed since last upload)
+        # CRITICAL: Prevents stale confidence stats from old uploads
+        deleted = self.clear_orphaned_metadata()
+        if deleted > 0:
+            logger.info(f"Cache cleanup: Removed {deleted} orphaned metadata entries")
 
         return row_counts
 
@@ -603,6 +615,40 @@ class DuckDBWorkspace:
             inputs_json,
             outputs_json
         ])
+
+    def clear_orphaned_metadata(self):
+        """
+        Delete metadata for objects that no longer exist in the objects table.
+
+        This should be called after loading new Parquet data to ensure
+        lineage_metadata only contains entries for current objects.
+
+        Critical for preventing stale cached metrics when uploading new data.
+
+        Returns:
+            Number of orphaned records deleted
+        """
+        if not self.connection:
+            raise RuntimeError("Not connected to DuckDB workspace")
+
+        # Check if lineage_metadata exists
+        tables = [row[0] for row in self.query("SHOW TABLES")]
+        if 'lineage_metadata' not in tables:
+            return 0
+
+        # Delete metadata for objects not in current objects table
+        query = """
+        DELETE FROM lineage_metadata
+        WHERE object_id NOT IN (SELECT object_id FROM objects)
+        """
+
+        result = self.connection.execute(query)
+        deleted_count = result.fetchone()[0] if result else 0
+
+        if deleted_count > 0:
+            logger.info(f"Cleared {deleted_count} orphaned metadata records")
+
+        return deleted_count
 
     def create_fts_index(self):
         """

@@ -23,6 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from lineage_v3.core import DuckDBWorkspace, GapDetector
 from lineage_v3.parsers import QualityAwareParser
 from lineage_v3.output import InternalFormatter, FrontendFormatter, SummaryFormatter
+from lineage_v3.utils.confidence_calculator import ConfidenceCalculator
 
 
 class LineageProcessor:
@@ -138,9 +139,19 @@ class LineageProcessor:
         status: str,
         progress: float = 0.0,
         current_step: str = "",
-        message: str = ""
+        message: str = "",
+        include_stats: bool = False
     ):
-        """Update job status file for frontend polling"""
+        """
+        Update job status file for frontend polling.
+
+        Args:
+            status: Job status ('processing', 'completed', 'error', 'failed')
+            progress: Progress percentage (0.0-100.0)
+            current_step: Current processing step description
+            message: Detailed message
+            include_stats: If True, query DuckDB for live confidence stats
+        """
         elapsed = time.time() - self.start_time
 
         status_data = {
@@ -157,8 +168,63 @@ class LineageProcessor:
             estimated_total = elapsed / (progress / 100)
             status_data["estimated_remaining_seconds"] = estimated_total - elapsed
 
+        # Add real-time confidence stats if requested
+        if include_stats:
+            try:
+                stats = self._get_current_confidence_stats()
+                if stats:
+                    status_data["stats"] = stats
+            except Exception as e:
+                logger.warning(f"Failed to get confidence stats: {e}")
+
         with open(self.status_file, 'w') as f:
             json.dump(status_data, f, indent=2)
+
+    def _get_current_confidence_stats(self) -> Optional[Dict[str, int]]:
+        """
+        Get current confidence statistics from DuckDB.
+
+        Returns:
+            {
+                'total_objects': int,
+                'high_confidence': int,
+                'medium_confidence': int,
+                'low_confidence': int
+            } or None if lineage_metadata doesn't exist
+        """
+        if not hasattr(self, 'db') or not self.db:
+            return None
+
+        try:
+            # Check if lineage_metadata exists
+            tables = [row[0] for row in self.db.query("SHOW TABLES")]
+            if 'lineage_metadata' not in tables:
+                return None
+
+            # Query confidence distribution
+            query = """
+            SELECT
+                COUNT(*) as total,
+                COUNT(CASE WHEN confidence >= 0.85 THEN 1 END) as high_conf,
+                COUNT(CASE WHEN confidence >= 0.75 AND confidence < 0.85 THEN 1 END) as med_conf,
+                COUNT(CASE WHEN confidence < 0.75 THEN 1 END) as low_conf
+            FROM lineage_metadata
+            """
+
+            result = self.db.query(query)
+            if result:
+                row = result[0]
+                return {
+                    'total_objects': row[0],
+                    'high_confidence': row[1],
+                    'medium_confidence': row[2],
+                    'low_confidence': row[3]
+                }
+        except Exception as e:
+            logger.error(f"Error querying confidence stats: {e}")
+            return None
+
+        return None
 
     def process(self) -> Dict:
         """
@@ -260,7 +326,7 @@ class LineageProcessor:
 
                 # Step 2: Load DMV Dependencies (Views)
                 self.update_status("processing", 20, "Loading DMV dependencies",
-                                 f"Processing {total_objects} objects...")
+                                 f"Processing {total_objects} objects...", include_stats=True)
 
                 views_with_dmv = db.query("""
                     SELECT DISTINCT
@@ -301,13 +367,13 @@ class LineageProcessor:
                         )
 
                 # Step 3: Detect gaps
-                self.update_status("processing", 30, "Detecting gaps", "Identifying missing dependencies...")
+                self.update_status("processing", 30, "Detecting gaps", "Identifying missing dependencies...", include_stats=True)
 
                 gap_detector = GapDetector(db)
                 gaps = gap_detector.detect_gaps()
 
                 # Step 4: Parse Stored Procedures (respecting incremental mode)
-                self.update_status("processing", 40, "Parsing stored procedures", "Analyzing SQL definitions...")
+                self.update_status("processing", 40, "Parsing stored procedures", "Analyzing SQL definitions...", include_stats=True)
 
                 # Filter objects_to_parse for SPs only
                 sps_to_parse = [obj for obj in objects_to_parse if obj['object_type'] == 'Stored Procedure']
@@ -316,13 +382,15 @@ class LineageProcessor:
                     parser = QualityAwareParser(db)
 
                     for i, sp_dict in enumerate(sps_to_parse):
-                        # Update progress
+                        # Update progress (with stats every 10 SPs or at end)
                         sp_progress = 40 + (40 * (i + 1) / len(sps_to_parse))  # 40% to 80%
+                        include_stats = (i + 1) % 10 == 0 or (i + 1) == len(sps_to_parse)
                         self.update_status(
                             "processing",
                             sp_progress,
                             f"Parsing stored procedures ({i+1}/{len(sps_to_parse)})",
-                            f"Analyzing {sp_dict['schema_name']}.{sp_dict['object_name']}..."
+                            f"Analyzing {sp_dict['schema_name']}.{sp_dict['object_name']}...",
+                            include_stats=include_stats
                         )
 
                         try:
@@ -347,7 +415,7 @@ class LineageProcessor:
 
                 # Step 5: Build Bidirectional Graph (Reverse Lookup)
                 self.update_status("processing", 85, "Building graph relationships",
-                                 "Establishing bidirectional connections...")
+                                 "Establishing bidirectional connections...", include_stats=True)
 
                 parsed_objects = db.query("""
                     SELECT object_id, inputs, outputs
