@@ -1,168 +1,111 @@
 # CLAUDE.md
 
-Instructions for Claude Code when working with this repository.
+## Workflow
 
-## Workflow Guidelines
-
-- **Provide Brief Summary**: End each response with status (completed/pending tasks)
-- **Use Status Flags**: ✅ Completed | ⏳ Awaiting verification | ❌ Not started | ⚠️ Needs clarification
-- **Ask Questions Last**: Complete analysis first, group questions at end
-- **Clarify Before Coding**: Never proceed with ambiguous requirements
-- **Track Progress**: Use TodoWrite tool, update immediately after completing tasks
+- End responses with status (✅ Done | ⏳ Pending | ❌ Not started | ⚠️ Needs clarification)
+- Ask questions last, complete analysis first
+- Use TodoWrite tool, update after each task
+- **KEEP ROOT CLEAN:** Put `.md` in `docs/`, scripts in `temp/`
 
 ---
 
-## Project Overview
+## Project
 
-**Data Lineage Visualizer v3.8.0** - DMV-first lineage parser for Azure Synapse with React visualization
+**Data Lineage Visualizer v3.8.0** - Azure Synapse parser + React visualization
 
-- **Status:** Production Ready (84.2% high-confidence parsing)
 - **Stack:** FastAPI + DuckDB + SQLGlot + Azure OpenAI | React + React Flow
+- **Status:** Production (84.2% high-confidence parsing, 202 SPs)
 - **System:** Python 3.12.3, Node.js, WSL2
-- **Working Directory:** `.`
 
 ---
 
 ## Quick Start
 
-### Backend
 ```bash
-cd api && python3 main.py
-# http://localhost:8000 | Docs: http://localhost:8000/docs
-```
+# Backend
+cd api && python3 main.py  # http://localhost:8000
 
-### Frontend
-```bash
-cd frontend && npm run dev
-# http://localhost:3000
-```
+# Frontend
+cd frontend && npm run dev  # http://localhost:3000
 
-### CLI Parser
-```bash
-python lineage_v3/main.py run --parquet parquet_snapshots/  # Incremental (default)
+# Parser
+python lineage_v3/main.py run --parquet parquet_snapshots/  # incremental
 python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 ```
 
 ---
 
-## Parser Development (MANDATORY PROCESS)
+## Parser Development
 
-**🚨 ALWAYS use `/sub_DL_OptimizeParsing` for parser changes 🚨**
+🚨 **ALWAYS use `/sub_DL_OptimizeParsing` for parser changes**
 
-### Required Steps
-1. **Before changes:** Create baseline
-   ```bash
-   /sub_DL_OptimizeParsing init --name baseline_$(date +%Y%m%d)_before_description
-   /sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD_before_description
-   ```
+1. Create baseline: `/sub_DL_OptimizeParsing init --name baseline_YYYYMMDD_description`
+2. Run before: `/sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD`
+3. Make changes to `quality_aware_parser.py`, `ai_disambiguator.py`, etc.
+4. Run after: `/sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD`
+5. Compare: `/sub_DL_OptimizeParsing compare --run1 RUN1 --run2 RUN2`
+6. Update: [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md)
 
-2. **Make parser changes** (quality_aware_parser.py, ai_disambiguator.py, etc.)
+**Pass criteria:** Zero regressions (≥0.85 stays ≥0.85) + expected improvements
 
-3. **After changes:** Run evaluation (MANDATORY)
-   ```bash
-   /sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD_before_description
-   /sub_DL_OptimizeParsing compare --run1 run_YYYYMMDD_HHMMSS --run2 run_YYYYMMDD_HHMMSS
-   ```
-
-4. **Pass Criteria:**
-   - ✅ Zero regressions (no objects ≥0.85 drop below 0.85)
-   - ✅ Expected improvements verified
-   - ✅ Progress toward 95% goal
-
-5. **Update:** [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) with results
-
-**DO NOT:**
-- ❌ Skip evaluation "because change is small"
-- ❌ Commit parser changes without running subagent
-- ❌ Rely on manual testing or spot-checks
+❌ **Never** skip evaluation or commit without running subagent
 
 ---
 
 ## Sub-Agents
 
-**Note:** Slash commands work differently in CLI vs VSCode:
-- **VSCode Extension:** Reads from `.claude/commands/` in project directory
-- **Claude CLI:** Reads from `~/.config/claude/commands/` in home directory
+| Command | Purpose |
+|---------|---------|
+| `/sub_DL_OptimizeParsing` | Parser evaluation (regex/SQLGlot/AI comparison) |
+| `/sub_DL_TestFrontend` | Automated browser tests + visual regression |
+| `/sub_DL_Clean` | Archive old docs, optimize CLAUDE.md |
+| `/sub_DL_Build` | Build Azure deployment package |
+| `/sub_DL_GitPush` | Commit and push to remote |
+| `/sub_DL_Restart` | Restart backend (8000) + frontend (3000) |
 
-Commands are installed in both locations. If using CLI, you may need to restart your session.
-
-### `/sub_DL_OptimizeParsing` - Parser Evaluation
-- Runs all 3 methods (regex, SQLGlot, AI) independently
-- Calculates precision/recall/F1 scores
-- Tracks progress toward 95% confidence goal
-- Docs: [.claude/commands/sub_DL_OptimizeParsing.md](.claude/commands/sub_DL_OptimizeParsing.md)
-
-### `/sub_DL_TestFrontend` - Frontend Testing
-- Automated browser testing using MCP Playwright
-- Functional tests: UI, search, graph, export features
-- Visual regression: 3 baseline screenshots (desktop 1920x1080)
-- Screenshots: `/tmp/` (auto-cleanup), baselines: `test_baselines/desktop/` (versioned)
-- Docs: [.claude/commands/sub_DL_TestFrontend.md](.claude/commands/sub_DL_TestFrontend.md)
-
-### `/sub_DL_Clean` - Documentation Cleanup
-- Archives outdated docs to `docs/archive/YYYY-MM-DD/`
-- Optimizes CLAUDE.md (target: 100-200 lines)
-- Verifies documentation links
-- Docs: [.claude/commands/sub_DL_Clean.md](.claude/commands/sub_DL_Clean.md)
-
-### `/sub_DL_Build` - Azure Deployment
-- Builds deployment package for Azure Synapse
-- Docs: [.claude/commands/sub_DL_Build.md](.claude/commands/sub_DL_Build.md)
-
-### `/sub_DL_GitPush` - Git Push
-- Commits and pushes changes to remote
-- Docs: [.claude/commands/sub_DL_GitPush.md](.claude/commands/sub_DL_GitPush.md)
-
-### `/sub_DL_Restart` - Server Restart
-- Kills ports 3000/8000 and restarts both servers
-- Docs: [.claude/commands/sub_DL_Restart.md](.claude/commands/sub_DL_Restart.md)
+Docs: `.claude/commands/*.md`
 
 ---
 
 ## Key Features
 
-### Incremental Parsing (Default)
-- DuckDB persists between runs
-- Only re-parses modified/new objects + low confidence (<0.85)
-- 50-90% faster for typical updates
+**Incremental Parsing (default):**
+- DuckDB persists, only re-parses modified/new + low confidence (<0.85)
+- 50-90% faster
 
-### Parquet File Detection
-- Auto-detects by schema (filenames don't matter)
-- Required: objects, dependencies, definitions
-- Optional: query_logs, table_columns
+**Parquet Detection:**
+- Auto-detects by schema: objects, dependencies, definitions (required); query_logs, table_columns (optional)
 
-### Confidence Model
+**Confidence Model:**
 | Source | Confidence | Applied To |
 |--------|-----------|------------|
 | DMV | 1.0 | Views, Functions |
 | Query Log | 0.95 | Validated SPs |
-| SQLGlot | 0.85 | Successfully parsed SPs |
+| SQLGlot | 0.85 | Parsed SPs |
 | AI (Validated) | 0.85-0.95 | Complex SPs |
-| Regex Fallback | 0.50 | Failed parses |
-
-**Current:** 202 SPs, 170 (84.2%) high confidence (≥0.75)
+| Regex | 0.50 | Fallback |
 
 ---
 
-## Git Guidelines
+## Git
 
 - **Branch:** `feature/frontend-ui-fixes`
 - **Main:** `main`
-- **DO:** Commit frequently, push to origin
-- **DON'T:** Pull with rebase, merge from other branches, merge to main (requires approval)
+- **Do:** Commit often, push to origin
+- **Don't:** Rebase, merge from others, merge to main without approval
 
 ---
 
-## Environment Setup
+## Environment
 
 ```bash
-cp .env.template .env  # Edit with your credentials
+cp .env.template .env
 ```
 
-**Required for AI features:**
+Required for AI:
 ```
-AZURE_OPENAI_ENDPOINT=https://your-endpoint.cognitiveservices.azure.com/
-AZURE_OPENAI_API_KEY=your-api-key
+AZURE_OPENAI_ENDPOINT=https://...cognitiveservices.azure.com/
+AZURE_OPENAI_API_KEY=...
 AZURE_OPENAI_MODEL_NAME=gpt-4.1-nano
 AZURE_OPENAI_DEPLOYMENT=gpt-4.1-nano
 AZURE_OPENAI_API_VERSION=2024-12-01-preview
@@ -170,56 +113,46 @@ AZURE_OPENAI_API_VERSION=2024-12-01-preview
 
 ---
 
-## Essential Documentation
+## Docs
 
-**Start Here:**
-- [README.md](README.md) - Project overview
-- [lineage_specs.md](lineage_specs.md) - Parser specification
-- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing guide
+**Core:**
+- [README.md](README.md) - Overview
+- [lineage_specs.md](lineage_specs.md) - Parser spec
+- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing
 
-**API & Frontend:**
-- [api/README.md](api/README.md) - API documentation
-- [frontend/README.md](frontend/README.md) - Frontend guide
-- [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md) - UI design system
+**API/Frontend:**
+- [api/README.md](api/README.md)
+- [frontend/README.md](frontend/README.md)
+- [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md)
 
-**AI & Evaluation:**
-- [docs/AI_DISAMBIGUATION_SPEC.md](docs/AI_DISAMBIGUATION_SPEC.md) - AI implementation
-- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md) - Parser evaluation spec
-- [evaluation_baselines/README.md](evaluation_baselines/README.md) - Baseline lifecycle
+**Evaluation:**
+- [docs/AI_DISAMBIGUATION_SPEC.md](docs/AI_DISAMBIGUATION_SPEC.md)
+- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md)
+- [evaluation_baselines/README.md](evaluation_baselines/README.md)
 
-**Additional:**
-- [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
-- [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
-- [docs/QUERY_LOGS_ANALYSIS.md](docs/QUERY_LOGS_ANALYSIS.md) - Query log strategy
+**Other:**
+- [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md)
+- [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md)
+- [docs/QUERY_LOGS_ANALYSIS.md](docs/QUERY_LOGS_ANALYSIS.md)
 
 ---
 
 ## Troubleshooting
 
-**Import Errors:**
 ```bash
+# Import errors
 python lineage_v3/main.py validate
 pip install -r requirements.txt
-```
 
-**Low Confidence (<0.85):**
-- Use `/sub_DL_OptimizeParsing` to analyze parsing quality
-- Review [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md)
-
-**Frontend Not Loading:**
-- Check JSON path in Import Data modal
-- Verify JSON format matches schema
-- Check browser console for errors
-
-**Port Conflicts:**
-```bash
+# Port conflicts
 lsof -ti:8000 | xargs -r kill  # Backend
 lsof -ti:3000 | xargs -r kill  # Frontend
 ```
 
+**Low confidence:** Use `/sub_DL_OptimizeParsing`, check [PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md)
+
+**Frontend errors:** Check JSON path/format in Import modal, browser console
+
 ---
 
-**Last Updated:** 2025-11-02
-**Parser Version:** v3.8.0
-**Frontend Version:** v2.9.0
-**API Version:** v3.0.1
+**Versions:** Parser v3.8.0 | Frontend v2.9.0 | API v3.0.1 | Updated: 2025-11-03
