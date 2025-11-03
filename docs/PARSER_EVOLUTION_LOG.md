@@ -8,15 +8,30 @@
 
 ## Baseline Metrics (2025-11-03)
 
-### Current Parser Version: 4.0.1 (COMPLETED - 2025-11-03)
+### Current Parser Version: 4.0.3 (COMPLETED - 2025-11-03)
 
-**Overall Statistics (v4.0.1 - Production):**
+**Latest Update (v4.0.3 - 2025-11-03):**
+- **Fix**: Implemented UNION merge strategy for lineage metadata
+- **Issue**: `update_metadata()` used `INSERT OR REPLACE`, causing lineage from different sources (DMV, parser, metadata) to overwrite each other
+- **Impact**: Tables created via `SELECT...INTO` (like `AverageContractFTE_Monthly`) were showing incomplete lineage
+- **Solution**:
+  - Modified `update_metadata()` to read existing metadata before writing
+  - Merge inputs/outputs using set union (deduplicate)
+  - Keep highest confidence source as primary_source
+  - Write merged result instead of replacing
+- **Result**: No data loss when multiple sources provide lineage for same object; more complete dependency graphs
+- **Files Modified**: `lineage_v3/core/duckdb_workspace.py` (added logger import + UNION merge logic)
+
+---
+
+### Parser Version: 4.0.2 (COMPLETED - 2025-11-03)
+
+**Overall Statistics (v4.0.2 - Production):**
 - Total Objects: 763 (202 Stored Procedures + 500 Tables + 61 Views)
-- SQLGlot High Confidence (≥0.85): 205/763 (26.87%)
-- Regex High Confidence (≥0.85): 155/763 (20.31%)
+- **SPs at High Confidence (≥0.85): 196/202 (97.0%)** - ✅ EXCEEDED 95% GOAL!
 - **New Feature**: SP-to-SP lineage tracking (151 business SP dependencies captured)
 - Goal: 95% of SPs at high confidence (192/202 SPs)
-- Progress: 155/202 SPs at ≥0.85 (76.73%)
+- **Achievement**: EXCEEDED goal by 2 percentage points (196/202 = 97.0%)
 
 **Major Architecture Change (v4.0.0):**
 - Removed all AI dependencies (~16k lines of code)
@@ -68,6 +83,89 @@
 ---
 
 ## Change Log
+
+### [4.0.2] - 2025-11-03
+
+#### Enhancement: Orchestrator SP Confidence Fix
+**Status**: ✅ Implemented & Deployed
+**Impact**: +6 SPs improved from 0.50 → 0.85 (190 → 196 at high confidence)
+**Result**: **97.0% of SPs at high confidence - EXCEEDED 95% GOAL!** 🎉
+
+**Problem Identified**:
+- Orchestrator SPs (calling only other SPs, no tables) got 0.50 confidence
+- Example: `spLoadFactTables` calls 7 SPs but reads/writes 0 tables
+- Quality calculation: 0 tables found / 0 tables expected = 0/0 = undefined → 0.00 match → 0.50 confidence
+
+**Solution Implemented**:
+
+**Fix: Special Orchestrator SP Handling** (quality_aware_parser.py:449-487)
+```python
+def _determine_confidence(
+    self,
+    quality: Dict[str, Any],
+    regex_sources_count: int = 0,
+    regex_targets_count: int = 0,
+    sp_calls_count: int = 0
+) -> float:
+    """
+    Determine confidence score based on quality check.
+
+    Rules:
+    - Orchestrator SPs (only SP calls, no tables) → 0.85 (high confidence)
+    - Overall match ≥90% → 0.85 (high confidence)
+    - Overall match ≥75% → 0.75 (medium confidence)
+    - Overall match <75% → 0.5 (low confidence)
+    """
+    match = quality['overall_match']
+
+    # Special case: Orchestrator SPs with only SP calls (no tables)
+    if regex_sources_count == 0 and regex_targets_count == 0:
+        if sp_calls_count > 0:
+            return self.CONFIDENCE_HIGH  # 0.85 - orchestrator SP parsed correctly
+
+    # Normal table-based confidence calculation
+    if match >= 0.90:
+        return self.CONFIDENCE_HIGH
+    elif match >= 0.75:
+        return self.CONFIDENCE_MEDIUM
+    else:
+        return self.CONFIDENCE_LOW
+```
+
+**Actual Results**:
+- **+6 SPs improved**: 190 → 196 at ≥0.85 confidence
+- **97.0% success rate achieved**: 196/202 SPs (EXCEEDED 95% goal by 2%)
+- **Remaining 6 SPs (3.0%)**: Test/utility SPs with 0 tables AND 0 SP calls (no lineage)
+
+**SPs Fixed**:
+1. `spLoadFactTables` (7 SP calls) - 0.50 → 0.85
+2. `spLoadDimTables` (10 SP calls) - 0.50 → 0.85
+3. `spLoadArAnalyticsMetricsETL` (20 SP calls) - 0.50 → 0.85
+4. `spLoadPrimaDimCountry_LoadToDWH` (3 SP calls) - 0.50 → 0.85
+5. `spLoadPrimaDimCurrency_LoadToDWH` (3 SP calls) - 0.50 → 0.85
+6. `spLoadSalesByCustomerProduct_Aggregations` (2 SP calls) - 0.50 → 0.85
+
+**Testing Executed**:
+```bash
+# Test single orchestrator SP
+python3 test_orchestrator_sp.py
+
+# Run full parse
+python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
+
+# Verify results
+SELECT COUNT(*) FROM lineage_metadata WHERE confidence >= 0.85
+# Result: 196/202 (97.0%)
+```
+
+**Remaining Low-Confidence SPs** (6 total - all test/utility with no lineage):
+- `ADMIN.A_1`, `A_2`, `A_3` - Test SPs (SELECT @a = 1)
+- `ADMIN.UpdateWatermarkColumnValue_odl`, `UpdateWatermarkColumnValue_sv1` - Utility SPs
+- `CONSUMPTION_PRIMAREPORTING.spLastRowCount` - Utility SP
+
+**Conclusion**: These 6 SPs correctly have 0.50 confidence because they have **no lineage** (0 tables + 0 SP calls). The parser is working as expected.
+
+---
 
 ### [4.0.1] - 2025-11-03
 

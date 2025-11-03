@@ -179,7 +179,7 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 
 ---
 
-**Last Updated:** 2025-11-03 19:15
-**Version:** v4.0.3 (Unified Confidence + Complete Metadata)
-**Parser:** 97.0% SP confidence | 95.5% overall confidence
+**Last Updated:** 2025-11-03 20:45
+**Version:** v4.0.3 (UNION Merge Strategy)
+**Parser:** 97.0% SP confidence | 95.5% overall confidence | UNION merge fix
 **Frontend:** v2.9.0 | **API:** v4.0.0

@@ -17,9 +17,12 @@ Phase: 3 (Core Engine)
 """
 
 import duckdb
+import logging
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 
 class DuckDBWorkspace:
@@ -576,7 +579,10 @@ class DuckDBWorkspace:
         outputs: List[int]
     ):
         """
-        Update lineage_metadata for an object.
+        Update lineage_metadata for an object using UNION merge strategy.
+
+        When lineage exists from multiple sources, inputs and outputs are merged
+        (deduplicated union), and the highest confidence source is retained.
 
         Args:
             object_id: Object ID
@@ -589,11 +595,46 @@ class DuckDBWorkspace:
         if not self.connection:
             raise RuntimeError("Not connected to DuckDB workspace")
 
-        # Convert lists to JSON strings
         import json
-        inputs_json = json.dumps(inputs)
-        outputs_json = json.dumps(outputs)
 
+        # Read existing metadata if it exists
+        existing = self.connection.execute("""
+            SELECT inputs, outputs, primary_source, confidence
+            FROM lineage_metadata
+            WHERE object_id = ?
+        """, [object_id]).fetchall()
+
+        if existing and len(existing) > 0:
+            # Existing record found - merge with UNION strategy
+            old_inputs_json, old_outputs_json, old_source, old_confidence = existing[0]
+
+            # Parse existing JSON arrays
+            old_inputs = json.loads(old_inputs_json) if old_inputs_json else []
+            old_outputs = json.loads(old_outputs_json) if old_outputs_json else []
+
+            # UNION inputs and outputs (deduplicate)
+            merged_inputs = list(set(old_inputs + inputs))
+            merged_outputs = list(set(old_outputs + outputs))
+
+            # Keep highest confidence source
+            if confidence > old_confidence:
+                final_source = primary_source
+                final_confidence = confidence
+            else:
+                final_source = old_source
+                final_confidence = old_confidence
+        else:
+            # No existing record - use new values directly
+            merged_inputs = inputs
+            merged_outputs = outputs
+            final_source = primary_source
+            final_confidence = confidence
+
+        # Convert to JSON
+        inputs_json = json.dumps(merged_inputs)
+        outputs_json = json.dumps(merged_outputs)
+
+        # Write merged result
         query = """
             INSERT OR REPLACE INTO lineage_metadata (
                 object_id,
@@ -610,8 +651,8 @@ class DuckDBWorkspace:
             object_id,
             modify_date,
             datetime.now(),
-            primary_source,
-            confidence,
+            final_source,
+            final_confidence,
             inputs_json,
             outputs_json
         ])
