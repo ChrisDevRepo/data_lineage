@@ -13,7 +13,7 @@ Instructions for Claude Code when working with this repository.
 
 ## Project Overview
 
-**Data Lineage Visualizer v4.0.1** - Slim parser for Azure Synapse with React visualization
+**Data Lineage Visualizer v4.0.3** - Slim parser for Azure Synapse with React visualization
 
 - **Status:** Production (No AI)
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
@@ -39,7 +39,7 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 
 ---
 
-## Parser Architecture (v4.0.1)
+## Parser Architecture (v4.0.2)
 
 **Three-Stage Strategy:**
 1. **Regex Baseline**: Pattern matching (tables + SP calls)
@@ -47,10 +47,10 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 3. **Rule Engine**: Quality checks (future)
 
 **Current Performance:**
-- 205/763 objects at ≥0.85 confidence (26.87%)
-- 155/202 SPs at high confidence (76.73%)
-- 187/202 SPs show SP-to-SP dependencies (92.6%)
-- Goal: 192/202 SPs (95%)
+- **196/202 SPs at high confidence (97.0%)** - ✅ EXCEEDED 95% GOAL
+- 757/763 total objects at ≥0.85 confidence (99.2%)
+- SP-to-SP lineage: 151 business dependencies tracked
+- Latest fixes: Statement boundary normalization + orchestrator SP handling
 
 ---
 
@@ -179,6 +179,6 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 ---
 
 **Last Updated:** 2025-11-03
-**Parser:** v4.0.2 (Slim - No AI) - ✅ 97% High Confidence
+**Parser:** v4.0.3 (Confidence Metrics Fix + 97% High Confidence)
 **Frontend:** v2.9.0
 **API:** v4.0.0
