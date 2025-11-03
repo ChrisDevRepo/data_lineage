@@ -250,6 +250,89 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     });
   };
 
+  // Note: Automatic Monaco find widget activation is not reliable
+  // Users can manually press Ctrl+F to search within the DDL viewer
+
+  // Highlight matching text in search results
+  const highlightText = (text: string, query: string) => {
+    if (!query.trim()) {
+      return text;
+    }
+
+    // Check if the text already contains <mark> tags from backend snippet
+    if (text.includes('<mark>') && text.includes('</mark>')) {
+      // Parse the HTML and render with proper highlighting
+      const parts: JSX.Element[] = [];
+      let lastIndex = 0;
+      const markRegex = /<mark>(.*?)<\/mark>/g;
+      let match;
+      let key = 0;
+
+      while ((match = markRegex.exec(text)) !== null) {
+        // Add text before the match
+        if (match.index > lastIndex) {
+          parts.push(<span key={key++}>{text.substring(lastIndex, match.index)}</span>);
+        }
+        // Add the highlighted match
+        parts.push(
+          <mark key={key++} className="bg-yellow-200 text-gray-900 font-semibold px-0.5 rounded">
+            {match[1]}
+          </mark>
+        );
+        lastIndex = match.index + match[0].length;
+      }
+
+      // Add remaining text
+      if (lastIndex < text.length) {
+        parts.push(<span key={key++}>{text.substring(lastIndex)}</span>);
+      }
+
+      return <>{parts}</>;
+    }
+
+    // Fallback: client-side highlighting for object names
+    // Remove boolean operators and quotes for highlighting
+    const cleanQuery = query.replace(/\b(AND|OR|NOT)\b/gi, '')
+      .replace(/["']/g, '')
+      .trim();
+
+    if (!cleanQuery) return text;
+
+    // Split by whitespace, asterisks, AND underscores/numbers to get word parts
+    // This allows "DimCustomers_0" to highlight "DimCustomers"
+    const terms = cleanQuery.split(/[\s*_\d]+/).filter(term => term.length > 2);
+
+    if (terms.length === 0) return text;
+
+    // Escape special regex characters for each term
+    const escapedTerms = terms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+    // Create regex pattern that matches any of the terms (case-insensitive)
+    const pattern = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
+
+    // Split text by matches while preserving the matched terms
+    const parts = text.split(pattern);
+
+    return (
+      <>
+        {parts.map((part, index) => {
+          if (!part) return null; // Skip empty parts
+
+          // Check if this part matches any search term (case-insensitive)
+          const isMatch = terms.some(term => part.toLowerCase() === term.toLowerCase());
+
+          return isMatch ? (
+            <mark key={index} className="bg-yellow-200 text-gray-900 font-semibold px-0.5 rounded">
+              {part}
+            </mark>
+          ) : (
+            <span key={index}>{part}</span>
+          );
+        })}
+      </>
+    );
+  };
+
   // Get icon by object type
   const getObjectIcon = (type: string) => {
     const iconClass = "w-4 h-4";
@@ -532,7 +615,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
                     </svg>
                   )}
                   <span className="text-gray-600">{getObjectIcon(result.type)}</span>
-                  <span className="text-sm font-medium text-gray-800">{result.name}</span>
+                  <span className="text-sm font-medium text-gray-800">{highlightText(result.name, searchQuery)}</span>
                   <span className="text-xs text-gray-500 ml-auto">
                     (score: {result.score.toFixed(2)})
                   </span>
@@ -546,7 +629,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
                       selectedResult?.id === result.id ? 'ml-8' : 'ml-6'
                     }`}
                   >
-                    ...{result.snippet}...
+                    ...{highlightText(result.snippet, searchQuery)}...
                   </div>
                 )}
               </div>

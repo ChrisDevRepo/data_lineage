@@ -416,26 +416,43 @@ class DuckDBWorkspace:
                 ORDER BY schema_name, object_name
             """
         else:
-            # Return only objects needing update
-            query = f"""
-                SELECT
-                    o.object_id,
-                    o.schema_name,
-                    o.object_name,
-                    o.object_type,
-                    o.modify_date
-                FROM objects o
-                LEFT JOIN lineage_metadata m
-                    ON o.object_id = m.object_id
-                WHERE
-                    -- Object not in metadata (never parsed)
-                    m.object_id IS NULL
-                    -- OR object modified since last parse
-                    OR o.modify_date > m.last_parsed_modify_date
-                    -- OR confidence below threshold (needs re-parsing)
-                    OR m.confidence < {confidence_threshold}
-                ORDER BY o.schema_name, o.object_name
-            """
+            # Check if lineage_metadata table exists
+            tables = [row[0] for row in self.connection.execute("SHOW TABLES").fetchall()]
+
+            if 'lineage_metadata' not in tables:
+                # No metadata table means nothing has been parsed yet
+                # Treat as full refresh
+                query = """
+                    SELECT
+                        object_id,
+                        schema_name,
+                        object_name,
+                        object_type,
+                        modify_date
+                    FROM objects
+                    ORDER BY schema_name, object_name
+                """
+            else:
+                # Return only objects needing update
+                query = f"""
+                    SELECT
+                        o.object_id,
+                        o.schema_name,
+                        o.object_name,
+                        o.object_type,
+                        o.modify_date
+                    FROM objects o
+                    LEFT JOIN lineage_metadata m
+                        ON o.object_id = m.object_id
+                    WHERE
+                        -- Object not in metadata (never parsed)
+                        m.object_id IS NULL
+                        -- OR object modified since last parse
+                        OR o.modify_date > m.last_parsed_modify_date
+                        -- OR confidence below threshold (needs re-parsing)
+                        OR m.confidence < {confidence_threshold}
+                    ORDER BY o.schema_name, o.object_name
+                """
 
         results = self.connection.execute(query).fetchall()
 

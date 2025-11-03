@@ -214,13 +214,21 @@ async def get_metadata():
     - Last upload timestamp
     - Number of nodes
     - File size
+    - Whether incremental parsing is available
 
     Returns:
         Metadata object or null if no data available
     """
+    # Check if workspace exists for incremental parsing
+    workspace_file = DATA_DIR / "lineage_workspace.duckdb"
+    has_workspace = workspace_file.exists()
+
     if not LATEST_DATA_FILE.exists():
         return JSONResponse(
-            content={"available": False},
+            content={
+                "available": False,
+                "incremental_available": False
+            },
             status_code=200
         )
 
@@ -239,6 +247,7 @@ async def get_metadata():
         return JSONResponse(
             content={
                 "available": True,
+                "incremental_available": has_workspace,
                 "upload_timestamp": upload_timestamp,
                 "upload_timestamp_human": datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S"),
                 "node_count": node_count,
@@ -368,19 +377,41 @@ async def search_ddl(q: str = Query(..., min_length=1, max_length=200, descripti
             # Query FTS index for matching objects
             # Returns ranked results with BM25 relevance scores
             # Uses unified_ddl_materialized table which includes tables with generated CREATE TABLE statements
+            # Extract snippet around the first match using position() to find context
             results = db.connection.execute("""
+                WITH matches AS (
+                    SELECT
+                        u.object_id::TEXT as id,
+                        u.object_name as name,
+                        u.object_type as type,
+                        u.schema_name as schema,
+                        fts_main_unified_ddl_materialized.match_bm25(u.object_id, ?) as score,
+                        u.ddl_text,
+                        position(? in lower(u.ddl_text)) as match_pos
+                    FROM unified_ddl_materialized u
+                    WHERE fts_main_unified_ddl_materialized.match_bm25(u.object_id, ?) IS NOT NULL
+                )
                 SELECT
-                    u.object_id::TEXT as id,
-                    u.object_name as name,
-                    u.object_type as type,
-                    u.schema_name as schema,
-                    fts_main_unified_ddl_materialized.match_bm25(u.object_id, ?) as score,
-                    substr(u.ddl_text, 1, 150) as snippet
-                FROM unified_ddl_materialized u
-                WHERE fts_main_unified_ddl_materialized.match_bm25(u.object_id, ?) IS NOT NULL
+                    id,
+                    name,
+                    type,
+                    schema,
+                    score,
+                    CASE
+                        -- Try to find the search term in the DDL and extract context around it
+                        WHEN match_pos > 0 THEN
+                            substr(
+                                ddl_text,
+                                GREATEST(1, match_pos - 50),
+                                200
+                            )
+                        -- Fallback to first 150 characters if not found
+                        ELSE substr(ddl_text, 1, 150)
+                    END as snippet
+                FROM matches
                 ORDER BY score DESC
                 LIMIT 100
-            """, [q, q]).fetchdf()
+            """, [q, q.lower(), q]).fetchdf()
 
             # Convert to list of dicts for JSON response
             search_results = results.to_dict('records')

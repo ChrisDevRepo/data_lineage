@@ -144,6 +144,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
 
     // Incremental parsing state
     const [useIncremental, setUseIncremental] = useState(true);
+    const [incrementalAvailable, setIncrementalAvailable] = useState(false);
 
     // Parse summary state
     const [parseSummary, setParseSummary] = useState<any | null>(null);
@@ -200,12 +201,20 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
             const metadata = await response.json();
             if (metadata.available) {
                 setLastUploadDate(metadata.upload_timestamp_human);
+                setIncrementalAvailable(metadata.incremental_available || false);
             } else {
                 setLastUploadDate(null);
+                setIncrementalAvailable(false);
+            }
+
+            // If incremental is not available, force full refresh mode
+            if (!metadata.incremental_available) {
+                setUseIncremental(false);
             }
         } catch (error) {
             console.error('Failed to fetch metadata:', error);
             setLastUploadDate(null);
+            setIncrementalAvailable(false);
         }
     };
 
@@ -600,7 +609,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                                         type="checkbox"
                                         checked={useIncremental}
                                         onChange={(e) => setUseIncremental(e.target.checked)}
-                                        disabled={isProcessing}
+                                        disabled={isProcessing || !incrementalAvailable}
                                         className="mt-0.5 w-4 h-4 flex-shrink-0 border-2 border-gray-300 text-green-600 rounded focus:ring-2 focus:ring-green-500 checked:border-green-600 transition-colors cursor-pointer disabled:opacity-50"
                                     />
                                     <div className="flex-1">
@@ -610,12 +619,17 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                                         <span className="text-sm text-green-700 ml-2">
                                             - Only re-parse modified objects
                                         </span>
+                                        {!incrementalAvailable && (
+                                            <div className="text-xs text-yellow-700 mt-1">
+                                                ℹ️ Not available - no existing data to compare against. First upload will always use Full Refresh.
+                                            </div>
+                                        )}
                                     </div>
                                 </label>
                             </div>
 
                             {/* Note about mode */}
-                            {!useIncremental && (
+                            {!useIncremental && incrementalAvailable && (
                                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                                     <p className="text-sm text-yellow-900">
                                         <strong>Full Refresh Mode:</strong> All objects will be re-parsed regardless of modification status. This may take longer but ensures complete re-analysis.
@@ -740,7 +754,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                                                 <span className="font-bold text-green-900">
                                                     {parseSummary.confidence_statistics.high_confidence_count} high
                                                     <span className="text-xs text-green-700 ml-1">
-                                                        ({((parseSummary.confidence_statistics.high_confidence_count / parseSummary.total_objects) * 100).toFixed(1)}% ≥0.85)
+                                                        ({((parseSummary.confidence_statistics.high_confidence_count / parseSummary.total_objects) * 100).toFixed(1)}% ≥0.75)
                                                     </span>
                                                 </span>
                                             </div>
