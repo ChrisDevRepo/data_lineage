@@ -47,10 +47,11 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 3. **Rule Engine**: Quality checks (future)
 
 **Current Performance:**
+- **729/763 objects at high confidence (95.5%)** - ✅ VERIFIED
 - **196/202 SPs at high confidence (97.0%)** - ✅ EXCEEDED 95% GOAL
-- 757/763 total objects at ≥0.85 confidence (99.2%)
+- Coverage: 758/763 objects (99.3%)
 - SP-to-SP lineage: 151 business dependencies tracked
-- Latest fixes: Statement boundary normalization + orchestrator SP handling
+- Latest fixes: Unified confidence calculator + complete metadata tracking
 
 ---
 
@@ -178,7 +179,7 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 
 ---
 
-**Last Updated:** 2025-11-03
-**Parser:** v4.0.3 (Confidence Metrics Fix + 97% High Confidence)
-**Frontend:** v2.9.0
-**API:** v4.0.0
+**Last Updated:** 2025-11-03 19:15
+**Version:** v4.0.3 (Unified Confidence + Complete Metadata)
+**Parser:** 97.0% SP confidence | 95.5% overall confidence
+**Frontend:** v2.9.0 | **API:** v4.0.0

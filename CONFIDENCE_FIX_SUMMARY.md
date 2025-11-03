@@ -124,12 +124,13 @@ test_confidence_fix.py                      ← Verification tests
 docs/CONFIDENCE_METRICS_FIX.md              ← Full documentation
 ```
 
-### Modified Files (4)
+### Modified Files (5)
 ```
-api/background_tasks.py                     ← Real-time stats
+api/background_tasks.py                     ← Real-time stats + ALL tables in metadata
 lineage_v3/core/duckdb_workspace.py        ← Cache cleanup
 lineage_v3/parsers/quality_aware_parser.py  ← Uses unified calc
 evaluation/score_calculator.py              ← Uses unified calc
+CLAUDE.md                                    ← Updated to v4.0.3
 ```
 
 ---
@@ -140,11 +141,15 @@ evaluation/score_calculator.py              ← Uses unified calc
 - Parser and evaluation had different confidence formulas
 - Frontend showed stale/wrong stats during upload
 - New uploads mixed old cached data → wrong numbers
+- Unreferenced tables missing from metadata → 501/763 counted (65.7%)
 
 **After:** ✅
 - Single unified confidence calculator
 - Real-time accurate stats during upload
 - Automatic cache cleanup → always fresh numbers
+- All tables/views in metadata → 763/763 counted (100%)
+
+**Verified Results:** 729/763 high confidence (95.5%) ✅
 
 ---
 
