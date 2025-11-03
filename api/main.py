@@ -151,21 +151,12 @@ async def health_check():
     Health check endpoint for container orchestration.
 
     Returns:
-        Health status, version, uptime, and AI availability
+        Health status, version, and uptime
     """
-    from lineage_v3.config import settings
-
-    # Debug logging
-    print(f"[DEBUG] AI enabled in settings: {settings.ai.enabled}")
-    print(f"[DEBUG] Azure OpenAI endpoint: {settings.azure_openai.endpoint}")
-    print(f"[DEBUG] Azure OpenAI has key: {settings.azure_openai.api_key is not None}")
-    print(f"[DEBUG] ai_available property: {settings.ai_available}")
-
     return HealthResponse(
         status="ok",
-        version="3.0.0",
-        uptime_seconds=time.time() - START_TIME,
-        ai_enabled=settings.ai_available
+        version="4.0.0",
+        uptime_seconds=time.time() - START_TIME
     )
 
 

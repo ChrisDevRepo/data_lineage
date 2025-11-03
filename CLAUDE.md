@@ -14,12 +14,13 @@ Instructions for Claude Code when working with this repository.
 
 ## Project Overview
 
-**Data Lineage Visualizer v3.7.0** - DMV-first lineage parser for Azure Synapse with React visualization
+**Data Lineage Visualizer v4.0.0** - Slim parser for Azure Synapse with React visualization
 
-- **Status:** Production Ready (80.7% high-confidence parsing)
-- **Stack:** FastAPI + DuckDB + SQLGlot + Azure OpenAI | React + React Flow
+- **Status:** Development (Slim Architecture - No AI)
+- **Stack:** FastAPI + DuckDB + SQLGlot + Regex + Rule Engine | React + React Flow
 - **System:** Python 3.12.3, Node.js, WSL2
 - **Working Directory:** `/home/chris/sandbox`
+- **Branch:** `feature/slim-parser-no-ai`
 
 ---
 
@@ -45,6 +46,20 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 
 ---
 
+## Parser Architecture (v4.0.0 - Slim)
+
+**Three-Stage Parsing Strategy:**
+
+1. **Regex Baseline**: Pattern matching to identify expected entity counts
+2. **SQLGlot Parser**: AST-based parsing with preprocessing
+3. **Rule Engine**: Quality checks and data cleansing (future enhancement)
+
+**Goal:** Iteratively increase confidence scores through rule refinement
+
+**No AI Dependencies:** Removed Azure OpenAI integration for simpler, faster parsing
+
+---
+
 ## Parser Development (MANDATORY PROCESS)
 
 **🚨 ALWAYS use `/sub_DL_OptimizeParsing` for parser changes 🚨**
@@ -56,7 +71,7 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
    /sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD_before_description
    ```
 
-2. **Make parser changes** (quality_aware_parser.py, ai_disambiguator.py, etc.)
+2. **Make parser changes** (quality_aware_parser.py, etc.)
 
 3. **After changes:** Run evaluation (MANDATORY)
    ```bash
@@ -81,7 +96,7 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 ## Sub-Agents
 
 ### `/sub_DL_OptimizeParsing` - Parser Evaluation
-- Runs all 3 methods (regex, SQLGlot, AI) independently
+- Runs regex and SQLGlot methods independently
 - Calculates precision/recall/F1 scores
 - Tracks progress toward 95% confidence goal
 - Docs: [.claude/commands/sub_DL_OptimizeParsing.md](.claude/commands/sub_DL_OptimizeParsing.md)
@@ -125,22 +140,21 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 - Required: objects, dependencies, definitions
 - Optional: query_logs, table_columns
 
-### Confidence Model
+### Confidence Model (v4.0.0)
 | Source | Confidence | Applied To |
 |--------|-----------|------------|
 | DMV | 1.0 | Views, Functions |
 | Query Log | 0.95 | Validated SPs |
 | SQLGlot | 0.85 | Successfully parsed SPs |
-| AI (Validated) | 0.85-0.95 | Complex SPs |
 | Regex Fallback | 0.50 | Failed parses |
 
-**Current:** 202 SPs, 163 (80.7%) high confidence (≥0.85)
+**Current:** Starting fresh with slim architecture
 
 ---
 
 ## Git Guidelines
 
-- **Branch:** `feature/frontend-ui-fixes`
+- **Branch:** `feature/slim-parser-no-ai`
 - **Main:** `main`
 - **DO:** Commit frequently, push to origin
 - **DON'T:** Pull with rebase, merge from other branches, merge to main (requires approval)
@@ -153,14 +167,8 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 cp .env.template .env  # Edit with your credentials
 ```
 
-**Required for AI features:**
-```
-AZURE_OPENAI_ENDPOINT=https://your-endpoint.cognitiveservices.azure.com/
-AZURE_OPENAI_API_KEY=your-api-key
-AZURE_OPENAI_MODEL_NAME=gpt-4.1-nano
-AZURE_OPENAI_DEPLOYMENT=gpt-4.1-nano
-AZURE_OPENAI_API_VERSION=2024-12-01-preview
-```
+**Optional (not used in v4.0.0):**
+- Azure OpenAI credentials removed from requirements
 
 ---
 
@@ -176,8 +184,7 @@ AZURE_OPENAI_API_VERSION=2024-12-01-preview
 - [frontend/README.md](frontend/README.md) - Frontend guide
 - [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md) - UI design system
 
-**AI & Evaluation:**
-- [docs/AI_DISAMBIGUATION_SPEC.md](docs/AI_DISAMBIGUATION_SPEC.md) - AI implementation
+**Evaluation:**
 - [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md) - Parser evaluation spec
 - [evaluation_baselines/README.md](evaluation_baselines/README.md) - Baseline lifecycle
 
@@ -199,6 +206,7 @@ pip install -r requirements.txt
 **Low Confidence (<0.85):**
 - Use `/sub_DL_OptimizeParsing` to analyze parsing quality
 - Review [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md)
+- Focus on improving regex patterns and SQLGlot preprocessing
 
 **Frontend Not Loading:**
 - Check JSON path in Import Data modal
@@ -213,7 +221,7 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 
 ---
 
-**Last Updated:** 2025-11-02
-**Parser Version:** v3.7.0
+**Last Updated:** 2025-11-03
+**Parser Version:** v4.0.0 (Slim - No AI)
 **Frontend Version:** v2.9.0
-**API Version:** v3.0.1
+**API Version:** v4.0.0

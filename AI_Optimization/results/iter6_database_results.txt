@@ -1,0 +1,24 @@
+================================================================================
+ITERATION 6 RESULTS - After Classification Fix
+================================================================================
+Total AI-processed tables: 104
+Tables with matches: 3
+Empty arrays: 101
+
+================================================================================
+MATCHED TABLES (Total: 3)
+================================================================================
+1. CONSUMPTION_FINANCE.GLCognosData_Test
+   Confidence: 0.95
+   → CONSUMPTION_FINANCE.spLoadGLCognosData_Test
+
+2. CONSUMPTION_PRIMA.FeasibilityQuestions
+   Confidence: 0.95
+   → CONSUMPTION_PRIMA.spLoadFeasibilityObjects
+
+3. CONSUMPTION_PRIMA.ProjectTeamRegions
+   Confidence: 0.95
+   → CONSUMPTION_PRIMA.spLoadProjectRegions
+
+================================================================================
+FactAgingSAP in results: ❌ NO

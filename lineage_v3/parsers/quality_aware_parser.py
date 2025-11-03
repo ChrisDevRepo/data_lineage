@@ -1,6 +1,6 @@
 """
-Quality-Aware SQLGlot Parser - Smart extraction with built-in QA + AI Fallback
-===============================================================================
+Quality-Aware SQLGlot Parser - Smart extraction with built-in QA
+================================================================
 
 Strategy:
 1. Regex scan full DDL → Get expected entity count (baseline)
@@ -8,24 +8,16 @@ Strategy:
 3. Compare counts:
    - Match (±10%) → High confidence (0.85)
    - Partial match (±25%) → Medium confidence (0.75)
-   - Major difference (>25%) → Trigger AI fallback (0.5)
-4. AI Disambiguation (NEW in v3.7.0):
-   - Triggered when confidence ≤ 0.85
-   - Uses Azure OpenAI with few-shot prompting
-   - 3-layer validation (catalog, regex improvement, query logs)
-   - Retry logic with refined prompts (max 2 attempts)
+   - Major difference (>25%) → Low confidence (0.5)
 
-This gives us quality assurance built into the parser + intelligent fallback!
+This gives us quality assurance built into the parser!
 
 Author: Vibecoding
-Version: 3.7.0
-Date: 2025-10-31
+Version: 4.0.0 (Slim - No AI)
+Date: 2025-11-03
 
 Changelog:
-- v3.7.0 (2025-10-31): Add AI-assisted disambiguation for low-confidence SPs
-  Integration: Azure OpenAI (gpt-4.1-nano) with few-shot prompt
-  Trigger: confidence ≤ 0.85 (configurable via AI_CONFIDENCE_THRESHOLD)
-  Expected Impact: 80.7% → 98% high-confidence coverage
+- v4.0.0 (2025-11-03): Remove AI disambiguation - focus on Regex + SQLGlot + Rule Engine
 - v3.6.0 (2025-10-28): Add self-referencing pattern support
   Issue #2: Staging patterns (INSERT → SELECT → INSERT) not captured
   Fix: Statement-level target exclusion instead of global exclusion
@@ -199,82 +191,12 @@ class QualityAwareParser:
             input_ids = self._resolve_table_names(parser_sources_valid)
             output_ids = self._resolve_table_names(parser_targets_valid)
 
-            # STEP 6: AI Disambiguation (if confidence ≤ threshold and AI enabled)
-            ai_used = False
-            ai_confidence = None
-            ai_sources_found = 0
-            ai_targets_found = 0
-
-            # Use centralized config for AI settings
-            ai_enabled = settings.ai.enabled
-            ai_threshold = settings.ai.confidence_threshold
-
-            if confidence <= ai_threshold and ai_enabled:
-                try:
-                    from lineage_v3.parsers.ai_disambiguator import AIDisambiguator
-
-                    # Get SP name for query log validation
-                    sp_info = self._get_object_info(object_id)
-                    sp_name = f"{sp_info['schema']}.{sp_info['name']}" if sp_info else f"object_{object_id}"
-
-                    # Initialize disambiguator (lazy init to avoid overhead when not needed)
-                    disambiguator = AIDisambiguator(self.workspace)
-
-                    # Find ambiguous references (unqualified table names in DDL)
-                    ambiguous_refs = self._extract_ambiguous_references(ddl, regex_sources, regex_targets)
-
-                    logger.info(f"AI trigger: confidence {confidence:.2f} ≤ {ai_threshold}, found {len(ambiguous_refs)} ambiguous refs")
-
-                    # Attempt AI disambiguation for each ambiguous reference
-                    for ref_info in ambiguous_refs[:3]:  # Limit to top 3 to control cost
-                        reference = ref_info['reference']
-                        candidates = ref_info['candidates']
-
-                        if not candidates:
-                            continue
-
-                        # Build parser result dict for validation
-                        parser_result = {
-                            'quality': {
-                                'regex_sources': len(regex_sources_valid),
-                                'regex_targets': len(regex_targets_valid),
-                                'parser_sources': len(parser_sources_valid),
-                                'parser_targets': len(parser_targets_valid)
-                            }
-                        }
-
-                        ai_result = disambiguator.disambiguate(
-                            reference=reference,
-                            candidates=candidates,
-                            sql_context=ddl,
-                            parser_result=parser_result,
-                            sp_name=sp_name
-                        )
-
-                        if ai_result and ai_result.is_valid:
-                            # Merge AI results into parser results
-                            input_ids = list(set(input_ids + ai_result.sources))
-                            output_ids = list(set(output_ids + ai_result.targets))
-                            confidence = ai_result.confidence
-                            ai_used = True
-                            ai_confidence = ai_result.confidence
-                            ai_sources_found += len(ai_result.sources)
-                            ai_targets_found += len(ai_result.targets)
-
-                            logger.info(f"AI resolved '{reference}' → {ai_result.resolved_table} (confidence: {ai_result.confidence:.2f})")
-                            break  # Use first successful disambiguation
-
-                except ImportError as e:
-                    logger.warning(f"AI disambiguator not available: {e}")
-                except Exception as e:
-                    logger.error(f"AI disambiguation failed: {e}", exc_info=True)
-
             return {
                 'object_id': object_id,
                 'inputs': input_ids,
                 'outputs': output_ids,
                 'confidence': confidence,
-                'source': 'ai' if ai_used else 'parser',
+                'source': 'parser',
                 'parse_error': None,
                 'quality_check': {
                     'regex_sources': len(regex_sources_valid),
@@ -284,11 +206,7 @@ class QualityAwareParser:
                     'source_match': quality['source_match'],
                     'target_match': quality['target_match'],
                     'overall_match': quality['overall_match'],
-                    'needs_ai': quality['needs_ai'],
-                    'ai_used': ai_used,
-                    'ai_confidence': ai_confidence,
-                    'ai_sources_found': ai_sources_found,
-                    'ai_targets_found': ai_targets_found
+                    'needs_improvement': quality['needs_ai']  # Renamed from needs_ai
                 }
             }
 
@@ -894,77 +812,6 @@ class QualityAwareParser:
         except Exception as e:
             logger.error(f"Failed to get object info for {object_id}: {e}")
             return None
-
-    def _extract_ambiguous_references(
-        self,
-        ddl: str,
-        regex_sources: Set[str],
-        regex_targets: Set[str]
-    ) -> List[Dict[str, Any]]:
-        """
-        Extract ambiguous table references (unqualified names) from DDL.
-
-        An ambiguous reference is a table name without schema qualification
-        that could refer to multiple tables in different schemas.
-
-        Args:
-            ddl: SQL DDL text
-            regex_sources: Set of qualified source tables from regex scan
-            regex_targets: Set of qualified target tables from regex scan
-
-        Returns:
-            List of dicts with 'reference' (unqualified name) and 'candidates' (possible matches)
-        """
-        ambiguous = []
-
-        # Pattern to find unqualified table references (single identifier, not schema.table)
-        # Look for FROM/JOIN/INSERT/UPDATE/MERGE followed by single identifier
-        unqualified_pattern = r'\b(?:FROM|JOIN|INSERT\s+INTO|UPDATE|MERGE)\s+(\w+)\b'
-
-        matches = re.findall(unqualified_pattern, ddl, re.IGNORECASE)
-
-        for unqualified_name in set(matches):  # Deduplicate
-            # Skip temp tables and table variables
-            if unqualified_name.startswith('#') or unqualified_name.startswith('@'):
-                continue
-
-            # Find candidate tables from catalog
-            candidates = self._find_candidate_tables(unqualified_name)
-
-            if len(candidates) > 1:  # Only ambiguous if multiple candidates
-                ambiguous.append({
-                    'reference': unqualified_name,
-                    'candidates': candidates
-                })
-
-        logger.debug(f"Found {len(ambiguous)} ambiguous references in DDL")
-        return ambiguous
-
-    def _find_candidate_tables(self, table_name: str) -> List[str]:
-        """
-        Find all candidate tables matching an unqualified table name.
-
-        Args:
-            table_name: Unqualified table name (e.g., "DimAccount")
-
-        Returns:
-            List of fully-qualified table names (schema.table)
-        """
-        try:
-            query = """
-                SELECT schema_name, object_name
-                FROM objects
-                WHERE LOWER(object_name) = LOWER(?)
-                  AND object_type = 'Table'
-                ORDER BY schema_name
-            """
-            results = self.workspace.connection.execute(query, [table_name]).fetchall()
-
-            return [f"{schema}.{name}" for schema, name in results]
-
-        except Exception as e:
-            logger.error(f"Failed to find candidates for {table_name}: {e}")
-            return []
 
     def get_parse_statistics(self) -> Dict[str, Any]:
         """Get parser statistics."""

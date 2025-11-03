@@ -51,7 +51,6 @@ class HealthResponse(BaseModel):
     status: str = Field(..., description="Health status (ok/degraded/down)")
     version: str = Field(..., description="API version")
     uptime_seconds: float = Field(..., description="API uptime in seconds")
-    ai_enabled: bool = Field(..., description="Whether AI-assisted parsing is enabled and configured")
 
 
 class ErrorResponse(BaseModel):

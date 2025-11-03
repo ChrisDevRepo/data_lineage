@@ -138,8 +138,6 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
     // Metadata state
     const [lastUploadDate, setLastUploadDate] = useState<string | null>(null);
 
-    // AI availability check (only check once per modal open when in parquet mode)
-    const [hasCheckedAI, setHasCheckedAI] = useState(false);
     const [isClearing, setIsClearing] = useState(false);
 
     // Incremental parsing state
@@ -162,37 +160,13 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
             }
             // Fetch metadata when modal opens
             fetchMetadata();
-            // Check AI status if in parquet mode and haven't checked yet
-            if (uploadMode === 'parquet' && !hasCheckedAI) {
-                checkAIAvailability();
-            }
         } else {
             // Reset summary when modal closes
             setParseSummary(null);
             setShowSummary(false);
             setJobStatus(null);
-            // Reset AI check flag when modal closes
-            setHasCheckedAI(false);
         }
-    }, [isOpen, currentData, parseSummary, uploadMode, hasCheckedAI]);
-
-    const checkAIAvailability = async () => {
-        try {
-            const response = await fetch(`${API_BASE_URL}/health`);
-            const health = await response.json();
-
-            if (!health.ai_enabled) {
-                addNotification(
-                    'Azure OpenAI not configured. AI-assisted parsing disabled. Confidence scores may be lower for complex stored procedures.',
-                    'info'
-                );
-            }
-            setHasCheckedAI(true);
-        } catch (error) {
-            console.warn('Failed to check AI availability:', error);
-            setHasCheckedAI(true); // Don't retry on error
-        }
-    };
+    }, [isOpen, currentData, parseSummary, uploadMode]);
 
     const fetchMetadata = async () => {
         try {

@@ -79,8 +79,8 @@ curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" \
 ## Tech Stack
 
 **Frontend:** React 18 + TypeScript + React Flow + Monaco Editor + Tailwind
-**Backend:** FastAPI + DuckDB + SQLGlot + Azure OpenAI
-**Parser:** DMV-first with 80.7% high-confidence (2x industry average)
+**Backend:** FastAPI + DuckDB + SQLGlot + Regex + Rule Engine
+**Parser:** Slim architecture focusing on Regex + SQLGlot (v4.0.0)
 
 **Architecture:**
 ```
@@ -111,10 +111,10 @@ Synapse DMVs → PySpark Extractor → Parquet Files
 
 ## Performance
 
-**Current Metrics (v3.7.0):**
-- Total SPs: 202
-- High Confidence (≥0.85): 163 (80.7%)
-- Average Confidence: 0.800
+**Current Status (v4.0.0 - Slim):**
+- Starting fresh with slim architecture
+- Goal: Iteratively improve confidence through rule engine
+- Target: 95% high-confidence coverage
 
 **Confidence Model:**
 | Source | Confidence | Applied To |
@@ -122,7 +122,6 @@ Synapse DMVs → PySpark Extractor → Parquet Files
 | DMV | 1.0 | Views, Functions |
 | Query Log | 0.95 | Validated SPs |
 | SQLGlot Parser | 0.85 | Successfully parsed SPs |
-| AI (Validated) | 0.85-0.95 | Complex SPs |
 | Regex Fallback | 0.50 | Failed parses |
 
 ---
@@ -140,9 +139,9 @@ Synapse DMVs → PySpark Extractor → Parquet Files
 - [extractor/README.md](extractor/README.md) - Extractor setup
 
 **Advanced:**
-- [docs/AI_DISAMBIGUATION_SPEC.md](docs/AI_DISAMBIGUATION_SPEC.md) - AI implementation
 - [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
 - [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
+- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md) - Parser evaluation
 
 ---
 
@@ -165,7 +164,7 @@ cd frontend && npm install
 **Environment Variables:**
 ```bash
 cp .env.template .env
-# Edit .env with Azure OpenAI credentials (for AI features)
+# Azure OpenAI credentials not required in v4.0.0 (slim architecture)
 ```
 
 ---
