@@ -455,6 +455,29 @@ class LineageProcessor:
                         outputs=readers
                     )
 
+                # CRITICAL FIX: Ensure ALL tables/views have metadata entries
+                # Even unreferenced tables need confidence=1.0 for accurate stats
+                all_tables_views = db.query("""
+                    SELECT object_id
+                    FROM objects
+                    WHERE object_type IN ('Table', 'View')
+                """)
+
+                tables_in_metadata = set(reverse_inputs.keys()) | set(reverse_outputs.keys())
+
+                for row in all_tables_views:
+                    table_id = row[0]
+                    if table_id not in tables_in_metadata:
+                        # Unreferenced table/view - add with confidence=1.0
+                        db.update_metadata(
+                            object_id=table_id,
+                            modify_date=None,
+                            primary_source='metadata',
+                            confidence=1.0,
+                            inputs=[],
+                            outputs=[]
+                        )
+
                 # Step 6: Generate output JSON files
                 self.update_status("processing", 90, "Generating output", "Creating lineage JSON...")
 
