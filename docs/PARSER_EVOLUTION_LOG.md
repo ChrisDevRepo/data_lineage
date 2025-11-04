@@ -6,9 +6,35 @@
 
 ---
 
-## Baseline Metrics (2025-11-03)
+## Baseline Metrics (2025-11-04)
 
-### Current Parser Version: 4.0.3 (COMPLETED - 2025-11-03)
+### Current Parser Version: 4.1.0 (COMPLETED - 2025-11-04)
+
+**Latest Update (v4.1.0 - 2025-11-04): DATAFLOW-FOCUSED LINEAGE**
+- **Philosophy**: Show only data transformation operations (DML), not housekeeping (DDL)
+- **Breaking Change**: Switches from "complete" mode to "dataflow" mode by default
+- **Changes**:
+  1. **Preprocessing**: Replace CATCH blocks and ROLLBACK sections with `SELECT 1` dummy
+  2. **Preprocessing**: Replace `DECLARE/SET @var = (SELECT ...)` with literals
+  3. **AST Extraction**: Disable TRUNCATE extraction (DDL housekeeping, not DML transformation)
+- **What's Shown**:
+  - ✅ DML operations: INSERT, UPDATE, DELETE, MERGE, SELECT INTO
+  - ❌ DDL operations: TRUNCATE, DROP
+  - ❌ Administrative queries: SELECT COUNT, IF EXISTS, watermark queries
+  - ❌ Error handling: CATCH blocks, ROLLBACK paths
+- **Impact**:
+  - Cleaner lineage graphs focused on business logic
+  - Eliminates false positive inputs from administrative SELECT queries
+  - Example: `spLoadGLCognosData` now shows only INSERT operations (not SELECT COUNT or TRUNCATE)
+- **Result**: More focused, easier-to-understand data flow visualization
+- **Files Modified**:
+  - `lineage_v3/parsers/quality_aware_parser.py` (enhanced preprocessing + disabled TRUNCATE)
+  - `docs/PARSING_USER_GUIDE.md` (comprehensive dataflow mode documentation)
+  - `CLAUDE.md` + `README.md` (version updates)
+
+---
+
+### Parser Version: 4.0.3 (COMPLETED - 2025-11-04)
 
 **Latest Update (v4.0.3 - 2025-11-03):**
 - **Fix**: Implemented UNION merge strategy for lineage metadata

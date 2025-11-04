@@ -169,6 +169,39 @@ cp .env.template .env
 
 ---
 
+## Changelog
+
+### v4.1.0 - Dataflow-Focused Lineage (2025-11-04)
+
+**BREAKING CHANGE:** Switches from "complete" mode to "dataflow" mode by default
+
+**What Changed:**
+- Parser now shows ONLY data transformation operations (DML)
+- Filters out housekeeping (TRUNCATE/DROP) and administrative queries (SELECT COUNT)
+- Cleaner, more focused lineage graphs
+
+**What's Shown:**
+- ✅ INSERT, UPDATE, DELETE, MERGE, SELECT INTO
+- ❌ TRUNCATE, DROP, SELECT COUNT, CATCH blocks, ROLLBACK paths
+
+**Impact:**
+- Example: `spLoadGLCognosData` now shows only INSERT operations (not SELECT COUNT or TRUNCATE)
+- Eliminates false positive inputs from administrative queries
+- More intuitive data flow visualization
+
+See [PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) for complete details.
+
+### v4.0.3 - SP-to-SP Direction Fix (2025-11-04)
+- Fixed SP-to-SP lineage to show correct arrow direction
+- EXEC/EXECUTE calls now properly shown as outputs (not inputs)
+- Corrects 151 SP-to-SP relationships
+
+### v4.0.2 - Orchestrator SP Confidence (2025-11-03)
+- Fixed confidence scoring for orchestrator SPs (SP calls only, no tables)
+- 97.0% SP confidence achieved (exceeded 95% goal)
+
+---
+
 ## Support
 
 **Issues:** Use GitHub issue tracker
@@ -176,7 +209,7 @@ cp .env.template .env
 
 ---
 
-**Version:** v3.7.0 (Parser) | v2.9.0 (Frontend) | v3.0.1 (API)
+**Version:** v4.1.0 (Parser) | v2.9.0 (Frontend) | v4.0.0 (API)
 **Status:** Production Ready
 **Author:** Christian Wagner
 **Built with:** [Claude Code](https://claude.com/claude-code)
