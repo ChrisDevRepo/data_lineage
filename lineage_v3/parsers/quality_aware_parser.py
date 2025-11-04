@@ -13,10 +13,17 @@ Strategy:
 This gives us quality assurance built into the parser!
 
 Author: Vibecoding
-Version: 4.0.2 (Orchestrator SP Confidence Fix)
-Date: 2025-11-03
+Version: 4.0.3 (SP-to-SP Direction Fix)
+Date: 2025-11-04
 
 Changelog:
+- v4.0.3 (2025-11-04): CRITICAL FIX - SP-to-SP lineage direction
+    Issue: EXEC/EXECUTE calls were added as INPUTS, making arrows point wrong direction in GUI
+    Example: spLoadFactTables showed incoming arrows from SPs it calls (should be outgoing)
+    Root Cause: Line 226-227 added sp_ids to input_ids instead of output_ids
+    Fix: Changed sp_ids.extend(input_ids) → sp_ids.extend(output_ids)
+    Rationale: When SP_A executes SP_B, SP_B is a TARGET/OUTPUT of SP_A (SP_A → SP_B)
+    Impact: Corrects 151 SP-to-SP relationships to show proper call hierarchy
 - v4.0.2 (2025-11-03): Orchestrator SP confidence fix
     Issue: SPs with only EXEC calls (no tables) got 0.50 confidence (divide-by-zero edge case)
     Fix: Special handling in _determine_confidence() for orchestrator SPs (0 tables + SP calls > 0)
@@ -33,7 +40,7 @@ Changelog:
     Issue: Removing ALL EXEC statements lost 151 business SP calls (17.8% of total)
     Fix: Only remove utility EXEC calls (LogMessage, spLastRowCount - 82.2%)
     Added: _validate_sp_calls() and _resolve_sp_names() methods
-    Result: SP dependencies now tracked as inputs in lineage graph
+    Result: SP dependencies now tracked as inputs in lineage graph (CORRECTED in v4.0.3)
 - v4.0.0 (2025-11-03): Remove AI disambiguation - focus on Regex + SQLGlot + Rule Engine
 - v3.6.0 (2025-10-28): Add self-referencing pattern support
   Issue #2: Staging patterns (INSERT → SELECT → INSERT) not captured
@@ -222,9 +229,10 @@ class QualityAwareParser:
             output_ids = self._resolve_table_names(parser_targets_valid)
 
             # STEP 5b: Add SP-to-SP lineage (v4.0.1)
-            # Stored procedures are INPUTS (we read/call them)
+            # Stored procedures are OUTPUTS (we call/execute them)
+            # When SP_A executes SP_B: SP_A → SP_B (SP_B is a target/output)
             sp_ids = self._resolve_sp_names(regex_sp_calls_valid)
-            input_ids.extend(sp_ids)
+            output_ids.extend(sp_ids)
 
             return {
                 'object_id': object_id,

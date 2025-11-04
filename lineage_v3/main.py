@@ -456,8 +456,23 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_en
                         reverse_outputs[output_id].append(obj_id)
 
             # Update Tables/Views with reverse dependencies
+            # IMPORTANT: Only update Tables/Views, NOT Stored Procedures
+            # SPs have their own parsed dependencies and should not get reverse lookup
             tables_updated = 0
             for table_id, readers in reverse_inputs.items():
+                # Check if this is a Table or View (not a Stored Procedure)
+                obj_type_query = "SELECT object_type FROM objects WHERE object_id = ?"
+                obj_type_result = db.query(obj_type_query, params=[table_id])
+
+                if not obj_type_result:
+                    continue
+
+                obj_type = obj_type_result[0][0]
+
+                # Skip Stored Procedures - they have their own dependencies from parsing
+                if obj_type == 'Stored Procedure':
+                    continue
+
                 # This table is read by these objects
                 # Table.outputs should contain the readers
                 db.update_metadata(
