@@ -80,7 +80,7 @@ curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" \
 
 **Frontend:** React 18 + TypeScript + React Flow + Monaco Editor + Tailwind
 **Backend:** FastAPI + DuckDB + SQLGlot + Regex + Rule Engine
-**Parser:** Slim architecture focusing on Regex + SQLGlot (v4.0.0)
+**Parser:** Dataflow-focused mode showing DML only (v4.1.0)
 
 **Architecture:**
 ```

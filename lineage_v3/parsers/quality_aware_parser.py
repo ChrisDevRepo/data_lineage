@@ -13,10 +13,19 @@ Strategy:
 This gives us quality assurance built into the parser!
 
 Author: Vibecoding
-Version: 4.0.3 (SP-to-SP Direction Fix)
+Version: 4.1.0 (Dataflow-Focused Lineage)
 Date: 2025-11-04
 
 Changelog:
+- v4.1.0 (2025-11-04): DATAFLOW-FOCUSED LINEAGE
+    Philosophy: Show only data transformation operations (DML), not housekeeping (DDL)
+    Changes:
+      1. Preprocessing: Replace CATCH blocks and ROLLBACK sections with SELECT 1 dummy
+      2. Preprocessing: Replace DECLARE/SET @var = (SELECT ...) with literals (removes admin queries)
+      3. AST Extraction: Only extract INSERT/UPDATE/DELETE/MERGE (exclude TRUNCATE/DROP)
+    Impact: Cleaner lineage focused on business logic, removes administrative noise
+    Example: spLoadGLCognosData now shows INSERT only (not SELECT COUNT or TRUNCATE)
+    Breaking: Dataflow mode is now the default behavior (replaces "complete" mode)
 - v4.0.3 (2025-11-04): CRITICAL FIX - SP-to-SP lineage direction
     Issue: EXEC/EXECUTE calls were added as INPUTS, making arrows point wrong direction in GUI
     Example: spLoadFactTables showed incoming arrows from SPs it calls (should be outgoing)
@@ -113,16 +122,24 @@ class QualityAwareParser:
         (r'\bPRINT\s+[^\n;]+', '-- PRINT removed'),
     ]
 
-    # Enhanced preprocessing patterns (2025-11-03)
-    # Based on production testing: focus on TRY block business logic, remove noise
-    # v4.0.1: Fixed DECLARE greedy pattern, added semicolon normalization
+    # Enhanced preprocessing patterns (2025-11-04)
+    # v4.1.0: DATAFLOW MODE - Remove administrative code, keep only DML operations
+    # Philosophy: Focus on data transformation (INSERT/UPDATE/DELETE/MERGE), not housekeeping
     ENHANCED_REMOVAL_PATTERNS = [
-        # Remove entire CATCH blocks (including nested content)
-        # CATCH blocks contain error handling, logging, rollback - not business lineage
+        # DATAFLOW: Replace CATCH blocks with dummy (error handling not dataflow)
+        # v4.1.0: Changed from removing to replacing with SELECT 1 (keeps SQL valid)
         # Example: BEGIN /* CATCH */ INSERT INTO ErrorLog ... END /* CATCH */
-        # Uses re.DOTALL to match across newlines (. matches \n)
-        # IMPORTANT: Use empty string to avoid comments that break SQLGlot parsing
-        (r'BEGIN\s+/\*\s*CATCH\s*\*/.*?END\s+/\*\s*CATCH\s*\*/', '', re.DOTALL),
+        # → BEGIN /* CATCH */ SELECT 1 END /* CATCH */ (SQLGlot can still parse)
+        (r'BEGIN\s+/\*\s*CATCH\s*\*/.*?END\s+/\*\s*CATCH\s*\*/',
+         'BEGIN /* CATCH */\n  -- Error handling removed for dataflow clarity\n  SELECT 1;\nEND /* CATCH */',
+         re.DOTALL),
+
+        # DATAFLOW: Replace content after ROLLBACK (failure paths not dataflow)
+        # v4.1.0: NEW - Removes rollback recovery code
+        # Example: ROLLBACK TRANSACTION; INSERT INTO ErrorLog ... → ROLLBACK TRANSACTION; SELECT 1;
+        (r'ROLLBACK\s+TRANSACTION\s*;.*?(?=END|$)',
+         'ROLLBACK TRANSACTION;\n  -- Rollback path removed for dataflow clarity\n  SELECT 1;\n',
+         re.DOTALL),
 
         # Remove UTILITY EXEC commands (logging, counting, etc.)
         # Keep business SP calls - they are important lineage!
@@ -131,25 +148,35 @@ class QualityAwareParser:
         # Example: EXEC [dbo].[LogMessage] 'Processing complete'
         (r'\bEXEC(?:UTE)?\s+(?:\[?dbo\]?\.)?\[?(spLastRowCount|LogMessage)\]?[^;]*;?', '', re.IGNORECASE),
 
-        # Remove DECLARE statements (variable declarations clutter parsing)
-        # Variables are implementation details, not data lineage
+        # DATAFLOW: Replace DECLARE @var = (SELECT ...) with literal (removes admin queries)
+        # v4.1.0: Changed from removing to replacing with literal value
+        # Example: DECLARE @RowCount INT = (SELECT COUNT(*) FROM Table)
+        # → DECLARE @RowCount INT = 1  -- Administrative query removed
+        # This prevents SELECT COUNT(*) from appearing as lineage dependency
+        (r'DECLARE\s+(@\w+)\s+(\w+(?:\([^\)]*\))?)\s*=\s*\(SELECT[^\)]*\)',
+         r'DECLARE \1 \2 = 1  -- Administrative query removed',
+         0),
+
+        # DATAFLOW: Replace SET @var = (SELECT ...) with literal (removes admin queries)
+        # v4.1.0: Changed from removing to replacing with literal value
+        # Example: SET @RowCount = (SELECT COUNT(*) FROM Table)
+        # → SET @RowCount = 1  -- Administrative query removed
+        (r'SET\s+(@\w+)\s*=\s*\(SELECT[^\)]*\)',
+         r'SET \1 = 1  -- Administrative query removed',
+         0),
+
+        # Remove other DECLARE statements (variable declarations clutter parsing)
+        # Variables without SELECT are simple declarations, safe to remove
         # Example: DECLARE @StartDate DATETIME = GETDATE()
-        # FIXED (2025-11-03): Non-greedy pattern to avoid consuming business logic
-        # Old: [^;]+; (greedy - removes everything to next semicolon)
-        # New: [^\n;]+(?:;|\n) (stops at line end OR semicolon)
         (r'\bDECLARE\s+@\w+\s+[^\n;]+(?:;|\n)', '', 0),
 
-        # Remove SET statements (variable assignments)
-        # Variable assignments are not table dependencies
-        # Example: SET @RowCount = (SELECT COUNT(*) FROM dbo.Table)
-        # Note: This removes the SET, but SELECT in subquery might still be parsed
-        # FIXED (2025-11-03): Non-greedy pattern to stop at line end
+        # Remove other SET statements (variable assignments without SELECT)
+        # Example: SET @Count = @Count + 1
         (r'\bSET\s+@\w+\s*=\s*[^\n;]+(?:;|\n)', '', 0),
 
         # Remove SET session options (NOCOUNT, XACT_ABORT, etc.)
         # Session settings don't affect data lineage
         # Example: SET NOCOUNT ON, SET XACT_ABORT ON, SET ANSI_NULLS ON
-        # Critical: This prevents "SET NOCOUNT ON select ..." from being parsed as SET command
         (r'\bSET\s+(NOCOUNT|XACT_ABORT|ANSI_NULLS|QUOTED_IDENTIFIER|ANSI_PADDING|ANSI_WARNINGS|ARITHABORT|CONCAT_NULL_YIELDS_NULL|NUMERIC_ROUNDABORT)\s+(ON|OFF)\b', '', 0),
     ]
 
@@ -702,6 +729,20 @@ class QualityAwareParser:
         """
         Extract tables from SQLGlot AST.
 
+        DATAFLOW MODE (v4.1.0): Only extracts DML operations
+        -------------------------------------------------------
+        Includes:
+          - INSERT INTO (data transformation)
+          - UPDATE (data modification)
+          - DELETE (data removal)
+          - MERGE (data upsert)
+          - SELECT INTO (data creation)
+
+        Excludes:
+          - TRUNCATE (DDL housekeeping, not transformation)
+          - DROP (DDL housekeeping)
+          - Administrative SELECT (filtered in preprocessing)
+
         Enhanced to handle SELECT INTO statements correctly:
         - SELECT ... INTO #temp FROM source_table
         - #temp is a target (temp table, filtered from lineage)
@@ -768,16 +809,18 @@ class QualityAwareParser:
             if name:
                 targets.add(name)
 
-        # STEP 1c: Extract TRUNCATE targets (v3.5.0 - 2025-10-28)
-        # Issue: spLoadGLCognosData missing outputs due to TRUNCATE not being captured
-        # TRUNCATE TABLE [schema].[table] is a DML operation that clears table data
-        # Syntax: TRUNCATE TABLE target → target is the table being truncated
-        for truncate in parsed.find_all(exp.TruncateTable):
-            # TruncateTable.this contains the table node (similar to DELETE/UPDATE)
-            if truncate.this:
-                name = self._extract_dml_target(truncate.this)
-                if name:
-                    targets.add(name)
+        # STEP 1c: TRUNCATE extraction DISABLED in v4.1.0 (DATAFLOW MODE)
+        # TRUNCATE is DDL (housekeeping), not DML (data transformation)
+        # In dataflow mode, we only show INSERT/UPDATE/DELETE/MERGE operations
+        # Rationale: TRUNCATE clears data but doesn't transform it
+        # Previous behavior (v3.5.0-v4.0.x): TRUNCATE was captured as output
+        # New behavior (v4.1.0+): TRUNCATE is filtered out to reduce noise
+        #
+        # for truncate in parsed.find_all(exp.TruncateTable):
+        #     if truncate.this:
+        #         name = self._extract_dml_target(truncate.this)
+        #         if name:
+        #             targets.add(name)
 
         # STEP 2: Extract sources (FROM, JOIN) - with self-reference support (v3.6.0 - 2025-10-28)
         # Issue #2: Self-referencing pattern where SP writes to table then reads from it

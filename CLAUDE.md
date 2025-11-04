@@ -179,7 +179,7 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 
 ---
 
-**Last Updated:** 2025-11-04 09:30
-**Version:** v4.0.3 (SP-to-SP Direction Fix)
-**Parser:** 97.0% SP confidence | 95.5% overall confidence | Fixed SP call direction
+**Last Updated:** 2025-11-04 14:30
+**Version:** v4.1.0 (Dataflow-Focused Lineage)
+**Parser:** Dataflow mode - Shows DML only (INSERT/UPDATE/DELETE/MERGE)
 **Frontend:** v2.9.0 | **API:** v4.0.0
