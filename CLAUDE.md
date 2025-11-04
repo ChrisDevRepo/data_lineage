@@ -20,6 +20,7 @@ Instructions for Claude Code when working with this repository.
 - **System:** Python 3.12.3, Node.js, WSL2
 - **Dir:** `/home/chris/sandbox`
 - **Branch:** `feature/dataflow-mode`
+- **Frontend:** v2.9.2 (Global exclusion patterns + UI simplified)
 
 ---
 
@@ -146,6 +147,7 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 - [api/README.md](api/README.md)
 - [frontend/README.md](frontend/README.md)
 - [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md)
+- [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md) - **NEW v2.9.1**
 
 **Evaluation:**
 - [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md)
@@ -176,6 +178,11 @@ pip install -r requirements.txt
 - Verify JSON format
 - Check browser console
 
+**Performance (Large Datasets >1,000 nodes):**
+- **v2.9.1 optimizations:** Debouncing, layout caching, optimized filtering
+- See [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md)
+- **Supports 5,000+ nodes** smoothly (100x faster schema toggling)
+
 **Port Conflicts:**
 ```bash
 lsof -ti:8000 | xargs -r kill  # Backend
@@ -187,4 +194,4 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 **Last Updated:** 2025-11-04
 **Version:** v4.1.2 (Global Target Exclusion Fix)
 **Parser:** 97.0% SP confidence | 95.5% overall | Dataflow mode with false positive elimination
-**Frontend:** v2.9.0 | **API:** v4.0.0
+**Frontend:** v2.9.2 (Global exclusion patterns + UI simplified) | **API:** v4.0.0
