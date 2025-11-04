@@ -14,9 +14,10 @@ type InteractiveTracePanelProps = {
     inheritedTypeFilter: Set<string>;
     allData: DataNode[];
     addNotification: (text: string, type: 'info' | 'error') => void;
+    inheritedExclusions: string;
 };
 
-export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchemas, inheritedSchemaFilter, availableTypes, inheritedTypeFilter, allData, addNotification }: InteractiveTracePanelProps) => {
+export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchemas, inheritedSchemaFilter, availableTypes, inheritedTypeFilter, allData, addNotification, inheritedExclusions }: InteractiveTracePanelProps) => {
     const [traceMode, setTraceMode] = useState<'levels' | 'path'>('levels'); // 'levels' = level-based, 'path' = start-to-end path
     const [startNodeSearch, setStartNodeSearch] = useState('');
     const [startSuggestions, setStartSuggestions] = useState<DataNode[]>([]);
@@ -30,7 +31,6 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
     const [isDownstreamAll, setIsDownstreamAll] = useState(false);
     const [includedSchemas, setIncludedSchemas] = useState(new Set(availableSchemas));
     const [includedTypes, setIncludedTypes] = useState(new Set(availableTypes));
-    const [exclusions, setExclusions] = useState("*_TMP;*_BAK");
 
     // Inherit schema and type filters from detail mode when opening trace mode
     useEffect(() => {
@@ -96,7 +96,7 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
             downstreamLevels: isDownstreamAll ? Number.MAX_SAFE_INTEGER : downstream,
             includedSchemas: includedSchemas,
             includedTypes: includedTypes,
-            exclusionPatterns: exclusions.split(';').map(p => p.trim()).filter(p => p !== ''),
+            exclusionPatterns: inheritedExclusions.split(';').map(p => p.trim()).filter(p => p !== ''),
         });
     };
 
@@ -324,20 +324,9 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
                         </div>
                     </div>
 
-                    {/* Exclusion Patterns */}
-                    <div>
-                        <label htmlFor="exclusions-input" className="block mb-1.5 text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                            Exclusion Patterns
-                        </label>
-                        <input
-                            type="text"
-                            id="exclusions-input"
-                            value={exclusions}
-                            onChange={e => setExclusions(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-xs focus:outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="*_TMP;*_BAK"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Separate with semicolons (;)</p>
+                    {/* Exclusion patterns are now managed in the main toolbar */}
+                    <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-md border border-gray-200">
+                        <strong>Note:</strong> Exclusion patterns are now managed in the main toolbar (left of Detail Search button). Applied patterns: <span className="font-mono text-blue-600">{inheritedExclusions || 'None'}</span>
                     </div>
                 </main>
 

@@ -5,7 +5,6 @@ import {
   useEdgesState,
   Controls,
   Background,
-  MiniMap,
   useReactFlow,
   ReactFlowProvider,
   Node as ReactFlowNode,
@@ -29,6 +28,7 @@ import { generateSampleData } from './utils/data';
 import { DataNode } from './types';
 import { CONSTANTS } from './constants';
 import { INTERACTION_CONSTANTS } from './interaction-constants';
+import { loadExclusionPatterns, saveExclusionPatterns } from './utils/localStorage';
 
 // --- Main App Component ---
 function DataLineageVisualizer() {
@@ -81,6 +81,19 @@ function DataLineageVisualizer() {
   }, []);
   const [layout, setLayout] = useState<'LR' | 'TB'>('LR');
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+  const [isLayoutCalculating, setIsLayoutCalculating] = useState(false);
+
+  // Exclusion patterns state
+  const [exclusionInput, setExclusionInput] = useState<string>(() => {
+    // Load from localStorage or use default
+    const stored = loadExclusionPatterns();
+    return stored !== null ? stored : '*_TMP;*_BAK';
+  });
+  const [appliedExclusions, setAppliedExclusions] = useState<string>(() => {
+    // Initialize with same value as input
+    const stored = loadExclusionPatterns();
+    return stored !== null ? stored : '*_TMP;*_BAK';
+  });
 
   // --- Custom Hooks for Logic Encapsulation ---
   const { addNotification, activeToasts, removeActiveToast, notificationHistory, clearNotificationHistory } = useNotifications();
@@ -114,7 +127,8 @@ function DataLineageVisualizer() {
     traceConfig,
     performInteractiveTrace,
     isInTraceExitMode,
-    traceExitNodes
+    traceExitNodes,
+    appliedExclusions
   });
 
   // --- Detect DDL Availability (memoized for performance) ---
@@ -128,7 +142,6 @@ function DataLineageVisualizer() {
   const [isLegendCollapsed, setIsLegendCollapsed] = useState(true);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  const [isControlsVisible, setIsControlsVisible] = useState(true);
   const [isDetailSearchOpen, setIsDetailSearchOpen] = useState(false);
 
   // --- SQL Viewer State ---
@@ -145,13 +158,25 @@ function DataLineageVisualizer() {
 
   // --- Memos for Derived State and Layouting ---
   const layoutedElements = useMemo(() => {
-    return getDagreLayoutedElements({
+    // Show loading indicator for large layout calculations
+    if (finalVisibleData.length > 500) {
+      setIsLayoutCalculating(true);
+    }
+
+    const result = getDagreLayoutedElements({
       data: finalVisibleData,
       layout,
       schemaColorMap,
       lineageGraph,
       isTraceModeActive,
     });
+
+    // Clear loading indicator after a frame (allow UI to update)
+    requestAnimationFrame(() => {
+      setIsLayoutCalculating(false);
+    });
+
+    return result;
   }, [finalVisibleData, layout, schemaColorMap, lineageGraph, isTraceModeActive]);
 
   // OPTIMIZATION: Create Map for O(1) lookups instead of O(n) find()
@@ -206,7 +231,6 @@ function DataLineageVisualizer() {
 
   // Track if this is the initial load to only fitView once
   const hasInitiallyFittedRef = useRef(false);
-  const [minimapKey, setMinimapKey] = useState(0);
 
   useEffect(() => {
     if (nodes.length > 0 && !hasInitiallyFittedRef.current) {
@@ -222,44 +246,6 @@ function DataLineageVisualizer() {
     }
   }, [nodes.length, fitView]);
 
-  // Separate effect to remount minimap ONCE after initial layout is ready
-  const hasMinimapInitializedRef = useRef(false);
-  useEffect(() => {
-    if (layoutedElements.nodes.length > 0 && !hasMinimapInitializedRef.current) {
-      // Detect graph size and use appropriate delay for rendering
-      const nodeCount = layoutedElements.nodes.length;
-      let minimapDelay: number;
-
-      if (nodeCount > 500) {
-        // Very large graph (Parquet imports) - need substantial delay
-        minimapDelay = 4000;
-      } else if (nodeCount > 300) {
-        // Large graph - moderate delay
-        minimapDelay = 2000;
-      } else if (nodeCount > 100) {
-        // Medium graph - small delay
-        minimapDelay = 1200;
-      } else {
-        // Small graph - minimal delay
-        minimapDelay = 800;
-      }
-
-      console.log(`[Minimap] Detected ${nodeCount} nodes, using ${minimapDelay}ms delay`);
-
-      // Wait for layout to be applied and rendered, then remount minimap once
-      const timeoutId = setTimeout(() => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setMinimapKey(prev => prev + 1);
-            hasMinimapInitializedRef.current = true;
-            console.log('[Minimap] Initialized successfully');
-          });
-        });
-      }, minimapDelay); // Use dynamic delay based on graph size
-      return () => clearTimeout(timeoutId);
-    }
-  }, [layoutedElements.nodes.length]);
-  
   // --- Effect for handling window resize ---
   useEffect(() => {
     // Debounce resize events to avoid excessive calls
@@ -363,8 +349,6 @@ function DataLineageVisualizer() {
     setHighlightedNodes(new Set());
     setSearchTerm('');
     hasInitiallyFittedRef.current = false; // Allow fitView on new data
-    hasMinimapInitializedRef.current = false; // Allow minimap re-initialization
-    setMinimapKey(0); // Reset minimap key to trigger re-initialization
 
     addNotification('Data imported successfully! Note: JSON imports are temporary. Upload parquet files to persist data.', 'info');
     // Don't auto-close modal - let user close it after viewing summary
@@ -435,7 +419,7 @@ function DataLineageVisualizer() {
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
     setSearchTerm('');
-    setHideUnrelated(false);
+    setHideUnrelated(true) // Default: hide unrelated nodes;
     setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
@@ -445,10 +429,23 @@ function DataLineageVisualizer() {
     setSqlViewerOpen(false);
     setSelectedNodeForSql(null);
 
-    // Fit view after reset - minimap will already be initialized so no need to reset it
+    // Fit view after reset
     setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
 
     addNotification('View reset to default.', 'info');
+  };
+
+  const handleApplyExclusions = () => {
+    // Apply the current input value and save to localStorage
+    setAppliedExclusions(exclusionInput);
+    saveExclusionPatterns(exclusionInput);
+
+    const patternCount = exclusionInput.split(';').filter(p => p.trim() !== '').length;
+    if (patternCount > 0) {
+      addNotification(`Exclusion patterns applied (${patternCount} pattern${patternCount > 1 ? 's' : ''})`, 'success');
+    } else {
+      addNotification('Exclusion patterns cleared', 'info');
+    }
   };
 
   const handleCloseDetailSearch = useCallback((nodeId: string | null) => {
@@ -557,11 +554,6 @@ function DataLineageVisualizer() {
       document.body.style.userSelect = '';
     };
   }, [isResizing]);
-
-  const miniMapNodeColor = (node: ReactFlowNode): string => {
-    // Use subtle gray tones for minimap - less colorful, better for overview
-    return '#9ca3af'; // gray-400 - consistent neutral color for all nodes
-  };
 
   const handleExportSVG = useCallback(async () => {
     const nodesToExport = getNodes();
@@ -765,8 +757,6 @@ function DataLineageVisualizer() {
             setHideUnrelated={setHideUnrelated}
             isTraceModeActive={isTraceModeActive}
             onStartTrace={() => setIsTraceModeActive(true)}
-            isControlsVisible={isControlsVisible}
-            onToggleControls={() => setIsControlsVisible(p => !p)}
             onOpenImport={() => setIsImportModalOpen(true)}
             onOpenInfo={() => setIsInfoModalOpen(true)}
             onExportSVG={handleExportSVG}
@@ -781,6 +771,9 @@ function DataLineageVisualizer() {
             isTraceLocked={isTraceLocked}
             isInTraceExitMode={isInTraceExitMode}
             onToggleLock={handleToggleLock}
+            exclusionInput={exclusionInput}
+            setExclusionInput={setExclusionInput}
+            onApplyExclusions={handleApplyExclusions}
           />
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
@@ -791,6 +784,12 @@ function DataLineageVisualizer() {
                   <button onClick={handleExitTraceMode} className="text-blue-100 hover:text-white underline font-bold">Exit</button>
                 </div>
               )}
+              {isLayoutCalculating && (
+                <div className="absolute top-4 right-4 z-20 bg-gray-800 bg-opacity-90 text-white px-3 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span className="text-sm font-medium">Calculating layout...</span>
+                </div>
+              )}
               <ReactFlow
                 nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
@@ -798,18 +797,27 @@ function DataLineageVisualizer() {
                 onNodeClick={handleNodeClick}
                 fitView
                 minZoom={0.1}
+                maxZoom={2}
+                nodesDraggable={false}
+                nodesConnectable={false}
+                elementsSelectable={true}
+                selectNodesOnDrag={false}
+                panOnDrag={true}
+                zoomOnScroll={true}
+                zoomOnPinch={true}
+                zoomOnDoubleClick={false}
+                preventScrolling={true}
                 proOptions={{ hideAttribution: true }}
               >
                 <Controls />
-                {isControlsVisible && <MiniMap key={minimapKey} nodeColor={miniMapNodeColor} nodeStrokeWidth={1.5} nodeBorderRadius={2} maskColor="rgb(240, 240, 240, 0.6)" zoomable pannable className="bg-white border border-gray-300" ariaLabel="Minimap" />}
                 <Background color={'#a1a1aa'} gap={16} />
-                {isControlsVisible &&
-                  <Legend
-                    isCollapsed={isLegendCollapsed}
-                    onToggle={() => setIsLegendCollapsed(p => !p)}
-                    schemas={schemas}
-                    schemaColorMap={schemaColorMap}
-                  />}
+                <Legend
+                  isCollapsed={isLegendCollapsed}
+                  onToggle={() => setIsLegendCollapsed(p => !p)}
+                  schemas={schemas}
+                  schemaColorMap={schemaColorMap}
+                  selectedSchemas={selectedSchemas}
+                />
               </ReactFlow>
             </div>
 
@@ -843,6 +851,7 @@ function DataLineageVisualizer() {
           inheritedTypeFilter={selectedTypes}
           allData={allData}
           addNotification={addNotification}
+          inheritedExclusions={appliedExclusions}
         />
       </main>
       <ImportDataModal
