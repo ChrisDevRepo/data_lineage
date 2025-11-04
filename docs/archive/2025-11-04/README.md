@@ -1,50 +1,28 @@
-# Archive: 2025-11-04
-
-**Reason:** Cleanup of completed implementation documentation
-
-These files document completed features/fixes that have been integrated into v2.9.1 and v2.9.2. The information is preserved in:
-- `frontend/CHANGELOG.md` (user-facing changes)
-- `docs/PARSER_EVOLUTION_LOG.md` (parser improvements)
-- Git commit history (implementation details)
-
----
+# Documentation Archive - 2025-11-04
 
 ## Archived Files
 
-### Performance Optimizations (v2.9.1)
-- **PERFORMANCE_IMPROVEMENTS_SUMMARY.md** - Summary of v2.9.1 optimizations
-- **PERFORMANCE_OPTIMIZATION_COMPLETE.md** - Detailed optimization documentation
-- Reason: Completed implementation, details in CHANGELOG and frontend/docs/
+### Feature Implementation Docs (Completed Features)
+- **AUTOCOMPLETE_5CHAR_ISSUE.md** - Issue documentation for 5-character autocomplete minimum (incomplete fix, preserved for future debugging)
+- **GLOBAL_EXCLUSION_PATTERNS_FEATURE.md** - Feature spec for global exclusion patterns (completed in v2.9.2)
+- **FILTER_PERSISTENCE_FEATURE.md** - Filter persistence implementation (completed in v2.9.1)
+- **HIDE_UNRELATED_DEFAULT_CHANGE.md** - Hide unrelated nodes feature (completed)
+- **PERFORMANCE_IMPROVEMENTS_SUMMARY.md** - Performance optimization summary (completed in v2.9.1)
+- **PERFORMANCE_OPTIMIZATION_COMPLETE.md** - Performance work completion doc (completed)
+- **SP_DIRECTION_FIX_COMPLETE.md** - SP-to-SP lineage direction fix (completed in v4.0.3)
+- **CONFIDENCE_FIX_SUMMARY.md** - Confidence scoring improvements (completed)
 
-### Feature Implementations (v2.9.1-v2.9.2)
-- **FILTER_PERSISTENCE_FEATURE.md** - localStorage filter persistence implementation
-- **HIDE_UNRELATED_DEFAULT_CHANGE.md** - Default behavior change documentation
-- **UI_SIMPLIFICATION_V2.9.2.md** - UI cleanup documentation
-- Reason: Completed features, documented in CHANGELOG
+## Reason for Archival
 
-### Parser Fixes (v4.0.2-v4.0.3)
-- **CONFIDENCE_FIX_CHECKLIST.md** - Confidence scoring fix checklist
-- **CONFIDENCE_FIX_SUMMARY.md** - Confidence fix summary
-- **SP_DIRECTION_FIX_COMPLETE.md** - SP-to-SP direction fix documentation
-- **verify_sp_direction_fix.md** - Verification script for direction fix
-- Reason: Completed fixes, documented in PARSER_EVOLUTION_LOG.md
+These documents describe completed feature implementations and resolved issues. They are preserved for historical reference but are no longer actively needed for daily development. Current feature status is tracked in:
+- `CLAUDE.md` - Active project instructions
+- `README.md` - Project overview
+- `frontend/CHANGELOG.md` - Frontend release history
+- `docs/PARSER_EVOLUTION_LOG.md` - Parser improvements
 
-### Superseded Documentation
-- **TESTING_GUIDE_V2.9.1.md** - Testing guide for v2.9.1
-- Reason: Superseded by v2.9.2 (features have changed)
+## Active Documentation
 
----
-
-## Where to Find This Information Now
-
-| Topic | Current Location |
-|-------|------------------|
-| Frontend changes | `frontend/CHANGELOG.md` |
-| Parser evolution | `docs/PARSER_EVOLUTION_LOG.md` |
-| Performance docs | `frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md` |
-| Git history | `git log --all --grep="v2.9.1\|v2.9.2\|v4.0.2\|v4.0.3"` |
-
----
-
-**Archived by:** Documentation cleanup script
-**Date:** 2025-11-04
+See parent directories for current documentation:
+- `/docs/` - Active guides and specs
+- `/frontend/docs/` - Frontend documentation
+- Root `*.md` files - Project essentials
