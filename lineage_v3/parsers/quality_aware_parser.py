@@ -13,10 +13,31 @@ Strategy:
 This gives us quality assurance built into the parser!
 
 Author: Vibecoding
-Version: 4.1.0 (Dataflow-Focused Lineage)
+Version: 4.1.2 (Dataflow-Focused Lineage - SQLGlot Target Exclusion Fix)
 Date: 2025-11-04
 
 Changelog:
+- v4.1.2 (2025-11-04): CRITICAL FIX - Global target exclusion from sources
+    Fixed: INSERT INTO target tables no longer appear in sources list
+    Issue: find_all(exp.Table) extracts ALL tables from entire AST including DML targets
+    Root cause: Target exclusion was per-statement, but sources accumulated across statements
+    Example: Statement 1: INSERT INTO target → excludes target ✅
+             Statement 2: WITH cte AS (SELECT FROM target) → includes target ❌
+             Accumulated sources = {target} ← FALSE POSITIVE
+    Solution: Global exclusion after all statements parsed (line 462: sources - targets)
+    Impact: Eliminates false positive inputs for all DML operations
+    Test: spLoadGLCognosData now shows GLCognosData only in outputs, not inputs
+    Files: quality_aware_parser.py lines 430-464 (_sqlglot_parse method)
+
+- v4.1.2 (2025-11-04): Balanced parentheses matching for administrative queries
+    Fixed: SET/DECLARE @var = (SELECT COUNT(*) FROM Table) now correctly removes entire statement
+    Solution: Pattern (?:[^()]|\([^()]*\))* matches balanced parentheses (1 level deep)
+    Files: quality_aware_parser.py lines 166, 177
+
+- v4.1.1 (2025-11-04): REGEX FIX attempt (incomplete - superseded by v4.1.2)
+    Issue: Pattern still stopped at first ) in COUNT(*)
+    Root cause: Non-greedy .*? still matched minimal content
+
 - v4.1.0 (2025-11-04): DATAFLOW-FOCUSED LINEAGE
     Philosophy: Show only data transformation operations (DML), not housekeeping (DDL)
     Changes:
@@ -150,18 +171,24 @@ class QualityAwareParser:
 
         # DATAFLOW: Replace DECLARE @var = (SELECT ...) with literal (removes admin queries)
         # v4.1.0: Changed from removing to replacing with literal value
+        # v4.1.1: Fixed regex to handle nested parentheses (e.g., COUNT(*))
+        # v4.1.2: Proper balanced parentheses matching - handles COUNT(*), MAX(), etc.
         # Example: DECLARE @RowCount INT = (SELECT COUNT(*) FROM Table)
         # → DECLARE @RowCount INT = 1  -- Administrative query removed
         # This prevents SELECT COUNT(*) from appearing as lineage dependency
-        (r'DECLARE\s+(@\w+)\s+(\w+(?:\([^\)]*\))?)\s*=\s*\(SELECT[^\)]*\)',
+        # Pattern: (?:[^()]|\([^()]*\))* matches nested parens correctly
+        (r'DECLARE\s+(@\w+)\s+(\w+(?:\([^\)]*\))?)\s*=\s*\((?:[^()]|\([^()]*\))*\)',
          r'DECLARE \1 \2 = 1  -- Administrative query removed',
          0),
 
         # DATAFLOW: Replace SET @var = (SELECT ...) with literal (removes admin queries)
         # v4.1.0: Changed from removing to replacing with literal value
+        # v4.1.1: Fixed regex to handle nested parentheses (e.g., COUNT(*))
+        # v4.1.2: Proper balanced parentheses matching - handles COUNT(*), MAX(), etc.
         # Example: SET @RowCount = (SELECT COUNT(*) FROM Table)
         # → SET @RowCount = 1  -- Administrative query removed
-        (r'SET\s+(@\w+)\s*=\s*\(SELECT[^\)]*\)',
+        # Pattern: (?:[^()]|\([^()]*\))* matches nested parens (1 level deep) correctly
+        (r'SET\s+(@\w+)\s*=\s*\((?:[^()]|\([^()]*\))*\)',
          r'SET \1 = 1  -- Administrative query removed',
          0),
 
@@ -233,6 +260,7 @@ class QualityAwareParser:
             parser_sources, parser_targets = self._sqlglot_parse(cleaned_ddl, ddl)
             parser_sources_valid = self._validate_against_catalog(parser_sources)
             parser_targets_valid = self._validate_against_catalog(parser_targets)
+
 
             # STEP 3: Compare counts and calculate quality metrics
             quality = self._calculate_quality(
@@ -393,6 +421,19 @@ class QualityAwareParser:
     def _sqlglot_parse(self, cleaned_ddl: str, original_ddl: str) -> Tuple[Set[str], Set[str]]:
         """
         Parse with SQLGlot after preprocessing.
+
+        v4.1.2 CRITICAL FIX: Exclude targets from sources GLOBALLY
+        ----------------------------------------------------------
+        Previous bug: Targets were excluded per-statement, but sources from
+        other statements could reference the same table as a source.
+
+        Example:
+          Statement 1: INSERT INTO target SELECT FROM source
+                       → targets={target}, sources={source} ✅ target excluded
+          Statement 2: WITH cte AS (SELECT FROM target) SELECT FROM cte
+                       → targets={}, sources={target} ❌ target NOT excluded (not a target in THIS statement)
+
+        Solution: Collect all targets first, then remove from final sources.
         """
         sources = set()
         targets = set()
@@ -418,7 +459,12 @@ class QualityAwareParser:
         if not sources and not targets:
             sources, targets, _ = self._regex_scan(original_ddl)  # Ignore SP calls in full fallback
 
-        return sources, targets
+        # v4.1.2 FIX: Remove all targets from sources AFTER parsing all statements
+        # This prevents false positives where a table is a target in one statement
+        # but appears as a source in another statement (e.g., CTEs, temp tables)
+        sources_final = sources - targets
+
+        return sources_final, targets
 
     def _calculate_quality(
         self,
@@ -822,22 +868,28 @@ class QualityAwareParser:
         #         if name:
         #             targets.add(name)
 
-        # STEP 2: Extract sources (FROM, JOIN) - with self-reference support (v3.6.0 - 2025-10-28)
-        # Issue #2: Self-referencing pattern where SP writes to table then reads from it
-        # Previous logic: Excluded ALL targets from sources globally (across entire SP)
-        # New logic: Allow self-references for staging patterns (INSERT → SELECT → INSERT)
+        # STEP 2: Extract sources (FROM, JOIN) - FIXED v4.1.2 (2025-11-04)
+        # Issue: find_all(exp.Table) was extracting ALL tables including DML targets
+        # Root cause: INSERT INTO target was being added to sources (false positive)
         #
-        # Simplified approach:
-        # - Include ALL tables found in FROM/JOIN clauses
-        # - Don't exclude targets (allow self-references)
-        # - Exception: Temp tables from SELECT INTO should still be excluded
+        # SQLGlot structure:
+        #   INSERT.this = target table
+        #   INSERT.expression = SELECT statement with sources
+        #
+        # Solution: Exclude DML targets from source extraction (per-statement)
+        # Note: Global exclusion also happens in _sqlglot_parse() after all statements
+        # are accumulated. This per-statement exclusion is a defensive measure.
 
         for table in parsed.find_all(exp.Table):
             name = self._get_table_name(table)
             if name:
-                # Only skip temp tables that are SELECT INTO targets
-                # These are internal and shouldn't appear as dependencies
+                # Skip temp tables from SELECT INTO (internal dependencies)
                 if name in select_into_targets:
+                    continue
+
+                # v4.1.2 FIX: Skip DML targets (they're outputs, not inputs)
+                # This prevents INSERT INTO target from appearing in sources
+                if name in targets:
                     continue
 
                 sources.add(name)
