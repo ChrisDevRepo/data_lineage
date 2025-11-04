@@ -8,9 +8,34 @@
 
 ## Baseline Metrics (2025-11-04)
 
-### Current Parser Version: 4.1.0 (COMPLETED - 2025-11-04)
+### Current Parser Version: 4.1.2 (COMPLETED - 2025-11-04)
 
-**Latest Update (v4.1.0 - 2025-11-04): DATAFLOW-FOCUSED LINEAGE**
+**Latest Update (v4.1.2 - 2025-11-04): GLOBAL TARGET EXCLUSION FIX**
+- **Critical Fix**: Eliminates false positive inputs from DML target tables
+- **Problem**: Multi-statement processing accumulated sources globally, but target exclusion was per-statement
+- **Root Cause**:
+  - Statement 1 (INSERT INTO target): excludes target ✅
+  - Statement 2 (CTE references target): includes target as source ❌
+  - Final accumulated sources = {target} ← FALSE POSITIVE
+- **Solution**: Global target exclusion after all statements parsed:
+  ```python
+  sources_final = sources - targets  # Line 462 in quality_aware_parser.py
+  ```
+- **Impact**:
+  - Eliminates ALL false positive inputs from DML targets
+  - Works for INSERT, UPDATE, MERGE, DELETE operations
+  - Handles CTEs, temp tables, complex multi-statement SPs
+  - Example: `spLoadGLCognosData` now shows only legitimate inputs (v_CCR2PowerBI_facts)
+- **Test Results**: Smoke test suite 100% passing (1/1 tests)
+- **Files Modified**:
+  - `lineage_v3/parsers/quality_aware_parser.py` (global exclusion logic + removed debug logging)
+  - `temp/smoke_test/` (automated test suite + comprehensive investigation docs)
+
+---
+
+### Parser Version: 4.1.0 (COMPLETED - 2025-11-04)
+
+**Update (v4.1.0 - 2025-11-04): DATAFLOW-FOCUSED LINEAGE**
 - **Philosophy**: Show only data transformation operations (DML), not housekeeping (DDL)
 - **Breaking Change**: Switches from "complete" mode to "dataflow" mode by default
 - **Changes**:

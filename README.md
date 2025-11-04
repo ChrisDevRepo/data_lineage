@@ -171,6 +171,29 @@ cp .env.template .env
 
 ## Changelog
 
+### v4.1.2 - Global Target Exclusion Fix (2025-11-04)
+
+**CRITICAL FIX:** Eliminates false positive inputs from DML target tables
+
+**Problem Solved:**
+- DML targets (e.g., INSERT INTO target) were appearing in both inputs AND outputs
+- Root cause: Multi-statement processing accumulated sources globally, but target exclusion was per-statement
+- Example: `spLoadGLCognosData` showed GLCognosData as input (wrong) and output (correct)
+
+**Solution:**
+- Global target exclusion after all statements parsed: `sources_final = sources - targets`
+- Works for INSERT, UPDATE, MERGE, DELETE operations
+- Handles CTEs, temp tables, and complex multi-statement SPs
+
+**Impact:**
+- Clean lineage graphs with no false positive inputs
+- Accurate data flow visualization
+- Smoke test: 100% passing (spLoadGLCognosData now shows only legitimate inputs)
+
+**Files Modified:**
+- `lineage_v3/parsers/quality_aware_parser.py` - Global exclusion logic
+- `temp/smoke_test/` - Automated test suite with comprehensive documentation
+
 ### v4.1.0 - Dataflow-Focused Lineage (2025-11-04)
 
 **BREAKING CHANGE:** Switches from "complete" mode to "dataflow" mode by default
@@ -183,11 +206,6 @@ cp .env.template .env
 **What's Shown:**
 - ✅ INSERT, UPDATE, DELETE, MERGE, SELECT INTO
 - ❌ TRUNCATE, DROP, SELECT COUNT, CATCH blocks, ROLLBACK paths
-
-**Impact:**
-- Example: `spLoadGLCognosData` now shows only INSERT operations (not SELECT COUNT or TRUNCATE)
-- Eliminates false positive inputs from administrative queries
-- More intuitive data flow visualization
 
 See [PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) for complete details.
 

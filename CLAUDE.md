@@ -13,13 +13,13 @@ Instructions for Claude Code when working with this repository.
 
 ## Project Overview
 
-**Data Lineage Visualizer v4.0.3** - Slim parser for Azure Synapse with React visualization
+**Data Lineage Visualizer v4.1.2** - Slim parser for Azure Synapse with React visualization
 
 - **Status:** Production (No AI)
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **System:** Python 3.12.3, Node.js, WSL2
 - **Dir:** `/home/chris/sandbox`
-- **Branch:** `feature/slim-parser-no-ai`
+- **Branch:** `feature/dataflow-mode`
 
 ---
 
@@ -39,7 +39,7 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 
 ---
 
-## Parser Architecture (v4.0.2)
+## Parser Architecture (v4.1.2)
 
 **Three-Stage Strategy:**
 1. **Regex Baseline**: Pattern matching (tables + SP calls)
@@ -51,7 +51,12 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 - **196/202 SPs at high confidence (97.0%)** - ✅ EXCEEDED 95% GOAL
 - Coverage: 758/763 objects (99.3%)
 - SP-to-SP lineage: 151 business dependencies tracked
-- Latest fixes: Unified confidence calculator + complete metadata tracking
+
+**Latest Features (v4.1.2):**
+- **Dataflow Mode**: Shows only DML operations (INSERT, UPDATE, DELETE, MERGE)
+- **Global Target Exclusion**: Eliminates false positive inputs from DML targets
+- **Administrative Query Filtering**: Removes SELECT COUNT, IF EXISTS, watermark queries
+- **Clean Lineage Graphs**: No noise from housekeeping or error handling operations
 
 ---
 
@@ -179,7 +184,7 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 
 ---
 
-**Last Updated:** 2025-11-04 14:30
-**Version:** v4.1.0 (Dataflow-Focused Lineage)
-**Parser:** Dataflow mode - Shows DML only (INSERT/UPDATE/DELETE/MERGE)
+**Last Updated:** 2025-11-04
+**Version:** v4.1.2 (Global Target Exclusion Fix)
+**Parser:** 97.0% SP confidence | 95.5% overall | Dataflow mode with false positive elimination
 **Frontend:** v2.9.0 | **API:** v4.0.0
