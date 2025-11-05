@@ -15,8 +15,6 @@ Date: 2025-10-31
 from lineage_v3.config.settings import (
     settings,
     Settings,
-    AzureOpenAISettings,
-    AIDisambiguationSettings,
     ParserSettings,
     PathSettings,
 )
@@ -24,8 +22,6 @@ from lineage_v3.config.settings import (
 __all__ = [
     'settings',
     'Settings',
-    'AzureOpenAISettings',
-    'AIDisambiguationSettings',
     'ParserSettings',
     'PathSettings',
 ]
