@@ -1,0 +1,46 @@
+{
+  "summary": {
+    "total_unrelated": 1,
+    "high_confidence": 0,
+    "medium_confidence": 0,
+    "low_confidence": 1,
+    "with_suspicious_patterns": 1
+  },
+  "by_type": {
+    "Stored Procedure": 1
+  },
+  "issues": [
+    {
+      "name": "CONSUMPTION_FINANCE.spLoadAggregatedTotalLin\u200besInvoiced",
+      "type": "Stored Procedure",
+      "confidence": 0.6499999761581421,
+      "patterns": [
+        [
+          "INSERT INTO",
+          1
+        ],
+        [
+          "TRUNCATE TABLE",
+          1
+        ],
+        [
+          "FROM clause",
+          2
+        ],
+        [
+          "JOIN clause",
+          9
+        ],
+        [
+          "SELECT statement",
+          10
+        ],
+        [
+          "EXEC statement",
+          3
+        ]
+      ],
+      "ddl_length": 7393
+    }
+  ]
+}

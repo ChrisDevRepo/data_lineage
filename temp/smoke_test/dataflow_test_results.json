@@ -1,0 +1,24 @@
+{
+  "test_name": "Dataflow Mode - Administrative Query Filtering",
+  "sp_name": "CONSUMPTION_FINANCE.spLoadGLCognosData",
+  "passed": true,
+  "details": {
+    "input_count": 1,
+    "output_count": 2,
+    "inputs": [
+      "STAGING_FINANCE_COGNOS.v_CCR2PowerBI_facts"
+    ],
+    "outputs": [
+      "CONSUMPTION_FINANCE.GLCognosData",
+      "STAGING_FINANCE_COGNOS.GLCognosData_HC100500"
+    ],
+    "glc_in_inputs": false,
+    "glc_in_outputs": true,
+    "validation": [
+      "\u2705 GLCognosData NOT in inputs (SELECT COUNT filtered)",
+      "\u2705 GLCognosData in outputs (INSERT captured)",
+      "\u2705 Clean dataflow lineage"
+    ]
+  },
+  "message": "\u2705 SUCCESS: Dataflow mode working correctly"
+}

@@ -1,38 +1,28 @@
-# Archive: SP-to-SP Lineage Direction Fix (2025-11-04)
+# Documentation Archive - 2025-11-04
 
-**Date:** November 4, 2025
-**Version:** v4.0.3
-**Status:** Completed
+## Archived Files
 
-## Summary
+### Feature Implementation Docs (Completed Features)
+- **AUTOCOMPLETE_5CHAR_ISSUE.md** - Issue documentation for 5-character autocomplete minimum (incomplete fix, preserved for future debugging)
+- **GLOBAL_EXCLUSION_PATTERNS_FEATURE.md** - Feature spec for global exclusion patterns (completed in v2.9.2)
+- **FILTER_PERSISTENCE_FEATURE.md** - Filter persistence implementation (completed in v2.9.1)
+- **HIDE_UNRELATED_DEFAULT_CHANGE.md** - Hide unrelated nodes feature (completed)
+- **PERFORMANCE_IMPROVEMENTS_SUMMARY.md** - Performance optimization summary (completed in v2.9.1)
+- **PERFORMANCE_OPTIMIZATION_COMPLETE.md** - Performance work completion doc (completed)
+- **SP_DIRECTION_FIX_COMPLETE.md** - SP-to-SP lineage direction fix (completed in v4.0.3)
+- **CONFIDENCE_FIX_SUMMARY.md** - Confidence scoring improvements (completed)
 
-This directory contains documentation from the SP-to-SP lineage direction fix. The parser was incorrectly treating stored procedure calls as inputs (incoming arrows) instead of outputs (outgoing arrows) in the visualization.
+## Reason for Archival
 
-## Files Archived
+These documents describe completed feature implementations and resolved issues. They are preserved for historical reference but are no longer actively needed for daily development. Current feature status is tracked in:
+- `CLAUDE.md` - Active project instructions
+- `README.md` - Project overview
+- `frontend/CHANGELOG.md` - Frontend release history
+- `docs/PARSER_EVOLUTION_LOG.md` - Parser improvements
 
-### SP_DIRECTION_FIX_COMPLETE.md
-Complete implementation report documenting root cause analysis, code changes, verification results, and GUI testing.
+## Active Documentation
 
-### verify_sp_direction_fix.md
-Verification document with issue description, expected vs actual behavior, code changes needed, and impact assessment.
-
-## The Problem
-
-Before Fix: spLoadFactTables showed incoming arrows from the SPs it calls (wrong).
-After Fix: spLoadFactTables shows outgoing arrows to the SPs it calls (correct).
-
-## Root Causes
-
-Bug 1: Parser added SP calls to input_ids instead of output_ids
-Bug 2: Bidirectional graph reverse lookup was applied to Stored Procedures (should skip them)
-
-## Impact
-
-- Scope: All 151 SP-to-SP relationships
-- Visual: Arrow direction in GUI now correct
-- Semantic: Call hierarchy properly represented
-- Confidence: No change (still 97.0% SP confidence)
-
-## Current Status
-
-All fixes deployed in v4.0.3. All 151 SP-to-SP relationships corrected.
+See parent directories for current documentation:
+- `/docs/` - Active guides and specs
+- `/frontend/docs/` - Frontend documentation
+- Root `*.md` files - Project essentials
