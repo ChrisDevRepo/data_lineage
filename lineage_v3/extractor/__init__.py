@@ -21,7 +21,7 @@ Usage:
         server='yourserver.sql.azuresynapse.net',
         database='yourdatabase',
         username='youruser',
-        password='yourpassword',
+        password='<your_password_here>',
         output_dir='parquet_snapshots'
     )
     extractor.extract_all()

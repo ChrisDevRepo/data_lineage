@@ -6,14 +6,14 @@ React application for visualizing Azure Synapse data lineage.
 ## Quick Start
 
 ```bash
-cd /home/chris/sandbox/frontend
+cd frontend
 npm install
 npm run dev  # Opens at http://localhost:3000
 ```
 
 **Restart after code changes:**
 ```bash
-cd /home/chris/sandbox/frontend && lsof -ti:3000 | xargs -r kill && npm run dev
+cd frontend && lsof -ti:3000 | xargs -r kill && npm run dev
 ```
 
 ## Technology Stack

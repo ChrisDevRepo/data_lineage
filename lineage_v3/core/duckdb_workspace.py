@@ -436,26 +436,43 @@ class DuckDBWorkspace:
                 ORDER BY schema_name, object_name
             """
         else:
-            # Return only objects needing update
-            query = f"""
-                SELECT
-                    o.object_id,
-                    o.schema_name,
-                    o.object_name,
-                    o.object_type,
-                    o.modify_date
-                FROM objects o
-                LEFT JOIN lineage_metadata m
-                    ON o.object_id = m.object_id
-                WHERE
-                    -- Object not in metadata (never parsed)
-                    m.object_id IS NULL
-                    -- OR object modified since last parse
-                    OR o.modify_date > m.last_parsed_modify_date
-                    -- OR confidence below threshold (needs re-parsing)
-                    OR m.confidence < {confidence_threshold}
-                ORDER BY o.schema_name, o.object_name
-            """
+            # Check if lineage_metadata table exists
+            tables = [row[0] for row in self.connection.execute("SHOW TABLES").fetchall()]
+
+            if 'lineage_metadata' not in tables:
+                # No metadata table means nothing has been parsed yet
+                # Treat as full refresh
+                query = """
+                    SELECT
+                        object_id,
+                        schema_name,
+                        object_name,
+                        object_type,
+                        modify_date
+                    FROM objects
+                    ORDER BY schema_name, object_name
+                """
+            else:
+                # Return only objects needing update
+                query = f"""
+                    SELECT
+                        o.object_id,
+                        o.schema_name,
+                        o.object_name,
+                        o.object_type,
+                        o.modify_date
+                    FROM objects o
+                    LEFT JOIN lineage_metadata m
+                        ON o.object_id = m.object_id
+                    WHERE
+                        -- Object not in metadata (never parsed)
+                        m.object_id IS NULL
+                        -- OR object modified since last parse
+                        OR o.modify_date > m.last_parsed_modify_date
+                        -- OR confidence below threshold (needs re-parsing)
+                        OR m.confidence < {confidence_threshold}
+                    ORDER BY o.schema_name, o.object_name
+                """
 
         results = self.connection.execute(query).fetchall()
 
@@ -713,17 +730,17 @@ class DuckDBWorkspace:
         """
         Create full-text search index for DDL definitions.
 
-        Called after loading definitions table on data upload.
+        Called after loading definitions table and creating unified_ddl view on data upload.
 
         Features:
-        - Indexes: object_name, definition_text
+        - Indexes: object_name, ddl_text (includes generated CREATE TABLE statements)
         - Case-insensitive search
         - Automatic stemming (e.g., "customer" matches "customers")
         - BM25 relevance ranking
         - Supports phrase search, boolean operators, wildcards
 
         Raises:
-            RuntimeError: If not connected or definitions table doesn't exist
+            RuntimeError: If not connected or unified_ddl view doesn't exist
         """
         if not self.connection:
             raise RuntimeError("Not connected to DuckDB workspace")
@@ -733,19 +750,26 @@ class DuckDBWorkspace:
             self.connection.execute("INSTALL fts;")
             self.connection.execute("LOAD fts;")
 
-            # Create FTS index on definitions table
-            # Indexes both object_name and definition_text for comprehensive search
+            # Materialize unified_ddl view as a table (FTS can't index views)
+            # This creates a searchable table with all DDL (real + generated)
+            self.connection.execute("""
+                CREATE OR REPLACE TABLE unified_ddl_materialized AS
+                SELECT * FROM unified_ddl
+            """)
+
+            # Create FTS index on materialized table
+            # Indexes both object_name and ddl_text for comprehensive search
             self.connection.execute("""
                 PRAGMA create_fts_index(
-                    'definitions',
+                    'unified_ddl_materialized',
                     'object_id',
                     'object_name',
-                    'definition',
+                    'ddl_text',
                     overwrite=1
                 );
             """)
 
-            print("✅ FTS index created successfully on definitions table")
+            print("✅ FTS index created successfully on unified_ddl_materialized table")
 
         except Exception as e:
             print(f"❌ Failed to create FTS index: {e}")
