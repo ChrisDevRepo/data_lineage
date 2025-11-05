@@ -267,8 +267,6 @@ export function useDataFiltering({
         setSelectedTypes,
         searchTerm,
         setSearchTerm,
-        excludeTerm,
-        setExcludeTerm,
         hideUnrelated,
         setHideUnrelated,
         highlightedNodes,

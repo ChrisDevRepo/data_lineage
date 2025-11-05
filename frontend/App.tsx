@@ -112,8 +112,6 @@ function DataLineageVisualizer() {
     setSelectedTypes,
     searchTerm,
     setSearchTerm,
-    excludeTerm,
-    setExcludeTerm,
     hideUnrelated,
     setHideUnrelated,
     highlightedNodes,
@@ -743,8 +741,6 @@ function DataLineageVisualizer() {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             executeSearch={executeSearch}
-            excludeTerm={excludeTerm}
-            setExcludeTerm={setExcludeTerm}
             selectedSchemas={selectedSchemas}
             setSelectedSchemas={setSelectedSchemas}
             schemas={schemas}
