@@ -1,4 +1,4 @@
-"""
+r"""
 Quality-Aware SQLGlot Parser - Smart extraction with built-in QA
 ================================================================
 
@@ -12,10 +12,53 @@ Strategy:
 
 This gives us quality assurance built into the parser!
 
-Version: 4.0.3 (SP-to-SP Direction Fix)
+Version: 4.1.3 (Dataflow-Focused Lineage - IF EXISTS Administrative Query Filtering)
 Date: 2025-11-04
 
 Changelog:
+- v4.1.3 (2025-11-04): CRITICAL FIX - IF EXISTS/IF NOT EXISTS filtering
+    Fixed: IF EXISTS (SELECT ... FROM Table) checks no longer create false input dependencies
+    Issue: Administrative IF EXISTS checks were treated as data lineage sources
+    Example: IF EXISTS (SELECT 1 FROM FactTable) DELETE FROM FactTable
+             Previously: FactTable appeared as both input AND output (circular dependency)
+             Now: FactTable appears only as output (correct)
+    Root cause: IF EXISTS checks are control flow logic, not actual data dependencies
+    Solution: Remove IF EXISTS/IF NOT EXISTS patterns during preprocessing (lines 150-165)
+    Impact: Eliminates false bidirectional lineage for tables with existence checks
+    Test case: spLoadFactLaborCostForEarnedValue now shows FactLaborCostForEarnedValue
+               only as output, not as input
+    Files: quality_aware_parser.py ENHANCED_REMOVAL_PATTERNS
+
+- v4.1.2 (2025-11-04): CRITICAL FIX - Global target exclusion from sources
+    Fixed: INSERT INTO target tables no longer appear in sources list
+    Issue: find_all(exp.Table) extracts ALL tables from entire AST including DML targets
+    Root cause: Target exclusion was per-statement, but sources accumulated across statements
+    Example: Statement 1: INSERT INTO target → excludes target ✅
+             Statement 2: WITH cte AS (SELECT FROM target) → includes target ❌
+             Accumulated sources = {target} ← FALSE POSITIVE
+    Solution: Global exclusion after all statements parsed (line 462: sources - targets)
+    Impact: Eliminates false positive inputs for all DML operations
+    Test: spLoadGLCognosData now shows GLCognosData only in outputs, not inputs
+    Files: quality_aware_parser.py lines 430-464 (_sqlglot_parse method)
+
+- v4.1.2 (2025-11-04): Balanced parentheses matching for administrative queries
+    Fixed: SET/DECLARE @var = (SELECT COUNT(*) FROM Table) now correctly removes entire statement
+    Solution: Pattern (?:[^()]|\([^()]*\))* matches balanced parentheses (1 level deep)
+    Files: quality_aware_parser.py lines 166, 177
+
+- v4.1.1 (2025-11-04): REGEX FIX attempt (incomplete - superseded by v4.1.2)
+    Issue: Pattern still stopped at first ) in COUNT(*)
+    Root cause: Non-greedy .*? still matched minimal content
+
+- v4.1.0 (2025-11-04): DATAFLOW-FOCUSED LINEAGE
+    Philosophy: Show only data transformation operations (DML), not housekeeping (DDL)
+    Changes:
+      1. Preprocessing: Replace CATCH blocks and ROLLBACK sections with SELECT 1 dummy
+      2. Preprocessing: Replace DECLARE/SET @var = (SELECT ...) with literals (removes admin queries)
+      3. AST Extraction: Only extract INSERT/UPDATE/DELETE/MERGE (exclude TRUNCATE/DROP)
+    Impact: Cleaner lineage focused on business logic, removes administrative noise
+    Example: spLoadGLCognosData now shows INSERT only (not SELECT COUNT or TRUNCATE)
+    Breaking: Dataflow mode is now the default behavior (replaces "complete" mode)
 - v4.0.3 (2025-11-04): CRITICAL FIX - SP-to-SP lineage direction
     Issue: EXEC/EXECUTE calls were added as INPUTS, making arrows point wrong direction in GUI
     Example: spLoadFactTables showed incoming arrows from SPs it calls (should be outgoing)
@@ -112,16 +155,41 @@ class QualityAwareParser:
         (r'\bPRINT\s+[^\n;]+', '-- PRINT removed'),
     ]
 
-    # Enhanced preprocessing patterns (2025-11-03)
-    # Based on production testing: focus on TRY block business logic, remove noise
-    # v4.0.1: Fixed DECLARE greedy pattern, added semicolon normalization
+    # Enhanced preprocessing patterns (2025-11-04)
+    # v4.1.0: DATAFLOW MODE - Remove administrative code, keep only DML operations
+    # Philosophy: Focus on data transformation (INSERT/UPDATE/DELETE/MERGE), not housekeeping
     ENHANCED_REMOVAL_PATTERNS = [
-        # Remove entire CATCH blocks (including nested content)
-        # CATCH blocks contain error handling, logging, rollback - not business lineage
+        # DATAFLOW: Remove IF EXISTS checks (administrative, not data transformation)
+        # v4.1.3: NEW - Removes IF EXISTS(...) checks that reference tables
+        # Example: IF EXISTS (SELECT 1 FROM [dbo].[Table]) DELETE FROM [dbo].[Table];
+        # → DELETE FROM [dbo].[Table];  -- IF EXISTS removed
+        # These checks are administrative logic, not actual data lineage
+        # Pattern matches balanced parentheses to handle nested SELECT/COUNT/EXISTS
+        (r'\bIF\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*',
+         '-- IF EXISTS removed\n',
+         re.IGNORECASE),
+
+        # DATAFLOW: Remove IF NOT EXISTS checks (same reasoning)
+        # Example: IF NOT EXISTS (SELECT 1 FROM [dbo].[Table]) INSERT INTO [dbo].[Table]...
+        # → INSERT INTO [dbo].[Table]...  -- IF NOT EXISTS removed
+        (r'\bIF\s+NOT\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*',
+         '-- IF NOT EXISTS removed\n',
+         re.IGNORECASE),
+
+        # DATAFLOW: Replace CATCH blocks with dummy (error handling not dataflow)
+        # v4.1.0: Changed from removing to replacing with SELECT 1 (keeps SQL valid)
         # Example: BEGIN /* CATCH */ INSERT INTO ErrorLog ... END /* CATCH */
-        # Uses re.DOTALL to match across newlines (. matches \n)
-        # IMPORTANT: Use empty string to avoid comments that break SQLGlot parsing
-        (r'BEGIN\s+/\*\s*CATCH\s*\*/.*?END\s+/\*\s*CATCH\s*\*/', '', re.DOTALL),
+        # → BEGIN /* CATCH */ SELECT 1 END /* CATCH */ (SQLGlot can still parse)
+        (r'BEGIN\s+/\*\s*CATCH\s*\*/.*?END\s+/\*\s*CATCH\s*\*/',
+         'BEGIN /* CATCH */\n  -- Error handling removed for dataflow clarity\n  SELECT 1;\nEND /* CATCH */',
+         re.DOTALL),
+
+        # DATAFLOW: Replace content after ROLLBACK (failure paths not dataflow)
+        # v4.1.0: NEW - Removes rollback recovery code
+        # Example: ROLLBACK TRANSACTION; INSERT INTO ErrorLog ... → ROLLBACK TRANSACTION; SELECT 1;
+        (r'ROLLBACK\s+TRANSACTION\s*;.*?(?=END|$)',
+         'ROLLBACK TRANSACTION;\n  -- Rollback path removed for dataflow clarity\n  SELECT 1;\n',
+         re.DOTALL),
 
         # Remove UTILITY EXEC commands (logging, counting, etc.)
         # Keep business SP calls - they are important lineage!
@@ -130,25 +198,41 @@ class QualityAwareParser:
         # Example: EXEC [dbo].[LogMessage] 'Processing complete'
         (r'\bEXEC(?:UTE)?\s+(?:\[?dbo\]?\.)?\[?(spLastRowCount|LogMessage)\]?[^;]*;?', '', re.IGNORECASE),
 
-        # Remove DECLARE statements (variable declarations clutter parsing)
-        # Variables are implementation details, not data lineage
+        # DATAFLOW: Replace DECLARE @var = (SELECT ...) with literal (removes admin queries)
+        # v4.1.0: Changed from removing to replacing with literal value
+        # v4.1.1: Fixed regex to handle nested parentheses (e.g., COUNT(*))
+        # v4.1.2: Proper balanced parentheses matching - handles COUNT(*), MAX(), etc.
+        # Example: DECLARE @RowCount INT = (SELECT COUNT(*) FROM Table)
+        # → DECLARE @RowCount INT = 1  -- Administrative query removed
+        # This prevents SELECT COUNT(*) from appearing as lineage dependency
+        # Pattern: (?:[^()]|\([^()]*\))* matches nested parens correctly
+        (r'DECLARE\s+(@\w+)\s+(\w+(?:\([^\)]*\))?)\s*=\s*\((?:[^()]|\([^()]*\))*\)',
+         r'DECLARE \1 \2 = 1  -- Administrative query removed',
+         0),
+
+        # DATAFLOW: Replace SET @var = (SELECT ...) with literal (removes admin queries)
+        # v4.1.0: Changed from removing to replacing with literal value
+        # v4.1.1: Fixed regex to handle nested parentheses (e.g., COUNT(*))
+        # v4.1.2: Proper balanced parentheses matching - handles COUNT(*), MAX(), etc.
+        # Example: SET @RowCount = (SELECT COUNT(*) FROM Table)
+        # → SET @RowCount = 1  -- Administrative query removed
+        # Pattern: (?:[^()]|\([^()]*\))* matches nested parens (1 level deep) correctly
+        (r'SET\s+(@\w+)\s*=\s*\((?:[^()]|\([^()]*\))*\)',
+         r'SET \1 = 1  -- Administrative query removed',
+         0),
+
+        # Remove other DECLARE statements (variable declarations clutter parsing)
+        # Variables without SELECT are simple declarations, safe to remove
         # Example: DECLARE @StartDate DATETIME = GETDATE()
-        # FIXED (2025-11-03): Non-greedy pattern to avoid consuming business logic
-        # Old: [^;]+; (greedy - removes everything to next semicolon)
-        # New: [^\n;]+(?:;|\n) (stops at line end OR semicolon)
         (r'\bDECLARE\s+@\w+\s+[^\n;]+(?:;|\n)', '', 0),
 
-        # Remove SET statements (variable assignments)
-        # Variable assignments are not table dependencies
-        # Example: SET @RowCount = (SELECT COUNT(*) FROM dbo.Table)
-        # Note: This removes the SET, but SELECT in subquery might still be parsed
-        # FIXED (2025-11-03): Non-greedy pattern to stop at line end
+        # Remove other SET statements (variable assignments without SELECT)
+        # Example: SET @Count = @Count + 1
         (r'\bSET\s+@\w+\s*=\s*[^\n;]+(?:;|\n)', '', 0),
 
         # Remove SET session options (NOCOUNT, XACT_ABORT, etc.)
         # Session settings don't affect data lineage
         # Example: SET NOCOUNT ON, SET XACT_ABORT ON, SET ANSI_NULLS ON
-        # Critical: This prevents "SET NOCOUNT ON select ..." from being parsed as SET command
         (r'\bSET\s+(NOCOUNT|XACT_ABORT|ANSI_NULLS|QUOTED_IDENTIFIER|ANSI_PADDING|ANSI_WARNINGS|ARITHABORT|CONCAT_NULL_YIELDS_NULL|NUMERIC_ROUNDABORT)\s+(ON|OFF)\b', '', 0),
     ]
 
@@ -205,6 +289,7 @@ class QualityAwareParser:
             parser_sources, parser_targets = self._sqlglot_parse(cleaned_ddl, ddl)
             parser_sources_valid = self._validate_against_catalog(parser_sources)
             parser_targets_valid = self._validate_against_catalog(parser_targets)
+
 
             # STEP 3: Compare counts and calculate quality metrics
             quality = self._calculate_quality(
@@ -365,6 +450,19 @@ class QualityAwareParser:
     def _sqlglot_parse(self, cleaned_ddl: str, original_ddl: str) -> Tuple[Set[str], Set[str]]:
         """
         Parse with SQLGlot after preprocessing.
+
+        v4.1.2 CRITICAL FIX: Exclude targets from sources GLOBALLY
+        ----------------------------------------------------------
+        Previous bug: Targets were excluded per-statement, but sources from
+        other statements could reference the same table as a source.
+
+        Example:
+          Statement 1: INSERT INTO target SELECT FROM source
+                       → targets={target}, sources={source} ✅ target excluded
+          Statement 2: WITH cte AS (SELECT FROM target) SELECT FROM cte
+                       → targets={}, sources={target} ❌ target NOT excluded (not a target in THIS statement)
+
+        Solution: Collect all targets first, then remove from final sources.
         """
         sources = set()
         targets = set()
@@ -390,7 +488,12 @@ class QualityAwareParser:
         if not sources and not targets:
             sources, targets, _ = self._regex_scan(original_ddl)  # Ignore SP calls in full fallback
 
-        return sources, targets
+        # v4.1.2 FIX: Remove all targets from sources AFTER parsing all statements
+        # This prevents false positives where a table is a target in one statement
+        # but appears as a source in another statement (e.g., CTEs, temp tables)
+        sources_final = sources - targets
+
+        return sources_final, targets
 
     def _calculate_quality(
         self,
@@ -701,6 +804,20 @@ class QualityAwareParser:
         """
         Extract tables from SQLGlot AST.
 
+        DATAFLOW MODE (v4.1.0): Only extracts DML operations
+        -------------------------------------------------------
+        Includes:
+          - INSERT INTO (data transformation)
+          - UPDATE (data modification)
+          - DELETE (data removal)
+          - MERGE (data upsert)
+          - SELECT INTO (data creation)
+
+        Excludes:
+          - TRUNCATE (DDL housekeeping, not transformation)
+          - DROP (DDL housekeeping)
+          - Administrative SELECT (filtered in preprocessing)
+
         Enhanced to handle SELECT INTO statements correctly:
         - SELECT ... INTO #temp FROM source_table
         - #temp is a target (temp table, filtered from lineage)
@@ -767,33 +884,41 @@ class QualityAwareParser:
             if name:
                 targets.add(name)
 
-        # STEP 1c: Extract TRUNCATE targets (v3.5.0 - 2025-10-28)
-        # Issue: spLoadGLCognosData missing outputs due to TRUNCATE not being captured
-        # TRUNCATE TABLE [schema].[table] is a DML operation that clears table data
-        # Syntax: TRUNCATE TABLE target → target is the table being truncated
-        for truncate in parsed.find_all(exp.TruncateTable):
-            # TruncateTable.this contains the table node (similar to DELETE/UPDATE)
-            if truncate.this:
-                name = self._extract_dml_target(truncate.this)
-                if name:
-                    targets.add(name)
-
-        # STEP 2: Extract sources (FROM, JOIN) - with self-reference support (v3.6.0 - 2025-10-28)
-        # Issue #2: Self-referencing pattern where SP writes to table then reads from it
-        # Previous logic: Excluded ALL targets from sources globally (across entire SP)
-        # New logic: Allow self-references for staging patterns (INSERT → SELECT → INSERT)
+        # STEP 1c: TRUNCATE extraction DISABLED in v4.1.0 (DATAFLOW MODE)
+        # TRUNCATE is DDL (housekeeping), not DML (data transformation)
+        # In dataflow mode, we only show INSERT/UPDATE/DELETE/MERGE operations
+        # Rationale: TRUNCATE clears data but doesn't transform it
+        # Previous behavior (v3.5.0-v4.0.x): TRUNCATE was captured as output
+        # New behavior (v4.1.0+): TRUNCATE is filtered out to reduce noise
         #
-        # Simplified approach:
-        # - Include ALL tables found in FROM/JOIN clauses
-        # - Don't exclude targets (allow self-references)
-        # - Exception: Temp tables from SELECT INTO should still be excluded
+        # for truncate in parsed.find_all(exp.TruncateTable):
+        #     if truncate.this:
+        #         name = self._extract_dml_target(truncate.this)
+        #         if name:
+        #             targets.add(name)
+
+        # STEP 2: Extract sources (FROM, JOIN) - FIXED v4.1.2 (2025-11-04)
+        # Issue: find_all(exp.Table) was extracting ALL tables including DML targets
+        # Root cause: INSERT INTO target was being added to sources (false positive)
+        #
+        # SQLGlot structure:
+        #   INSERT.this = target table
+        #   INSERT.expression = SELECT statement with sources
+        #
+        # Solution: Exclude DML targets from source extraction (per-statement)
+        # Note: Global exclusion also happens in _sqlglot_parse() after all statements
+        # are accumulated. This per-statement exclusion is a defensive measure.
 
         for table in parsed.find_all(exp.Table):
             name = self._get_table_name(table)
             if name:
-                # Only skip temp tables that are SELECT INTO targets
-                # These are internal and shouldn't appear as dependencies
+                # Skip temp tables from SELECT INTO (internal dependencies)
                 if name in select_into_targets:
+                    continue
+
+                # v4.1.2 FIX: Skip DML targets (they're outputs, not inputs)
+                # This prevents INSERT INTO target from appearing in sources
+                if name in targets:
                     continue
 
                 sources.add(name)

@@ -1,59 +1,35 @@
 # CLAUDE.md
 
-Instructions for Claude Code when working with this repository.
-
-## Workflow Guidelines
-
+## Workflow
 - End responses with status (✅ Completed | ⏳ Pending | ❌ Not started | ⚠️ Needs clarification)
 - Ask questions last; complete analysis first
-- Never proceed with ambiguous requirements
-- Use TodoWrite tool; update immediately after task completion
+- Use TodoWrite tool; update immediately after completion
 
----
-
-## Project Overview
-
-**Data Lineage Visualizer v4.0.3** - Slim parser for Azure Synapse with React visualization
-
-- **Status:** Production (No AI)
+## Project: Data Lineage Visualizer v4.1.3
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **System:** Python 3.12.3, Node.js, WSL2
 - **Dir:** `/home/chris/sandbox`
-- **Branch:** `feature/slim-parser-no-ai`
-
----
+- **Branch:** `feature/dataflow-mode`
+- **Parser:** 97.0% SP confidence | 95.5% overall
+- **Frontend:** v2.9.2
 
 ## Quick Start
-
 ```bash
-# Backend (http://localhost:8000)
+# Backend: http://localhost:8000
 cd /home/chris/sandbox/api && python3 main.py
 
-# Frontend (http://localhost:3000)
+# Frontend: http://localhost:3000
 cd /home/chris/sandbox/frontend && npm run dev
 
-# CLI Parser
-python lineage_v3/main.py run --parquet parquet_snapshots/  # Incremental
+# Parser (incremental / full-refresh)
+python lineage_v3/main.py run --parquet parquet_snapshots/
 python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 ```
 
----
-
-## Parser Architecture (v4.0.2)
-
-**Three-Stage Strategy:**
-1. **Regex Baseline**: Pattern matching (tables + SP calls)
-2. **SQLGlot Parser**: AST parsing + smart semicolon normalization
-3. **Rule Engine**: Quality checks (future)
-
-**Current Performance:**
-- **729/763 objects at high confidence (95.5%)** - ✅ VERIFIED
-- **196/202 SPs at high confidence (97.0%)** - ✅ EXCEEDED 95% GOAL
-- Coverage: 758/763 objects (99.3%)
-- SP-to-SP lineage: 151 business dependencies tracked
-- Latest fixes: Unified confidence calculator + complete metadata tracking
-
----
+## Parser (v4.1.3)
+- **Strategy:** Regex → SQLGlot → Rule Engine
+- **Performance:** 729/763 objects (95.5%), 196/202 SPs (97.0%)
+- **Features:** Dataflow mode, global target exclusion, admin query filtering
 
 ## Parser Development (MANDATORY)
 
@@ -141,6 +117,7 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 - [api/README.md](api/README.md)
 - [frontend/README.md](frontend/README.md)
 - [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md)
+- [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md) - **NEW v2.9.1**
 
 **Evaluation:**
 - [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md)
@@ -171,6 +148,11 @@ pip install -r requirements.txt
 - Verify JSON format
 - Check browser console
 
+**Performance (Large Datasets >1,000 nodes):**
+- **v2.9.1 optimizations:** Debouncing, layout caching, optimized filtering
+- See [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md)
+- **Supports 5,000+ nodes** smoothly (100x faster schema toggling)
+
 **Port Conflicts:**
 ```bash
 lsof -ti:8000 | xargs -r kill  # Backend
@@ -179,7 +161,7 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 
 ---
 
-**Last Updated:** 2025-11-04 09:30
-**Version:** v4.0.3 (SP-to-SP Direction Fix)
-**Parser:** 97.0% SP confidence | 95.5% overall confidence | Fixed SP call direction
-**Frontend:** v2.9.0 | **API:** v4.0.0
+**Last Updated:** 2025-11-04
+**Version:** v4.1.3 (IF EXISTS Administrative Query Filtering)
+**Parser:** 97.0% SP confidence | 95.5% overall | Dataflow mode + no circular dependencies
+**Frontend:** v2.9.2 (Global exclusion patterns + UI simplified) | **API:** v4.0.0

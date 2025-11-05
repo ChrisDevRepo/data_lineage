@@ -39,6 +39,9 @@ type ToolbarProps = {
     isTraceLocked: boolean;
     isInTraceExitMode: boolean;
     onToggleLock: () => void;
+    exclusionInput: string;
+    setExclusionInput: (input: string) => void;
+    onApplyExclusions: () => void;
 };
 
 // OPTIMIZATION: Memoize to prevent unnecessary re-renders
@@ -54,7 +57,8 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         sqlViewerOpen, onToggleSqlViewer, sqlViewerEnabled, hasDdlData,
         onOpenDetailSearch,
         notificationHistory, onClearNotificationHistory,
-        isTraceLocked, isInTraceExitMode, onToggleLock
+        isTraceLocked, isInTraceExitMode, onToggleLock,
+        exclusionInput, setExclusionInput, onApplyExclusions
     } = props;
 
     const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
@@ -77,6 +81,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
 
     const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
+            console.log('[Toolbar] Input changed to:', e.target.value, 'length:', e.target.value.length);
             setSearchTerm(e.target.value);
         } catch (error) {
             console.error('[Toolbar] Error during search input change:', error);
@@ -137,6 +142,21 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                     </Button>
                     {isSchemaFilterOpen && (
                         <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                            {/* Select All / Deselect All */}
+                            <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-200">
+                                <button
+                                    onClick={() => setSelectedSchemas(new Set(schemas))}
+                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                                >
+                                    Select All
+                                </button>
+                                <button
+                                    onClick={() => setSelectedSchemas(new Set())}
+                                    className="text-xs font-medium text-gray-600 hover:text-gray-700 hover:underline"
+                                >
+                                    Deselect All
+                                </button>
+                            </div>
                             <div className="space-y-2">
                                 {schemas.map(s => (
                                     <Checkbox key={s} checked={selectedSchemas.has(s)} onChange={() => {
@@ -161,6 +181,21 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                         </Button>
                         {isTypeFilterOpen && (
                             <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                                {/* Select All / Deselect All */}
+                                <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-200">
+                                    <button
+                                        onClick={() => setSelectedTypes(new Set(dataModelTypes))}
+                                        className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                                    >
+                                        Select All
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedTypes(new Set())}
+                                        className="text-xs font-medium text-gray-600 hover:text-gray-700 hover:underline"
+                                    >
+                                        Deselect All
+                                    </button>
+                                </div>
                                 <div className="space-y-2">
                                     {dataModelTypes.map(t => (
                                         <Checkbox key={t} checked={selectedTypes.has(t)} onChange={() => {
@@ -200,8 +235,43 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                 </Button>
             </div>
 
-            {/* CENTER: Primary Action (ONE only) */}
-            <div className="flex-1 flex items-center justify-center">
+            {/* CENTER: Spacer */}
+            <div className="flex-1"></div>
+
+            {/* RIGHT: Action Icons */}
+            <div className="flex items-center gap-1">
+                {/* Exclusion Patterns */}
+                <div className="flex items-center gap-1 mr-2">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={exclusionInput}
+                            onChange={(e) => setExclusionInput(e.target.value)}
+                            placeholder="e.g., *_TMP;*_BAK"
+                            className="px-3 py-1.5 pr-8 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent w-96"
+                            title="Exclusion patterns (semicolon-separated wildcards)"
+                        />
+                        {exclusionInput && (
+                            <button
+                                onClick={() => {
+                                    setExclusionInput('');
+                                    onApplyExclusions();
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                title="Clear exclusions"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                    <Button onClick={onApplyExclusions} variant="primary" size="sm" title="Hide Matching Patterns">
+                        Hide
+                    </Button>
+                </div>
+
+                {/* Trace Button or Lock Indicator */}
                 {isInTraceExitMode && isTraceLocked ? (
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 border border-yellow-300 rounded-md text-sm text-yellow-800">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
@@ -211,17 +281,17 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                         <button onClick={onToggleLock} className="ml-1 hover:underline font-medium">Unlock</button>
                     </div>
                 ) : (
-                    <Button onClick={onStartTrace} variant="primary" size="md" disabled={isTraceModeActive} title="Start Interactive Trace">
+                    <Button onClick={onStartTrace} variant="primary" size="md" disabled={isTraceModeActive} title="Start Interactive Trace" className="whitespace-nowrap gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                         </svg>
                         Start Trace
                     </Button>
                 )}
-            </div>
 
-            {/* RIGHT: Action Icons */}
-            <div className="flex items-center gap-1">
+                {/* Divider */}
+                <div className="h-6 w-px bg-gray-300 mx-1"></div>
+
                 <Button onClick={onOpenDetailSearch} disabled={!hasDdlData} variant="icon" title="Detail Search">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />

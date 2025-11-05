@@ -108,17 +108,12 @@ def extract(output, timestamp):
     help='Path to DuckDB workspace file'
 )
 @click.option(
-    '--ai-enabled/--no-ai',
-    default=True,
-    help='Enable/disable AI disambiguation (default: enabled)'
-)
-@click.option(
-    '--ai-threshold',
+    '--reparse-threshold',
     default=0.85,
     type=float,
-    help='Parser confidence threshold to trigger AI (default: 0.85)'
+    help='Confidence threshold for re-parsing in incremental mode (default: 0.85)'
 )
-def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_enabled, ai_threshold):
+def run(parquet, output, full_refresh, format, skip_query_logs, workspace, reparse_threshold):
     """
     Run lineage analysis on Parquet snapshots.
 
@@ -128,19 +123,12 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_en
     2. Build baseline from DMV dependencies
     3. Enhance from query logs (optional)
     4. Detect gaps (unresolved SPs)
-    5. Run SQLGlot parser
-    6. Run AI fallback
+    5. Run SQLGlot parser with quality validation
+    6. Validate with query logs
     7. Merge all sources
     8. Generate output JSON files
     """
-    # Override settings from CLI if provided (without modifying os.environ)
-    from lineage_v3.config import settings
-
-    # CLI arguments override config file settings
-    if not ai_enabled:
-        settings.ai.enabled = False
-    if ai_threshold != 0.85:  # Non-default value
-        settings.ai.confidence_threshold = ai_threshold
+    # No settings override needed - reparse_threshold passed directly to get_objects_to_parse()
 
     click.echo(f"🚀 Vibecoding Lineage Parser v{__version__}")
     click.echo(f"📂 Parquet directory: {parquet}")
@@ -148,7 +136,8 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_en
     click.echo(f"🔄 Mode: {'Full Refresh' if full_refresh else 'Incremental'}")
     click.echo(f"📊 Format: {format}")
     click.echo(f"💾 Workspace: {workspace}")
-    click.echo(f"🤖 AI Disambiguation: {'Enabled' if settings.ai.enabled else 'Disabled'} (threshold: {settings.ai.confidence_threshold})")
+    if not full_refresh:
+        click.echo(f"🔧 Reparse Threshold: {reparse_threshold} (objects below this confidence will be re-parsed)")
     click.echo()
 
     try:
@@ -181,15 +170,15 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, ai_en
             click.echo(f"   - Metadata cache: {stats.get('lineage_metadata_count', 0):,}")
             click.echo()
 
-            # Get objects to parse (includes low-confidence objects needing AI retry)
+            # Get objects to parse (includes low-confidence objects needing re-parsing)
             objects_to_parse = db.get_objects_to_parse(
                 full_refresh=full_refresh,
-                confidence_threshold=settings.ai.confidence_threshold
+                confidence_threshold=reparse_threshold
             )
             click.echo(f"🔍 Objects requiring analysis: {len(objects_to_parse):,}")
 
             if not full_refresh:
-                click.echo(f"   ℹ️  Incremental mode: Parsing modified objects + low confidence (<{settings.ai.confidence_threshold:.2f})")
+                click.echo(f"   ℹ️  Incremental mode: Parsing modified objects + low confidence (<{reparse_threshold:.2f})")
 
             if not objects_to_parse:
                 click.echo()

@@ -28,6 +28,7 @@ import { generateSampleData } from './utils/data';
 import { DataNode } from './types';
 import { CONSTANTS } from './constants';
 import { INTERACTION_CONSTANTS } from './interaction-constants';
+import { loadExclusionPatterns, saveExclusionPatterns } from './utils/localStorage';
 
 // --- Main App Component ---
 function DataLineageVisualizer() {
@@ -80,6 +81,19 @@ function DataLineageVisualizer() {
   }, []);
   const [layout, setLayout] = useState<'LR' | 'TB'>('LR');
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+  const [isLayoutCalculating, setIsLayoutCalculating] = useState(false);
+
+  // Exclusion patterns state
+  const [exclusionInput, setExclusionInput] = useState<string>(() => {
+    // Load from localStorage or use default
+    const stored = loadExclusionPatterns();
+    return stored !== null ? stored : '*_TMP;*_BAK';
+  });
+  const [appliedExclusions, setAppliedExclusions] = useState<string>(() => {
+    // Initialize with same value as input
+    const stored = loadExclusionPatterns();
+    return stored !== null ? stored : '*_TMP;*_BAK';
+  });
 
   // --- Custom Hooks for Logic Encapsulation ---
   const { addNotification, activeToasts, removeActiveToast, notificationHistory, clearNotificationHistory } = useNotifications();
@@ -113,7 +127,8 @@ function DataLineageVisualizer() {
     traceConfig,
     performInteractiveTrace,
     isInTraceExitMode,
-    traceExitNodes
+    traceExitNodes,
+    appliedExclusions
   });
 
   // --- Detect DDL Availability (memoized for performance) ---
@@ -143,13 +158,25 @@ function DataLineageVisualizer() {
 
   // --- Memos for Derived State and Layouting ---
   const layoutedElements = useMemo(() => {
-    return getDagreLayoutedElements({
+    // Show loading indicator for large layout calculations
+    if (finalVisibleData.length > 500) {
+      setIsLayoutCalculating(true);
+    }
+
+    const result = getDagreLayoutedElements({
       data: finalVisibleData,
       layout,
       schemaColorMap,
       lineageGraph,
       isTraceModeActive,
     });
+
+    // Clear loading indicator after a frame (allow UI to update)
+    requestAnimationFrame(() => {
+      setIsLayoutCalculating(false);
+    });
+
+    return result;
   }, [finalVisibleData, layout, schemaColorMap, lineageGraph, isTraceModeActive]);
 
   // OPTIMIZATION: Create Map for O(1) lookups instead of O(n) find()
@@ -392,7 +419,7 @@ function DataLineageVisualizer() {
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
     setSearchTerm('');
-    setHideUnrelated(false);
+    setHideUnrelated(true) // Default: hide unrelated nodes;
     setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
@@ -406,6 +433,19 @@ function DataLineageVisualizer() {
     setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
 
     addNotification('View reset to default.', 'info');
+  };
+
+  const handleApplyExclusions = () => {
+    // Apply the current input value and save to localStorage
+    setAppliedExclusions(exclusionInput);
+    saveExclusionPatterns(exclusionInput);
+
+    const patternCount = exclusionInput.split(';').filter(p => p.trim() !== '').length;
+    if (patternCount > 0) {
+      addNotification(`Exclusion patterns applied (${patternCount} pattern${patternCount > 1 ? 's' : ''})`, 'success');
+    } else {
+      addNotification('Exclusion patterns cleared', 'info');
+    }
   };
 
   const handleCloseDetailSearch = useCallback((nodeId: string | null) => {
@@ -731,6 +771,9 @@ function DataLineageVisualizer() {
             isTraceLocked={isTraceLocked}
             isInTraceExitMode={isInTraceExitMode}
             onToggleLock={handleToggleLock}
+            exclusionInput={exclusionInput}
+            setExclusionInput={setExclusionInput}
+            onApplyExclusions={handleApplyExclusions}
           />
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
@@ -741,6 +784,12 @@ function DataLineageVisualizer() {
                   <button onClick={handleExitTraceMode} className="text-blue-100 hover:text-white underline font-bold">Exit</button>
                 </div>
               )}
+              {isLayoutCalculating && (
+                <div className="absolute top-4 right-4 z-20 bg-gray-800 bg-opacity-90 text-white px-3 py-2 rounded-lg shadow-lg flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span className="text-sm font-medium">Calculating layout...</span>
+                </div>
+              )}
               <ReactFlow
                 nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
@@ -748,7 +797,17 @@ function DataLineageVisualizer() {
                 onNodeClick={handleNodeClick}
                 fitView
                 minZoom={0.1}
+                maxZoom={2}
                 onlyRenderVisibleElements={true}
+                nodesDraggable={false}
+                nodesConnectable={false}
+                elementsSelectable={true}
+                selectNodesOnDrag={false}
+                panOnDrag={true}
+                zoomOnScroll={true}
+                zoomOnPinch={true}
+                zoomOnDoubleClick={false}
+                preventScrolling={true}
                 proOptions={{ hideAttribution: true }}
               >
                 <Controls />
@@ -758,6 +817,7 @@ function DataLineageVisualizer() {
                   onToggle={() => setIsLegendCollapsed(p => !p)}
                   schemas={schemas}
                   schemaColorMap={schemaColorMap}
+                  selectedSchemas={selectedSchemas}
                 />
               </ReactFlow>
             </div>
@@ -792,6 +852,7 @@ function DataLineageVisualizer() {
           inheritedTypeFilter={selectedTypes}
           allData={allData}
           addNotification={addNotification}
+          inheritedExclusions={appliedExclusions}
         />
       </main>
       <ImportDataModal

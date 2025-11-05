@@ -6,9 +6,93 @@
 
 ---
 
-## Baseline Metrics (2025-11-03)
+## Baseline Metrics (2025-11-04)
 
-### Current Parser Version: 4.0.3 (COMPLETED - 2025-11-03)
+### Current Parser Version: 4.1.3 (COMPLETED - 2025-11-04)
+
+**Latest Update (v4.1.3 - 2025-11-04): IF EXISTS/IF NOT EXISTS FILTERING**
+- **Critical Fix**: Eliminates circular dependencies from IF EXISTS/IF NOT EXISTS checks
+- **Problem**: Administrative IF EXISTS checks were treated as actual data dependencies
+- **Example Issue**:
+  ```sql
+  IF EXISTS (SELECT 1 FROM [dbo].[FactTable])
+      DELETE FROM [dbo].[FactTable];
+  ```
+  - Previously: FactTable appeared in BOTH inputs (from IF EXISTS) AND outputs (from DELETE) ❌
+  - Created false bidirectional/circular dependency
+- **Root Cause**: IF EXISTS/IF NOT EXISTS are control flow logic, NOT data lineage
+- **Solution**: Added preprocessing patterns to remove IF checks before parsing:
+  ```python
+  # Pattern 1: IF EXISTS (SELECT ... FROM Table)
+  (r'\bIF\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*', '-- IF EXISTS removed\n', re.IGNORECASE)
+
+  # Pattern 2: IF NOT EXISTS (SELECT ... FROM Table)
+  (r'\bIF\s+NOT\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*', '-- IF NOT EXISTS removed\n', re.IGNORECASE)
+  ```
+- **Pattern Features**: Balanced parentheses matching handles nested functions (COUNT(*), MAX(), etc.)
+- **Impact**:
+  - Eliminates ALL false bidirectional dependencies from existence checks
+  - Creates clean unidirectional lineage: SP → Table (writes only)
+  - Example: `spLoadFactLaborCostForEarnedValue` now shows table only in outputs, not inputs
+- **Verification**: All SPs writing to FactLaborCostForEarnedValue now show unidirectional lineage ✅
+- **Files Modified**:
+  - `lineage_v3/parsers/quality_aware_parser.py` (lines 150-165, ENHANCED_REMOVAL_PATTERNS)
+  - Fixed syntax warning (added raw string prefix to docstring)
+
+---
+
+### Parser Version: 4.1.2 (COMPLETED - 2025-11-04)
+
+**Update (v4.1.2 - 2025-11-04): GLOBAL TARGET EXCLUSION FIX**
+- **Critical Fix**: Eliminates false positive inputs from DML target tables
+- **Problem**: Multi-statement processing accumulated sources globally, but target exclusion was per-statement
+- **Root Cause**:
+  - Statement 1 (INSERT INTO target): excludes target ✅
+  - Statement 2 (CTE references target): includes target as source ❌
+  - Final accumulated sources = {target} ← FALSE POSITIVE
+- **Solution**: Global target exclusion after all statements parsed:
+  ```python
+  sources_final = sources - targets  # Line 462 in quality_aware_parser.py
+  ```
+- **Impact**:
+  - Eliminates ALL false positive inputs from DML targets
+  - Works for INSERT, UPDATE, MERGE, DELETE operations
+  - Handles CTEs, temp tables, complex multi-statement SPs
+  - Example: `spLoadGLCognosData` now shows only legitimate inputs (v_CCR2PowerBI_facts)
+- **Test Results**: Smoke test suite 100% passing (1/1 tests)
+- **Files Modified**:
+  - `lineage_v3/parsers/quality_aware_parser.py` (global exclusion logic + removed debug logging)
+  - `temp/smoke_test/` (automated test suite + comprehensive investigation docs)
+
+---
+
+### Parser Version: 4.1.0 (COMPLETED - 2025-11-04)
+
+**Update (v4.1.0 - 2025-11-04): DATAFLOW-FOCUSED LINEAGE**
+- **Philosophy**: Show only data transformation operations (DML), not housekeeping (DDL)
+- **Breaking Change**: Switches from "complete" mode to "dataflow" mode by default
+- **Changes**:
+  1. **Preprocessing**: Replace CATCH blocks and ROLLBACK sections with `SELECT 1` dummy
+  2. **Preprocessing**: Replace `DECLARE/SET @var = (SELECT ...)` with literals
+  3. **AST Extraction**: Disable TRUNCATE extraction (DDL housekeeping, not DML transformation)
+- **What's Shown**:
+  - ✅ DML operations: INSERT, UPDATE, DELETE, MERGE, SELECT INTO
+  - ❌ DDL operations: TRUNCATE, DROP
+  - ❌ Administrative queries: SELECT COUNT, IF EXISTS, watermark queries
+  - ❌ Error handling: CATCH blocks, ROLLBACK paths
+- **Impact**:
+  - Cleaner lineage graphs focused on business logic
+  - Eliminates false positive inputs from administrative SELECT queries
+  - Example: `spLoadGLCognosData` now shows only INSERT operations (not SELECT COUNT or TRUNCATE)
+- **Result**: More focused, easier-to-understand data flow visualization
+- **Files Modified**:
+  - `lineage_v3/parsers/quality_aware_parser.py` (enhanced preprocessing + disabled TRUNCATE)
+  - `docs/PARSING_USER_GUIDE.md` (comprehensive dataflow mode documentation)
+  - `CLAUDE.md` + `README.md` (version updates)
+
+---
+
+### Parser Version: 4.0.3 (COMPLETED - 2025-11-04)
 
 **Latest Update (v4.0.3 - 2025-11-03):**
 - **Fix**: Implemented UNION merge strategy for lineage metadata

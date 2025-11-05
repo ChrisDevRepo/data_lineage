@@ -1,8 +1,110 @@
 # SQL Parsing User Guide
 
-**Version:** 3.0.0
-**Last Updated:** 2025-10-26
+**Version:** 4.1.0
+**Last Updated:** 2025-11-04
 **For:** DBAs, Data Engineers, External Users
+
+---
+
+## Dataflow Mode (v4.1.0) - What You See
+
+### Philosophy: Business Logic Only
+
+The lineage graph shows **data transformation operations** (DML), not housekeeping (DDL):
+
+| ✅ **Shown (DML - Data Flow)** | ❌ **Hidden (DDL/Admin - Noise)** |
+|-------------------------------|----------------------------------|
+| `INSERT INTO` (loading data) | `TRUNCATE TABLE` (housekeeping) |
+| `UPDATE` (modifying data) | `DROP TABLE` (housekeeping) |
+| `DELETE` (removing data) | `SELECT COUNT(*)` (administrative) |
+| `MERGE` (upserting data) | `IF EXISTS` checks (administrative) |
+| `SELECT INTO` (creating data) | `BEGIN CATCH` operations (error handling) |
+| | `ROLLBACK` operations (failure paths) |
+
+### Why This Matters
+
+**Before (v4.0.x - Complete Mode):**
+```sql
+CREATE PROC spLoadGLCognosData AS
+BEGIN
+  SET @RowCount = (SELECT COUNT(*) FROM Target);  -- Created INPUT arrow ❌
+  TRUNCATE TABLE Target;                          -- Created OUTPUT arrow ⚠️
+  INSERT INTO Target SELECT * FROM Source;        -- Created OUTPUT arrow ✅
+END
+```
+**Lineage shown:** Source → spLoadGLCognosData ← Target (bidirectional, confusing!)
+
+**After (v4.1.0 - Dataflow Mode):**
+```sql
+CREATE PROC spLoadGLCognosData AS
+BEGIN
+  SET @RowCount = 1;  -- Filtered out (admin query replaced with literal)
+  -- TRUNCATE removed from lineage (housekeeping)
+  INSERT INTO Target SELECT * FROM Source;        -- ✅ Shown
+END
+```
+**Lineage shown:** Source → spLoadGLCognosData → Target (clean, unidirectional!)
+
+### What Gets Filtered
+
+| Pattern | Category | Rationale |
+|---------|----------|-----------|
+| `SELECT COUNT(*)` in SET/DECLARE | Administrative | Row counting for logging, not data flow |
+| `SELECT MAX(date)` in SET/DECLARE | Administrative | Watermark queries for incremental loads |
+| `IF EXISTS (SELECT 1 ...)` | Administrative | Existence checks for control flow |
+| `TRUNCATE TABLE` | Housekeeping | Clears data but doesn't transform it |
+| `DROP TABLE` | Housekeeping | Removes objects, not data transformation |
+| `BEGIN CATCH ... END CATCH` | Error Handling | Failure path, not business logic |
+| `ROLLBACK TRANSACTION ...` | Error Handling | Rollback recovery, not data flow |
+
+### Example: spLoadGLCognosData
+
+**Original DDL (47KB):**
+```sql
+CREATE PROC [CONSUMPTION_FINANCE].[spLoadGLCognosData] AS
+BEGIN TRY
+  -- Administrative queries (now filtered)
+  SET @RowsInTargetBegin = (SELECT COUNT(*) FROM GLCognosData);
+  SET @StartTime = GETDATE();
+
+  -- Housekeeping (now filtered)
+  TRUNCATE TABLE [STAGING_FINANCE_COGNOS].[GLCognosData_HC100500];
+  TRUNCATE TABLE [CONSUMPTION_FINANCE].[GLCognosData];
+
+  -- DATAFLOW: This is what matters! ✅
+  INSERT INTO [STAGING_FINANCE_COGNOS].[GLCognosData_HC100500]
+  SELECT * FROM [STAGING_FINANCE_COGNOS].[v_CCR2PowerBI_facts]
+  WHERE Account = 'HC100500';
+
+  INSERT INTO [CONSUMPTION_FINANCE].[GLCognosData]
+  SELECT * FROM [STAGING_FINANCE_COGNOS].[GLCognosData_HC100500]
+  UNION ALL
+  SELECT * FROM [STAGING_FINANCE_COGNOS].[v_CCR2PowerBI_facts]
+  WHERE Account <> 'HC100500';
+
+  -- Administrative queries (now filtered)
+  SET @RowsInTargetEnd = (SELECT COUNT(*) FROM GLCognosData);
+  COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+  -- Error handling (now filtered)
+  INSERT INTO ErrorLog ...;
+  ROLLBACK TRANSACTION;
+END CATCH
+```
+
+**Dataflow Lineage (v4.1.0):**
+```
+v_CCR2PowerBI_facts → spLoadGLCognosData → GLCognosData_HC100500
+                                        → GLCognosData
+```
+
+**What's Hidden:**
+- ❌ `SELECT COUNT(*)` from GLCognosData (administrative)
+- ❌ `TRUNCATE` operations (housekeeping)
+- ❌ Error handling `INSERT INTO ErrorLog` (failure path)
+
+**Result:** Clean, focused lineage showing only data transformation!
 
 ---
 

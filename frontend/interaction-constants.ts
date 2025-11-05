@@ -31,7 +31,6 @@ export const INTERACTION_CONSTANTS = {
 
   // Initial load delays
   INITIAL_FIT_VIEW_DELAY_MS: 150,
-  MINIMAP_REMOUNT_DELAY_MS: 800,
 
   // Path tracing
   MAX_NODE_VISITS_IN_PATH: 3, // Prevent infinite loops in cyclic graphs

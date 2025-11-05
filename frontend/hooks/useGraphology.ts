@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import Graph from 'graphology';
 import { DataNode } from '../types';
-import { CONSTANTS } from '../constants';
+import { createSchemaColorMap } from '../utils/schemaColors';
 
 export function useGraphology(allData: DataNode[]) {
     const lineageGraph = useMemo(() => {
@@ -33,7 +33,8 @@ export function useGraphology(allData: DataNode[]) {
 
     const { schemas, schemaColorMap, dataModelTypes } = useMemo(() => {
         const uniqueSchemas = [...new Set(allData.map(n => n.schema))].sort();
-        const map = new Map(uniqueSchemas.map((s, i) => [s, CONSTANTS.SCHEMA_PALETTE[i % CONSTANTS.SCHEMA_PALETTE.length]]));
+        // Use smart color assignment that groups related schemas by layer
+        const map = createSchemaColorMap(uniqueSchemas);
         const uniqueTypes = [...new Set(allData.map(n => n.data_model_type).filter(Boolean) as string[])].sort();
         return { schemas: uniqueSchemas, schemaColorMap: map, dataModelTypes: uniqueTypes };
     }, [allData]);

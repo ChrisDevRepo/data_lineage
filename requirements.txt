@@ -2,7 +2,7 @@
 # Data Lineage Visualizer v4.0.3 - Python Dependencies
 # ==============================================================================
 # Python Version Requirement: >=3.10 (due to Click 8.3.0)
-# Last Updated: 2025-11-05
+# Last Updated: 2025-11-05 (AI removed)
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -17,7 +17,6 @@ pandas>=2.3.3                    # Latest: 2.3.3 (Sep 2025) - Data manipulation
 # ------------------------------------------------------------------------------
 sqlglot>=27.28.1                 # Latest: 27.28.1 (Oct 2025) - Supports 31 SQL dialects
                                  # Used for T-SQL AST traversal and dependency extraction
-
 
 # ------------------------------------------------------------------------------
 # CLI & Configuration
@@ -56,6 +55,6 @@ pydantic-settings>=2.6.0         # Settings management from environment variable
 #    pip install -r requirements.txt black ruff mypy
 #
 # 4. Verify installation:
-#    python -c "import duckdb, sqlglot, fastapi; print('All imports successful')"
+#    python -c "import duckdb, sqlglot, pandas; print('All imports successful')"
 #
 # ==============================================================================
