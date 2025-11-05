@@ -115,17 +115,35 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                     </form>
                 </div>
 
-                {/* Exclude Filter */}
-                <div className="relative">
+                {/* Exclude Filter with Hide button */}
+                <div className="relative flex items-center gap-1">
                     <input
                         type="text"
                         placeholder="Exclude terms..."
                         value={excludeTerm}
                         onChange={handleExcludeInputChange}
                         disabled={isTraceModeActive}
-                        className="text-sm h-9 w-48 pl-3 pr-3 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
-                        title="Exclude objects containing these terms"
+                        className="text-sm h-9 w-40 pl-3 pr-3 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
+                        title="Enter terms to exclude (comma-separated)"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && excludeTerm.trim()) {
+                                // Trigger hide on Enter key
+                                e.preventDefault();
+                            }
+                        }}
                     />
+                    <Button
+                        onClick={() => {
+                            // Notify parent that exclude should be applied
+                            console.log('[Toolbar] Hide button clicked - exclude terms:', excludeTerm);
+                        }}
+                        disabled={isTraceModeActive || !excludeTerm.trim()}
+                        variant="primary"
+                        className="h-9 px-3 text-sm whitespace-nowrap"
+                        title="Hide objects containing these terms"
+                    >
+                        Hide
+                    </Button>
                 </div>
 
                 {/* Filter Group */}
@@ -136,7 +154,28 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                         </svg>
                     </Button>
                     {isSchemaFilterOpen && (
-                        <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                        <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-80 overflow-y-auto">
+                            <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200">
+                                <span className="text-xs font-semibold text-gray-600">Schemas ({selectedSchemas.size}/{schemas.length})</span>
+                                <div className="flex gap-2">
+                                    <Button
+                                        onClick={() => setSelectedSchemas(new Set(schemas))}
+                                        variant="secondary"
+                                        className="text-xs h-7 px-2"
+                                        title="Select all schemas"
+                                    >
+                                        Select All
+                                    </Button>
+                                    <Button
+                                        onClick={() => setSelectedSchemas(new Set())}
+                                        variant="secondary"
+                                        className="text-xs h-7 px-2"
+                                        title="Unselect all schemas"
+                                    >
+                                        Unselect All
+                                    </Button>
+                                </div>
+                            </div>
                             <div className="space-y-2">
                                 {schemas.map(s => (
                                     <Checkbox key={s} checked={selectedSchemas.has(s)} onChange={() => {
@@ -160,7 +199,28 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             </svg>
                         </Button>
                         {isTypeFilterOpen && (
-                            <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                            <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-80 overflow-y-auto">
+                                <div className="flex items-center justify-between mb-2 pb-2 border-b border-gray-200">
+                                    <span className="text-xs font-semibold text-gray-600">Types ({selectedTypes.size}/{dataModelTypes.length})</span>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={() => setSelectedTypes(new Set(dataModelTypes))}
+                                            variant="secondary"
+                                            className="text-xs h-7 px-2"
+                                            title="Select all types"
+                                        >
+                                            Select All
+                                        </Button>
+                                        <Button
+                                            onClick={() => setSelectedTypes(new Set())}
+                                            variant="secondary"
+                                            className="text-xs h-7 px-2"
+                                            title="Unselect all types"
+                                        >
+                                            Unselect All
+                                        </Button>
+                                    </div>
+                                </div>
                                 <div className="space-y-2">
                                     {dataModelTypes.map(t => (
                                         <Checkbox key={t} checked={selectedTypes.has(t)} onChange={() => {
@@ -211,7 +271,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                         <button onClick={onToggleLock} className="ml-1 hover:underline font-medium">Unlock</button>
                     </div>
                 ) : (
-                    <Button onClick={onStartTrace} variant="primary" size="md" disabled={isTraceModeActive} title="Start Interactive Trace">
+                    <Button onClick={onStartTrace} variant="primary" size="md" disabled={isTraceModeActive} title="Start Interactive Trace" className="w-36 flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                         </svg>

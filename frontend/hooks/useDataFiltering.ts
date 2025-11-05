@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { DataNode, TraceConfig } from '../types';
 import Graph from 'graphology';
 import { INTERACTION_CONSTANTS } from '../interaction-constants';
@@ -29,9 +29,14 @@ export function useDataFiltering({
     const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
     const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
-    const [hideUnrelated, setHideUnrelated] = useState(false);
+    const [hideUnrelated, setHideUnrelated] = useState(true); // Hidden by default
     const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
     const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<DataNode[]>([]);
+
+    // Debounced versions for performance with large datasets
+    const [debouncedSelectedSchemas, setDebouncedSelectedSchemas] = useState<Set<string>>(new Set());
+    const [debouncedSelectedTypes, setDebouncedSelectedTypes] = useState<Set<string>>(new Set());
+    const debounceTimerRef = useRef<number>();
 
     useEffect(() => {
         setSelectedSchemas(new Set(schemas));
@@ -40,6 +45,33 @@ export function useDataFiltering({
     useEffect(() => {
         setSelectedTypes(new Set(dataModelTypes));
     }, [dataModelTypes]);
+
+    // Debounce filter updates for large datasets (>500 nodes)
+    useEffect(() => {
+        const shouldDebounce = allData.length > 500;
+        const debounceDelay = 150; // 150ms feels responsive while preventing stuttering
+
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        if (shouldDebounce) {
+            debounceTimerRef.current = window.setTimeout(() => {
+                setDebouncedSelectedSchemas(selectedSchemas);
+                setDebouncedSelectedTypes(selectedTypes);
+            }, debounceDelay);
+        } else {
+            // For small datasets (<500 nodes), update immediately
+            setDebouncedSelectedSchemas(selectedSchemas);
+            setDebouncedSelectedTypes(selectedTypes);
+        }
+
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
+        };
+    }, [selectedSchemas, selectedTypes, allData.length]);
     
     useEffect(() => {
         const trimmedSearch = searchTerm.trim();
@@ -71,8 +103,8 @@ export function useDataFiltering({
 
                 const lowerName = attributes.name.toLowerCase();
                 const matchesFilters =
-                    selectedSchemas.has(attributes.schema) &&
-                    (dataModelTypes.length === 0 || !attributes.data_model_type || selectedTypes.has(attributes.data_model_type));
+                    debouncedSelectedSchemas.has(attributes.schema) &&
+                    (dataModelTypes.length === 0 || !attributes.data_model_type || debouncedSelectedTypes.has(attributes.data_model_type));
 
                 if (matchesFilters) {
                     if (lowerName.startsWith(lowerSearchTerm)) {
@@ -124,27 +156,18 @@ export function useDataFiltering({
         if (isInTraceExitMode && traceExitNodes.size > 0) {
             return preFilteredData.filter(node =>
                 traceExitNodes.has(node.id) &&
-                selectedSchemas.has(node.schema) &&
-                (dataModelTypes.length === 0 || !node.data_model_type || selectedTypes.has(node.data_model_type))
+                debouncedSelectedSchemas.has(node.schema) &&
+                (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type))
             );
         }
 
-        // Default behavior: filter by selected schemas and types.
-        const baseVisibleNodes: DataNode[] = [];
-        lineageGraph.forEachNode((nodeId, attributes) => {
-            // Only process nodes that passed the pre-filter
-            if (!preFilteredData.find(n => n.id === nodeId)) return;
-
-            if (
-                selectedSchemas.has(attributes.schema) &&
-                (dataModelTypes.length === 0 || !attributes.data_model_type || selectedTypes.has(attributes.data_model_type))
-            ) {
-                baseVisibleNodes.push(attributes as DataNode);
-            }
-        });
-
-        return baseVisibleNodes;
-    }, [preFilteredData, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, allData]);
+        // Default behavior: filter by selected schemas and types
+        // Optimized O(n) array filtering instead of O(n²) graph iteration
+        return preFilteredData.filter(node =>
+            debouncedSelectedSchemas.has(node.schema) &&
+            (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type))
+        );
+    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes]);
 
     return {
         finalVisibleData,
