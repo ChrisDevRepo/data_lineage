@@ -42,7 +42,8 @@ export function useDataFiltering({
     }, [dataModelTypes]);
     
     useEffect(() => {
-        if (searchTerm.trim() === '') {
+        // Only trigger autocomplete after minimum character threshold
+        if (searchTerm.trim().length < INTERACTION_CONSTANTS.AUTOCOMPLETE_MIN_CHARS) {
             setAutocompleteSuggestions([]);
             return;
         }
