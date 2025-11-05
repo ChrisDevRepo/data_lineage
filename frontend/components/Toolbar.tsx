@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { DataNode } from '../types';
 import { NotificationHistory } from './NotificationSystem';
 import { Notification } from '../types';
@@ -42,6 +42,7 @@ type ToolbarProps = {
     isTraceLocked: boolean;
     isInTraceExitMode: boolean;
     onToggleLock: () => void;
+    closeDropdownsTrigger?: number; // Increment this to close all dropdowns from outside
 };
 
 // OPTIMIZATION: Memoize to prevent unnecessary re-renders
@@ -58,7 +59,8 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         sqlViewerOpen, onToggleSqlViewer, sqlViewerEnabled, hasDdlData,
         onOpenDetailSearch,
         notificationHistory, onClearNotificationHistory,
-        isTraceLocked, isInTraceExitMode, onToggleLock
+        isTraceLocked, isInTraceExitMode, onToggleLock,
+        closeDropdownsTrigger
     } = props;
 
     const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
@@ -67,6 +69,15 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     const schemaFilterRef = useRef<HTMLDivElement>(null);
     const typeFilterRef = useRef<HTMLDivElement>(null);
     const searchContainerRef = useRef<HTMLDivElement>(null);
+
+    // Close all dropdowns when closeDropdownsTrigger changes (e.g., when graph pane is clicked)
+    useEffect(() => {
+        if (closeDropdownsTrigger !== undefined && closeDropdownsTrigger > 0) {
+            setIsSchemaFilterOpen(false);
+            setIsTypeFilterOpen(false);
+            setIsAutocompleteOpen(false);
+        }
+    }, [closeDropdownsTrigger]);
 
     // Close dropdowns when clicking outside
     useClickOutside(schemaFilterRef, () => setIsSchemaFilterOpen(false));

@@ -40,6 +40,7 @@ function DataLineageVisualizer() {
   const [allData, setAllData] = useState<DataNode[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [sampleData] = useState<DataNode[]>(() => generateSampleData());
+  const [closeDropdownsTrigger, setCloseDropdownsTrigger] = useState(0);
 
   // Load data from API on mount (async to avoid blocking UI)
   useEffect(() => {
@@ -136,7 +137,9 @@ function DataLineageVisualizer() {
     }
   }, [excludeTerm, addNotification]);
 
-  // --- localStorage Persistence for Layout Preference ---
+  // --- localStorage Persistence ---
+  const hasInitializedPreferences = useRef(false);
+
   // Load saved layout preference (schemas/types/hideUnrelated are loaded in useDataFiltering)
   useEffect(() => {
     try {
@@ -153,8 +156,21 @@ function DataLineageVisualizer() {
     }
   }, []); // Run once on mount
 
-  // Save preferences to localStorage whenever they change
+  // Mark preferences as initialized after schemas are loaded
   useEffect(() => {
+    if (schemas.length > 0 && selectedSchemas.size > 0 && !hasInitializedPreferences.current) {
+      hasInitializedPreferences.current = true;
+      console.log('[localStorage] Preferences initialized, will now save on changes');
+    }
+  }, [schemas.length, selectedSchemas.size]);
+
+  // Save preferences to localStorage whenever they change (but only after initialization)
+  useEffect(() => {
+    // Don't save until preferences have been loaded/initialized
+    if (!hasInitializedPreferences.current) {
+      return;
+    }
+
     try {
       const preferences = {
         schemas: Array.from(selectedSchemas),
@@ -422,6 +438,9 @@ function DataLineageVisualizer() {
   };
 
   const handlePaneClick = () => {
+    // Close any open dropdowns in toolbar
+    setCloseDropdownsTrigger(prev => prev + 1);
+
     // If locked, don't clear anything - just return
     if (isTraceLocked) {
       return;
@@ -787,6 +806,7 @@ function DataLineageVisualizer() {
             isTraceLocked={isTraceLocked}
             isInTraceExitMode={isInTraceExitMode}
             onToggleLock={handleToggleLock}
+            closeDropdownsTrigger={closeDropdownsTrigger}
           />
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
