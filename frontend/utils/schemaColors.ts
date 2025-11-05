@@ -4,18 +4,18 @@
  * Assigns colors to schemas based on their category and layer.
  * Related schemas (same department, different layers) get similar colors.
  *
- * Pattern: STAGING -> Light, TRANSFORMATION -> Medium, CONSUMPTION -> Dark
+ * Pattern: STAGING -> Dark (30%), TRANSFORMATION -> Medium (50%), CONSUMPTION -> Bright (70%)
  *
  * Example:
- * - STAGING_FINANCE -> Light Blue
- * - TRANSFORMATION_FINANCE -> Medium Blue
- * - CONSUMPTION_FINANCE -> Dark Blue
+ * - STAGING_FINANCE -> Dark Blue (30% brightness)
+ * - TRANSFORMATION_FINANCE -> Medium Blue (50% brightness)
+ * - CONSUMPTION_FINANCE -> Bright Blue (70% brightness)
  */
 
-// Color families with Light (STAGING), Medium (TRANSFORMATION), Dark (CONSUMPTION) variants
+// Color families with Light (CONSUMPTION), Medium (TRANSFORMATION), Dark (STAGING) variants
 // Each family maintains the SAME HUE, only varying in brightness/saturation
-// STAGING = Light (70% brightness), TRANSFORMATION = Medium (50%), CONSUMPTION = Dark (35%)
-// Tighter brightness range for better visual cohesion within each family
+// CONSUMPTION = Light (70% brightness), TRANSFORMATION = Medium (50%), STAGING = Dark (30%)
+// Brightness pattern: STAGING (darkest) -> TRANSFORMATION (medium) -> CONSUMPTION (brightest)
 // 20 distinct color families to ensure each department gets unique colors
 const COLOR_FAMILIES = [
   // Primary colors (0-9)
@@ -135,13 +135,13 @@ export function createSchemaColorMap(schemas: string[]): Map<string, string> {
 
       switch (layer) {
         case 'STAGING':
-          color = colorFamily[0];  // Light (Bright)
+          color = colorFamily[2];  // Dark (30% brightness - darkest)
           break;
         case 'TRANSFORMATION':
-          color = colorFamily[1];  // Medium
+          color = colorFamily[1];  // Medium (50% brightness)
           break;
         case 'CONSUMPTION':
-          color = colorFamily[2];  // Dark (but not too dark)
+          color = colorFamily[0];  // Light (70% brightness - brightest)
           break;
         default:
           color = colorFamily[1];  // Medium for OTHER

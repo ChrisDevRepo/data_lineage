@@ -80,6 +80,8 @@ function DataLineageVisualizer() {
   }, []);
   const [layout, setLayout] = useState<'LR' | 'TB'>('LR');
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null);
+  const [excludeTerm, setExcludeTerm] = useState('');
+  const [activeExcludeTerms, setActiveExcludeTerms] = useState<string[]>([]);
 
   // --- Custom Hooks for Logic Encapsulation ---
   const { addNotification, activeToasts, removeActiveToast, notificationHistory, clearNotificationHistory } = useNotifications();
@@ -109,12 +111,72 @@ function DataLineageVisualizer() {
     lineageGraph,
     schemas,
     dataModelTypes,
+    activeExcludeTerms,
     isTraceModeActive,
     traceConfig,
     performInteractiveTrace,
     isInTraceExitMode,
     traceExitNodes
   });
+
+  // --- Callback to apply exclude terms ---
+  const applyExcludeTerms = useCallback(() => {
+    if (excludeTerm.trim()) {
+      // Split by comma, trim whitespace, filter empty strings, convert to lowercase
+      const terms = excludeTerm
+        .split(',')
+        .map(term => term.trim().toLowerCase())
+        .filter(term => term.length > 0);
+
+      setActiveExcludeTerms(terms);
+      console.log('[App] Applied exclude terms:', terms);
+
+      // Show notification
+      addNotification(`Excluding ${terms.length} term(s): ${terms.join(', ')}`, 'info');
+    }
+  }, [excludeTerm, addNotification]);
+
+  // --- localStorage Persistence for Filter Preferences ---
+  // Load saved preferences from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('lineage_filter_preferences');
+      if (saved) {
+        const { schemas, types, hideUnrelated: savedHideUnrelated, layout: savedLayout } = JSON.parse(saved);
+        if (schemas && Array.isArray(schemas)) {
+          setSelectedSchemas(new Set(schemas));
+        }
+        if (types && Array.isArray(types)) {
+          setSelectedTypes(new Set(types));
+        }
+        if (typeof savedHideUnrelated === 'boolean') {
+          setHideUnrelated(savedHideUnrelated);
+        }
+        if (savedLayout === 'LR' || savedLayout === 'TB') {
+          setLayout(savedLayout);
+        }
+        console.log('[localStorage] Loaded preferences:', { schemas, types, hideUnrelated: savedHideUnrelated, layout: savedLayout });
+      }
+    } catch (error) {
+      console.error('[localStorage] Failed to load preferences:', error);
+    }
+  }, []); // Empty dependency array - run once on mount
+
+  // Save preferences to localStorage whenever they change
+  useEffect(() => {
+    try {
+      const preferences = {
+        schemas: Array.from(selectedSchemas),
+        types: Array.from(selectedTypes),
+        hideUnrelated,
+        layout
+      };
+      localStorage.setItem('lineage_filter_preferences', JSON.stringify(preferences));
+      console.log('[localStorage] Saved preferences:', preferences);
+    } catch (error) {
+      console.error('[localStorage] Failed to save preferences:', error);
+    }
+  }, [selectedSchemas, selectedTypes, hideUnrelated, layout]);
 
   // --- Detect DDL Availability (memoized for performance) ---
   // DDL is now fetched on-demand via API, so always available when data is loaded
@@ -703,6 +765,9 @@ function DataLineageVisualizer() {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             executeSearch={executeSearch}
+            excludeTerm={excludeTerm}
+            setExcludeTerm={setExcludeTerm}
+            applyExcludeTerms={applyExcludeTerms}
             autocompleteSuggestions={autocompleteSuggestions}
             setAutocompleteSuggestions={setAutocompleteSuggestions}
             selectedSchemas={selectedSchemas}
@@ -757,6 +822,7 @@ function DataLineageVisualizer() {
                   onToggle={() => setIsLegendCollapsed(p => !p)}
                   schemas={schemas}
                   schemaColorMap={schemaColorMap}
+                  selectedSchemas={selectedSchemas}
                 />
               </ReactFlow>
             </div>

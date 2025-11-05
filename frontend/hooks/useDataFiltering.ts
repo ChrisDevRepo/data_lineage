@@ -8,6 +8,7 @@ type UseDataFilteringProps = {
     lineageGraph: Graph;
     schemas: string[];
     dataModelTypes: string[];
+    activeExcludeTerms: string[];
     isTraceModeActive: boolean;
     traceConfig: TraceConfig | null;
     performInteractiveTrace: (config: TraceConfig) => Set<string>;
@@ -20,6 +21,7 @@ export function useDataFiltering({
     lineageGraph,
     schemas,
     dataModelTypes,
+    activeExcludeTerms,
     isTraceModeActive,
     traceConfig,
     performInteractiveTrace,
@@ -144,11 +146,21 @@ export function useDataFiltering({
         return allData; // No pre-filtering if hideUnrelated is off
     }, [allData, lineageGraph, hideUnrelated]);
 
+    // Helper function to check if a node should be excluded based on exclude terms
+    const shouldExcludeNode = (node: DataNode): boolean => {
+        if (activeExcludeTerms.length === 0) return false;
+
+        const nodeName = node.name.toLowerCase();
+        return activeExcludeTerms.some(term => nodeName.includes(term));
+    };
+
     const finalVisibleData = useMemo(() => {
         // If in trace mode, the trace config's filters take precedence.
         if (isTraceModeActive && traceConfig) {
             const tracedIds = performInteractiveTrace(traceConfig);
-            return preFilteredData.filter(node => tracedIds.has(node.id));
+            return preFilteredData.filter(node =>
+                tracedIds.has(node.id) && !shouldExcludeNode(node)
+            );
         }
 
         // If in trace exit mode, show only the traced nodes (preserve trace results)
@@ -157,7 +169,8 @@ export function useDataFiltering({
             return preFilteredData.filter(node =>
                 traceExitNodes.has(node.id) &&
                 debouncedSelectedSchemas.has(node.schema) &&
-                (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type))
+                (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
+                !shouldExcludeNode(node)
             );
         }
 
@@ -165,9 +178,10 @@ export function useDataFiltering({
         // Optimized O(n) array filtering instead of O(n²) graph iteration
         return preFilteredData.filter(node =>
             debouncedSelectedSchemas.has(node.schema) &&
-            (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type))
+            (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
+            !shouldExcludeNode(node)
         );
-    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes]);
+    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, activeExcludeTerms]);
 
     return {
         finalVisibleData,

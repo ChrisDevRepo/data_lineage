@@ -13,6 +13,7 @@ type ToolbarProps = {
     executeSearch: (query: string) => void;
     excludeTerm: string;
     setExcludeTerm: (term: string) => void;
+    applyExcludeTerms: () => void;
     selectedSchemas: Set<string>;
     setSelectedSchemas: (schemas: Set<string>) => void;
     schemas: string[];
@@ -45,7 +46,7 @@ type ToolbarProps = {
 export const Toolbar = React.memo((props: ToolbarProps) => {
     const {
         searchTerm, setSearchTerm, executeSearch,
-        excludeTerm, setExcludeTerm,
+        excludeTerm, setExcludeTerm, applyExcludeTerms,
         selectedSchemas, setSelectedSchemas, schemas,
         selectedTypes, setSelectedTypes, dataModelTypes,
         layout, setLayout, hideUnrelated, setHideUnrelated,
@@ -129,14 +130,12 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             if (e.key === 'Enter' && excludeTerm.trim()) {
                                 // Trigger hide on Enter key
                                 e.preventDefault();
+                                applyExcludeTerms();
                             }
                         }}
                     />
                     <Button
-                        onClick={() => {
-                            // Notify parent that exclude should be applied
-                            console.log('[Toolbar] Hide button clicked - exclude terms:', excludeTerm);
-                        }}
+                        onClick={applyExcludeTerms}
                         disabled={isTraceModeActive || !excludeTerm.trim()}
                         variant="primary"
                         className="h-9 px-3 text-sm whitespace-nowrap"
