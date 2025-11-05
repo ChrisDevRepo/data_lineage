@@ -4,43 +4,44 @@
  * Assigns colors to schemas based on their category and layer.
  * Related schemas (same department, different layers) get similar colors.
  *
- * Pattern: STAGING -> Dark (30%), TRANSFORMATION -> Medium (50%), CONSUMPTION -> Bright (70%)
+ * Pattern: STAGING -> Light (75%), TRANSFORMATION -> Medium (55%), CONSUMPTION -> Dark (35%)
  *
  * Example:
- * - STAGING_FINANCE -> Dark Blue (30% brightness)
- * - TRANSFORMATION_FINANCE -> Medium Blue (50% brightness)
- * - CONSUMPTION_FINANCE -> Bright Blue (70% brightness)
+ * - STAGING_FINANCE -> Light Blue (75% lightness)
+ * - TRANSFORMATION_FINANCE -> Medium Blue (55% lightness)
+ * - CONSUMPTION_FINANCE -> Dark Blue (35% lightness)
  */
 
-// Color families with Light (CONSUMPTION), Medium (TRANSFORMATION), Dark (STAGING) variants
-// Each family maintains the SAME HUE, only varying in brightness/saturation
-// CONSUMPTION = Light (70% brightness), TRANSFORMATION = Medium (50%), STAGING = Dark (30%)
-// Brightness pattern: STAGING (darkest) -> TRANSFORMATION (medium) -> CONSUMPTION (brightest)
+// Color families with Light (STAGING), Medium (TRANSFORMATION), Dark (CONSUMPTION) variants
+// Each family maintains the SAME HUE AND SATURATION, only varying in lightness (brightness)
+// STAGING = Light (75% lightness), TRANSFORMATION = Medium (55% lightness), CONSUMPTION = Dark (35% lightness)
+// Lightness pattern: STAGING (brightest) -> TRANSFORMATION (medium) -> CONSUMPTION (darkest)
+// All colors in a family have identical hue and saturation for visual consistency
 // 20 distinct color families to ensure each department gets unique colors
 const COLOR_FAMILIES = [
   // Primary colors (0-9)
-  ['#80B3E6', '#5B9BD5', '#3D7AB6'],  // 0. Blue (hue: 210°)
-  ['#FFB366', '#FF9933', '#CC7A29'],  // 1. Orange (hue: 30°)
-  ['#FF8080', '#E15759', '#B34545'],  // 2. Red (hue: 0°)
-  ['#66CCCC', '#4DB8B8', '#339999'],  // 3. Teal/Cyan (hue: 180°)
-  ['#80CC66', '#5FB34D', '#4D9939'],  // 4. Green (hue: 120°)
-  ['#FFD966', '#FFC947', '#CCA336'],  // 5. Yellow (hue: 45°)
-  ['#C299CC', '#A673B3', '#805299'],  // 6. Purple (hue: 280°)
-  ['#FF99CC', '#E673A3', '#B35280'],  // 7. Pink/Magenta (hue: 330°)
-  ['#66B3FF', '#3399FF', '#2973CC'],  // 8. Sky Blue (hue: 210°, high saturation)
-  ['#C2A680', '#9C8566', '#7A6B52'],  // 9. Brown (hue: 30°, low saturation)
+  ['#93BFEC', '#3C8CDD', '#1B5998'],  // 0. Blue (hue: 210°, sat: 70%)
+  ['#EFBF8F', '#E28C36', '#9C5916'],  // 1. Orange (hue: 30°, sat: 75%)
+  ['#EC9393', '#DD3C3C', '#981B1B'],  // 2. Red (hue: 0°, sat: 70%)
+  ['#99E6E6', '#47D1D1', '#248F8F'],  // 3. Teal/Cyan (hue: 180°, sat: 60%)
+  ['#9CE29C', '#4DCB4D', '#288A28'],  // 4. Green (hue: 120°, sat: 55%)
+  ['#EFDF8F', '#E2C636', '#9C8616'],  // 5. Yellow (hue: 50°, sat: 75%)
+  ['#CA9FDF', '#9F53C6', '#682D86'],  // 6. Purple (hue: 280°, sat: 50%)
+  ['#E996BF', '#D7428C', '#931F59'],  // 7. Pink/Magenta (hue: 330°, sat: 65%)
+  ['#8FCFEF', '#36A9E2', '#16709C'],  // 8. Sky Blue (hue: 200°, sat: 75%)
+  ['#DCBAA3', '#C08459', '#815331'],  // 9. Brown (hue: 25°, sat: 45%)
 
   // Extended colors (10-19)
-  ['#99E699', '#66CC66', '#4DA64D'],  // 10. Lime Green (hue: 120°, high saturation)
-  ['#FFCC80', '#FFB366', '#CC8F52'],  // 11. Amber (hue: 35°)
-  ['#D999CC', '#B866A6', '#944D85'],  // 12. Orchid (hue: 310°)
-  ['#80D9D9', '#4DC2C2', '#39A3A3'],  // 13. Aqua (hue: 180°, high saturation)
-  ['#D9B380', '#B8935C', '#997A4D'],  // 14. Tan (hue: 30°)
-  ['#B8A3D9', '#9973B8', '#735299'],  // 15. Lavender (hue: 280°, lighter)
-  ['#FFD966', '#FFBF40', '#CCA336'],  // 16. Gold (hue: 45°)
-  ['#80FFCC', '#4DFFB3', '#33CC8F'],  // 17. Mint (hue: 160°)
-  ['#FFB399', '#FF8566', '#CC6652'],  // 18. Coral (hue: 15°, red-orange)
-  ['#B3B3B3', '#8C8C8C', '#666666'],  // 19. Gray (no hue)
+  ['#BFE699', '#8CD147', '#598F24'],  // 10. Lime Green (hue: 90°, sat: 60%)
+  ['#ECCE93', '#DDA73C', '#986E1B'],  // 11. Amber (hue: 40°, sat: 70%)
+  ['#E29CD7', '#CB4DB6', '#8A287A'],  // 12. Orchid (hue: 310°, sat: 55%)
+  ['#96E9E2', '#42D7CA', '#1F938A'],  // 13. Aqua (hue: 175°, sat: 65%)
+  ['#DFC59F', '#C69653', '#86612D'],  // 14. Tan (hue: 35°, sat: 50%)
+  ['#BF9FDF', '#8C53C6', '#592D86'],  // 15. Lavender (hue: 270°, sat: 50%)
+  ['#EFD78F', '#E2B736', '#9C7B16'],  // 16. Gold (hue: 45°, sat: 75%)
+  ['#99E6CC', '#47D1A3', '#248F6B'],  // 17. Mint (hue: 160°, sat: 60%)
+  ['#ECA993', '#DD643C', '#983A1B'],  // 18. Coral (hue: 15°, sat: 70%)
+  ['#BFBFBF', '#8C8C8C', '#595959'],  // 19. Gray (hue: 0°, sat: 0%)
 ];
 
 type LayerType = 'STAGING' | 'TRANSFORMATION' | 'CONSUMPTION' | 'OTHER';
@@ -97,11 +98,20 @@ function parseSchemaName(schema: string): { baseName: string; layer: LayerType }
 /**
  * Create schema color map with smart grouping
  *
+ * Schema naming convention: LAYER_DEPARTMENT
+ * - First part (LAYER): determines brightness (STAGING, TRANSFORMATION, CONSUMPTION)
+ * - Second part (DEPARTMENT): determines color family (STARTUP, ENTERPRISE, METRIC, etc.)
+ *
+ * Example:
+ * - STAGING_STARTUP, TRANSFORMATION_STARTUP, CONSUMPTION_STARTUP → all use ORANGE family, different brightness
+ * - STAGING_ENTERPRISE, TRANSFORMATION_ENTERPRISE, CONSUMPTION_ENTERPRISE → all use BLUE family, different brightness
+ *
  * @param schemas - Array of schema names
  * @returns Map of schema name to hex color
  */
 export function createSchemaColorMap(schemas: string[]): Map<string, string> {
-  // Group schemas by category (case-insensitive base name matching)
+  // Group schemas by department (base name after underscore)
+  // All schemas with same department get same color family, but different brightness
   const categories = new Map<string, SchemaCategory>();
 
   for (const schema of schemas) {
@@ -120,13 +130,14 @@ export function createSchemaColorMap(schemas: string[]): Map<string, string> {
     categories.get(normalizedBaseName)!.layers.set(layer, schema);
   }
 
-  // Assign color families to categories
+  // Assign ONE color family per department (e.g., all STARTUP schemas get orange)
   const colorMap = new Map<string, string>();
   const sortedCategories = Array.from(categories.values()).sort((a, b) =>
     a.baseName.localeCompare(b.baseName)
   );
 
   sortedCategories.forEach((category, index) => {
+    // Each department gets ONE color family (same hue & saturation, varies only in lightness)
     const colorFamily = COLOR_FAMILIES[index % COLOR_FAMILIES.length];
 
     // Assign colors based on layer
@@ -135,13 +146,13 @@ export function createSchemaColorMap(schemas: string[]): Map<string, string> {
 
       switch (layer) {
         case 'STAGING':
-          color = colorFamily[2];  // Dark (30% brightness - darkest)
+          color = colorFamily[0];  // Light (75% lightness - brightest)
           break;
         case 'TRANSFORMATION':
-          color = colorFamily[1];  // Medium (50% brightness)
+          color = colorFamily[1];  // Medium (55% lightness)
           break;
         case 'CONSUMPTION':
-          color = colorFamily[0];  // Light (70% brightness - brightest)
+          color = colorFamily[2];  // Dark (35% lightness - darkest)
           break;
         default:
           color = colorFamily[1];  // Medium for OTHER

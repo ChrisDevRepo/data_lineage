@@ -40,13 +40,22 @@ export function useDataFiltering({
     const [debouncedSelectedTypes, setDebouncedSelectedTypes] = useState<Set<string>>(new Set());
     const debounceTimerRef = useRef<number>();
 
-    useEffect(() => {
-        setSelectedSchemas(new Set(schemas));
-    }, [schemas]);
+    // Track if initial schemas/types have been set from localStorage
+    const hasLoadedFromLocalStorage = useRef(false);
 
     useEffect(() => {
-        setSelectedTypes(new Set(dataModelTypes));
-    }, [dataModelTypes]);
+        // Only auto-select all schemas if localStorage hasn't loaded them yet
+        if (schemas.length > 0 && selectedSchemas.size === 0 && !hasLoadedFromLocalStorage.current) {
+            setSelectedSchemas(new Set(schemas));
+        }
+    }, [schemas, selectedSchemas.size]);
+
+    useEffect(() => {
+        // Only auto-select all types if localStorage hasn't loaded them yet
+        if (dataModelTypes.length > 0 && selectedTypes.size === 0 && !hasLoadedFromLocalStorage.current) {
+            setSelectedTypes(new Set(dataModelTypes));
+        }
+    }, [dataModelTypes, selectedTypes.size]);
 
     // Debounce filter updates for large datasets (>500 nodes)
     useEffect(() => {
@@ -197,5 +206,6 @@ export function useDataFiltering({
         setHighlightedNodes,
         autocompleteSuggestions,
         setAutocompleteSuggestions,
+        markLoadedFromLocalStorage: () => { hasLoadedFromLocalStorage.current = true; }
     };
 }
