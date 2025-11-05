@@ -25,8 +25,6 @@ type ToolbarProps = {
     setHideUnrelated: (hide: boolean) => void;
     isTraceModeActive: boolean;
     onStartTrace: () => void;
-    isControlsVisible: boolean;
-    onToggleControls: () => void;
     onOpenImport: () => void;
     onOpenInfo: () => void;
     onExportSVG: () => void;
@@ -50,8 +48,8 @@ export const Toolbar = (props: ToolbarProps) => {
         selectedSchemas, setSelectedSchemas, schemas,
         selectedTypes, setSelectedTypes, dataModelTypes,
         layout, setLayout, hideUnrelated, setHideUnrelated,
-        isTraceModeActive, onStartTrace, isControlsVisible,
-        onToggleControls, onOpenImport, onOpenInfo, onExportSVG, onResetView,
+        isTraceModeActive, onStartTrace,
+        onOpenImport, onOpenInfo, onExportSVG, onResetView,
         sqlViewerOpen, onToggleSqlViewer, sqlViewerEnabled, hasDdlData,
         onOpenDetailSearch,
         notificationHistory, onClearNotificationHistory,
@@ -245,19 +243,6 @@ export const Toolbar = (props: ToolbarProps) => {
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
                     </svg>
-                </Button>
-
-                <Button onClick={onToggleControls} variant="icon" title={isControlsVisible ? 'Hide Minimap' : 'Show Minimap'}>
-                    {isControlsVisible ? (
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.243 4.243L6.228 6.228" />
-                        </svg>
-                    ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5s-8.573-3.007-9.963-7.178z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
-                        </svg>
-                    )}
                 </Button>
 
                 <Button onClick={onExportSVG} variant="icon" title="Export as SVG">
