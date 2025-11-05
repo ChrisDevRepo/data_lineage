@@ -4,44 +4,46 @@
  * Assigns colors to schemas based on their category and layer.
  * Related schemas (same department, different layers) get similar colors.
  *
- * Pattern: STAGING -> Light (75%), TRANSFORMATION -> Medium (55%), CONSUMPTION -> Dark (35%)
+ * Pattern: STAGING -> Light (65%), TRANSFORMATION -> Medium (55%), CONSUMPTION -> Dark (45%)
+ * Narrow 20% brightness range ensures colors look very similar while still distinguishable
  *
  * Example:
- * - STAGING_FINANCE -> Light Blue (75% lightness)
+ * - STAGING_FINANCE -> Light Blue (65% lightness)
  * - TRANSFORMATION_FINANCE -> Medium Blue (55% lightness)
- * - CONSUMPTION_FINANCE -> Dark Blue (35% lightness)
+ * - CONSUMPTION_FINANCE -> Dark Blue (45% lightness)
  */
 
 // Color families with Light (STAGING), Medium (TRANSFORMATION), Dark (CONSUMPTION) variants
 // Each family maintains the SAME HUE AND SATURATION, only varying in lightness (brightness)
-// STAGING = Light (75% lightness), TRANSFORMATION = Medium (55% lightness), CONSUMPTION = Dark (35% lightness)
+// STAGING = Light (65% lightness), TRANSFORMATION = Medium (55% lightness), CONSUMPTION = Dark (45% lightness)
 // Lightness pattern: STAGING (brightest) -> TRANSFORMATION (medium) -> CONSUMPTION (darkest)
+// Narrow 20% range (65%-45%) ensures colors look very similar while still distinguishable
 // All colors in a family have identical hue and saturation for visual consistency
 // 20 distinct color families to ensure each department gets unique colors
 const COLOR_FAMILIES = [
   // Primary colors (0-9)
-  ['#93BFEC', '#3C8CDD', '#1B5998'],  // 0. Blue (hue: 210°, sat: 70%)
-  ['#EFBF8F', '#E28C36', '#9C5916'],  // 1. Orange (hue: 30°, sat: 75%)
-  ['#EC9393', '#DD3C3C', '#981B1B'],  // 2. Red (hue: 0°, sat: 70%)
-  ['#99E6E6', '#47D1D1', '#248F8F'],  // 3. Teal/Cyan (hue: 180°, sat: 60%)
-  ['#9CE29C', '#4DCB4D', '#288A28'],  // 4. Green (hue: 120°, sat: 55%)
-  ['#EFDF8F', '#E2C636', '#9C8616'],  // 5. Yellow (hue: 50°, sat: 75%)
-  ['#CA9FDF', '#9F53C6', '#682D86'],  // 6. Purple (hue: 280°, sat: 50%)
-  ['#E996BF', '#D7428C', '#931F59'],  // 7. Pink/Magenta (hue: 330°, sat: 65%)
-  ['#8FCFEF', '#36A9E2', '#16709C'],  // 8. Sky Blue (hue: 200°, sat: 75%)
-  ['#DCBAA3', '#C08459', '#815331'],  // 9. Brown (hue: 25°, sat: 45%)
+  ['#67A6E4', '#3C8CDD', '#2273C3'],  // 0. Blue (hue: 210°, sat: 70%)
+  ['#E9A663', '#E28C36', '#C9731D'],  // 1. Orange (hue: 30°, sat: 75%)
+  ['#E46767', '#DD3C3C', '#C32222'],  // 2. Red (hue: 0°, sat: 70%)
+  ['#70DBDB', '#47D1D1', '#2EB8B8'],  // 3. Teal/Cyan (hue: 180°, sat: 60%)
+  ['#75D775', '#4DCB4D', '#34B234'],  // 4. Green (hue: 120°, sat: 55%)
+  ['#E9D263', '#E2C636', '#C9AC1D'],  // 5. Yellow (hue: 50°, sat: 75%)
+  ['#B579D2', '#9F53C6', '#8639AC'],  // 6. Purple (hue: 280°, sat: 50%)
+  ['#E06CA6', '#D7428C', '#BD2873'],  // 7. Pink/Magenta (hue: 330°, sat: 65%)
+  ['#63BCE9', '#36A9E2', '#1D8FC9'],  // 8. Sky Blue (hue: 200°, sat: 75%)
+  ['#CE9F7E', '#C08459', '#A66A3F'],  // 9. Brown (hue: 25°, sat: 45%)
 
   // Extended colors (10-19)
-  ['#BFE699', '#8CD147', '#598F24'],  // 10. Lime Green (hue: 90°, sat: 60%)
-  ['#ECCE93', '#DDA73C', '#986E1B'],  // 11. Amber (hue: 40°, sat: 70%)
-  ['#E29CD7', '#CB4DB6', '#8A287A'],  // 12. Orchid (hue: 310°, sat: 55%)
-  ['#96E9E2', '#42D7CA', '#1F938A'],  // 13. Aqua (hue: 175°, sat: 65%)
-  ['#DFC59F', '#C69653', '#86612D'],  // 14. Tan (hue: 35°, sat: 50%)
-  ['#BF9FDF', '#8C53C6', '#592D86'],  // 15. Lavender (hue: 270°, sat: 50%)
-  ['#EFD78F', '#E2B736', '#9C7B16'],  // 16. Gold (hue: 45°, sat: 75%)
-  ['#99E6CC', '#47D1A3', '#248F6B'],  // 17. Mint (hue: 160°, sat: 60%)
-  ['#ECA993', '#DD643C', '#983A1B'],  // 18. Coral (hue: 15°, sat: 70%)
-  ['#BFBFBF', '#8C8C8C', '#595959'],  // 19. Gray (hue: 0°, sat: 0%)
+  ['#A6DB70', '#8CD147', '#73B82E'],  // 10. Lime Green (hue: 90°, sat: 60%)
+  ['#E4BB67', '#DDA73C', '#C38E22'],  // 11. Amber (hue: 40°, sat: 70%)
+  ['#D775C6', '#CB4DB6', '#B2349D'],  // 12. Orchid (hue: 310°, sat: 55%)
+  ['#6CE0D6', '#42D7CA', '#28BDB1'],  // 13. Aqua (hue: 175°, sat: 65%)
+  ['#D2AD79', '#C69653', '#AC7C39'],  // 14. Tan (hue: 35°, sat: 50%)
+  ['#A679D2', '#8C53C6', '#7339AC'],  // 15. Lavender (hue: 270°, sat: 50%)
+  ['#E9C763', '#E2B736', '#C99E1D'],  // 16. Gold (hue: 45°, sat: 75%)
+  ['#70DBB8', '#47D1A3', '#2EB88A'],  // 17. Mint (hue: 160°, sat: 60%)
+  ['#E48767', '#DD643C', '#C34B22'],  // 18. Coral (hue: 15°, sat: 70%)
+  ['#A6A6A6', '#8C8C8C', '#737373'],  // 19. Gray (hue: 0°, sat: 0%)
 ];
 
 type LayerType = 'STAGING' | 'TRANSFORMATION' | 'CONSUMPTION' | 'OTHER';
