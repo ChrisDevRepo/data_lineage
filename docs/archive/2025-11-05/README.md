@@ -1,33 +1,18 @@
-# Archive - 2025-11-05
+# Archive: November 5, 2025
 
-## Contents
+This directory contains archived documentation from November 5, 2025.
 
-This archive contains legacy code and experiments that were removed during the v4.0.3 codebase cleanup.
+## Subdirectories
 
-### AI_Optimization/
+### codebase-review/
+Comprehensive codebase review and refactoring documentation (6 files).
 
-**Archived:** 2025-11-05
-**Reason:** AI features removed in v4.0.0
+## Archived Files
 
-This directory contained experimental AI-based disambiguation code that was part of the v3.x parser. The AI approach was replaced with a more reliable Regex + SQLGlot + Rule Engine strategy in v4.0.0.
+### QUICK_START.md
+Outdated quick start guide (mentioned v4.0.0, overlapped with CLAUDE.md).
+Content has been superseded by current documentation in CLAUDE.md.
 
-**Historical Context:**
-- v3.7.0 introduced AI-assisted disambiguation using Azure OpenAI
-- Goal was to improve confidence scores for complex stored procedures
-- Results showed mixed performance and added operational complexity
-- v4.0.0 removed AI features in favor of deterministic parsing
-
-**Contents:**
-- AI prompt engineering experiments
-- Iteration logs and results
-- Few-shot learning research
-- AI inference scripts
-- Validation failure reports
-
-**Reference:**
-- See CODEBASE_REVIEW_REPORT.md (2025-11-05) for full cleanup details
-- See PARSER_EVOLUTION_LOG.md for v4.0.0 changes
-
----
-
-This archive is preserved for historical reference only. The code is not maintained and should not be used in production.
+### STARTUP.md
+Application startup instructions.
+Content has been consolidated into README.md and CLAUDE.md.
