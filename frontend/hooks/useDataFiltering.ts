@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { DataNode, TraceConfig } from '../types';
 import Graph from 'graphology';
 import { INTERACTION_CONSTANTS } from '../interaction-constants';
@@ -33,6 +33,9 @@ export function useDataFiltering({
     const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
     const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<DataNode[]>([]);
 
+    // OPTIMIZATION: Defer expensive autocomplete calculations until user stops typing
+    const deferredSearchTerm = useDeferredValue(searchTerm);
+
     useEffect(() => {
         setSelectedSchemas(new Set(schemas));
     }, [schemas]);
@@ -41,9 +44,10 @@ export function useDataFiltering({
         setSelectedTypes(new Set(dataModelTypes));
     }, [dataModelTypes]);
     
+    // OPTIMIZATION: Use deferred search term to reduce autocomplete recalculations
     useEffect(() => {
-        // Only trigger autocomplete after minimum character threshold
-        if (searchTerm.trim().length < INTERACTION_CONSTANTS.AUTOCOMPLETE_MIN_CHARS) {
+        // Only trigger autocomplete after minimum character threshold (combines both optimizations)
+        if (deferredSearchTerm.trim().length < INTERACTION_CONSTANTS.AUTOCOMPLETE_MIN_CHARS) {
             setAutocompleteSuggestions([]);
             return;
         }
@@ -67,7 +71,7 @@ export function useDataFiltering({
                 }
 
                 if (
-                    attributes.name.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
+                    attributes.name.toLowerCase().startsWith(deferredSearchTerm.toLowerCase()) &&
                     selectedSchemas.has(attributes.schema) &&
                     (dataModelTypes.length === 0 || !attributes.data_model_type || selectedTypes.has(attributes.data_model_type))
                 ) {
@@ -80,7 +84,7 @@ export function useDataFiltering({
             console.error('[Autocomplete] Error generating suggestions:', error);
             setAutocompleteSuggestions([]);
         }
-    }, [searchTerm, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes]);
+    }, [deferredSearchTerm, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes]);
 
     // Static pre-filter: Apply "Hide Unrelated" BEFORE any other filters
     // This is memoized separately so it doesn't recalculate when clicking nodes
@@ -97,6 +101,12 @@ export function useDataFiltering({
         }
         return allData; // No pre-filtering if hideUnrelated is off
     }, [allData, lineageGraph, hideUnrelated]);
+
+    // OPTIMIZATION: Create Set for O(1) lookups instead of O(n) find() calls
+    const preFilteredIds = useMemo(() =>
+        new Set(preFilteredData.map(n => n.id)),
+        [preFilteredData]
+    );
 
     const finalVisibleData = useMemo(() => {
         // If in trace mode, the trace config's filters take precedence.
@@ -118,8 +128,8 @@ export function useDataFiltering({
         // Default behavior: filter by selected schemas and types.
         const baseVisibleNodes: DataNode[] = [];
         lineageGraph.forEachNode((nodeId, attributes) => {
-            // Only process nodes that passed the pre-filter
-            if (!preFilteredData.find(n => n.id === nodeId)) return;
+            // OPTIMIZATION: Use O(1) Set lookup instead of O(n) find()
+            if (!preFilteredIds.has(nodeId)) return;
 
             if (
                 selectedSchemas.has(attributes.schema) &&
@@ -130,7 +140,7 @@ export function useDataFiltering({
         });
 
         return baseVisibleNodes;
-    }, [preFilteredData, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, allData]);
+    }, [preFilteredData, preFilteredIds, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, allData]);
 
     return {
         finalVisibleData,

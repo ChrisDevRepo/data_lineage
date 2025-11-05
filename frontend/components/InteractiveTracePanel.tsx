@@ -16,7 +16,8 @@ type InteractiveTracePanelProps = {
     addNotification: (text: string, type: 'info' | 'error') => void;
 };
 
-export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchemas, inheritedSchemaFilter, availableTypes, inheritedTypeFilter, allData, addNotification }: InteractiveTracePanelProps) => {
+// OPTIMIZATION: Memoize to prevent unnecessary re-renders
+export const InteractiveTracePanel = React.memo(({ isOpen, onClose, onApply, availableSchemas, inheritedSchemaFilter, availableTypes, inheritedTypeFilter, allData, addNotification }: InteractiveTracePanelProps) => {
     const [traceMode, setTraceMode] = useState<'levels' | 'path'>('levels'); // 'levels' = level-based, 'path' = start-to-end path
     const [startNodeSearch, setStartNodeSearch] = useState('');
     const [startSuggestions, setStartSuggestions] = useState<DataNode[]>([]);
@@ -353,4 +354,4 @@ export const InteractiveTracePanel = ({ isOpen, onClose, onApply, availableSchem
             </div>
         </div>
     );
-};
+});

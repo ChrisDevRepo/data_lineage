@@ -35,7 +35,8 @@ interface FilterOptions {
   objectTypes: string[];
 }
 
-export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, allData, onClose }) => {
+// OPTIMIZATION: Memoize to prevent unnecessary re-renders
+export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({ isOpen, allData, onClose }) => {
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -657,4 +658,4 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
       </style>
     </>
   );
-};
+});
