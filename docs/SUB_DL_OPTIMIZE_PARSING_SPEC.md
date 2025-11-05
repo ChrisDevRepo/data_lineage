@@ -185,7 +185,7 @@ def extract_sqlglot_dependencies(self, ddl: str) -> Dict[str, Any]:
                 'source_match': float,
                 'target_match': float,
                 'overall_match': float,
-                'needs_ai': bool
+                'needs_improvement': bool
             }
         }
     """

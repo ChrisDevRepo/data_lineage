@@ -261,7 +261,7 @@ class QualityAwareParser:
                     'source_match': float,  # 0.0-1.0
                     'target_match': float,  # 0.0-1.0
                     'overall_match': float,  # 0.0-1.0
-                    'needs_ai': bool
+                    'needs_improvement': bool
                 }
             }
         """
@@ -513,7 +513,7 @@ class QualityAwareParser:
                 'source_match': float (0.0-1.0),
                 'target_match': float (0.0-1.0),
                 'overall_match': float (0.0-1.0),
-                'needs_ai': bool
+                'needs_improvement': bool
             }
         """
         # CRITICAL FIX: Detect parse failure (both found nothing)
@@ -524,7 +524,7 @@ class QualityAwareParser:
                 'source_match': 0.0,
                 'target_match': 0.0,
                 'overall_match': 0.0,  # FAIL, not 1.0!
-                'needs_ai': True
+                'needs_improvement': True
             }
 
         # Calculate match percentages
