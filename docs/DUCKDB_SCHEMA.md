@@ -542,9 +542,10 @@ Each dependency source has a fixed confidence score:
 | Source | Confidence | Table with Evidence |
 |--------|-----------|---------------------|
 | **DMV** | 1.0 | `dependencies` table |
-| **Query Log** | 0.9 | `query_logs` table |
-| **Parser (SQLGlot)** | 0.85 | Parsed from `definitions` table |
-| **AI Fallback** | 0.7 | AI analysis of `definitions` table |
+| **Query Log** | 0.95 | `query_logs` table (validation) |
+| **Parser (SQLGlot High)** | 0.85 | Parsed from `definitions` table (high agreement) |
+| **Parser (SQLGlot Medium)** | 0.75 | Parsed from `definitions` table (partial agreement) |
+| **Parser (SQLGlot Low)** | 0.50 | Parsed from `definitions` table (low agreement) |
 
 **Merging Logic:**
 When multiple sources confirm the same dependency, use `MAX(confidence)`.
@@ -587,22 +588,15 @@ When multiple sources confirm the same dependency, use `MAX(confidence)`.
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ Step 5: Parse DDL (SQLGlot)                                    │
+│ Step 5: Parse DDL (SQLGlot with Quality Scoring)               │
 ├─────────────────────────────────────────────────────────────────┤
 │ For each gap: SELECT definition FROM definitions                │
-│ Parse with SQLGlot AST                                          │
-│ → Confidence: 0.85                                              │
+│ Parse with SQLGlot AST + Regex baseline comparison              │
+│ → Confidence: 0.85 (high) / 0.75 (medium) / 0.50 (low)         │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ Step 6: AI Fallback (Unresolved Only)                          │
-├─────────────────────────────────────────────────────────────────┤
-│ For remaining gaps: Use Microsoft Agent Framework               │
-│ → Confidence: 0.7                                               │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│ Step 7: Merge & Update Metadata                                │
+│ Step 6: Merge & Update Metadata                                │
 ├─────────────────────────────────────────────────────────────────┤
 │ INSERT/UPDATE lineage_metadata                                  │
 │ INSERT/UPDATE lineage_results                                   │
@@ -610,7 +604,7 @@ When multiple sources confirm the same dependency, use `MAX(confidence)`.
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
-│ Step 8: Generate JSON Output                                   │
+│ Step 7: Generate JSON Output                                   │
 ├─────────────────────────────────────────────────────────────────┤
 │ SELECT * FROM lineage_results                                   │
 │ → lineage.json (internal format)                                │
