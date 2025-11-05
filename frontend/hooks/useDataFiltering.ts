@@ -29,9 +29,9 @@ export function useDataFiltering({
     const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
     const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
+    const [excludeTerm, setExcludeTerm] = useState('');
     const [hideUnrelated, setHideUnrelated] = useState(false);
     const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
-    const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<DataNode[]>([]);
 
     useEffect(() => {
         setSelectedSchemas(new Set(schemas));
@@ -40,54 +40,16 @@ export function useDataFiltering({
     useEffect(() => {
         setSelectedTypes(new Set(dataModelTypes));
     }, [dataModelTypes]);
-    
-    useEffect(() => {
-        // Only trigger autocomplete after minimum character threshold
-        if (searchTerm.trim().length < INTERACTION_CONSTANTS.AUTOCOMPLETE_MIN_CHARS) {
-            setAutocompleteSuggestions([]);
-            return;
-        }
 
-        // Safety check: ensure lineageGraph is initialized before accessing
-        if (!lineageGraph || typeof lineageGraph.nodeEntries !== 'function') {
-            setAutocompleteSuggestions([]);
-            return;
-        }
-
-        try {
-            const suggestions: DataNode[] = [];
-            // Use for...of loop with break for early exit
-            for (const [nodeId, attributes] of lineageGraph.nodeEntries()) {
-                if (suggestions.length >= INTERACTION_CONSTANTS.AUTOCOMPLETE_MAX_RESULTS) break;
-
-                // Safety check: ensure attributes and required properties exist
-                if (!attributes || typeof attributes.name !== 'string' || typeof attributes.schema !== 'string') {
-                    console.warn(`[Autocomplete] Skipping node ${nodeId} with invalid attributes:`, attributes);
-                    continue;
-                }
-
-                if (
-                    attributes.name.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
-                    selectedSchemas.has(attributes.schema) &&
-                    (dataModelTypes.length === 0 || !attributes.data_model_type || selectedTypes.has(attributes.data_model_type))
-                ) {
-                    suggestions.push(attributes as DataNode);
-                }
-            }
-
-            setAutocompleteSuggestions(suggestions);
-        } catch (error) {
-            console.error('[Autocomplete] Error generating suggestions:', error);
-            setAutocompleteSuggestions([]);
-        }
-    }, [searchTerm, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes]);
-
-    // Static pre-filter: Apply "Hide Unrelated" BEFORE any other filters
+    // Static pre-filter: Apply "Hide Unrelated" and "Exclude" BEFORE any other filters
     // This is memoized separately so it doesn't recalculate when clicking nodes
     const preFilteredData = useMemo(() => {
+        let filtered = allData;
+
+        // Apply "Hide Unrelated" filter
         if (hideUnrelated) {
             // Filter out nodes with NO connections in the complete graph
-            return allData.filter(node => {
+            filtered = filtered.filter(node => {
                 if (lineageGraph.hasNode(node.id)) {
                     const neighbors = lineageGraph.neighbors(node.id);
                     return neighbors.length > 0; // Keep only nodes with at least one connection
@@ -95,8 +57,19 @@ export function useDataFiltering({
                 return false; // Remove nodes not in graph
             });
         }
-        return allData; // No pre-filtering if hideUnrelated is off
-    }, [allData, lineageGraph, hideUnrelated]);
+
+        // Apply "Exclude" filter
+        if (excludeTerm.trim()) {
+            const excludeTerms = excludeTerm.toLowerCase().split(/\s+/).filter(t => t.length > 0);
+            filtered = filtered.filter(node => {
+                const nodeName = node.name.toLowerCase();
+                // Exclude node if ANY exclude term is found in the node name
+                return !excludeTerms.some(term => nodeName.includes(term));
+            });
+        }
+
+        return filtered;
+    }, [allData, lineageGraph, hideUnrelated, excludeTerm]);
 
     const finalVisibleData = useMemo(() => {
         // If in trace mode, the trace config's filters take precedence.
@@ -140,11 +113,11 @@ export function useDataFiltering({
         setSelectedTypes,
         searchTerm,
         setSearchTerm,
+        excludeTerm,
+        setExcludeTerm,
         hideUnrelated,
         setHideUnrelated,
         highlightedNodes,
         setHighlightedNodes,
-        autocompleteSuggestions,
-        setAutocompleteSuggestions,
     };
 }
