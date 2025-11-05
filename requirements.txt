@@ -1,8 +1,8 @@
 # ==============================================================================
-# Vibecoding Lineage Parser v3 - Python Dependencies
+# Data Lineage Visualizer v4.0.3 - Python Dependencies
 # ==============================================================================
 # Python Version Requirement: >=3.10 (due to Click 8.3.0)
-# Last Updated: 2025-10-26
+# Last Updated: 2025-11-05
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -24,11 +24,6 @@ sqlglot>=27.28.1                 # Latest: 27.28.1 (Oct 2025) - Supports 31 SQL 
 # ------------------------------------------------------------------------------
 click>=8.3.0                     # Latest: 8.3.0 (Sep 2025) - CLI framework (requires Python >=3.10)
 python-dotenv>=1.1.1             # Latest: 1.1.1 (Jun 2025) - Environment variable management
-
-# ------------------------------------------------------------------------------
-# AI & LLM Integration
-# ------------------------------------------------------------------------------
-openai>=1.0.0                    # Azure OpenAI integration for AI disambiguation
 
 # ------------------------------------------------------------------------------
 # Utilities & Logging
@@ -61,6 +56,6 @@ pydantic-settings>=2.6.0         # Settings management from environment variable
 #    pip install -r requirements.txt black ruff mypy
 #
 # 4. Verify installation:
-#    python -c "import duckdb, sqlglot, openai; print('All imports successful')"
+#    python -c "import duckdb, sqlglot, fastapi; print('All imports successful')"
 #
 # ==============================================================================

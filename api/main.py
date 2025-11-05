@@ -1,7 +1,14 @@
 """
-FastAPI Backend for Vibecoding Lineage Parser v3
+Data Lineage Visualizer API v4.0.3
 
-Web API wrapper for existing lineage_v3 Python code.
+FastAPI backend providing REST API for lineage analysis and visualization.
+
+Features:
+- Parquet file upload with automatic schema detection
+- Background job processing with status polling
+- Full-text search across DDL definitions
+- On-demand DDL fetching with caching
+- Incremental and full-refresh parsing modes
 """
 
 import os
@@ -10,6 +17,7 @@ import time
 import uuid
 import shutil
 import threading
+import logging
 from pathlib import Path
 from typing import List, Optional
 from contextlib import asynccontextmanager
@@ -28,6 +36,13 @@ from models import (
     JobStatus
 )
 from background_tasks import process_lineage_job
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # ============================================================================
 # Application Configuration
@@ -59,23 +74,23 @@ async def lifespan(app: FastAPI):
     # Startup
     JOBS_DIR.mkdir(exist_ok=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)  # Create parent directories if needed
-    print("🚀 Vibecoding Lineage Parser API v3.0.0")
-    print(f"📁 Jobs directory: {JOBS_DIR}")
-    print(f"💾 Data directory: {DATA_DIR}")
+    logger.info("🚀 Data Lineage Visualizer API v4.0.3")
+    logger.info(f"📁 Jobs directory: {JOBS_DIR}")
+    logger.info(f"💾 Data directory: {DATA_DIR}")
     if LATEST_DATA_FILE.exists():
-        print(f"✅ Latest data file found: {LATEST_DATA_FILE.name}")
+        logger.info(f"✅ Latest data file found: {LATEST_DATA_FILE.name}")
     else:
-        print(f"ℹ️  No existing data file (will be created on first upload)")
-    print(f"✅ API ready")
+        logger.info(f"ℹ️  No existing data file (will be created on first upload)")
+    logger.info(f"✅ API ready")
     yield
     # Shutdown
-    print("🛑 API shutting down")
+    logger.info("🛑 API shutting down")
 
 
 app = FastAPI(
-    title="Vibecoding Lineage Parser API",
+    title="Data Lineage Visualizer API",
     description="Web API for data lineage extraction from Synapse DMV Parquet files",
-    version="3.0.0",
+    version="4.0.3",
     lifespan=lifespan
 )
 
@@ -131,14 +146,14 @@ def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = True):
         result = process_lineage_job(job_id, job_dir, data_dir=DATA_DIR, incremental=incremental)
         active_jobs[job_id]["status"] = result["status"]
     except Exception as e:
-        print(f"Error processing job {job_id}: {e}")
+        logger.error(f"Error processing job {job_id}: {e}", exc_info=True)
         active_jobs[job_id]["status"] = "failed"
     finally:
         # Always release upload lock when done (success or failure)
         upload_lock.release()
         current_upload_info["job_id"] = None
         current_upload_info["started_at"] = None
-        print(f"✅ Upload lock released for job {job_id}")
+        logger.debug(f"✅ Upload lock released for job {job_id}")
 
 
 # ============================================================================
@@ -155,7 +170,7 @@ async def health_check():
     """
     return HealthResponse(
         status="ok",
-        version="4.0.0",
+        version="4.0.3",
         uptime_seconds=time.time() - START_TIME
     )
 
@@ -387,7 +402,7 @@ async def search_ddl(q: str = Query(..., min_length=1, max_length=200, descripti
 
     except Exception as e:
         # Log the error for debugging
-        print(f"❌ Search failed for query '{q}': {e}")
+        logger.error(f"❌ Search failed for query '{q}': {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Search failed: {str(e)}"
@@ -583,10 +598,10 @@ async def get_job_result(job_id: str):
                 shutil.rmtree(job_dir)
                 if job_id in active_jobs:
                     del active_jobs[job_id]
-                print(f"✓ Cleaned up job {job_id}")
+                logger.info(f"✓ Cleaned up job {job_id}")
             except Exception as cleanup_error:
                 # Log but don't fail the request
-                print(f"Warning: Failed to cleanup job {job_id}: {cleanup_error}")
+                logger.warning(f"Failed to cleanup job {job_id}: {cleanup_error}")
 
         return LineageResultResponse(
             job_id=job_id,
@@ -652,7 +667,8 @@ async def list_jobs():
                     "progress": status_data.get("progress", 0),
                     "current_step": status_data.get("current_step", "Unknown")
                 })
-            except:
+            except Exception as e:
+                logger.warning(f"Failed to read status for job {job_id}: {e}")
                 jobs.append({
                     "job_id": job_id,
                     "status": "unknown",
