@@ -98,12 +98,12 @@ function DataLineageVisualizer() {
     setSelectedTypes,
     searchTerm,
     setSearchTerm,
-    excludeTerm,
-    setExcludeTerm,
     hideUnrelated,
     setHideUnrelated,
     highlightedNodes,
     setHighlightedNodes,
+    autocompleteSuggestions,
+    setAutocompleteSuggestions,
   } = useDataFiltering({
     allData,
     lineageGraph,
@@ -218,8 +218,7 @@ function DataLineageVisualizer() {
       return () => clearTimeout(timeoutId);
     }
   }, [nodes.length, fitView]);
-
-
+  
   // --- Effect for handling window resize ---
   useEffect(() => {
     // Debounce resize events to avoid excessive calls
@@ -704,8 +703,8 @@ function DataLineageVisualizer() {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             executeSearch={executeSearch}
-            excludeTerm={excludeTerm}
-            setExcludeTerm={setExcludeTerm}
+            autocompleteSuggestions={autocompleteSuggestions}
+            setAutocompleteSuggestions={setAutocompleteSuggestions}
             selectedSchemas={selectedSchemas}
             setSelectedSchemas={setSelectedSchemas}
             schemas={schemas}
@@ -749,7 +748,6 @@ function DataLineageVisualizer() {
                 onNodeClick={handleNodeClick}
                 fitView
                 minZoom={0.1}
-                onlyRenderVisibleElements={true}
                 proOptions={{ hideAttribution: true }}
               >
                 <Controls />

@@ -284,14 +284,19 @@ class LineageProcessor:
             with DuckDBWorkspace(workspace_path=str(self.workspace_file)) as db:
                 # Conditionally truncate data tables and delete persistent JSON
                 if not self.incremental:
-                    # Full refresh: truncate all data tables (lineage_metadata will be rebuilt)
-                    tables_to_truncate = ['objects', 'dependencies', 'definitions', 'query_logs', 'table_columns']
+                    # Full refresh: truncate all data tables INCLUDING lineage_metadata
+                    # This ensures a clean slate for re-parsing with updated parser logic
+                    tables_to_truncate = ['objects', 'dependencies', 'definitions', 'query_logs', 'table_columns', 'lineage_metadata']
                     for table_name in tables_to_truncate:
                         try:
                             db.connection.execute(f"DROP TABLE IF EXISTS {table_name}")
                         except Exception as e:
                             # Table might not exist yet, ignore
                             pass
+
+                    # Recreate lineage_metadata table after dropping it
+                    # This is necessary because we dropped it above but still need it for parsing
+                    db._initialize_schema()
 
                     # Also delete the persistent frontend JSON file
                     latest_data_file = self.data_dir / "latest_frontend_lineage.json"
@@ -417,11 +422,19 @@ class LineageProcessor:
                 self.update_status("processing", 85, "Building graph relationships",
                                  "Establishing bidirectional connections...", include_stats=True)
 
-                parsed_objects = db.query("""
-                    SELECT object_id, inputs, outputs
-                    FROM lineage_metadata
-                    WHERE inputs IS NOT NULL OR outputs IS NOT NULL
-                """)
+                # Check if lineage_metadata exists before querying
+                tables = db.query("SHOW TABLES")
+                table_names = [row[0] for row in tables]
+
+                if 'lineage_metadata' in table_names:
+                    parsed_objects = db.query("""
+                        SELECT object_id, inputs, outputs
+                        FROM lineage_metadata
+                        WHERE inputs IS NOT NULL OR outputs IS NOT NULL
+                    """)
+                else:
+                    # No metadata table yet (shouldn't happen but defensive)
+                    parsed_objects = []
 
                 # Build reverse lookup map
                 reverse_inputs = {}
@@ -445,15 +458,29 @@ class LineageProcessor:
                             reverse_outputs[output_id].append(obj_id)
 
                 # Update Tables/Views with reverse dependencies
+                # IMPORTANT: Only update Tables and Views, NOT Stored Procedures
+                # SPs must be parsed to extract their dependencies
                 for table_id, readers in reverse_inputs.items():
-                    db.update_metadata(
-                        object_id=table_id,
-                        modify_date=None,
-                        primary_source='metadata',
-                        confidence=1.0,
-                        inputs=reverse_outputs.get(table_id, []),
-                        outputs=readers
-                    )
+                    # Get object type for this object_id
+                    obj_type_result = db.query("""
+                        SELECT object_type FROM objects WHERE object_id = ?
+                    """, [table_id])
+
+                    if not obj_type_result:
+                        continue
+
+                    obj_type = obj_type_result[0][0]
+
+                    # Only update Tables and Views (not SPs)
+                    if obj_type in ['Table', 'View']:
+                        db.update_metadata(
+                            object_id=table_id,
+                            modify_date=None,
+                            primary_source='metadata',
+                            confidence=1.0,
+                            inputs=reverse_outputs.get(table_id, []),
+                            outputs=readers
+                        )
 
                 # CRITICAL FIX: Ensure ALL tables/views have metadata entries
                 # Even unreferenced tables need confidence=1.0 for accurate stats

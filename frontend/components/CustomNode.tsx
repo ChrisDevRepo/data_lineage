@@ -42,12 +42,12 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
         borderColor: schemaColor,
     };
 
-    // Remove the source info in brackets from description (e.g., "(parser)", "(dmv)")
-    const cleanDescription = data.description
-        ? data.description.replace(/\s*\([^)]*\)\s*$/, '').trim()
-        : 'No description provided.';
+    // Only show confidence/parsing method for Stored Procedures
+    let nodeTitle = `Object: ${data.schema}.${data.name}\nObject Type: ${data.object_type}\nData Model Type: ${data.data_model_type || 'N/A'}`;
 
-    let nodeTitle = `Object: ${data.schema}.${data.name}\nObject Type: ${data.object_type}\nData Model Type: ${data.data_model_type || 'N/A'}\nDescription: ${cleanDescription}`;
+    if (data.object_type === 'Stored Procedure') {
+        nodeTitle += `\nDescription: ${data.description || 'No description provided.'}`;
+    }
 
     if (isClickableForSql) {
         nodeTitle += `\n\n💡 Click to view SQL definition`;

@@ -1,0 +1,1295 @@
+"""
+Quality-Aware SQLGlot Parser - Smart extraction with built-in QA + AI Fallback
+===============================================================================
+
+Strategy:
+1. Regex scan full DDL → Get expected entity count (baseline)
+2. Preprocess & split DDL → Parse with SQLGlot
+3. Compare counts:
+   - Match (±10%) → High confidence (0.85)
+   - Partial match (±25%) → Medium confidence (0.75)
+   - Major difference (>25%) → Trigger AI fallback (0.5)
+4. AI Disambiguation (NEW in v3.7.0):
+   - Triggered when confidence ≤ 0.85
+   - Uses Azure OpenAI with few-shot prompting
+   - 3-layer validation (catalog, regex improvement, query logs)
+   - Retry logic with refined prompts (max 2 attempts)
+
+This gives us quality assurance built into the parser + intelligent fallback!
+
+Author: Vibecoding
+Version: 3.8.0
+Date: 2025-11-02
+
+Changelog:
+- v3.8.0 (2025-11-02): Add SP-to-SP dependency tracking via EXEC calls
+  Issue: Parser removed ALL EXEC statements, missing 63 SP dependencies
+  Example: spLoadDateRange → spLoadDateRangeDetails (previously missed)
+  Fix: Extract EXEC [schema].[sp_name] as INPUT dependencies (regex)
+  Filter: Exclude logging/utility SPs (LogMessage, spLastRowCount, etc.)
+  Impact: +63 SP-to-SP dependencies tracked
+- v3.7.0 (2025-10-31): Add AI-assisted disambiguation for low-confidence SPs
+  Integration: Azure OpenAI (gpt-4.1-nano) with few-shot prompt
+  Trigger: confidence ≤ 0.85 (configurable via AI_CONFIDENCE_THRESHOLD)
+  Expected Impact: 80.7% → 98% high-confidence coverage
+- v3.6.0 (2025-10-28): Add self-referencing pattern support
+  Issue #2: Staging patterns (INSERT → SELECT → INSERT) not captured
+  Fix: Statement-level target exclusion instead of global exclusion
+- v3.5.0 (2025-10-28): Add TRUNCATE statement support
+  Issue: spLoadGLCognosData and other SPs missing TRUNCATE outputs
+  Fix: Add exp.TruncateTable extraction in _extract_from_ast()
+"""
+
+from typing import List, Dict, Any, Set, Tuple, Optional
+import sqlglot
+from sqlglot import exp, parse_one
+import logging
+import re
+import os
+
+from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
+from lineage_v3.utils.validators import validate_object_id, sanitize_identifier
+from lineage_v3.config import settings
+
+
+# Configure logging
+logger = logging.getLogger(__name__)
+
+
+class QualityAwareParser:
+    """
+    Parser with built-in quality assurance via regex baseline comparison.
+
+    Key innovation: Use regex count as quality check, not just fallback.
+    If SQLGlot results differ significantly from regex baseline, reduce
+    confidence and flag for AI review.
+    """
+
+    # Confidence scores
+    CONFIDENCE_HIGH = 0.85    # Regex and SQLGlot agree (±10%)
+    CONFIDENCE_MEDIUM = 0.75  # Partial agreement (±25%)
+    CONFIDENCE_LOW = 0.5      # Major difference (>25%) - needs AI review
+
+    # Quality check thresholds
+    THRESHOLD_GOOD = 0.10     # ±10% difference
+    THRESHOLD_FAIR = 0.25     # ±25% difference
+
+    # System schemas to exclude
+    EXCLUDED_SCHEMAS = {'sys', 'INFORMATION_SCHEMA', 'tempdb'}
+
+    # Utility/logging SPs to exclude from lineage (noise)
+    # These SPs are called for administrative purposes, not data dependencies
+    EXCLUDED_UTILITY_SPS = {
+        # Logging (administrative, not data lineage)
+        'logmessage', 'logerror', 'loginfo', 'logwarning',
+        # Utility (helper functions, not data dependencies)
+        'splastrowcount',
+    }
+
+    # T-SQL control flow patterns to remove during preprocessing
+    # These patterns confuse the SQL parser and are not relevant for lineage extraction
+    CONTROL_FLOW_PATTERNS = [
+        # IF statements with temp table drops (common pattern in Synapse SPs)
+        # Example: IF OBJECT_ID('tempdb..#temp') IS NOT NULL BEGIN DROP TABLE #temp; END
+        (r'\bIF\s+OBJECT_ID\s*\([^)]+\)\s+IS\s+NOT\s+NULL\s+BEGIN\s+DROP\s+TABLE\s+[^;]+;\s*END',
+         '-- IF removed'),
+        # Shorter form without BEGIN/END
+        (r'\bIF\s+OBJECT_ID\s*\([^)]+\)\s+IS\s+NOT\s+NULL\s+DROP\s+TABLE\s+[^;]+;?',
+         '-- IF removed'),
+
+        # BEGIN/END blocks - convert to comments so parser can still understand structure
+        # but won't choke on T-SQL specific syntax
+        (r'\bBEGIN\s+TRY\b', 'BEGIN /* TRY */'),
+        (r'\bEND\s+TRY\b', 'END /* TRY */'),
+        (r'\bBEGIN\s+CATCH\b', 'BEGIN /* CATCH */'),
+        (r'\bEND\s+CATCH\b', 'END /* CATCH */'),
+
+        # RAISERROR and PRINT - administrative code, not data lineage
+        # Example: RAISERROR('Error occurred', 16, 1)
+        (r'\bRAISERROR\s*\([^)]+\)', '-- RAISERROR removed'),
+        # Example: PRINT 'Processing customers...'
+        (r'\bPRINT\s+[^\n;]+', '-- PRINT removed'),
+    ]
+
+    # Enhanced preprocessing patterns (2025-10-26)
+    # Based on production testing: focus on TRY block business logic, remove noise
+    # Result: +100% improvement in high-confidence parsing (4 SPs → 8 SPs at ≥0.85)
+    ENHANCED_REMOVAL_PATTERNS = [
+        # Remove entire CATCH blocks (including nested content)
+        # CATCH blocks contain error handling, logging, rollback - not business lineage
+        # Example: BEGIN /* CATCH */ INSERT INTO ErrorLog ... END /* CATCH */
+        # Uses re.DOTALL to match across newlines (. matches \n)
+        # IMPORTANT: Use empty string to avoid comments that break SQLGlot parsing
+        (r'BEGIN\s+/\*\s*CATCH\s*\*/.*?END\s+/\*\s*CATCH\s*\*/', '', re.DOTALL),
+
+        # Remove only logging/utility EXEC commands (keep SP-to-SP calls for lineage)
+        # Logging/utility calls are administrative, not data dependencies
+        # Example: EXEC [dbo].[LogMessage] 'Processing complete' (remove)
+        # Example: EXEC [dbo].[spProcessOrders] (keep - will be extracted by regex)
+        # Pattern: EXEC [schema].[LogMessage|spLastRowCount|...] params...
+        # FIXED: Use [^\n;]* instead of [^;]* to stop at newline, not just semicolon
+        (r'\bEXEC(?:UTE)?\s+\[?[^\]]+\]?\.\[?(LogMessage|LogError|LogInfo|LogWarning|spLastRowCount)\]?[^\n;]*;?',
+         '', re.IGNORECASE),
+
+        # Add semicolons BEFORE statement keywords (user's insight)
+        # This is simpler than adding at end - no multi-line issues
+        # Example: DECLARE → ;DECLARE, SELECT → ;SELECT
+        # SQLGlot can parse semicolon-prefixed statements
+
+        # Add semicolons before DECLARE
+        (r'(?<!;)\n(\s*\bDECLARE\b)', r'\n;\1', 0),
+
+        # Add semicolons before SET (variable assignments only, not session options)
+        (r'(?<!;)\n(\s*\bSET\s+@)', r'\n;\1', 0),
+
+        # Add semicolons before INSERT
+        (r'(?<!;)\n(\s*\bINSERT\s+INTO\b)', r'\n;\1', 0),
+
+        # Add semicolons before UPDATE
+        (r'(?<!;)\n(\s*\bUPDATE\s+)', r'\n;\1', 0),
+
+        # Add semicolons before DELETE
+        (r'(?<!;)\n(\s*\bDELETE\s+)', r'\n;\1', 0),
+
+        # Add semicolons before SELECT (standalone, not in subqueries or WITH clauses)
+        # Uses negative lookbehind for ( and AS to exclude:
+        # - Subqueries: (SELECT ...
+        # - WITH CTEs: WITH cte AS (SELECT ...
+        (r'(?<!;)(?<!\()(?<!AS\s)\n(\s*\bSELECT\b)', r'\n;\1', 0),
+
+        # Add semicolons before CREATE
+        (r'(?<!;)\n(\s*\bCREATE\s+)', r'\n;\1', 0),
+
+        # Add semicolons before DROP
+        (r'(?<!;)\n(\s*\bDROP\s+)', r'\n;\1', 0),
+
+        # Add semicolons before TRUNCATE
+        (r'(?<!;)\n(\s*\bTRUNCATE\s+)', r'\n;\1', 0),
+
+        # Add semicolons before EXEC/EXECUTE
+        (r'(?<!;)\n(\s*\bEXEC(?:UTE)?\s+)', r'\n;\1', 0),
+
+        # Remove SET session options (NOCOUNT, XACT_ABORT, etc.)
+        # Session settings don't affect data lineage
+        # Example: SET NOCOUNT ON, SET XACT_ABORT ON, SET ANSI_NULLS ON
+        # Critical: This prevents "SET NOCOUNT ON select ..." from being parsed as SET command
+        (r'\bSET\s+(NOCOUNT|XACT_ABORT|ANSI_NULLS|QUOTED_IDENTIFIER|ANSI_PADDING|ANSI_WARNINGS|ARITHABORT|CONCAT_NULL_YIELDS_NULL|NUMERIC_ROUNDABORT)\s+(ON|OFF)\b', '', 0),
+    ]
+
+    def __init__(self, workspace: DuckDBWorkspace):
+        """Initialize parser with DuckDB workspace."""
+        self.workspace = workspace
+        self._object_catalog = None
+
+    def parse_object(self, object_id: int) -> Dict[str, Any]:
+        """
+        Parse DDL with built-in quality check.
+
+        Returns:
+            {
+                'object_id': int,
+                'inputs': List[int],
+                'outputs': List[int],
+                'confidence': float,  # Adjusted based on quality check
+                'source': 'parser',
+                'parse_error': Optional[str],
+                'quality_check': {
+                    'regex_sources': int,
+                    'regex_targets': int,
+                    'parser_sources': int,
+                    'parser_targets': int,
+                    'source_match': float,  # 0.0-1.0
+                    'target_match': float,  # 0.0-1.0
+                    'overall_match': float,  # 0.0-1.0
+                    'needs_ai': bool
+                }
+            }
+        """
+        # Fetch DDL
+        ddl = self._fetch_ddl(object_id)
+        if not ddl:
+            return {
+                'object_id': object_id,
+                'inputs': [],
+                'outputs': [],
+                'confidence': 0.0,
+                'source': 'parser',
+                'parse_error': 'No DDL definition found'
+            }
+
+        try:
+            # STEP 1: Regex baseline (expected counts)
+            regex_sources, regex_targets = self._regex_scan(ddl)
+            regex_sources_valid = self._validate_against_catalog(regex_sources)
+            regex_targets_valid = self._validate_against_catalog(regex_targets)
+
+            # STEP 2: Preprocess and parse with SQLGlot
+            cleaned_ddl = self._preprocess_ddl(ddl)
+
+            # Phase 1 Safety Check: Validate preprocessing didn't lose dependencies
+            if not self._validate_preprocessing(ddl, cleaned_ddl):
+                logger.warning(f"Preprocessing validation failed for object {object_id}. Using original DDL for SQLGlot.")
+                cleaned_ddl = ddl  # Fallback to original DDL
+
+            parser_sources, parser_targets = self._sqlglot_parse(cleaned_ddl, ddl)
+            parser_sources_valid = self._validate_against_catalog(parser_sources)
+            parser_targets_valid = self._validate_against_catalog(parser_targets)
+
+            # STEP 2.5: SELECTIVE MERGE by object type (v3.8.0)
+            #
+            # WHY: SQLGlot CANNOT extract EXEC dependencies (treats as Command expressions)
+            #      Verified online: https://github.com/tobymao/sqlglot/issues/2666
+            #
+            # STRATEGY:
+            #   - Tables/Views: Use SQLGlot only (accurate AST parsing, avoids regex false positives)
+            #   - Stored Procedures: Add from regex (SQLGlot misses EXEC calls)
+            #
+            # BENEFITS:
+            #   - No false positives from regex (table names in comments/strings)
+            #   - Captures SP-to-SP dependencies (EXEC calls)
+            #   - Improves confidence score (more complete results)
+            #
+            merged_sources = parser_sources_valid.copy()  # Start with SQLGlot (tables/views)
+            merged_targets = parser_targets_valid.copy()
+
+            sp_count_added = 0
+
+            # Add ONLY Stored Procedures from regex that SQLGlot missed
+            for source_name in regex_sources_valid:
+                if source_name not in merged_sources:  # Not already found by SQLGlot
+                    obj_type = self._get_object_type(source_name)
+                    if obj_type == 'Stored Procedure':
+                        merged_sources.add(source_name)
+                        sp_count_added += 1
+                        logger.debug(f"Added SP from regex: {source_name}")
+
+            # Same for targets (rare, but possible if SP modifies another SP's data)
+            for target_name in regex_targets_valid:
+                if target_name not in merged_targets:
+                    obj_type = self._get_object_type(target_name)
+                    if obj_type == 'Stored Procedure':
+                        merged_targets.add(target_name)
+
+            logger.debug(f"Selective merge: SQLGlot={len(parser_sources_valid)}, Added {sp_count_added} SPs from regex, Final={len(merged_sources)}")
+
+            # STEP 3: Compare counts and calculate quality metrics
+            # Use merged results (SQLGlot tables + regex SPs)
+            quality = self._calculate_quality(
+                len(regex_sources_valid),
+                len(regex_targets_valid),
+                len(merged_sources),  # Merged count (higher = better confidence)
+                len(merged_targets)
+            )
+
+            # STEP 4: Adjust confidence based on quality
+            confidence = self._determine_confidence(quality)
+
+            # STEP 5: Resolve to object_ids (use merged results!)
+            input_ids = self._resolve_table_names(merged_sources)
+            output_ids = self._resolve_table_names(merged_targets)
+
+            # STEP 6: AI Disambiguation (if confidence ≤ threshold and AI enabled)
+            ai_used = False
+            ai_confidence = None
+            ai_sources_found = 0
+            ai_targets_found = 0
+
+            # Use centralized config for AI settings
+            ai_enabled = settings.ai.enabled
+            ai_threshold = settings.ai.confidence_threshold
+
+            if confidence <= ai_threshold and ai_enabled:
+                try:
+                    from lineage_v3.parsers.ai_disambiguator import AIDisambiguator
+
+                    # Get SP name for query log validation
+                    sp_info = self._get_object_info(object_id)
+                    sp_name = f"{sp_info['schema']}.{sp_info['name']}" if sp_info else f"object_{object_id}"
+
+                    # Initialize disambiguator (lazy init to avoid overhead when not needed)
+                    disambiguator = AIDisambiguator(self.workspace)
+
+                    # Find ambiguous references (unqualified table names in DDL)
+                    ambiguous_refs = self._extract_ambiguous_references(ddl, regex_sources, regex_targets)
+
+                    logger.info(f"AI trigger: confidence {confidence:.2f} ≤ {ai_threshold}, found {len(ambiguous_refs)} ambiguous refs")
+
+                    # Attempt AI disambiguation for each ambiguous reference
+                    for ref_info in ambiguous_refs[:3]:  # Limit to top 3 to control cost
+                        reference = ref_info['reference']
+                        candidates = ref_info['candidates']
+
+                        if not candidates:
+                            continue
+
+                        # Build parser result dict for validation
+                        parser_result = {
+                            'quality': {
+                                'regex_sources': len(regex_sources_valid),
+                                'regex_targets': len(regex_targets_valid),
+                                'parser_sources': len(parser_sources_valid),
+                                'parser_targets': len(parser_targets_valid)
+                            }
+                        }
+
+                        ai_result = disambiguator.disambiguate(
+                            reference=reference,
+                            candidates=candidates,
+                            sql_context=ddl,  # Use raw DDL for AI (needs full context)
+                            parser_result=parser_result,
+                            sp_name=sp_name
+                        )
+
+                        if ai_result and ai_result.is_valid:
+                            # Merge AI results into parser results
+                            input_ids = list(set(input_ids + ai_result.sources))
+                            output_ids = list(set(output_ids + ai_result.targets))
+                            confidence = ai_result.confidence
+                            ai_used = True
+                            ai_confidence = ai_result.confidence
+                            ai_sources_found += len(ai_result.sources)
+                            ai_targets_found += len(ai_result.targets)
+
+                            logger.info(f"AI resolved '{reference}' → {ai_result.resolved_table} (confidence: {ai_result.confidence:.2f})")
+                            break  # Use first successful disambiguation
+
+                except ImportError as e:
+                    logger.warning(f"AI disambiguator not available: {e}")
+                except Exception as e:
+                    logger.error(f"AI disambiguation failed: {e}", exc_info=True)
+
+            return {
+                'object_id': object_id,
+                'inputs': input_ids,
+                'outputs': output_ids,
+                'confidence': confidence,
+                'source': 'ai' if ai_used else 'parser',
+                'parse_error': None,
+                'quality_check': {
+                    'regex_sources': len(regex_sources_valid),
+                    'regex_targets': len(regex_targets_valid),
+                    'parser_sources': len(parser_sources_valid),
+                    'parser_targets': len(parser_targets_valid),
+                    'source_match': quality['source_match'],
+                    'target_match': quality['target_match'],
+                    'overall_match': quality['overall_match'],
+                    'needs_ai': quality['needs_ai'],
+                    'ai_used': ai_used,
+                    'ai_confidence': ai_confidence,
+                    'ai_sources_found': ai_sources_found,
+                    'ai_targets_found': ai_targets_found
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to parse object_id {object_id}: {e}")
+            return {
+                'object_id': object_id,
+                'inputs': [],
+                'outputs': [],
+                'confidence': 0.0,
+                'source': 'parser',
+                'parse_error': str(e)
+            }
+
+    def _regex_scan(self, ddl: str) -> Tuple[Set[str], Set[str]]:
+        """
+        Scan full DDL with regex to get expected entity counts.
+
+        This is the BASELINE - what we expect to find.
+
+        Enhanced filtering (2025-10-26):
+        - Excludes CTEs (WITH ... AS)
+        - Excludes temp tables (#table)
+        - Excludes table variables (@table TABLE)
+        """
+        sources = set()
+        targets = set()
+
+        # Remove comments
+        ddl = re.sub(r'--[^\n]*', '', ddl)
+        ddl = re.sub(r'/\*.*?\*/', '', ddl, flags=re.DOTALL)
+
+        # STEP 1: Identify non-persistent objects to exclude
+        non_persistent = self._identify_non_persistent_objects(ddl)
+        logger.debug(f"Found {len(non_persistent)} non-persistent objects: {non_persistent}")
+
+        # SOURCE patterns (tables we READ FROM)
+        # Pattern explanation:
+        # - \b = word boundary (ensures we match full keywords)
+        # - \[? and \]? = optional brackets (Synapse allows [schema].[table])
+        # - (\w+) = capture group for schema/table name (alphanumeric + underscore)
+        # - (?:OUTER\s+)? = optional OUTER keyword (non-capturing group)
+        source_patterns = [
+            r'\bFROM\s+\[?(\w+)\]?\.\[?(\w+)\]?',                      # FROM [schema].[table]
+            r'\bJOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?',                      # JOIN [schema].[table]
+            r'\bINNER\s+JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?',              # INNER JOIN
+            r'\bLEFT\s+(?:OUTER\s+)?JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?',  # LEFT [OUTER] JOIN
+            r'\bRIGHT\s+(?:OUTER\s+)?JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?', # RIGHT [OUTER] JOIN
+            r'\bFULL\s+(?:OUTER\s+)?JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?',  # FULL [OUTER] JOIN
+        ]
+
+        # SP-TO-SP patterns (SP calls other SP via EXEC)
+        # Pattern: EXEC [schema].[sp_name]
+        # These are INPUT dependencies (caller depends on callee)
+        # Example: EXEC [dbo].[spProcessOrders] → spProcessOrders is a dependency
+        # Note: Logging/utility SPs filtered separately
+        sp_to_sp_patterns = [
+            r'\bEXEC(?:UTE)?\s+\[?(\w+)\]?\.\[?(\w+)\]?',  # EXEC [schema].[sp_name]
+        ]
+
+        for pattern in source_patterns:
+            matches = re.findall(pattern, ddl, re.IGNORECASE)
+            for schema, table in matches:
+                # Existing exclusions (system schemas)
+                if self._is_excluded(schema, table):
+                    continue
+
+                # NEW: Filter non-persistent objects
+                if self._is_non_persistent(schema, table, non_persistent):
+                    continue
+
+                sources.add(f"{schema}.{table}")
+
+        # SP-TO-SP dependency extraction (NEW: v3.8.0)
+        # Extract EXEC calls to other stored procedures
+        # These are INPUT dependencies (caller depends on callee)
+        for pattern in sp_to_sp_patterns:
+            matches = re.findall(pattern, ddl, re.IGNORECASE)
+            for schema, sp_name in matches:
+                # Filter out logging/utility SPs (noise)
+                if sp_name.lower() in self.EXCLUDED_UTILITY_SPS:
+                    logger.debug(f"Filtered utility SP: {schema}.{sp_name}")
+                    continue
+
+                # Filter system schemas
+                if self._is_excluded(schema, sp_name):
+                    continue
+
+                # Filter non-persistent objects (shouldn't apply to SPs, but defensive)
+                if self._is_non_persistent(schema, sp_name, non_persistent):
+                    continue
+
+                # Add SP dependency as source (input dependency)
+                sources.add(f"{schema}.{sp_name}")
+                logger.debug(f"Found SP-to-SP dependency: {schema}.{sp_name}")
+
+        # TARGET patterns (tables we WRITE TO)
+        # These patterns identify DML operations that modify data
+        # Pattern explanation: Same as SOURCE patterns above
+        target_patterns = [
+            r'\bINSERT\s+(?:INTO\s+)?\[?(\w+)\]?\.\[?(\w+)\]?',  # INSERT [INTO] [schema].[table]
+            r'\bUPDATE\s+\[?(\w+)\]?\.\[?(\w+)\]?\s+SET',        # UPDATE [schema].[table] SET
+            r'\bMERGE\s+(?:INTO\s+)?\[?(\w+)\]?\.\[?(\w+)\]?',   # MERGE [INTO] [schema].[table]
+            r'\bTRUNCATE\s+TABLE\s+\[?(\w+)\]?\.\[?(\w+)\]?',    # TRUNCATE TABLE [schema].[table]
+        ]
+
+        for pattern in target_patterns:
+            matches = re.findall(pattern, ddl, re.IGNORECASE)
+            for schema, table in matches:
+                # Existing exclusions
+                if self._is_excluded(schema, table):
+                    continue
+
+                # NEW: Filter non-persistent objects
+                if self._is_non_persistent(schema, table, non_persistent):
+                    continue
+
+                targets.add(f"{schema}.{table}")
+
+        logger.debug(f"Regex baseline: {len(sources)} sources, {len(targets)} targets (after filtering)")
+        return sources, targets
+
+    def _sqlglot_parse(self, cleaned_ddl: str, original_ddl: str) -> Tuple[Set[str], Set[str]]:
+        """
+        Parse with SQLGlot after preprocessing.
+        """
+        sources = set()
+        targets = set()
+
+        # Split into statements
+        statements = self._split_statements(cleaned_ddl)
+
+        # Try parsing each statement
+        for stmt in statements:
+            try:
+                parsed = parse_one(stmt, dialect='tsql', error_level=None)
+                if parsed:
+                    stmt_sources, stmt_targets = self._extract_from_ast(parsed)
+                    sources.update(stmt_sources)
+                    targets.update(stmt_targets)
+            except Exception:
+                # SQLGlot failed, try regex fallback on this statement
+                regex_s, regex_t = self._regex_scan(stmt)
+                sources.update(regex_s)
+                targets.update(regex_t)
+
+        # If SQLGlot got nothing, fallback to regex on original DDL
+        if not sources and not targets:
+            sources, targets = self._regex_scan(original_ddl)
+
+        return sources, targets
+
+    def _calculate_quality(
+        self,
+        regex_sources: int,
+        regex_targets: int,
+        parser_sources: int,
+        parser_targets: int
+    ) -> Dict[str, Any]:
+        """
+        Calculate quality metrics by comparing regex baseline to parser results.
+
+        KEY FIX: If BOTH regex and parser find zero dependencies, this indicates
+        a PARSE FAILURE (DDL too complex), not a perfect match. Returns 0.0.
+
+        Returns:
+            {
+                'source_match': float (0.0-1.0),
+                'target_match': float (0.0-1.0),
+                'overall_match': float (0.0-1.0),
+                'needs_ai': bool
+            }
+        """
+        # CRITICAL FIX: Detect parse failure (both found nothing)
+        # This means the DDL is too complex for both regex AND parser to handle
+        if (regex_sources == 0 and regex_targets == 0 and
+            parser_sources == 0 and parser_targets == 0):
+            return {
+                'source_match': 0.0,
+                'target_match': 0.0,
+                'overall_match': 0.0,  # FAIL, not 1.0!
+                'needs_ai': True
+            }
+
+        # Calculate match percentages
+        if regex_sources > 0:
+            source_match = min(parser_sources / regex_sources, 1.0)
+        else:
+            # If regex found nothing but parser found something, that's good
+            source_match = 1.0 if parser_sources == 0 else 1.0
+
+        if regex_targets > 0:
+            target_match = min(parser_targets / regex_targets, 1.0)
+        else:
+            # If regex found nothing but parser found something, that's good
+            target_match = 1.0 if parser_targets == 0 else 1.0
+
+        # Overall match (weighted average - targets more important)
+        overall_match = (source_match * 0.4) + (target_match * 0.6)
+
+        # Flag for AI if either is significantly off
+        source_diff = abs(regex_sources - parser_sources) / max(regex_sources, parser_sources, 1)
+        target_diff = abs(regex_targets - parser_targets) / max(regex_targets, parser_targets, 1)
+
+        needs_ai = (source_diff > self.THRESHOLD_FAIR or
+                   target_diff > self.THRESHOLD_FAIR)
+
+        return {
+            'source_match': source_match,
+            'target_match': target_match,
+            'overall_match': overall_match,
+            'needs_ai': needs_ai
+        }
+
+    def _determine_confidence(self, quality: Dict[str, Any]) -> float:
+        """
+        Determine confidence score based on quality check.
+
+        Rules:
+        - Overall match ≥90% → 0.85 (high confidence)
+        - Overall match ≥75% → 0.75 (medium confidence)
+        - Overall match <75% → 0.5 (low confidence, needs AI)
+        """
+        match = quality['overall_match']
+
+        if match >= 0.90:
+            return self.CONFIDENCE_HIGH
+        elif match >= 0.75:
+            return self.CONFIDENCE_MEDIUM
+        else:
+            return self.CONFIDENCE_LOW
+
+    def _is_excluded(self, schema: str, table: str) -> bool:
+        """Check if table should be excluded (temp tables, system schemas)."""
+        if schema.lower() in self.EXCLUDED_SCHEMAS:
+            return True
+        if table.startswith('#') or table.startswith('@'):
+            return True
+        return False
+
+    def _identify_non_persistent_objects(self, ddl: str) -> Set[str]:
+        """
+        Identify non-persistent objects that should be excluded from lineage.
+
+        These are temporary objects that exist only during procedure execution
+        and should not appear in the final data lineage graph.
+
+        Returns:
+            Set of table names (without schema) that are non-persistent:
+            - CTEs (WITH ... AS) - Query-scoped temporary result sets
+            - Temp tables (#table) - Session-scoped temporary tables
+            - Table variables (@table TABLE) - Batch-scoped temporary tables
+
+        Design Decision: Lineage traces THROUGH temp objects to persistent tables.
+        Example: SourceTable → #TempTable → TargetTable = SourceTable → TargetTable
+        """
+        non_persistent = set()
+
+        # 1. CTEs (Common Table Expressions)
+        # Pattern: WITH cte_name AS (SELECT ...)
+        # Example: WITH ActiveCustomers AS (SELECT * FROM dbo.Customers WHERE active = 1)
+        cte_pattern = r'\bWITH\s+(\w+)\s+AS\s*\('
+        ctes = re.findall(cte_pattern, ddl, re.IGNORECASE)
+        non_persistent.update(ctes)
+
+        # Also handle multiple CTEs: WITH cte1 AS (...), cte2 AS (...), cte3 AS (...)
+        multi_cte_pattern = r',\s*(\w+)\s+AS\s*\('
+        multi_ctes = re.findall(multi_cte_pattern, ddl, re.IGNORECASE)
+        non_persistent.update(multi_ctes)
+
+        # 2. Temp tables (start with #)
+        # Example: CREATE TABLE #TempCustomers (id INT, name NVARCHAR(50))
+        # Note: Also handled by _is_excluded(), but captured here for logging
+        temp_pattern = r'#\w+'
+        temps = re.findall(temp_pattern, ddl)
+        non_persistent.update(temps)
+
+        # 3. Table variables
+        # Pattern: DECLARE @TableName TABLE (col1 INT, col2 VARCHAR(50))
+        # Example: DECLARE @Results TABLE (CustomerID INT, OrderCount INT)
+        table_var_pattern = r'\bDECLARE\s+@(\w+)\s+TABLE\b'
+        table_vars = re.findall(table_var_pattern, ddl, re.IGNORECASE)
+        non_persistent.update(table_vars)
+
+        return non_persistent
+
+    def _is_non_persistent(self, schema: str, table: str, non_persistent: Set[str]) -> bool:
+        """
+        Check if table is non-persistent (CTE, temp table, table variable).
+
+        Args:
+            schema: Schema name (may be empty for temp tables)
+            table: Table name
+            non_persistent: Set of known non-persistent object names
+
+        Returns:
+            True if object should be filtered out
+        """
+        # Check if table name matches non-persistent objects (case-insensitive)
+        if table.lower() in {name.lower() for name in non_persistent}:
+            return True
+
+        # Also check if starts with # or @ (redundant with _is_excluded, but defensive)
+        if table.startswith('#') or table.startswith('@'):
+            return True
+
+        return False
+
+    def _preprocess_ddl(self, ddl: str) -> str:
+        """
+        Preprocess DDL to make it parseable by SQLGlot/SQLLineage.
+
+        **Goal:** Extract only the core business logic (data movement statements)
+        and remove T-SQL specific syntax that breaks SQL parsers.
+
+        **Enhanced Strategy (2025-10-26):**
+        Focus on TRY block (business logic), remove CATCH/EXEC/post-COMMIT noise.
+        Result: +100% improvement in high-confidence parsing (4 SPs → 8 SPs at ≥0.85)
+
+        **Steps:**
+        1. Remove ANSI escape codes (terminal formatting)
+        2. Strip CREATE PROC header and parameter list
+        3. Convert T-SQL control flow to comments (BEGIN TRY → BEGIN /* TRY */)
+        4. Remove everything after COMMIT TRANSACTION (logging, cleanup)
+        5. Remove CATCH blocks, EXEC calls, DECLARE/SET statements
+        6. Normalize whitespace
+
+        Args:
+            ddl: Raw DDL from sys.sql_modules.definition
+
+        Returns:
+            Cleaned DDL ready for parser consumption
+        """
+        cleaned = ddl
+
+        # Step 1: Remove ANSI escape codes (e.g., \x1b[32m for green text)
+        # These appear in some DDL exports and break regex matching
+        cleaned = re.sub(r'\x1b\[[0-9;]+m', '', cleaned)
+        cleaned = re.sub(r'\[4m|\[0m', '', cleaned)
+
+        # Step 2: Remove CREATE PROC header (including parameter list)
+        # Pattern: CREATE PROC[EDURE] [schema].[name] @param1 type, @param2 type, ... AS BEGIN
+        # We only want the body (everything after AS BEGIN)
+        match = re.search(r'CREATE\s+PROC(?:EDURE)?\s+\[[^\]]+\]\.\[[^\]]+\].*?AS\s+BEGIN',
+                         cleaned, re.IGNORECASE | re.DOTALL)
+        if match:
+            cleaned = cleaned[match.end():]  # Keep only body
+            cleaned = re.sub(r'\s*END\s*$', '', cleaned, flags=re.IGNORECASE)  # Remove trailing END
+
+        # Step 3: Apply control flow removal
+        # Convert T-SQL specific BEGIN TRY/CATCH to comments so parser can still see structure
+        for pattern, replacement in self.CONTROL_FLOW_PATTERNS:
+            cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE | re.DOTALL)
+
+        # Step 4: Remove everything after COMMIT TRANSACTION
+        # Post-commit code is usually logging, cleanup, administrative tasks
+        # Not relevant for data lineage
+        commit_match = re.search(r'\bCOMMIT\s+TRANSACTION\b', cleaned, re.IGNORECASE)
+        if commit_match:
+            cleaned = cleaned[:commit_match.end()]
+            logger.debug("Removed post-COMMIT code (logging/cleanup)")
+
+        # Step 5: Apply enhanced removal patterns
+        # Remove CATCH blocks, EXEC calls, variable declarations
+        for pattern, replacement, flags in self.ENHANCED_REMOVAL_PATTERNS:
+            cleaned = re.sub(pattern, replacement, cleaned, flags=flags)
+
+        logger.debug(f"Preprocessing complete: {len(ddl)} → {len(cleaned)} chars ({100 * (len(ddl) - len(cleaned)) / len(ddl):.1f}% reduction)")
+
+        # Step 6: Normalize whitespace for cleaner parsing
+        cleaned = re.sub(r'\n\s*\n', '\n', cleaned)  # Remove blank lines
+        cleaned = re.sub(r'\s+', ' ', cleaned)        # Collapse multiple spaces
+
+        return cleaned.strip()
+
+    def _validate_preprocessing(self, original_ddl: str, cleaned_ddl: str) -> bool:
+        """
+        Validate that preprocessing didn't lose table references.
+
+        Phase 1 Safety Check: Ensure DECLARE pattern fix doesn't remove business logic.
+
+        Args:
+            original_ddl: Raw DDL before preprocessing
+            cleaned_ddl: DDL after preprocessing
+
+        Returns:
+            True if preprocessing is safe (no dependencies lost)
+            False if table references were removed (unsafe)
+        """
+        # Quick validation: Count table references before and after
+        original_sources, original_targets = self._regex_scan(original_ddl)
+        cleaned_sources, cleaned_targets = self._regex_scan(cleaned_ddl)
+
+        original_count = len(original_sources) + len(original_targets)
+        cleaned_count = len(cleaned_sources) + len(cleaned_targets)
+
+        if cleaned_count < original_count:
+            logger.warning(
+                f"Preprocessing removed table references! "
+                f"Original: {original_count} tables, "
+                f"Cleaned: {cleaned_count} tables. "
+                f"Lost: {original_count - cleaned_count}"
+            )
+            return False
+
+        return True
+
+    def _split_statements(self, sql: str) -> List[str]:
+        """Split SQL into statements on GO/semicolon."""
+        statements = []
+
+        # Split on GO
+        batches = re.split(r'\bGO\b', sql, flags=re.IGNORECASE)
+
+        for batch in batches:
+            batch = batch.strip()
+            if not batch:
+                continue
+
+            # Split on semicolons
+            parts = re.split(r';\s*(?=\S)', batch)
+
+            for part in parts:
+                part = part.strip()
+                if part and not part.startswith('--'):
+                    statements.append(part)
+
+        return statements
+
+    def _extract_from_ast(self, parsed: exp.Expression) -> Tuple[Set[str], Set[str]]:
+        """
+        Extract tables from SQLGlot AST.
+
+        Enhanced to handle SELECT INTO statements correctly:
+        - SELECT ... INTO #temp FROM source_table
+        - #temp is a target (temp table, filtered from lineage)
+        - source_table is a source (should be included)
+        """
+        sources = set()
+        targets = set()
+        select_into_targets = set()  # Track SELECT INTO temp tables separately
+
+        # STEP 1a: Extract SELECT INTO targets (temp tables only)
+        # Pattern: SELECT ... INTO #temp FROM ...
+        for select in parsed.find_all(exp.Select):
+            if select.args.get('into'):
+                # This is a SELECT INTO statement
+                into_node = select.args['into']
+
+                # Handle different node types for INTO clause
+                # SQLGlot wraps INTO in exp.Into object
+                if isinstance(into_node, exp.Into):
+                    # Extract table from Into.this
+                    into_table = into_node.this
+                    if isinstance(into_table, exp.Table):
+                        name = self._get_table_name(into_table)
+                    else:
+                        name = None
+                elif isinstance(into_node, exp.Table):
+                    name = self._get_table_name(into_node)
+                elif isinstance(into_node, exp.Schema):
+                    # Schema wraps table (bracketed identifiers)
+                    if into_node.this and isinstance(into_node.this, exp.Table):
+                        name = self._get_table_name(into_node.this)
+                    else:
+                        name = None
+                else:
+                    name = None
+
+                # Track ALL SELECT INTO targets separately
+                # Key insight: SELECT INTO #temp FROM source_table
+                # - #temp is a target (will be filtered by _is_excluded later)
+                # - source_table is a source (should NOT be excluded)
+                if name:
+                    select_into_targets.add(name)
+                    # Also add to targets (temp tables will be filtered by _is_excluded later)
+                    targets.add(name)
+
+        # STEP 1b: Extract DML targets (INSERT, UPDATE, MERGE, DELETE)
+        for insert in parsed.find_all(exp.Insert):
+            name = self._extract_dml_target(insert.this)
+            if name:
+                targets.add(name)
+
+        for update in parsed.find_all(exp.Update):
+            name = self._extract_dml_target(update.this)
+            if name:
+                targets.add(name)
+
+        for merge in parsed.find_all(exp.Merge):
+            name = self._extract_dml_target(merge.this)
+            if name:
+                targets.add(name)
+
+        for delete in parsed.find_all(exp.Delete):
+            name = self._extract_dml_target(delete.this)
+            if name:
+                targets.add(name)
+
+        # STEP 1c: Extract TRUNCATE targets (v3.5.0 - 2025-10-28)
+        # Issue: spLoadGLCognosData missing outputs due to TRUNCATE not being captured
+        # TRUNCATE TABLE [schema].[table] is a DML operation that clears table data
+        # Syntax: TRUNCATE TABLE target → target is the table being truncated
+        for truncate in parsed.find_all(exp.TruncateTable):
+            # TruncateTable.this contains the table node (similar to DELETE/UPDATE)
+            if truncate.this:
+                name = self._extract_dml_target(truncate.this)
+                if name:
+                    targets.add(name)
+
+        # STEP 2: Extract sources (FROM, JOIN) - with self-reference support (v3.6.0 - 2025-10-28)
+        # Issue #2: Self-referencing pattern where SP writes to table then reads from it
+        # Previous logic: Excluded ALL targets from sources globally (across entire SP)
+        # New logic: Allow self-references for staging patterns (INSERT → SELECT → INSERT)
+        #
+        # Simplified approach:
+        # - Include ALL tables found in FROM/JOIN clauses
+        # - Don't exclude targets (allow self-references)
+        # - Exception: Temp tables from SELECT INTO should still be excluded
+
+        for table in parsed.find_all(exp.Table):
+            name = self._get_table_name(table)
+            if name:
+                # Only skip temp tables that are SELECT INTO targets
+                # These are internal and shouldn't appear as dependencies
+                if name in select_into_targets:
+                    continue
+
+                sources.add(name)
+
+        return sources, targets
+
+    def _extract_dml_target(self, target_node) -> Optional[str]:
+        """
+        Extract target table from DML statement (INSERT/UPDATE/MERGE/DELETE).
+
+        Handles both:
+        - exp.Table: Direct table reference
+        - exp.Schema: Wrapped table (happens with bracketed identifiers like [ADMIN].Logs)
+        """
+        if isinstance(target_node, exp.Table):
+            # Direct table reference
+            return self._get_table_name(target_node)
+
+        elif isinstance(target_node, exp.Schema):
+            # Schema wraps the table (happens with bracketed identifiers)
+            # Schema structure: Schema.this = Table
+            if target_node.this and isinstance(target_node.this, exp.Table):
+                return self._get_table_name(target_node.this)
+
+        return None
+
+    def _get_table_name(self, table: exp.Table) -> Optional[str]:
+        """Extract schema.table from Table node."""
+        try:
+            name = table.name
+            if not name:
+                return None
+
+            name = name.strip('[]')
+            schema = table.db if table.db else 'dbo'
+            schema = schema.strip('[]')
+
+            return f"{schema}.{name}"
+        except Exception:
+            return None
+
+    def _get_object_catalog(self) -> Set[str]:
+        """
+        Get set of valid object names from workspace.
+
+        Includes Tables, Views, and Stored Procedures.
+        Stored Procedures added in v3.8.0 for SP-to-SP dependency validation.
+        """
+        if self._object_catalog is None:
+            query = """
+                SELECT schema_name || '.' || object_name
+                FROM objects
+                WHERE object_type IN ('Table', 'View', 'Stored Procedure')
+            """
+            results = self.workspace.query(query)
+            self._object_catalog = {row[0] for row in results}
+
+        return self._object_catalog
+
+    def _get_object_type(self, object_name: str) -> Optional[str]:
+        """
+        Get object type for a qualified object name.
+
+        Used for selective merge: Only add Stored Procedures from regex,
+        not tables (regex has false positives for tables).
+
+        Args:
+            object_name: Fully qualified name (schema.object_name)
+
+        Returns:
+            Object type ('Table', 'View', 'Stored Procedure') or None if not found
+
+        Example:
+            >>> _get_object_type('dbo.spProcessOrders')
+            'Stored Procedure'
+        """
+        parts = object_name.split('.')
+        if len(parts) != 2:
+            return None
+
+        schema, obj_name = parts
+
+        try:
+            from lineage_v3.utils.validators import sanitize_identifier
+            schema = sanitize_identifier(schema)
+            obj_name = sanitize_identifier(obj_name)
+        except (ValueError, ImportError):
+            return None
+
+        query = """
+        SELECT object_type
+        FROM objects
+        WHERE LOWER(schema_name) = LOWER(?)
+          AND LOWER(object_name) = LOWER(?)
+        """
+
+        results = self.workspace.query(query, params=[schema, obj_name])
+        return results[0][0] if results else None
+
+    def _validate_against_catalog(self, table_names: Set[str]) -> Set[str]:
+        """Only return tables that exist in database."""
+        catalog = self._get_object_catalog()
+        validated = set()
+
+        for name in table_names:
+            if name in catalog:
+                validated.add(name)
+            else:
+                # Try case-insensitive match
+                name_lower = name.lower()
+                for catalog_name in catalog:
+                    if catalog_name.lower() == name_lower:
+                        validated.add(catalog_name)
+                        break
+
+        return validated
+
+    def _fetch_ddl(self, object_id: int) -> Optional[str]:
+        """Fetch DDL from workspace."""
+        validated_id = validate_object_id(object_id)
+
+        query = """
+        SELECT definition
+        FROM definitions
+        WHERE object_id = ?
+        """
+
+        results = self.workspace.query(query, params=[validated_id])
+        return results[0][0] if results else None
+
+    def _resolve_table_names(self, table_names: Set[str]) -> List[int]:
+        """Resolve table names to object_ids."""
+        if not table_names:
+            return []
+
+        object_ids = []
+
+        for name in table_names:
+            parts = name.split('.')
+            if len(parts) != 2:
+                continue
+
+            schema, obj_name = parts
+
+            try:
+                schema = sanitize_identifier(schema)
+                obj_name = sanitize_identifier(obj_name)
+            except ValueError:
+                continue
+
+            query = """
+            SELECT object_id
+            FROM objects
+            WHERE LOWER(schema_name) = LOWER(?)
+              AND LOWER(object_name) = LOWER(?)
+            """
+
+            results = self.workspace.query(query, params=[schema, obj_name])
+            if results:
+                object_ids.append(results[0][0])
+
+        return object_ids
+
+    def _get_object_info(self, object_id: int) -> Optional[Dict[str, str]]:
+        """
+        Get object schema and name from workspace.
+
+        Args:
+            object_id: Object ID to lookup
+
+        Returns:
+            Dict with 'schema' and 'name' keys, or None if not found
+        """
+        try:
+            query = """
+                SELECT schema_name, object_name
+                FROM objects
+                WHERE object_id = ?
+            """
+            result = self.workspace.connection.execute(query, [object_id]).fetchone()
+
+            if result:
+                return {'schema': result[0], 'name': result[1]}
+            return None
+
+        except Exception as e:
+            logger.error(f"Failed to get object info for {object_id}: {e}")
+            return None
+
+    def _extract_ambiguous_references(
+        self,
+        ddl: str,
+        regex_sources: Set[str],
+        regex_targets: Set[str]
+    ) -> List[Dict[str, Any]]:
+        """
+        Extract ambiguous table references (unqualified names) from DDL.
+
+        An ambiguous reference is a table name without schema qualification
+        that could refer to multiple tables in different schemas.
+
+        Args:
+            ddl: SQL DDL text
+            regex_sources: Set of qualified source tables from regex scan
+            regex_targets: Set of qualified target tables from regex scan
+
+        Returns:
+            List of dicts with 'reference' (unqualified name) and 'candidates' (possible matches)
+        """
+        ambiguous = []
+
+        # Pattern to find unqualified table references (single identifier, not schema.table)
+        # Look for FROM/JOIN/INSERT/UPDATE/MERGE followed by single identifier
+        unqualified_pattern = r'\b(?:FROM|JOIN|INSERT\s+INTO|UPDATE|MERGE)\s+(\w+)\b'
+
+        matches = re.findall(unqualified_pattern, ddl, re.IGNORECASE)
+
+        for unqualified_name in set(matches):  # Deduplicate
+            # Skip temp tables and table variables
+            if unqualified_name.startswith('#') or unqualified_name.startswith('@'):
+                continue
+
+            # Find candidate tables from catalog
+            candidates = self._find_candidate_tables(unqualified_name)
+
+            if len(candidates) > 1:  # Only ambiguous if multiple candidates
+                ambiguous.append({
+                    'reference': unqualified_name,
+                    'candidates': candidates
+                })
+
+        logger.debug(f"Found {len(ambiguous)} ambiguous references in DDL")
+        return ambiguous
+
+    def _find_candidate_tables(self, table_name: str) -> List[str]:
+        """
+        Find all candidate tables matching an unqualified table name.
+
+        Args:
+            table_name: Unqualified table name (e.g., "DimAccount")
+
+        Returns:
+            List of fully-qualified table names (schema.table)
+        """
+        try:
+            query = """
+                SELECT schema_name, object_name
+                FROM objects
+                WHERE LOWER(object_name) = LOWER(?)
+                  AND object_type = 'Table'
+                ORDER BY schema_name
+            """
+            results = self.workspace.connection.execute(query, [table_name]).fetchall()
+
+            return [f"{schema}.{name}" for schema, name in results]
+
+        except Exception as e:
+            logger.error(f"Failed to find candidates for {table_name}: {e}")
+            return []
+
+    def get_parse_statistics(self) -> Dict[str, Any]:
+        """Get parser statistics."""
+        query = """
+        SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN confidence >= 0.85 THEN 1 ELSE 0 END) as high_conf,
+            SUM(CASE WHEN confidence >= 0.75 AND confidence < 0.85 THEN 1 ELSE 0 END) as med_conf,
+            SUM(CASE WHEN confidence > 0 AND confidence < 0.75 THEN 1 ELSE 0 END) as low_conf,
+            SUM(CASE WHEN confidence = 0 THEN 1 ELSE 0 END) as failed
+        FROM lineage_metadata
+        WHERE primary_source = 'parser'
+        """
+
+        results = self.workspace.query(query)
+        if not results:
+            return {}
+
+        row = results[0]
+        total = row[0]
+
+        return {
+            'total_parsed': total,
+            'high_confidence': row[1],
+            'medium_confidence': row[2],
+            'low_confidence': row[3],
+            'failed': row[4],
+            'success_rate': (total - row[4]) / total * 100 if total > 0 else 0
+        }
+
+    # ============================================================================
+    # PUBLIC EVALUATION WRAPPERS (for sub_DL_OptimizeParsing subagent)
+    # ============================================================================
+    # These methods expose internal parsing logic for evaluation purposes.
+    # They do NOT affect production parsing behavior.
+
+    def extract_regex_dependencies(self, ddl: str) -> Dict[str, Any]:
+        """
+        Public wrapper for regex extraction (used by evaluation subagent).
+
+        Runs regex pattern matching to extract table dependencies.
+        This is the baseline method used for quality checking.
+
+        Args:
+            ddl: SQL DDL text
+
+        Returns:
+            {
+                'sources': Set[str],           # Raw schema.table names found
+                'targets': Set[str],           # Raw schema.table names found
+                'sources_validated': Set[str], # After catalog validation
+                'targets_validated': Set[str], # After catalog validation
+                'sources_count': int,
+                'targets_count': int
+            }
+        """
+        # Use existing internal regex scan
+        sources, targets = self._regex_scan(ddl)
+
+        # Validate against catalog (same as production)
+        sources_validated = self._validate_against_catalog(sources)
+        targets_validated = self._validate_against_catalog(targets)
+
+        return {
+            'sources': sources,
+            'targets': targets,
+            'sources_validated': sources_validated,
+            'targets_validated': targets_validated,
+            'sources_count': len(sources_validated),
+            'targets_count': len(targets_validated)
+        }
+
+    def extract_sqlglot_dependencies(self, ddl: str) -> Dict[str, Any]:
+        """
+        Public wrapper for SQLGlot extraction (used by evaluation subagent).
+
+        Runs SQLGlot AST parsing with preprocessing.
+        Includes quality check metrics (comparison to regex baseline).
+
+        Args:
+            ddl: SQL DDL text
+
+        Returns:
+            {
+                'sources': Set[str],
+                'targets': Set[str],
+                'sources_validated': Set[str],
+                'targets_validated': Set[str],
+                'sources_count': int,
+                'targets_count': int,
+                'quality_check': {
+                    'regex_sources': int,
+                    'regex_targets': int,
+                    'parser_sources': int,
+                    'parser_targets': int,
+                    'source_match': float,
+                    'target_match': float,
+                    'overall_match': float,
+                    'needs_ai': bool
+                }
+            }
+        """
+        # Preprocess DDL (same as production)
+        cleaned_ddl = self._preprocess_ddl(ddl)
+
+        # Parse with SQLGlot
+        sources, targets = self._sqlglot_parse(cleaned_ddl, ddl)
+
+        # Validate against catalog
+        sources_validated = self._validate_against_catalog(sources)
+        targets_validated = self._validate_against_catalog(targets)
+
+        # Run quality check (compare to regex baseline)
+        regex_result = self.extract_regex_dependencies(ddl)
+        quality = self._calculate_quality(
+            len(regex_result['sources_validated']),
+            len(regex_result['targets_validated']),
+            len(sources_validated),
+            len(targets_validated)
+        )
+
+        return {
+            'sources': sources,
+            'targets': targets,
+            'sources_validated': sources_validated,
+            'targets_validated': targets_validated,
+            'sources_count': len(sources_validated),
+            'targets_count': len(targets_validated),
+            'quality_check': quality
+        }

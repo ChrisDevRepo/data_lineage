@@ -17,7 +17,7 @@ sleep 1
 # Start Backend (FastAPI)
 echo "🔧 Starting Backend API on port 8000..."
 cd /home/chris/sandbox/api
-source /home/chris/sandbox/venv/bin/activate
+source ../venv/bin/activate
 nohup python main.py > /tmp/backend.log 2>&1 &
 BACKEND_PID=$!
 echo "   ✅ Backend started (PID: $BACKEND_PID)"
@@ -64,7 +64,7 @@ echo "   • Backend: tail -f /tmp/backend.log"
 echo "   • Frontend: tail -f /tmp/frontend.log"
 echo ""
 echo "🛑 Stop Services:"
-echo "   • Run: /home/chris/sandbox/stop-app.sh"
+echo "   • Run: stop-app.sh"
 echo "   • Or: kill $BACKEND_PID $FRONTEND_PID"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""

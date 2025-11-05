@@ -35,41 +35,7 @@ interface FilterOptions {
   objectTypes: string[];
 }
 
-// Helper function to highlight search terms in text
-function highlightMatches(text: string, searchQuery: string): React.ReactNode {
-  if (!searchQuery.trim() || !text) return text;
-
-  // Extract search terms (split by spaces, ignore operators like AND, OR, NOT)
-  const operators = ['AND', 'OR', 'NOT'];
-  const terms = searchQuery
-    .split(/\s+/)
-    .filter(term => {
-      const upperTerm = term.toUpperCase();
-      return term.length > 0 && !operators.includes(upperTerm) && !term.startsWith('"') && !term.endsWith('"');
-    })
-    .map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')); // Escape regex special chars
-
-  if (terms.length === 0) return text;
-
-  // Create regex pattern to match any of the search terms (case-insensitive)
-  const pattern = new RegExp(`(${terms.join('|')})`, 'gi');
-  const parts = text.split(pattern);
-
-  return parts.map((part, index) => {
-    // Check if this part matches any search term
-    if (terms.some(term => new RegExp(`^${term}$`, 'i').test(part))) {
-      return (
-        <mark key={index} className="bg-yellow-200 px-0.5 rounded">
-          {part}
-        </mark>
-      );
-    }
-    return <span key={index}>{part}</span>;
-  });
-}
-
-// OPTIMIZATION: Memoize to prevent unnecessary re-renders
-export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({ isOpen, allData, onClose }) => {
+export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, allData, onClose }) => {
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -78,28 +44,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({
   const [ddlText, setDdlText] = useState<string | null>(null);
   const [isLoadingDdl, setIsLoadingDdl] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Helper function to highlight matched text
-  const highlightMatches = (text: string, query: string): React.ReactNode => {
-    if (!query || query.trim().length < 5) return text;
-
-    try {
-      // Escape special regex characters in the query
-      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`(${escapedQuery})`, 'gi');
-      const parts = text.split(regex);
-
-      return parts.map((part, index) => {
-        if (regex.test(part)) {
-          return <mark key={index} className="bg-yellow-200 text-gray-900 font-semibold">{part}</mark>;
-        }
-        return part;
-      });
-    } catch (error) {
-      console.error('Error highlighting matches:', error);
-      return text;
-    }
-  };
 
   // Resize state - default to 25% for top panel
   const [topPanelHeight, setTopPanelHeight] = useState(25);
@@ -200,7 +144,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({
   // Debounced search function
   const debouncedSearch = useMemo(
     () => debounce(async (query: string, schemas: Set<string>, objectTypes: Set<string>) => {
-      if (!query.trim() || query.trim().length < 5) {
+      if (!query.trim()) {
         setResults([]);
         setIsSearching(false);
         return;
@@ -241,9 +185,9 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({
     []
   );
 
-  // Trigger search when query or filters change (minimum 5 characters)
+  // Trigger search when query or filters change
   useEffect(() => {
-    if (searchQuery.trim() && searchQuery.trim().length >= 5) {
+    if (searchQuery.trim()) {
       setIsSearching(true);
       debouncedSearch(searchQuery, selectedSchemas, selectedObjectTypes);
     } else {
@@ -304,6 +248,89 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, () => {
       editor.getAction('actions.find').run();
     });
+  };
+
+  // Note: Automatic Monaco find widget activation is not reliable
+  // Users can manually press Ctrl+F to search within the DDL viewer
+
+  // Highlight matching text in search results
+  const highlightText = (text: string, query: string) => {
+    if (!query.trim()) {
+      return text;
+    }
+
+    // Check if the text already contains <mark> tags from backend snippet
+    if (text.includes('<mark>') && text.includes('</mark>')) {
+      // Parse the HTML and render with proper highlighting
+      const parts: JSX.Element[] = [];
+      let lastIndex = 0;
+      const markRegex = /<mark>(.*?)<\/mark>/g;
+      let match;
+      let key = 0;
+
+      while ((match = markRegex.exec(text)) !== null) {
+        // Add text before the match
+        if (match.index > lastIndex) {
+          parts.push(<span key={key++}>{text.substring(lastIndex, match.index)}</span>);
+        }
+        // Add the highlighted match
+        parts.push(
+          <mark key={key++} className="bg-yellow-200 text-gray-900 font-semibold px-0.5 rounded">
+            {match[1]}
+          </mark>
+        );
+        lastIndex = match.index + match[0].length;
+      }
+
+      // Add remaining text
+      if (lastIndex < text.length) {
+        parts.push(<span key={key++}>{text.substring(lastIndex)}</span>);
+      }
+
+      return <>{parts}</>;
+    }
+
+    // Fallback: client-side highlighting for object names
+    // Remove boolean operators and quotes for highlighting
+    const cleanQuery = query.replace(/\b(AND|OR|NOT)\b/gi, '')
+      .replace(/["']/g, '')
+      .trim();
+
+    if (!cleanQuery) return text;
+
+    // Split by whitespace, asterisks, AND underscores/numbers to get word parts
+    // This allows "DimCustomers_0" to highlight "DimCustomers"
+    const terms = cleanQuery.split(/[\s*_\d]+/).filter(term => term.length > 2);
+
+    if (terms.length === 0) return text;
+
+    // Escape special regex characters for each term
+    const escapedTerms = terms.map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+
+    // Create regex pattern that matches any of the terms (case-insensitive)
+    const pattern = new RegExp(`(${escapedTerms.join('|')})`, 'gi');
+
+    // Split text by matches while preserving the matched terms
+    const parts = text.split(pattern);
+
+    return (
+      <>
+        {parts.map((part, index) => {
+          if (!part) return null; // Skip empty parts
+
+          // Check if this part matches any search term (case-insensitive)
+          const isMatch = terms.some(term => part.toLowerCase() === term.toLowerCase());
+
+          return isMatch ? (
+            <mark key={index} className="bg-yellow-200 text-gray-900 font-semibold px-0.5 rounded">
+              {part}
+            </mark>
+          ) : (
+            <span key={index}>{part}</span>
+          );
+        })}
+      </>
+    );
   };
 
   // Get icon by object type
@@ -369,7 +396,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({
             </svg>
             <input
               type="text"
-              placeholder="Search DDL definitions (min. 5 characters)..."
+              placeholder="Search DDL definitions..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
@@ -565,13 +592,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({
               </div>
             )}
 
-            {searchQuery.trim() && searchQuery.trim().length < 5 && results.length === 0 && !error && (
-              <div className="text-center text-gray-500 py-8 text-sm">
-                Type at least 5 characters to start searching... ({searchQuery.trim().length}/5)
-              </div>
-            )}
-
-            {searchQuery.trim() && searchQuery.trim().length >= 5 && results.length === 0 && !isSearching && !error && (
+            {searchQuery.trim() && results.length === 0 && !isSearching && !error && (
               <div className="text-center text-gray-500 py-8 text-sm">
                 No matches found for "{searchQuery}"
               </div>
@@ -594,7 +615,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({
                     </svg>
                   )}
                   <span className="text-gray-600">{getObjectIcon(result.type)}</span>
-                  <span className="text-sm font-medium text-gray-800">{highlightMatches(result.name, searchQuery)}</span>
+                  <span className="text-sm font-medium text-gray-800">{highlightText(result.name, searchQuery)}</span>
                   <span className="text-xs text-gray-500 ml-auto">
                     (score: {result.score.toFixed(2)})
                   </span>
@@ -604,17 +625,11 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({
                 </div>
                 {result.snippet && (
                   <div
-                    className={`text-xs text-gray-500 mt-1 italic overflow-hidden ${
+                    className={`text-xs text-gray-500 mt-1 italic overflow-hidden text-ellipsis whitespace-nowrap ${
                       selectedResult?.id === result.id ? 'ml-8' : 'ml-6'
                     }`}
-                    style={{
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden'
-                    }}
                   >
-                    ...{highlightMatches(result.snippet, searchQuery)}...
+                    ...{highlightText(result.snippet, searchQuery)}...
                   </div>
                 )}
               </div>
@@ -725,4 +740,4 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = React.memo(({
       </style>
     </>
   );
-});
+};

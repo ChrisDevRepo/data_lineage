@@ -135,8 +135,8 @@ EVALUATION_INDEXES = """
     CREATE INDEX IF NOT EXISTS idx_eval_run_timestamp ON evaluation_history(run_id);
     CREATE INDEX IF NOT EXISTS idx_eval_object ON evaluation_history(object_id);
     CREATE INDEX IF NOT EXISTS idx_eval_best_confidence ON evaluation_history(best_confidence);
-    CREATE INDEX IF NOT EXISTS idx_eval_below_goal ON evaluation_history(meets_goal) WHERE meets_goal = FALSE;
-    CREATE INDEX IF NOT EXISTS idx_eval_ddl_changed ON evaluation_history(ddl_changed) WHERE ddl_changed = TRUE;
+    CREATE INDEX IF NOT EXISTS idx_eval_below_goal ON evaluation_history(meets_goal);
+    CREATE INDEX IF NOT EXISTS idx_eval_ddl_changed ON evaluation_history(ddl_changed);
 """
 
 BASELINE_CHANGE_LOG_SCHEMA = """

@@ -740,7 +740,7 @@ CREATE TABLE baseline_change_log (
 ## File Structure
 
 ```
-/home/chris/sandbox/
+
 ├── evaluation/                          # NEW - Subagent code
 │   ├── __init__.py                      # Package init
 │   ├── baseline_manager.py              # Baseline CRUD operations

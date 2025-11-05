@@ -1,8 +1,8 @@
 # Data Lineage Parser Specification
 
-**Version:** 3.0
-**Parser Version:** v3.7.0 (Production)
-**Last Updated:** 2025-11-01
+**Version:** 3.1
+**Parser Version:** v3.8.0 (Production)
+**Last Updated:** 2025-11-02
 
 ## 1. Objective
 
@@ -66,11 +66,23 @@ Parquet Files → DuckDB Workspace (persistent)
 ### Step 1: DMV Baseline (Confidence: 1.0)
 Load `dependencies.parquet` → Create primary lineage from system metadata
 
-### Step 2: SQLGlot Parsing (Confidence: 0.85 or 0.50)
+### Step 2: SQLGlot Parsing + Selective Merge (Confidence: 0.85 or 0.50)
 For stored procedures:
 - Parse DDL using SQLGlot AST traversal
 - Extract table references (FROM, JOIN, INSERT, UPDATE, MERGE, TRUNCATE)
-- Resolve table names to `object_id` via DuckDB lookup
+- **NEW in v3.8.0:** Extract SP-to-SP dependencies via regex (EXEC statements)
+  - SQLGlot treats `EXEC` as Command expressions (can't extract dependencies semantically)
+  - Regex pattern: `\bEXEC(?:UTE)?\s+\[?(\w+)\]?\.\[?(\w+)\]?`
+  - **Selective Merge Strategy:**
+    - Tables/Views: Use SQLGlot only (accurate AST parsing)
+    - Stored Procedures: Add from regex if missing (SQLGlot can't handle EXEC)
+  - **Utility SP Filtering:** Exclude non-data-lineage SPs from tracking
+    - **Logging SPs:** `LogMessage`, `LogError`, `LogInfo`, `LogWarning` (administrative only)
+    - **Utility SPs:** `spLastRowCount` (queries system DMVs, no data flow)
+    - **Why Filtered:** Would add ~682 noise edges to lineage graph
+    - **Implementation:** Case-insensitive filter in `EXCLUDED_UTILITY_SPS` constant
+    - **Example:** `EXEC LogMessage @msg` → Not tracked as dependency
+- Resolve table/SP names to `object_id` via DuckDB lookup
 - Assign confidence: 0.85 (successful parse) or 0.50 (regex fallback)
 
 ### Step 3: AI Fallback (Confidence: 0.85-0.95)
@@ -162,7 +174,9 @@ String IDs for React Flow:
 }
 ```
 
-**Note:** `ddl_text` field is **NOT included** (fetched on-demand via API for scalability).
+**Note:** `ddl_text` field is **conditionally included**:
+- CLI output: Embedded in `frontend_lineage.json` (default)
+- API output: Fetched on-demand via `/api/ddl/{object_id}` for scalability
 
 ---
 
@@ -186,14 +200,9 @@ String IDs for React Flow:
 - Triggers
 - Serverless SQL Pools
 - Temp tables (#temp)
+- **Utility/Logging SPs:** Intentionally excluded from lineage (see Step 2)
+  - `LogMessage`, `LogError`, `LogInfo`, `LogWarning`
+  - `spLastRowCount`
+  - Custom utility SPs can be added to `EXCLUDED_UTILITY_SPS`
 
 ---
-
-## 9. Performance Targets
-
-**Current (v3.7.0):**
-- Total SPs: 202
-- High Confidence (≥0.85): 163 (80.7%)
-- Average Confidence: 0.800
-
-**Industry Comparison:** 2x better than typical T-SQL parsers (30-40% high-confidence rate)
