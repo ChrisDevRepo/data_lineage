@@ -13,11 +13,41 @@ type LayoutProps = {
 
 export const patternToRegex = (pattern: string) => new RegExp('^' + pattern.replace(/\*/g, '.*') + '$', 'i');
 
+// Layout cache to avoid recalculating unchanged layouts
+const layoutCache = new Map<string, { nodes: ReactFlowNode[]; edges: Edge[] }>();
+
+// Generate cache key from node IDs and layout direction
+const getCacheKey = (nodeIds: string[], layout: 'TB' | 'LR'): string => {
+    return `${layout}:${nodeIds.sort().join(',')}`;
+};
+
 export const getDagreLayoutedElements = (props: LayoutProps) => {
     const startTime = Date.now();
     const { data, layout, schemaColorMap, lineageGraph, isTraceModeActive } = props;
 
     if (data.length === 0) return { nodes: [], edges: [] };
+
+    // Check cache first (for datasets >300 nodes)
+    const nodeIds = data.map(n => n.id);
+    const cacheKey = getCacheKey(nodeIds, layout);
+    if (data.length > 300 && layoutCache.has(cacheKey)) {
+        const cached = layoutCache.get(cacheKey)!;
+        console.log(`[Performance] Layout retrieved from cache (${data.length} nodes)`);
+        // Still need to update node data with latest colors and properties
+        return {
+            nodes: cached.nodes.map(n => {
+                const nodeData = data.find(d => d.id === n.id);
+                return {
+                    ...n,
+                    data: { ...nodeData, schemaColor: schemaColorMap.get(nodeData!.schema) }
+                };
+            }),
+            edges: cached.edges.map(e => ({
+                ...e,
+                animated: isTraceModeActive
+            }))
+        };
+    }
 
     const visibleNodeIds = new Set(data.map(n => n.id));
 
@@ -62,9 +92,10 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
 
     dagre.layout(g);
 
-    console.log(`[Performance] Layout calculated in ${Date.now() - startTime}ms (${initialNodes.length} nodes, ${initialEdges.length} edges)`);
+    const layoutTime = Date.now() - startTime;
+    console.log(`[Performance] Layout calculated in ${layoutTime}ms (${initialNodes.length} nodes, ${initialEdges.length} edges)`);
 
-    return {
+    const result = {
         nodes: initialNodes.map((node) => {
             const nodeWithPosition = g.node(node.id);
             const isHorizontal = layout === 'LR';
@@ -78,4 +109,16 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
         }),
         edges: initialEdges,
     };
+
+    // Cache the result for large datasets
+    if (data.length > 300) {
+        layoutCache.set(cacheKey, result);
+        // Limit cache size to prevent memory issues (keep last 10 layouts)
+        if (layoutCache.size > 10) {
+            const firstKey = layoutCache.keys().next().value;
+            layoutCache.delete(firstKey);
+        }
+    }
+
+    return result;
 };

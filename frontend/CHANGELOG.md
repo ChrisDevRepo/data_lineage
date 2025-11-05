@@ -4,6 +4,77 @@ All notable changes to the frontend application will be documented in this file.
 
 ---
 
+## [2.9.4] - 2025-11-04
+
+### ✨ Schema & Type Filter Enhancements
+
+#### **Changes**
+1. **Select All / Deselect All Buttons**
+   - Added "Select All" and "Deselect All" buttons to schema filter dropdown
+   - Added "Select All" and "Deselect All" buttons to type filter dropdown
+   - Buttons appear at the top of each dropdown with clear visual separation
+   - **Benefit**: Quickly toggle all schemas/types without individual clicking
+
+2. **Improved Color Brightness**
+   - Adjusted color families to have tighter brightness range (70% → 50% → 35%)
+   - **Before**: Very light (80-90%) → Medium (50-60%) → Very dark (30-40%)
+   - **After**: Light (70%) → Medium (50%) → Dark (35%)
+   - **Benefit**: Better visual cohesion within each color family
+
+3. **Fixed STARTUP Color Family**
+   - Changed from pastel pink to true coral (red-orange hue ~15°)
+   - **Before**: `#FFB3B3` (appeared pink)
+   - **After**: `#FFB399` (true coral)
+   - All STARTUP schemas now maintain consistent coral hue with different brightness
+
+#### **Files Modified**
+- `frontend/components/Toolbar.tsx` - Added Select All/Deselect All buttons
+- `frontend/utils/schemaColors.ts` - Updated brightness levels and color families
+
+---
+
+## [2.9.3] - 2025-11-04
+
+### 🎨 Smart Schema Color Assignment
+
+#### **Changes**
+1. **Intelligent Color Grouping by Layer** 🚀
+   - Related schemas (same department, different layers) now share color families
+   - **Pattern**: STAGING → Light, TRANSFORMATION → Medium, CONSUMPTION → Dark
+   - **Example**:
+     - `STAGING_EnterpriseMetrics` → Light Yellow (#F1CE63)
+     - `TRANSFORMATION_EnterpriseMetrics` → Medium Yellow (#EDC948)
+     - `CONSUMPTION_EnterpriseMetrics` → Dark Yellow (#BCBD22)
+   - **Benefit**: Visual hierarchy shows data flow from staging to consumption
+
+2. **Color Families** (10 families, 3 shades each = 30 colors)
+   - Blue, Orange, Red, Teal, Green, Yellow, Purple, Pink, Brown, Gray
+   - Each family has Light (STAGING), Medium (TRANSFORMATION), Dark (CONSUMPTION) variants
+   - Schemas without layer prefix get medium shade
+
+3. **Examples of Smart Grouping**
+   - **STARTUP Pipeline**:
+     - STAGING_STARTUP → Light Pink (#FFC2CD)
+     - TRANSFORMATION_STARTUP → Medium Pink (#FF9DA7)
+     - CONSUMPTION_STARTUP → Dark Pink (#E377C2)
+   - **PRIMA Pipeline**:
+     - STAGING_PRIMA → Light Orange (#FFBE7D)
+     - CONSUMPTION_PRIMA → Dark Orange (#FF7F0E)
+
+#### **Files Modified**
+- `frontend/utils/schemaColors.ts` - NEW: Smart color assignment logic
+- `frontend/hooks/useGraphology.ts` - Updated to use createSchemaColorMap()
+- `frontend/constants.ts` - Expanded SCHEMA_PALETTE to 30 colors (kept for backward compatibility)
+- `frontend/design-tokens.ts` - Updated schema.colors array
+
+#### **Technical Details**
+- Parses schema names to extract layer (STAGING/TRANSFORMATION/CONSUMPTION) and base name
+- Groups schemas by base name (department/domain)
+- Assigns color family to each group
+- Automatically handles up to 30 schemas with smart grouping
+
+---
+
 ## [2.9.2] - 2025-11-04
 
 ### 🎨 UI Simplification & Enhancement

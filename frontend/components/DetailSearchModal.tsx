@@ -45,6 +45,28 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
   const [isLoadingDdl, setIsLoadingDdl] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function to highlight matched text
+  const highlightMatches = (text: string, query: string): React.ReactNode => {
+    if (!query || query.trim().length < 5) return text;
+
+    try {
+      // Escape special regex characters in the query
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`(${escapedQuery})`, 'gi');
+      const parts = text.split(regex);
+
+      return parts.map((part, index) => {
+        if (regex.test(part)) {
+          return <mark key={index} className="bg-yellow-200 text-gray-900 font-semibold">{part}</mark>;
+        }
+        return part;
+      });
+    } catch (error) {
+      console.error('Error highlighting matches:', error);
+      return text;
+    }
+  };
+
   // Resize state - default to 25% for top panel
   const [topPanelHeight, setTopPanelHeight] = useState(25);
   const [isResizing, setIsResizing] = useState(false);
@@ -144,7 +166,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
   // Debounced search function
   const debouncedSearch = useMemo(
     () => debounce(async (query: string, schemas: Set<string>, objectTypes: Set<string>) => {
-      if (!query.trim()) {
+      if (!query.trim() || query.trim().length < 5) {
         setResults([]);
         setIsSearching(false);
         return;
@@ -185,9 +207,9 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     []
   );
 
-  // Trigger search when query or filters change
+  // Trigger search when query or filters change (minimum 5 characters)
   useEffect(() => {
-    if (searchQuery.trim()) {
+    if (searchQuery.trim() && searchQuery.trim().length >= 5) {
       setIsSearching(true);
       debouncedSearch(searchQuery, selectedSchemas, selectedObjectTypes);
     } else {
@@ -313,7 +335,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
             </svg>
             <input
               type="text"
-              placeholder="Search DDL definitions..."
+              placeholder="Search DDL definitions (min. 5 characters)..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               autoFocus
@@ -509,7 +531,13 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
               </div>
             )}
 
-            {searchQuery.trim() && results.length === 0 && !isSearching && !error && (
+            {searchQuery.trim() && searchQuery.trim().length < 5 && results.length === 0 && !error && (
+              <div className="text-center text-gray-500 py-8 text-sm">
+                Type at least 5 characters to start searching... ({searchQuery.trim().length}/5)
+              </div>
+            )}
+
+            {searchQuery.trim() && searchQuery.trim().length >= 5 && results.length === 0 && !isSearching && !error && (
               <div className="text-center text-gray-500 py-8 text-sm">
                 No matches found for "{searchQuery}"
               </div>
@@ -532,7 +560,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
                     </svg>
                   )}
                   <span className="text-gray-600">{getObjectIcon(result.type)}</span>
-                  <span className="text-sm font-medium text-gray-800">{result.name}</span>
+                  <span className="text-sm font-medium text-gray-800">{highlightMatches(result.name, searchQuery)}</span>
                   <span className="text-xs text-gray-500 ml-auto">
                     (score: {result.score.toFixed(2)})
                   </span>
@@ -546,7 +574,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
                       selectedResult?.id === result.id ? 'ml-8' : 'ml-6'
                     }`}
                   >
-                    ...{result.snippet}...
+                    ...{highlightMatches(result.snippet, searchQuery)}...
                   </div>
                 )}
               </div>

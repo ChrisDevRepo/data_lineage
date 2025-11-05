@@ -8,9 +8,42 @@
 
 ## Baseline Metrics (2025-11-04)
 
-### Current Parser Version: 4.1.2 (COMPLETED - 2025-11-04)
+### Current Parser Version: 4.1.3 (COMPLETED - 2025-11-04)
 
-**Latest Update (v4.1.2 - 2025-11-04): GLOBAL TARGET EXCLUSION FIX**
+**Latest Update (v4.1.3 - 2025-11-04): IF EXISTS/IF NOT EXISTS FILTERING**
+- **Critical Fix**: Eliminates circular dependencies from IF EXISTS/IF NOT EXISTS checks
+- **Problem**: Administrative IF EXISTS checks were treated as actual data dependencies
+- **Example Issue**:
+  ```sql
+  IF EXISTS (SELECT 1 FROM [dbo].[FactTable])
+      DELETE FROM [dbo].[FactTable];
+  ```
+  - Previously: FactTable appeared in BOTH inputs (from IF EXISTS) AND outputs (from DELETE) ❌
+  - Created false bidirectional/circular dependency
+- **Root Cause**: IF EXISTS/IF NOT EXISTS are control flow logic, NOT data lineage
+- **Solution**: Added preprocessing patterns to remove IF checks before parsing:
+  ```python
+  # Pattern 1: IF EXISTS (SELECT ... FROM Table)
+  (r'\bIF\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*', '-- IF EXISTS removed\n', re.IGNORECASE)
+
+  # Pattern 2: IF NOT EXISTS (SELECT ... FROM Table)
+  (r'\bIF\s+NOT\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*', '-- IF NOT EXISTS removed\n', re.IGNORECASE)
+  ```
+- **Pattern Features**: Balanced parentheses matching handles nested functions (COUNT(*), MAX(), etc.)
+- **Impact**:
+  - Eliminates ALL false bidirectional dependencies from existence checks
+  - Creates clean unidirectional lineage: SP → Table (writes only)
+  - Example: `spLoadFactLaborCostForEarnedValue` now shows table only in outputs, not inputs
+- **Verification**: All SPs writing to FactLaborCostForEarnedValue now show unidirectional lineage ✅
+- **Files Modified**:
+  - `lineage_v3/parsers/quality_aware_parser.py` (lines 150-165, ENHANCED_REMOVAL_PATTERNS)
+  - Fixed syntax warning (added raw string prefix to docstring)
+
+---
+
+### Parser Version: 4.1.2 (COMPLETED - 2025-11-04)
+
+**Update (v4.1.2 - 2025-11-04): GLOBAL TARGET EXCLUSION FIX**
 - **Critical Fix**: Eliminates false positive inputs from DML target tables
 - **Problem**: Multi-statement processing accumulated sources globally, but target exclusion was per-statement
 - **Root Cause**:

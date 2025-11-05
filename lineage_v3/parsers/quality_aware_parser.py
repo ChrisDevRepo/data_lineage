@@ -1,4 +1,4 @@
-"""
+r"""
 Quality-Aware SQLGlot Parser - Smart extraction with built-in QA
 ================================================================
 
@@ -13,10 +13,23 @@ Strategy:
 This gives us quality assurance built into the parser!
 
 Author: Vibecoding
-Version: 4.1.2 (Dataflow-Focused Lineage - SQLGlot Target Exclusion Fix)
+Version: 4.1.3 (Dataflow-Focused Lineage - IF EXISTS Administrative Query Filtering)
 Date: 2025-11-04
 
 Changelog:
+- v4.1.3 (2025-11-04): CRITICAL FIX - IF EXISTS/IF NOT EXISTS filtering
+    Fixed: IF EXISTS (SELECT ... FROM Table) checks no longer create false input dependencies
+    Issue: Administrative IF EXISTS checks were treated as data lineage sources
+    Example: IF EXISTS (SELECT 1 FROM FactTable) DELETE FROM FactTable
+             Previously: FactTable appeared as both input AND output (circular dependency)
+             Now: FactTable appears only as output (correct)
+    Root cause: IF EXISTS checks are control flow logic, not actual data dependencies
+    Solution: Remove IF EXISTS/IF NOT EXISTS patterns during preprocessing (lines 150-165)
+    Impact: Eliminates false bidirectional lineage for tables with existence checks
+    Test case: spLoadFactLaborCostForEarnedValue now shows FactLaborCostForEarnedValue
+               only as output, not as input
+    Files: quality_aware_parser.py ENHANCED_REMOVAL_PATTERNS
+
 - v4.1.2 (2025-11-04): CRITICAL FIX - Global target exclusion from sources
     Fixed: INSERT INTO target tables no longer appear in sources list
     Issue: find_all(exp.Table) extracts ALL tables from entire AST including DML targets
@@ -147,6 +160,23 @@ class QualityAwareParser:
     # v4.1.0: DATAFLOW MODE - Remove administrative code, keep only DML operations
     # Philosophy: Focus on data transformation (INSERT/UPDATE/DELETE/MERGE), not housekeeping
     ENHANCED_REMOVAL_PATTERNS = [
+        # DATAFLOW: Remove IF EXISTS checks (administrative, not data transformation)
+        # v4.1.3: NEW - Removes IF EXISTS(...) checks that reference tables
+        # Example: IF EXISTS (SELECT 1 FROM [dbo].[Table]) DELETE FROM [dbo].[Table];
+        # → DELETE FROM [dbo].[Table];  -- IF EXISTS removed
+        # These checks are administrative logic, not actual data lineage
+        # Pattern matches balanced parentheses to handle nested SELECT/COUNT/EXISTS
+        (r'\bIF\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*',
+         '-- IF EXISTS removed\n',
+         re.IGNORECASE),
+
+        # DATAFLOW: Remove IF NOT EXISTS checks (same reasoning)
+        # Example: IF NOT EXISTS (SELECT 1 FROM [dbo].[Table]) INSERT INTO [dbo].[Table]...
+        # → INSERT INTO [dbo].[Table]...  -- IF NOT EXISTS removed
+        (r'\bIF\s+NOT\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*',
+         '-- IF NOT EXISTS removed\n',
+         re.IGNORECASE),
+
         # DATAFLOW: Replace CATCH blocks with dummy (error handling not dataflow)
         # v4.1.0: Changed from removing to replacing with SELECT 1 (keeps SQL valid)
         # Example: BEGIN /* CATCH */ INSERT INTO ErrorLog ... END /* CATCH */

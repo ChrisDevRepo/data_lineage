@@ -146,38 +146,48 @@ export function useDataFiltering({
     }, [selectedSchemas, selectedTypes, allData.length]);
     
     useEffect(() => {
-        if (searchTerm.trim() === '') {
+        console.log('[Autocomplete] searchTerm:', searchTerm, 'length:', searchTerm.trim().length);
+
+        // Only show autocomplete suggestions after 5 characters
+        if (searchTerm.trim() === '' || searchTerm.trim().length < 5) {
+            console.log('[Autocomplete] Blocked: less than 5 characters');
             setAutocompleteSuggestions([]);
             return;
         }
 
+        console.log('[Autocomplete] Proceeding with search...');
+
         // Safety check: ensure lineageGraph is initialized before accessing
-        if (!lineageGraph || typeof lineageGraph.nodeEntries !== 'function') {
+        if (!lineageGraph || typeof lineageGraph.forEachNode !== 'function') {
+            console.log('[Autocomplete] Error: lineageGraph not initialized properly');
             setAutocompleteSuggestions([]);
             return;
         }
 
         try {
             const suggestions: DataNode[] = [];
-            // Use for...of loop with break for early exit
-            for (const [nodeId, attributes] of lineageGraph.nodeEntries()) {
-                if (suggestions.length >= INTERACTION_CONSTANTS.AUTOCOMPLETE_MAX_RESULTS) break;
+            const searchLower = searchTerm.toLowerCase();
+
+            // Use forEachNode instead of nodeEntries() for better compatibility
+            lineageGraph.forEachNode((nodeId: string, attributes: any) => {
+                if (suggestions.length >= INTERACTION_CONSTANTS.AUTOCOMPLETE_MAX_RESULTS) return;
 
                 // Safety check: ensure attributes and required properties exist
                 if (!attributes || typeof attributes.name !== 'string' || typeof attributes.schema !== 'string') {
                     console.warn(`[Autocomplete] Skipping node ${nodeId} with invalid attributes:`, attributes);
-                    continue;
+                    return;
                 }
 
                 if (
-                    attributes.name.toLowerCase().startsWith(searchTerm.toLowerCase()) &&
+                    attributes.name.toLowerCase().startsWith(searchLower) &&
                     selectedSchemas.has(attributes.schema) &&
                     (dataModelTypes.length === 0 || !attributes.data_model_type || selectedTypes.has(attributes.data_model_type))
                 ) {
                     suggestions.push(attributes as DataNode);
                 }
-            }
+            });
 
+            console.log('[Autocomplete] Found', suggestions.length, 'suggestions');
             setAutocompleteSuggestions(suggestions);
         } catch (error) {
             console.error('[Autocomplete] Error generating suggestions:', error);

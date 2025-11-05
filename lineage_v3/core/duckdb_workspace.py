@@ -612,17 +612,30 @@ class DuckDBWorkspace:
             old_inputs = json.loads(old_inputs_json) if old_inputs_json else []
             old_outputs = json.loads(old_outputs_json) if old_outputs_json else []
 
-            # UNION inputs and outputs (deduplicate)
-            merged_inputs = list(set(old_inputs + inputs))
-            merged_outputs = list(set(old_outputs + outputs))
-
-            # Keep highest confidence source
-            if confidence > old_confidence:
+            # v4.1.2: For Stored Procedures with 'parser' source, REPLACE instead of UNION
+            # Rationale: Parser is authoritative for SPs. UNION can carry forward stale dependencies
+            # from previous parses (e.g., administrative queries that are now filtered out).
+            # Tables/Views still use UNION because they get complementary lineage from multiple sources.
+            if primary_source == 'parser':
+                # REPLACE strategy: Trust the new parser results completely
+                merged_inputs = inputs
+                merged_outputs = outputs
                 final_source = primary_source
                 final_confidence = confidence
+                logger.debug(f"  REPLACE strategy for parser source (object_id={object_id})")
             else:
-                final_source = old_source
-                final_confidence = old_confidence
+                # UNION strategy: Merge inputs/outputs from multiple sources
+                merged_inputs = list(set(old_inputs + inputs))
+                merged_outputs = list(set(old_outputs + outputs))
+
+                # Keep highest confidence source
+                if confidence > old_confidence:
+                    final_source = primary_source
+                    final_confidence = confidence
+                else:
+                    final_source = old_source
+                    final_confidence = old_confidence
+                logger.debug(f"  UNION strategy for non-parser source (object_id={object_id})")
         else:
             # No existing record - use new values directly
             merged_inputs = inputs

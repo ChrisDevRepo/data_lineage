@@ -42,7 +42,12 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
         borderColor: schemaColor,
     };
 
-    let nodeTitle = `Object: ${data.schema}.${data.name}\nObject Type: ${data.object_type}\nData Model Type: ${data.data_model_type || 'N/A'}\nDescription: ${data.description || 'No description provided.'}`;
+    // Remove the source info in brackets from description (e.g., "(parser)", "(dmv)")
+    const cleanDescription = data.description
+        ? data.description.replace(/\s*\([^)]*\)\s*$/, '').trim()
+        : 'No description provided.';
+
+    let nodeTitle = `Object: ${data.schema}.${data.name}\nObject Type: ${data.object_type}\nData Model Type: ${data.data_model_type || 'N/A'}\nDescription: ${cleanDescription}`;
 
     if (isClickableForSql) {
         nodeTitle += `\n\n💡 Click to view SQL definition`;

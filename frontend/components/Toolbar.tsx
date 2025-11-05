@@ -93,6 +93,7 @@ export const Toolbar = (props: ToolbarProps) => {
 
     const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
+            console.log('[Toolbar] Input changed to:', e.target.value, 'length:', e.target.value.length);
             setSearchTerm(e.target.value);
         } catch (error) {
             console.error('[Toolbar] Error during search input change:', error);
@@ -143,6 +144,21 @@ export const Toolbar = (props: ToolbarProps) => {
                     </Button>
                     {isSchemaFilterOpen && (
                         <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                            {/* Select All / Deselect All */}
+                            <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-200">
+                                <button
+                                    onClick={() => setSelectedSchemas(new Set(schemas))}
+                                    className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                                >
+                                    Select All
+                                </button>
+                                <button
+                                    onClick={() => setSelectedSchemas(new Set())}
+                                    className="text-xs font-medium text-gray-600 hover:text-gray-700 hover:underline"
+                                >
+                                    Deselect All
+                                </button>
+                            </div>
                             <div className="space-y-2">
                                 {schemas.map(s => (
                                     <Checkbox key={s} checked={selectedSchemas.has(s)} onChange={() => {
@@ -167,6 +183,21 @@ export const Toolbar = (props: ToolbarProps) => {
                         </Button>
                         {isTypeFilterOpen && (
                             <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                                {/* Select All / Deselect All */}
+                                <div className="flex items-center justify-between pb-2 mb-2 border-b border-gray-200">
+                                    <button
+                                        onClick={() => setSelectedTypes(new Set(dataModelTypes))}
+                                        className="text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                                    >
+                                        Select All
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedTypes(new Set())}
+                                        className="text-xs font-medium text-gray-600 hover:text-gray-700 hover:underline"
+                                    >
+                                        Deselect All
+                                    </button>
+                                </div>
                                 <div className="space-y-2">
                                     {dataModelTypes.map(t => (
                                         <Checkbox key={t} checked={selectedTypes.has(t)} onChange={() => {
@@ -252,7 +283,7 @@ export const Toolbar = (props: ToolbarProps) => {
                         <button onClick={onToggleLock} className="ml-1 hover:underline font-medium">Unlock</button>
                     </div>
                 ) : (
-                    <Button onClick={onStartTrace} variant="primary" size="md" disabled={isTraceModeActive} title="Start Interactive Trace">
+                    <Button onClick={onStartTrace} variant="primary" size="md" disabled={isTraceModeActive} title="Start Interactive Trace" className="whitespace-nowrap gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                         </svg>
