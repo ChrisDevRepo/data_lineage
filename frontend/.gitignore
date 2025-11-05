@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Testing artifacts
+test-*.spec.ts
+test-results/
+playwright-report/
+
