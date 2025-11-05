@@ -219,7 +219,6 @@ function DataLineageVisualizer() {
     }
   }, [nodes.length, fitView]);
 
-
   // --- Effect for handling window resize ---
   useEffect(() => {
     // Debounce resize events to avoid excessive calls
