@@ -40,6 +40,7 @@ export function useDataFiltering({
     const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
     const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
+    const [excludeTerm, setExcludeTerm] = useState('');
     const [hideUnrelated, setHideUnrelated] = useState(() => {
         // Try to load from localStorage first, fallback to true
         const stored = loadHideUnrelated();
