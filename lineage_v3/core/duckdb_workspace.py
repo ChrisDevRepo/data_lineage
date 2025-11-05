@@ -769,10 +769,10 @@ class DuckDBWorkspace:
                 );
             """)
 
-            print("✅ FTS index created successfully on unified_ddl_materialized table")
+            logger.info("FTS index created successfully on unified_ddl_materialized table")
 
         except Exception as e:
-            print(f"❌ Failed to create FTS index: {e}")
+            logger.error(f"Failed to create FTS index: {e}", exc_info=True)
             raise RuntimeError(f"FTS index creation failed: {e}")
 
     def create_unified_ddl_view(self):
@@ -911,7 +911,8 @@ class DuckDBWorkspace:
                     f"SELECT COUNT(*) FROM {table}"
                 ).fetchone()
                 stats[f"{table}_count"] = result[0] if result else 0
-            except:
+            except (duckdb.CatalogException, RuntimeError) as e:
+                logger.debug(f"Table {table} not found: {e}")
                 stats[f"{table}_count"] = 0
 
         # Metadata stats

@@ -11,8 +11,11 @@ type ToolbarProps = {
     searchTerm: string;
     setSearchTerm: (term: string) => void;
     executeSearch: (query: string) => void;
+    autocompleteSuggestions: DataNode[];
+    setAutocompleteSuggestions: (suggestions: DataNode[]) => void;
     excludeTerm: string;
     setExcludeTerm: (term: string) => void;
+    applyExcludeTerms: () => void;
     selectedSchemas: Set<string>;
     setSelectedSchemas: (schemas: Set<string>) => void;
     schemas: string[];
@@ -45,7 +48,8 @@ type ToolbarProps = {
 export const Toolbar = React.memo((props: ToolbarProps) => {
     const {
         searchTerm, setSearchTerm, executeSearch,
-        excludeTerm, setExcludeTerm,
+        autocompleteSuggestions, setAutocompleteSuggestions,
+        excludeTerm, setExcludeTerm, applyExcludeTerms,
         selectedSchemas, setSelectedSchemas, schemas,
         selectedTypes, setSelectedTypes, dataModelTypes,
         layout, setLayout, hideUnrelated, setHideUnrelated,
@@ -59,12 +63,18 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
 
     const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
     const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
+    const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
     const schemaFilterRef = useRef<HTMLDivElement>(null);
     const typeFilterRef = useRef<HTMLDivElement>(null);
+    const searchContainerRef = useRef<HTMLDivElement>(null);
 
     // Close dropdowns when clicking outside
     useClickOutside(schemaFilterRef, () => setIsSchemaFilterOpen(false));
     useClickOutside(typeFilterRef, () => setIsTypeFilterOpen(false));
+    useClickOutside(searchContainerRef, () => {
+        setIsAutocompleteOpen(false);
+        setAutocompleteSuggestions([]);
+    });
 
     const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
         try {
@@ -78,6 +88,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
             setSearchTerm(e.target.value);
+            setIsAutocompleteOpen(true);
         } catch (error) {
             console.error('[Toolbar] Error during search input change:', error);
             // Reset to empty string on error
@@ -94,12 +105,23 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         }
     };
 
+    const handleAutocompleteSelect = (suggestion: DataNode) => {
+        setSearchTerm(suggestion.name);
+        executeSearch(suggestion.name);
+        setIsAutocompleteOpen(false);
+        setAutocompleteSuggestions([]);
+    };
+
+    const clearExcludeTerm = () => {
+        setExcludeTerm('');
+    };
+
     return (
-        <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-gray-200 bg-white">
             {/* LEFT: Search + Filters */}
-            <div className="flex items-center gap-2">
-                {/* Search */}
-                <div className="relative">
+            <div className="flex items-center gap-3">
+                {/* Search with Autocomplete */}
+                <div className="relative" ref={searchContainerRef}>
                     <form onSubmit={handleSearch} className="flex items-center">
                         <input
                             type="text"
@@ -113,20 +135,71 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                         </button>
                     </form>
+
+                    {/* Autocomplete Dropdown */}
+                    {isAutocompleteOpen && autocompleteSuggestions.length > 0 && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-50 max-h-60 overflow-y-auto">
+                            {autocompleteSuggestions.map((suggestion) => (
+                                <button
+                                    key={suggestion.id}
+                                    type="button"
+                                    onClick={() => handleAutocompleteSelect(suggestion)}
+                                    className="w-full text-left px-3 py-2 text-sm hover:bg-primary-50 hover:text-primary-700 transition-colors border-b border-gray-100 last:border-b-0"
+                                >
+                                    <div className="font-medium">{suggestion.name}</div>
+                                    <div className="text-xs text-gray-500 mt-0.5">{suggestion.schema} • {suggestion.object_type}</div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
-                {/* Exclude Filter */}
-                <div className="relative">
-                    <input
-                        type="text"
-                        placeholder="Exclude terms..."
-                        value={excludeTerm}
-                        onChange={handleExcludeInputChange}
-                        disabled={isTraceModeActive}
-                        className="text-sm h-9 w-48 pl-3 pr-3 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
-                        title="Exclude objects containing these terms"
-                    />
+                {/* Exclude Filter with X button and Hide button */}
+                <div className="relative flex items-center gap-1">
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Exclude terms..."
+                            value={excludeTerm}
+                            onChange={handleExcludeInputChange}
+                            disabled={isTraceModeActive}
+                            className="text-sm h-9 w-40 pl-3 pr-8 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
+                            title="Enter terms to exclude (comma-separated)"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && excludeTerm.trim()) {
+                                    // Trigger hide on Enter key
+                                    e.preventDefault();
+                                    applyExcludeTerms();
+                                }
+                            }}
+                        />
+                        {/* X button to clear */}
+                        {excludeTerm && (
+                            <button
+                                type="button"
+                                onClick={clearExcludeTerm}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors rounded"
+                                title="Clear"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        )}
+                    </div>
+                    <Button
+                        onClick={applyExcludeTerms}
+                        disabled={isTraceModeActive || !excludeTerm.trim()}
+                        variant="primary"
+                        className="h-9 px-3 text-sm whitespace-nowrap"
+                        title="Hide objects containing these terms"
+                    >
+                        Hide
+                    </Button>
                 </div>
+
+                {/* Divider */}
+                <div className="h-8 w-px bg-gray-300"></div>
 
                 {/* Filter Group */}
                 <div className="relative" ref={schemaFilterRef}>
@@ -136,7 +209,32 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                         </svg>
                     </Button>
                     {isSchemaFilterOpen && (
-                        <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                        <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-80 overflow-y-auto">
+                            <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                                <span className="text-xs font-semibold text-gray-700">Schemas <span className="text-gray-500">({selectedSchemas.size}/{schemas.length})</span></span>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => setSelectedSchemas(new Set(schemas))}
+                                        className="text-xs px-2.5 py-1 rounded-md bg-primary-50 text-primary-700 hover:bg-primary-100 font-medium transition-colors flex items-center gap-1"
+                                        title="Select all schemas"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                                            <path fillRule="evenodd" d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z" clipRule="evenodd" />
+                                        </svg>
+                                        All
+                                    </button>
+                                    <button
+                                        onClick={() => setSelectedSchemas(new Set())}
+                                        className="text-xs px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium transition-colors flex items-center gap-1"
+                                        title="Unselect all schemas"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                                            <path fillRule="evenodd" d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" clipRule="evenodd" />
+                                        </svg>
+                                        None
+                                    </button>
+                                </div>
+                            </div>
                             <div className="space-y-2">
                                 {schemas.map(s => (
                                     <Checkbox key={s} checked={selectedSchemas.has(s)} onChange={() => {
@@ -160,7 +258,32 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             </svg>
                         </Button>
                         {isTypeFilterOpen && (
-                            <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-60 overflow-y-auto">
+                            <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-80 overflow-y-auto">
+                                <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                                    <span className="text-xs font-semibold text-gray-700">Types <span className="text-gray-500">({selectedTypes.size}/{dataModelTypes.length})</span></span>
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={() => setSelectedTypes(new Set(dataModelTypes))}
+                                            className="text-xs px-2.5 py-1 rounded-md bg-primary-50 text-primary-700 hover:bg-primary-100 font-medium transition-colors flex items-center gap-1"
+                                            title="Select all types"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                                                <path fillRule="evenodd" d="M12.416 3.376a.75.75 0 0 1 .208 1.04l-5 7.5a.75.75 0 0 1-1.154.114l-3-3a.75.75 0 0 1 1.06-1.06l2.353 2.353 4.493-6.74a.75.75 0 0 1 1.04-.207Z" clipRule="evenodd" />
+                                            </svg>
+                                            All
+                                        </button>
+                                        <button
+                                            onClick={() => setSelectedTypes(new Set())}
+                                            className="text-xs px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium transition-colors flex items-center gap-1"
+                                            title="Unselect all types"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3">
+                                                <path fillRule="evenodd" d="M5.28 4.22a.75.75 0 0 0-1.06 1.06L6.94 8l-2.72 2.72a.75.75 0 1 0 1.06 1.06L8 9.06l2.72 2.72a.75.75 0 1 0 1.06-1.06L9.06 8l2.72-2.72a.75.75 0 0 0-1.06-1.06L8 6.94 5.28 4.22Z" clipRule="evenodd" />
+                                            </svg>
+                                            None
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="space-y-2">
                                     {dataModelTypes.map(t => (
                                         <Checkbox key={t} checked={selectedTypes.has(t)} onChange={() => {
@@ -211,7 +334,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                         <button onClick={onToggleLock} className="ml-1 hover:underline font-medium">Unlock</button>
                     </div>
                 ) : (
-                    <Button onClick={onStartTrace} variant="primary" size="md" disabled={isTraceModeActive} title="Start Interactive Trace">
+                    <Button onClick={onStartTrace} variant="primary" size="md" disabled={isTraceModeActive} title="Start Interactive Trace" className="w-36 flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                         </svg>

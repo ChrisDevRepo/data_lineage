@@ -7,7 +7,6 @@ export const INTERACTION_CONSTANTS = {
   // Search and autocomplete
   AUTOCOMPLETE_MIN_CHARS: 5,
   AUTOCOMPLETE_MAX_RESULTS: 5,
-  AUTOCOMPLETE_MIN_CHARS: 3,
   SEARCH_DEBOUNCE_MS: 300,
 
   // View and layout
