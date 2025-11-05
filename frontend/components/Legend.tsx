@@ -5,7 +5,6 @@ type LegendProps = {
     onToggle: () => void;
     schemas: string[];
     schemaColorMap: Map<string, string>;
-    selectedSchemas: Set<string>;
 };
 
 const LegendIcon = () => (
@@ -14,12 +13,9 @@ const LegendIcon = () => (
     </svg>
 );
 
-export const Legend = ({ isCollapsed, onToggle, schemas, schemaColorMap, selectedSchemas }: LegendProps) => {
+export const Legend = ({ isCollapsed, onToggle, schemas, schemaColorMap }: LegendProps) => {
     const [isSchemasExpanded, setIsSchemasExpanded] = useState(false);
-
-    // Filter to only show selected schemas
-    const filteredSchemas = schemas.filter(s => selectedSchemas.has(s));
-    const schemasToShow = isSchemasExpanded ? filteredSchemas : filteredSchemas.slice(0, 8);
+    const schemasToShow = isSchemasExpanded ? schemas : schemas.slice(0, 8);
 
     return (
         <div className={`
@@ -70,12 +66,12 @@ export const Legend = ({ isCollapsed, onToggle, schemas, schemaColorMap, selecte
                                 </div>
                             ))}
                         </div>
-                        {!isSchemasExpanded && filteredSchemas.length > 8 && (
+                        {!isSchemasExpanded && schemas.length > 8 && (
                             <button
                                 onClick={() => setIsSchemasExpanded(true)}
                                 className="text-blue-600 mt-2 text-xs font-semibold hover:underline w-full text-left"
                             >
-                                ...and {filteredSchemas.length - 8} more
+                                ...and {schemas.length - 8} more
                             </button>
                         )}
                     </div>
