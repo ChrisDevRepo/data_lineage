@@ -40,6 +40,7 @@ function DataLineageVisualizer() {
   const [allData, setAllData] = useState<DataNode[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [sampleData] = useState<DataNode[]>(() => generateSampleData());
+  const [closeDropdownsTrigger, setCloseDropdownsTrigger] = useState(0);
 
   // Load data from API on mount (async to avoid blocking UI)
   useEffect(() => {
@@ -136,34 +137,40 @@ function DataLineageVisualizer() {
     }
   }, [excludeTerm, addNotification]);
 
-  // --- localStorage Persistence for Filter Preferences ---
-  // Load saved preferences from localStorage on mount
+  // --- localStorage Persistence ---
+  const hasInitializedPreferences = useRef(false);
+
+  // Load saved layout preference (schemas/types/hideUnrelated are loaded in useDataFiltering)
   useEffect(() => {
     try {
       const saved = localStorage.getItem('lineage_filter_preferences');
       if (saved) {
-        const { schemas, types, hideUnrelated: savedHideUnrelated, layout: savedLayout } = JSON.parse(saved);
-        if (schemas && Array.isArray(schemas)) {
-          setSelectedSchemas(new Set(schemas));
-        }
-        if (types && Array.isArray(types)) {
-          setSelectedTypes(new Set(types));
-        }
-        if (typeof savedHideUnrelated === 'boolean') {
-          setHideUnrelated(savedHideUnrelated);
-        }
+        const { layout: savedLayout } = JSON.parse(saved);
         if (savedLayout === 'LR' || savedLayout === 'TB') {
           setLayout(savedLayout);
         }
-        console.log('[localStorage] Loaded preferences:', { schemas, types, hideUnrelated: savedHideUnrelated, layout: savedLayout });
+        console.log('[localStorage] Loaded layout preference:', savedLayout);
       }
     } catch (error) {
-      console.error('[localStorage] Failed to load preferences:', error);
+      console.error('[localStorage] Failed to load layout preference:', error);
     }
-  }, []); // Empty dependency array - run once on mount
+  }, []); // Run once on mount
 
-  // Save preferences to localStorage whenever they change
+  // Mark preferences as initialized after schemas are loaded
   useEffect(() => {
+    if (schemas.length > 0 && selectedSchemas.size > 0 && !hasInitializedPreferences.current) {
+      hasInitializedPreferences.current = true;
+      console.log('[localStorage] Preferences initialized, will now save on changes');
+    }
+  }, [schemas.length, selectedSchemas.size]);
+
+  // Save preferences to localStorage whenever they change (but only after initialization)
+  useEffect(() => {
+    // Don't save until preferences have been loaded/initialized
+    if (!hasInitializedPreferences.current) {
+      return;
+    }
+
     try {
       const preferences = {
         schemas: Array.from(selectedSchemas),
@@ -431,6 +438,9 @@ function DataLineageVisualizer() {
   };
 
   const handlePaneClick = () => {
+    // Close any open dropdowns in toolbar
+    setCloseDropdownsTrigger(prev => prev + 1);
+
     // If locked, don't clear anything - just return
     if (isTraceLocked) {
       return;
@@ -796,6 +806,7 @@ function DataLineageVisualizer() {
             isTraceLocked={isTraceLocked}
             isInTraceExitMode={isInTraceExitMode}
             onToggleLock={handleToggleLock}
+            closeDropdownsTrigger={closeDropdownsTrigger}
           />
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
