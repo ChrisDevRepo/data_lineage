@@ -41,7 +41,8 @@ type ToolbarProps = {
     onToggleLock: () => void;
 };
 
-export const Toolbar = (props: ToolbarProps) => {
+// OPTIMIZATION: Memoize to prevent unnecessary re-renders
+export const Toolbar = React.memo((props: ToolbarProps) => {
     const {
         searchTerm, setSearchTerm, executeSearch,
         excludeTerm, setExcludeTerm,
@@ -264,4 +265,4 @@ export const Toolbar = (props: ToolbarProps) => {
             </div>
         </div>
     );
-};
+});

@@ -218,7 +218,8 @@ function DataLineageVisualizer() {
       return () => clearTimeout(timeoutId);
     }
   }, [nodes.length, fitView]);
-  
+
+
   // --- Effect for handling window resize ---
   useEffect(() => {
     // Debounce resize events to avoid excessive calls
@@ -748,6 +749,7 @@ function DataLineageVisualizer() {
                 onNodeClick={handleNodeClick}
                 fitView
                 minZoom={0.1}
+                onlyRenderVisibleElements={true}
                 proOptions={{ hideAttribution: true }}
               >
                 <Controls />
