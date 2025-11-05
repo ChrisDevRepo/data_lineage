@@ -5,7 +5,6 @@ import {
   useEdgesState,
   Controls,
   Background,
-  MiniMap,
   useReactFlow,
   ReactFlowProvider,
   Node as ReactFlowNode,
@@ -128,7 +127,6 @@ function DataLineageVisualizer() {
   const [isLegendCollapsed, setIsLegendCollapsed] = useState(true);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
-  const [isControlsVisible, setIsControlsVisible] = useState(true);
   const [isDetailSearchOpen, setIsDetailSearchOpen] = useState(false);
 
   // --- SQL Viewer State ---
@@ -206,7 +204,6 @@ function DataLineageVisualizer() {
 
   // Track if this is the initial load to only fitView once
   const hasInitiallyFittedRef = useRef(false);
-  const [minimapKey, setMinimapKey] = useState(0);
 
   useEffect(() => {
     if (nodes.length > 0 && !hasInitiallyFittedRef.current) {
@@ -221,44 +218,6 @@ function DataLineageVisualizer() {
       return () => clearTimeout(timeoutId);
     }
   }, [nodes.length, fitView]);
-
-  // Separate effect to remount minimap ONCE after initial layout is ready
-  const hasMinimapInitializedRef = useRef(false);
-  useEffect(() => {
-    if (layoutedElements.nodes.length > 0 && !hasMinimapInitializedRef.current) {
-      // Detect graph size and use appropriate delay for rendering
-      const nodeCount = layoutedElements.nodes.length;
-      let minimapDelay: number;
-
-      if (nodeCount > 500) {
-        // Very large graph (Parquet imports) - need substantial delay
-        minimapDelay = 4000;
-      } else if (nodeCount > 300) {
-        // Large graph - moderate delay
-        minimapDelay = 2000;
-      } else if (nodeCount > 100) {
-        // Medium graph - small delay
-        minimapDelay = 1200;
-      } else {
-        // Small graph - minimal delay
-        minimapDelay = 800;
-      }
-
-      console.log(`[Minimap] Detected ${nodeCount} nodes, using ${minimapDelay}ms delay`);
-
-      // Wait for layout to be applied and rendered, then remount minimap once
-      const timeoutId = setTimeout(() => {
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            setMinimapKey(prev => prev + 1);
-            hasMinimapInitializedRef.current = true;
-            console.log('[Minimap] Initialized successfully');
-          });
-        });
-      }, minimapDelay); // Use dynamic delay based on graph size
-      return () => clearTimeout(timeoutId);
-    }
-  }, [layoutedElements.nodes.length]);
   
   // --- Effect for handling window resize ---
   useEffect(() => {
@@ -363,8 +322,6 @@ function DataLineageVisualizer() {
     setHighlightedNodes(new Set());
     setSearchTerm('');
     hasInitiallyFittedRef.current = false; // Allow fitView on new data
-    hasMinimapInitializedRef.current = false; // Allow minimap re-initialization
-    setMinimapKey(0); // Reset minimap key to trigger re-initialization
 
     addNotification('Data imported successfully! Note: JSON imports are temporary. Upload parquet files to persist data.', 'info');
     // Don't auto-close modal - let user close it after viewing summary
@@ -445,7 +402,7 @@ function DataLineageVisualizer() {
     setSqlViewerOpen(false);
     setSelectedNodeForSql(null);
 
-    // Fit view after reset - minimap will already be initialized so no need to reset it
+    // Fit view after reset
     setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
 
     addNotification('View reset to default.', 'info');
@@ -557,11 +514,6 @@ function DataLineageVisualizer() {
       document.body.style.userSelect = '';
     };
   }, [isResizing]);
-
-  const miniMapNodeColor = (node: ReactFlowNode): string => {
-    // Use subtle gray tones for minimap - less colorful, better for overview
-    return '#9ca3af'; // gray-400 - consistent neutral color for all nodes
-  };
 
   const handleExportSVG = useCallback(async () => {
     const nodesToExport = getNodes();
@@ -765,8 +717,6 @@ function DataLineageVisualizer() {
             setHideUnrelated={setHideUnrelated}
             isTraceModeActive={isTraceModeActive}
             onStartTrace={() => setIsTraceModeActive(true)}
-            isControlsVisible={isControlsVisible}
-            onToggleControls={() => setIsControlsVisible(p => !p)}
             onOpenImport={() => setIsImportModalOpen(true)}
             onOpenInfo={() => setIsInfoModalOpen(true)}
             onExportSVG={handleExportSVG}
@@ -801,15 +751,13 @@ function DataLineageVisualizer() {
                 proOptions={{ hideAttribution: true }}
               >
                 <Controls />
-                {isControlsVisible && <MiniMap key={minimapKey} nodeColor={miniMapNodeColor} nodeStrokeWidth={1.5} nodeBorderRadius={2} maskColor="rgb(240, 240, 240, 0.6)" zoomable pannable className="bg-white border border-gray-300" ariaLabel="Minimap" />}
                 <Background color={'#a1a1aa'} gap={16} />
-                {isControlsVisible &&
-                  <Legend
-                    isCollapsed={isLegendCollapsed}
-                    onToggle={() => setIsLegendCollapsed(p => !p)}
-                    schemas={schemas}
-                    schemaColorMap={schemaColorMap}
-                  />}
+                <Legend
+                  isCollapsed={isLegendCollapsed}
+                  onToggle={() => setIsLegendCollapsed(p => !p)}
+                  schemas={schemas}
+                  schemaColorMap={schemaColorMap}
+                />
               </ReactFlow>
             </div>
 
