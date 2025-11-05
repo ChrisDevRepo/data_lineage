@@ -12,7 +12,6 @@ Strategy:
 
 This gives us quality assurance built into the parser!
 
-Author: Vibecoding
 Version: 4.0.3 (SP-to-SP Direction Fix)
 Date: 2025-11-04
 
@@ -79,7 +78,7 @@ class QualityAwareParser:
     # Confidence scores
     CONFIDENCE_HIGH = 0.85    # Regex and SQLGlot agree (±10%)
     CONFIDENCE_MEDIUM = 0.75  # Partial agreement (±25%)
-    CONFIDENCE_LOW = 0.5      # Major difference (>25%) - needs AI review
+    CONFIDENCE_LOW = 0.5      # Major difference (>25%) - needs review/refinement
 
     # Quality check thresholds
     THRESHOLD_GOOD = 0.10     # ±10% difference
@@ -250,7 +249,7 @@ class QualityAwareParser:
                     'source_match': quality['source_match'],
                     'target_match': quality['target_match'],
                     'overall_match': quality['overall_match'],
-                    'needs_improvement': quality['needs_ai']  # Renamed from needs_ai
+                    'needs_improvement': quality['needs_improvement']  # Quality flag for review
                 }
             }
 
@@ -441,18 +440,18 @@ class QualityAwareParser:
         # Overall match (weighted average - targets more important)
         overall_match = (source_match * 0.4) + (target_match * 0.6)
 
-        # Flag for AI if either is significantly off
+        # Flag for review if either is significantly off
         source_diff = abs(regex_sources - parser_sources) / max(regex_sources, parser_sources, 1)
         target_diff = abs(regex_targets - parser_targets) / max(regex_targets, parser_targets, 1)
 
-        needs_ai = (source_diff > self.THRESHOLD_FAIR or
-                   target_diff > self.THRESHOLD_FAIR)
+        needs_improvement = (source_diff > self.THRESHOLD_FAIR or
+                            target_diff > self.THRESHOLD_FAIR)
 
         return {
             'source_match': source_match,
             'target_match': target_match,
             'overall_match': overall_match,
-            'needs_ai': needs_ai
+            'needs_improvement': needs_improvement
         }
 
     def _determine_confidence(
@@ -471,7 +470,7 @@ class QualityAwareParser:
         - Orchestrator SPs (only SP calls, no tables) → 0.85 (high confidence)
         - Overall match ≥90% → 0.85 (high confidence)
         - Overall match ≥75% → 0.75 (medium confidence)
-        - Overall match <75% → 0.5 (low confidence, needs AI)
+        - Overall match <75% → 0.5 (low confidence, needs review/rule refinement)
 
         Args:
             quality: Quality metrics from _calculate_quality()
@@ -1105,7 +1104,7 @@ class QualityAwareParser:
                     'source_match': float,
                     'target_match': float,
                     'overall_match': float,
-                    'needs_ai': bool
+                    'needs_improvement': bool
                 }
             }
         """

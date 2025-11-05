@@ -7,13 +7,18 @@ Manages the persistent DuckDB database for lineage analysis.
 
 This module provides:
 1. DuckDB connection management with persistent workspace
-2. Parquet ingestion into DuckDB tables
+2. Parquet ingestion into DuckDB tables with schema auto-detection
 3. Incremental load metadata tracking
 4. Query interface for DMV data access
+5. Full-text search (FTS) on DDL definitions
 
-Author: Vibecoding Team
-Version: 3.0.0
-Phase: 3 (Core Engine)
+Features:
+- Automatic schema creation and validation
+- MERGE support for incremental updates
+- BM25 relevance ranking for text search
+- Context manager for safe connection handling
+
+Version: 4.0.3
 """
 
 import duckdb
