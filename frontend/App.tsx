@@ -106,7 +106,6 @@ function DataLineageVisualizer() {
     setHighlightedNodes,
     autocompleteSuggestions,
     setAutocompleteSuggestions,
-    markLoadedFromLocalStorage,
   } = useDataFiltering({
     allData,
     lineageGraph,
@@ -137,43 +136,22 @@ function DataLineageVisualizer() {
     }
   }, [excludeTerm, addNotification]);
 
-  // --- localStorage Persistence for Filter Preferences ---
-  // Load saved preferences from localStorage when schemas are available
+  // --- localStorage Persistence for Layout Preference ---
+  // Load saved layout preference (schemas/types/hideUnrelated are loaded in useDataFiltering)
   useEffect(() => {
     try {
       const saved = localStorage.getItem('lineage_filter_preferences');
-      if (saved && schemas.length > 0) {
-        const { schemas: savedSchemas, types: savedTypes, hideUnrelated: savedHideUnrelated, layout: savedLayout } = JSON.parse(saved);
-
-        // Only load saved schemas that still exist in current data
-        if (savedSchemas && Array.isArray(savedSchemas)) {
-          const validSavedSchemas = savedSchemas.filter(s => schemas.includes(s));
-          if (validSavedSchemas.length > 0) {
-            setSelectedSchemas(new Set(validSavedSchemas));
-            markLoadedFromLocalStorage();
-          }
-        }
-
-        if (savedTypes && Array.isArray(savedTypes)) {
-          const validSavedTypes = savedTypes.filter(t => dataModelTypes.includes(t));
-          if (validSavedTypes.length > 0) {
-            setSelectedTypes(new Set(validSavedTypes));
-            markLoadedFromLocalStorage();
-          }
-        }
-
-        if (typeof savedHideUnrelated === 'boolean') {
-          setHideUnrelated(savedHideUnrelated);
-        }
+      if (saved) {
+        const { layout: savedLayout } = JSON.parse(saved);
         if (savedLayout === 'LR' || savedLayout === 'TB') {
           setLayout(savedLayout);
         }
-        console.log('[localStorage] Loaded preferences:', { schemas: savedSchemas, types: savedTypes, hideUnrelated: savedHideUnrelated, layout: savedLayout });
+        console.log('[localStorage] Loaded layout preference:', savedLayout);
       }
     } catch (error) {
-      console.error('[localStorage] Failed to load preferences:', error);
+      console.error('[localStorage] Failed to load layout preference:', error);
     }
-  }, [schemas, dataModelTypes]); // Run when schemas/types become available
+  }, []); // Run once on mount
 
   // Save preferences to localStorage whenever they change
   useEffect(() => {

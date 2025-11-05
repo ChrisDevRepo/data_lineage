@@ -31,31 +31,87 @@ export function useDataFiltering({
     const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
     const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
-    const [hideUnrelated, setHideUnrelated] = useState(true); // Hidden by default
     const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
     const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<DataNode[]>([]);
+
+    // Initialize hideUnrelated from localStorage or default to true
+    const [hideUnrelated, setHideUnrelated] = useState<boolean>(() => {
+        try {
+            const saved = localStorage.getItem('lineage_filter_preferences');
+            if (saved) {
+                const { hideUnrelated: savedHideUnrelated } = JSON.parse(saved);
+                if (typeof savedHideUnrelated === 'boolean') {
+                    return savedHideUnrelated;
+                }
+            }
+        } catch (error) {
+            console.error('[useDataFiltering] Failed to load hideUnrelated preference:', error);
+        }
+        return true; // Default: hide unrelated nodes
+    });
 
     // Debounced versions for performance with large datasets
     const [debouncedSelectedSchemas, setDebouncedSelectedSchemas] = useState<Set<string>>(new Set());
     const [debouncedSelectedTypes, setDebouncedSelectedTypes] = useState<Set<string>>(new Set());
     const debounceTimerRef = useRef<number>();
 
-    // Track if initial schemas/types have been set from localStorage
-    const hasLoadedFromLocalStorage = useRef(false);
+    // Track if schemas have been initialized (from localStorage or default)
+    const hasInitializedSchemas = useRef(false);
+    const hasInitializedTypes = useRef(false);
 
+    // Initialize schemas from localStorage or default to all
     useEffect(() => {
-        // Only auto-select all schemas if localStorage hasn't loaded them yet
-        if (schemas.length > 0 && selectedSchemas.size === 0 && !hasLoadedFromLocalStorage.current) {
+        if (schemas.length > 0 && !hasInitializedSchemas.current) {
+            hasInitializedSchemas.current = true;
+
+            // Try to load from localStorage first
+            try {
+                const saved = localStorage.getItem('lineage_filter_preferences');
+                if (saved) {
+                    const { schemas: savedSchemas } = JSON.parse(saved);
+                    if (savedSchemas && Array.isArray(savedSchemas)) {
+                        const validSavedSchemas = savedSchemas.filter(s => schemas.includes(s));
+                        if (validSavedSchemas.length > 0) {
+                            setSelectedSchemas(new Set(validSavedSchemas));
+                            return; // Exit early, we loaded from localStorage
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('[useDataFiltering] Failed to load schema preferences:', error);
+            }
+
+            // Default: select all schemas
             setSelectedSchemas(new Set(schemas));
         }
-    }, [schemas, selectedSchemas.size]);
+    }, [schemas]);
 
+    // Initialize types from localStorage or default to all
     useEffect(() => {
-        // Only auto-select all types if localStorage hasn't loaded them yet
-        if (dataModelTypes.length > 0 && selectedTypes.size === 0 && !hasLoadedFromLocalStorage.current) {
+        if (dataModelTypes.length > 0 && !hasInitializedTypes.current) {
+            hasInitializedTypes.current = true;
+
+            // Try to load from localStorage first
+            try {
+                const saved = localStorage.getItem('lineage_filter_preferences');
+                if (saved) {
+                    const { types: savedTypes } = JSON.parse(saved);
+                    if (savedTypes && Array.isArray(savedTypes)) {
+                        const validSavedTypes = savedTypes.filter(t => dataModelTypes.includes(t));
+                        if (validSavedTypes.length > 0) {
+                            setSelectedTypes(new Set(validSavedTypes));
+                            return; // Exit early, we loaded from localStorage
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('[useDataFiltering] Failed to load type preferences:', error);
+            }
+
+            // Default: select all types
             setSelectedTypes(new Set(dataModelTypes));
         }
-    }, [dataModelTypes, selectedTypes.size]);
+    }, [dataModelTypes]);
 
     // Debounce filter updates for large datasets (>500 nodes)
     useEffect(() => {
@@ -206,6 +262,5 @@ export function useDataFiltering({
         setHighlightedNodes,
         autocompleteSuggestions,
         setAutocompleteSuggestions,
-        markLoadedFromLocalStorage: () => { hasLoadedFromLocalStorage.current = true; }
     };
 }
