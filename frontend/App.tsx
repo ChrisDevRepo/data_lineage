@@ -98,12 +98,12 @@ function DataLineageVisualizer() {
     setSelectedTypes,
     searchTerm,
     setSearchTerm,
+    excludeTerm,
+    setExcludeTerm,
     hideUnrelated,
     setHideUnrelated,
     highlightedNodes,
     setHighlightedNodes,
-    autocompleteSuggestions,
-    setAutocompleteSuggestions,
   } = useDataFiltering({
     allData,
     lineageGraph,
@@ -703,8 +703,8 @@ function DataLineageVisualizer() {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             executeSearch={executeSearch}
-            autocompleteSuggestions={autocompleteSuggestions}
-            setAutocompleteSuggestions={setAutocompleteSuggestions}
+            excludeTerm={excludeTerm}
+            setExcludeTerm={setExcludeTerm}
             selectedSchemas={selectedSchemas}
             setSelectedSchemas={setSelectedSchemas}
             schemas={schemas}

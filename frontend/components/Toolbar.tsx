@@ -11,8 +11,8 @@ type ToolbarProps = {
     searchTerm: string;
     setSearchTerm: (term: string) => void;
     executeSearch: (query: string) => void;
-    autocompleteSuggestions: DataNode[];
-    setAutocompleteSuggestions: (suggestions: DataNode[]) => void;
+    excludeTerm: string;
+    setExcludeTerm: (term: string) => void;
     selectedSchemas: Set<string>;
     setSelectedSchemas: (schemas: Set<string>) => void;
     schemas: string[];
@@ -44,7 +44,7 @@ type ToolbarProps = {
 export const Toolbar = (props: ToolbarProps) => {
     const {
         searchTerm, setSearchTerm, executeSearch,
-        autocompleteSuggestions, setAutocompleteSuggestions,
+        excludeTerm, setExcludeTerm,
         selectedSchemas, setSelectedSchemas, schemas,
         selectedTypes, setSelectedTypes, dataModelTypes,
         layout, setLayout, hideUnrelated, setHideUnrelated,
@@ -68,22 +68,9 @@ export const Toolbar = (props: ToolbarProps) => {
     const handleSearch = (event: React.FormEvent<HTMLFormElement>) => {
         try {
             event.preventDefault();
-            setAutocompleteSuggestions([]);
             executeSearch(searchTerm.trim());
         } catch (error) {
             console.error('[Toolbar] Error during search submission:', error);
-            setAutocompleteSuggestions([]);
-        }
-    };
-
-    const handleSuggestionClick = (node: DataNode) => {
-        try {
-            setSearchTerm(node.name);
-            setAutocompleteSuggestions([]);
-            executeSearch(node.name);
-        } catch (error) {
-            console.error('[Toolbar] Error during suggestion click:', error);
-            setAutocompleteSuggestions([]);
         }
     };
 
@@ -94,6 +81,15 @@ export const Toolbar = (props: ToolbarProps) => {
             console.error('[Toolbar] Error during search input change:', error);
             // Reset to empty string on error
             setSearchTerm('');
+        }
+    };
+
+    const handleExcludeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        try {
+            setExcludeTerm(e.target.value);
+        } catch (error) {
+            console.error('[Toolbar] Error during exclude input change:', error);
+            setExcludeTerm('');
         }
     };
 
@@ -109,7 +105,6 @@ export const Toolbar = (props: ToolbarProps) => {
                             placeholder="Search objects..."
                             value={searchTerm}
                             onChange={handleSearchInputChange}
-                            onBlur={() => setTimeout(() => setAutocompleteSuggestions([]), 150)}
                             disabled={isTraceModeActive}
                             className="text-sm h-9 w-56 pl-3 pr-9 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
                         />
@@ -117,17 +112,19 @@ export const Toolbar = (props: ToolbarProps) => {
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                         </button>
                     </form>
-                    {autocompleteSuggestions.length > 0 && (
-                        <div className="absolute top-full mt-1 w-56 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-40 overflow-y-auto">
-                            <ul className="py-1">
-                                {autocompleteSuggestions.map(node => (
-                                    <li key={node.id} className="px-3 py-1.5 text-sm text-gray-800 hover:bg-blue-100 cursor-pointer truncate" title={node.name} onMouseDown={() => handleSuggestionClick(node)}>
-                                        {node.name}
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
-                    )}
+                </div>
+
+                {/* Exclude Filter */}
+                <div className="relative">
+                    <input
+                        type="text"
+                        placeholder="Exclude terms..."
+                        value={excludeTerm}
+                        onChange={handleExcludeInputChange}
+                        disabled={isTraceModeActive}
+                        className="text-sm h-9 w-48 pl-3 pr-3 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
+                        title="Exclude objects containing these terms"
+                    />
                 </div>
 
                 {/* Filter Group */}

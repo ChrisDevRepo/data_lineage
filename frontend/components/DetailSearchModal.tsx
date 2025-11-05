@@ -35,6 +35,39 @@ interface FilterOptions {
   objectTypes: string[];
 }
 
+// Helper function to highlight search terms in text
+function highlightMatches(text: string, searchQuery: string): React.ReactNode {
+  if (!searchQuery.trim() || !text) return text;
+
+  // Extract search terms (split by spaces, ignore operators like AND, OR, NOT)
+  const operators = ['AND', 'OR', 'NOT'];
+  const terms = searchQuery
+    .split(/\s+/)
+    .filter(term => {
+      const upperTerm = term.toUpperCase();
+      return term.length > 0 && !operators.includes(upperTerm) && !term.startsWith('"') && !term.endsWith('"');
+    })
+    .map(term => term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')); // Escape regex special chars
+
+  if (terms.length === 0) return text;
+
+  // Create regex pattern to match any of the search terms (case-insensitive)
+  const pattern = new RegExp(`(${terms.join('|')})`, 'gi');
+  const parts = text.split(pattern);
+
+  return parts.map((part, index) => {
+    // Check if this part matches any search term
+    if (terms.some(term => new RegExp(`^${term}$`, 'i').test(part))) {
+      return (
+        <mark key={index} className="bg-yellow-200 px-0.5 rounded">
+          {part}
+        </mark>
+      );
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
 export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, allData, onClose }) => {
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -542,11 +575,17 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
                 </div>
                 {result.snippet && (
                   <div
-                    className={`text-xs text-gray-500 mt-1 italic overflow-hidden text-ellipsis whitespace-nowrap ${
+                    className={`text-xs text-gray-500 mt-1 italic overflow-hidden ${
                       selectedResult?.id === result.id ? 'ml-8' : 'ml-6'
                     }`}
+                    style={{
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden'
+                    }}
                   >
-                    ...{result.snippet}...
+                    ...{highlightMatches(result.snippet, searchQuery)}...
                   </div>
                 )}
               </div>
