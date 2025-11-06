@@ -50,7 +50,7 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   return (
     <div
       ref={menuRef}
-      className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[10000]"
+      className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[60]"
       style={{ left: `${x}px`, top: `${y}px` }}
     >
       {/* Start Tracing */}
@@ -59,12 +59,12 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
           onStartTracing();
           onClose();
         }}
-        className="w-full px-4 py-2 text-left text-sm hover:bg-blue-50 flex items-center gap-2 transition-colors"
+        className="w-full px-4 py-2 text-left text-sm hover:bg-primary-50 flex items-center gap-2 transition-colors"
       >
-        <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
-        <span className="text-gray-700">Start Tracing from <span className="font-semibold text-blue-600">{nodeName}</span></span>
+        <span className="text-gray-700">Start Tracing from <span className="font-semibold text-primary-600">{nodeName}</span></span>
       </button>
 
       {/* Show SQL (if enabled) */}
@@ -74,9 +74,9 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
             onShowSql();
             onClose();
           }}
-          className="w-full px-4 py-2 text-left text-sm hover:bg-green-50 flex items-center gap-2 transition-colors border-t border-gray-100"
+          className="w-full px-4 py-2 text-left text-sm hover:bg-success-50 flex items-center gap-2 transition-colors border-t border-gray-100"
         >
-          <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4 text-success-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
           </svg>
           <span className="text-gray-700">Show SQL</span>
