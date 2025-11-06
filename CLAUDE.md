@@ -137,7 +137,14 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 **Import Errors:**
 ```bash
 python lineage_v3/main.py validate
+
+# Install all dependencies (production)
 pip install -r requirements.txt
+
+# Or install specific components
+pip install -r requirements/parser.txt  # Parser only
+pip install -r requirements/api.txt     # API only
+pip install -r requirements/dev.txt     # Development tools
 ```
 
 **Low Confidence (<0.85):**

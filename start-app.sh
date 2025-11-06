@@ -40,7 +40,6 @@ fi
 if ! python -c "import fastapi" 2>/dev/null; then
     echo "   ❌ FastAPI not found! Installing dependencies..."
     pip install -r "$SCRIPT_DIR/requirements.txt" -q
-    pip install -r "$SCRIPT_DIR/api/requirements.txt" -q
     echo "   ✅ Dependencies installed"
 fi
 
