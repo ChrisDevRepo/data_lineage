@@ -20,7 +20,19 @@ sleep 1
 # Start Backend (FastAPI)
 echo "🔧 Starting Backend API on port 8000..."
 cd "$SCRIPT_DIR/api"
-source ../venv/bin/activate
+
+# Activate virtual environment if it exists
+if [ -f "$SCRIPT_DIR/venv/bin/activate" ]; then
+    echo "   📦 Activating virtual environment..."
+    source "$SCRIPT_DIR/venv/bin/activate"
+elif [ -f "$SCRIPT_DIR/api/venv/bin/activate" ]; then
+    echo "   📦 Activating virtual environment (api/venv)..."
+    source "$SCRIPT_DIR/api/venv/bin/activate"
+else
+    echo "   ⚠️  No virtual environment found - using system Python"
+    echo "   💡 Create one with: python3 -m venv $SCRIPT_DIR/venv"
+fi
+
 nohup python main.py > /tmp/backend.log 2>&1 &
 BACKEND_PID=$!
 echo "   ✅ Backend started (PID: $BACKEND_PID)"
