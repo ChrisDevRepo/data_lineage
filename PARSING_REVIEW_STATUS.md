@@ -74,14 +74,28 @@
     - [x] Automated validation framework created
     - [x] Critical finding: Detected swapped hints (validation success!)
     - [x] Comprehensive report: `temp/COMMENT_HINTS_VALIDATION_REPORT.md`
+  - [x] **SQL Cleaning Engine Development** (2025-11-06)
+    - [x] Created rule-based SQL pre-processor for SQLGlot
+    - [x] Implemented `lineage_v3/parsers/sql_cleaning_rules.py` (10 rules)
+    - [x] Achieved 100% SQLGlot success on test SP (was 0%)
+    - [x] Comprehensive documentation: `temp/SQL_CLEANING_ENGINE_DOCUMENTATION.md`
+    - [x] Action plan for integration: `temp/SQL_CLEANING_ENGINE_ACTION_PLAN.md`
+  - [x] **Confidence Model Fix v2.1.0** (2025-11-06)
+    - [x] Fixed critical flaw: Now measures QUALITY not AGREEMENT
+    - [x] Updated `confidence_calculator.py` with `calculate_parse_quality()`
+    - [x] Regex at 100% accuracy now scores 0.75 (was 0.50)
+    - [x] Documentation: `temp/CONFIDENCE_MODEL_FIX_SUMMARY.md`
 
 **Status:** ✅ All Phase 2 deliverables complete and validated
 
 **Key Validation Findings:**
 - ✅ Feature works correctly (9/9 tables extracted)
-- ✅ Provides 9x accuracy improvement (11% → 100% for complex SPs)
+- ✅ Regex parser: ~100% accuracy (not 11% as initially thought)
+- ✅ SQLGlot baseline: 0% on complex T-SQL (BEGIN TRY/CATCH, etc.)
 - ⚠️ User error detected: Example SP had swapped INPUTS/OUTPUTS
 - ✅ Validation testing successfully caught the error
+- 🎯 SQL Cleaning Engine: Pre-processing enables SQLGlot 100% success
+- 🎯 Confidence Model Fix: Now measures accuracy, not just agreement
 - 📚 Documentation needs: Add clear visual examples of INPUTS vs OUTPUTS
 
 ### ⏳ Planned (Weeks 3-4)
@@ -414,6 +428,144 @@ All artifacts located in `temp/`:
 
 ---
 
+## 🔧 SQL Cleaning Engine Development (Phase 2 Extension)
+
+### Background
+During Phase 2 validation testing, we discovered that SQLGlot has 0% success rate on complex T-SQL stored procedures due to T-SQL-specific constructs (BEGIN TRY/CATCH, DECLARE, RAISERROR, EXEC, GO statements). This led to investigation of SQL pre-processing strategies.
+
+### Key Breakthrough
+**User insight**: "but the idea was that we provide sqlgot a clean ddl only in try... think hard about it the goal is to increase the number of queries that sqlqot can handle."
+
+This shifted the strategy from **accepting SQLGlot limitations** to **pre-processing SQL** before parsing!
+
+### Solution: Rule-Based Cleaning Engine
+
+**Architecture:**
+- Declarative rule system with base `CleaningRule` class
+- `RegexRule` for simple pattern replacement
+- `CallbackRule` for complex logic
+- `RuleEngine` orchestrator with priority-based execution
+- Self-documenting (every rule has name, description, examples)
+- Testable (each rule can be tested independently)
+
+**Implementation:** `lineage_v3/parsers/sql_cleaning_rules.py` (2,200+ lines)
+
+### Built-in Rules (10 Total)
+
+| Priority | Rule | Purpose |
+|----------|------|---------|
+| 10 | RemoveGO | Remove GO batch separators |
+| 20 | RemoveDECLARE | Remove DECLARE statements |
+| 21 | RemoveSET | Remove SET variable assignments |
+| 30 | ExtractTRY | Extract TRY content, remove CATCH |
+| 31 | RemoveRAISERROR | Remove RAISERROR statements |
+| 40 | RemoveEXEC | Remove EXEC statements |
+| 50 | RemoveTransactionControl | Remove BEGIN TRAN, COMMIT, ROLLBACK |
+| 60 | RemoveTRUNCATE | Remove TRUNCATE TABLE |
+| 90 | **ExtractCoreDML** | **Extract DML from CREATE PROC wrapper** 🎯 |
+| 99 | CleanupWhitespace | Remove excessive blank lines |
+
+**The Key Transformation:** `ExtractCoreDML` removes the CREATE PROC wrapper and extracts just the core DML (WITH/INSERT/SELECT/UPDATE/DELETE). This is what enables SQLGlot to parse successfully!
+
+### Test Results
+
+**Test Case:** `spLoadFactLaborCostForEarnedValue` (14,671 bytes)
+
+| Metric | Value |
+|--------|-------|
+| **Original SQL** | 14,671 bytes |
+| **Cleaned SQL** | 10,374 bytes |
+| **Reduction** | 29.3% |
+| **SQLGlot Success (before)** | ❌ 0% (Command fallback) |
+| **SQLGlot Success (after)** | ✅ 100% (9/9 tables) |
+| **Processing Time** | <50ms |
+| **Accuracy** | 100% vs golden record |
+
+### Strategic Impact
+
+**Before Cleaning:**
+- SQLGlot success rate: ~0-5% on complex SPs
+- Method agreement: ~50%
+- Confidence scores: Many stuck at 0.50 (LOW)
+
+**After Cleaning (Projected):**
+- SQLGlot success rate: ~70-80% on complex SPs
+- Method agreement: ~75%+
+- Confidence scores: Average increase of 0.10-0.15
+
+### Next Steps
+
+See comprehensive action plan: `temp/SQL_CLEANING_ENGINE_ACTION_PLAN.md`
+
+**Phase 1 (Week 1-2):** Integration into `quality_aware_parser.py`
+- Add pre-processing step before SQLGlot
+- Feature flag for gradual rollout
+- Run full evaluation (763 objects)
+- Measure impact on accuracy and confidence
+
+**Phase 2-5 (Week 3-6):** Rule Expansion
+- CURSOR handling
+- WHILE loops
+- IF/ELSE logic
+- Dynamic SQL extraction
+
+**Phase 6-8 (Week 7-12):** Production Rollout
+- Performance optimization (caching)
+- Rule statistics and monitoring
+- Gradual rollout (10% → 50% → 100%)
+
+### Documentation
+
+**Technical Documentation:**
+- `temp/SQL_CLEANING_ENGINE_DOCUMENTATION.md` - Complete architecture and usage guide
+- `temp/SQL_CLEANING_ENGINE_ACTION_PLAN.md` - 9-phase implementation plan
+- `temp/SQLGLOT_FAILURE_DEEP_ANALYSIS.md` - Why SQLGlot fails on T-SQL
+
+**Analysis Documents:**
+- `temp/CRITICAL_CONFIDENCE_MODEL_FLAW.md` - Confidence scoring issue
+- `temp/CONFIDENCE_MODEL_FIX_SUMMARY.md` - How we fixed it (v2.1.0)
+
+### Confidence Model Fix (v2.1.0)
+
+**Critical Flaw Discovered:**
+- Old model measured **AGREEMENT** (do regex and SQLGlot agree?)
+- Problem: Regex at 100% accuracy scored 0.50 because SQLGlot failed
+- This is WRONG - we should measure **QUALITY/ACCURACY**, not agreement
+
+**Fix Implemented:**
+- New method: `calculate_parse_quality()`
+- Strategy 1: Trust catalog validation (≥90% exists → high quality)
+- Strategy 2: Use SQLGlot agreement as confidence booster (not penalty!)
+- Strategy 3: Be conservative only when BOTH low
+
+**Test Results:**
+```
+Scenario: Regex gets 100% accuracy, SQLGlot fails
+Old Score: 0.50 (LOW) ❌ WRONG
+New Score: 0.75 (MEDIUM) ✅ CORRECT
+With Hints: 0.85 (HIGH) ✅ CORRECT
+```
+
+**Files Modified:**
+- `lineage_v3/utils/confidence_calculator.py` (v2.0.0 → v2.1.0)
+- Changed `calculate_multifactor()` to use `calculate_parse_quality()`
+
+---
+
+## 📝 Change Log
+
+| Date | Phase | Status | Notes |
+|------|-------|--------|-------|
+| 2025-11-06 | Analysis | ✅ Complete | Deep review, findings documented |
+| 2025-11-06 | Planning | ✅ Complete | 4-week plan approved |
+| 2025-11-06 | Phase 1 | ✅ Complete | UAT feedback system implementation |
+| 2025-11-06 | Phase 2 | ✅ Complete | Comment hints parser + validation testing |
+| 2025-11-06 | Phase 2 Validation | ✅ Complete | Real-world SP tested, critical findings documented |
+| 2025-11-06 | SQL Cleaning Engine | ✅ Planning Complete | Rule engine implemented, action plan created |
+| 2025-11-06 | Confidence Model v2.1.0 | ✅ Complete | Fixed quality vs agreement issue |
+
+---
+
 **Last Updated:** 2025-11-06
-**Next Milestone:** Phase 3 - Multi-factor confidence scoring
-**Overall Status:** Phase 2 Complete & Validated ✅
+**Next Milestone:** SQL Cleaning Engine Phase 1 Integration
+**Overall Status:** Phase 2 Complete & Validated ✅ | SQL Cleaning Engine Ready for Integration
