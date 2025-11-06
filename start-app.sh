@@ -23,10 +23,13 @@ cd "$SCRIPT_DIR/api"
 
 # Activate virtual environment if it exists
 if [ -f "$SCRIPT_DIR/venv/bin/activate" ]; then
-    echo "   📦 Activating virtual environment..."
+    echo "   📦 Activating virtual environment (./venv)..."
     source "$SCRIPT_DIR/venv/bin/activate"
+elif [ -f "$SCRIPT_DIR/../venv/bin/activate" ]; then
+    echo "   📦 Activating virtual environment (../venv)..."
+    source "$SCRIPT_DIR/../venv/bin/activate"
 elif [ -f "$SCRIPT_DIR/api/venv/bin/activate" ]; then
-    echo "   📦 Activating virtual environment (api/venv)..."
+    echo "   📦 Activating virtual environment (./api/venv)..."
     source "$SCRIPT_DIR/api/venv/bin/activate"
 else
     echo "   ⚠️  No virtual environment found - using system Python"
