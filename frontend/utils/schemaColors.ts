@@ -51,8 +51,8 @@ function detectLayer(schemaName: string): 'staging' | 'transformation' | 'consum
   return null;
 }
 
-// Extract department/domain from schema name (before layer indicator)
-// Improved to handle underscore-delimited names (e.g., "startup_staging", "enterprise_tfm_core")
+// Extract department/domain from schema name (after layer indicator)
+// Pattern: LAYER_DEPARTMENT (e.g., "staging_startup", "transformation_enterprisemetric", "consumption_finance")
 function extractDepartment(schemaName: string): string {
   const lowerName = schemaName.toLowerCase();
 
@@ -73,21 +73,22 @@ function extractDepartment(schemaName: string): string {
     if (layerPartIndex >= 0) break;
   }
 
-  // If layer found, department is everything before it
-  if (layerPartIndex > 0) {
-    return parts.slice(0, layerPartIndex).join('');
+  // If layer found at beginning, department is everything AFTER it
+  if (layerPartIndex === 0 && parts.length > 1) {
+    return parts.slice(1).join('');
   }
 
-  // If layer is first part or not found at all, check substring matching (fallback)
+  // Fallback: If layer found elsewhere, try substring matching
   for (const layer of Object.values(layerKeywords).flat()) {
-    const index = lowerName.indexOf(layer);
-    if (index > 0) {
-      // Extract part before layer keyword, remove separators
-      return lowerName.substring(0, index).replace(/[_-]/g, '').trim();
+    const layerWithSeparator = layer + '_';
+    const index = lowerName.indexOf(layerWithSeparator);
+    if (index === 0) {
+      // Layer at start, extract everything after it
+      return lowerName.substring(layerWithSeparator.length).replace(/[_-]/g, '').trim();
     }
   }
 
-  // No layer found anywhere, use all parts as department
+  // No clear layer prefix found, use whole name as department
   return parts.join('');
 }
 
