@@ -541,6 +541,59 @@ function DataLineageVisualizer() {
     }
   };
 
+  // --- View Transition Handlers (Detail Search <-> SQL Viewer) ---
+  const handleSwitchToSqlViewer = useCallback((nodeId: string) => {
+    // Close detail search
+    setIsDetailSearchOpen(false);
+
+    // Find the node data
+    const originalNode = allDataMap.get(nodeId);
+    if (originalNode) {
+      const nodeForSql: any = {
+        id: originalNode.id,
+        name: originalNode.name,
+        schema: originalNode.schema,
+        objectType: originalNode.object_type
+      };
+
+      // Only add ddl_text if it exists in source data (JSON mode)
+      if ('ddl_text' in originalNode) {
+        nodeForSql.ddl_text = originalNode.ddl_text;
+      }
+
+      setSelectedNodeForSql(nodeForSql);
+      setSqlViewerOpen(true);
+
+      // Highlight and zoom to the node in the graph
+      setHighlightedNodes(new Set([nodeId]));
+      setTimeout(() => {
+        const node = getNodes().find(n => n.id === nodeId);
+        if (node) {
+          setCenter(node.position.x + 100, node.position.y, {
+            duration: 800,
+            zoom: 1.2
+          });
+        }
+      }, 100);
+    }
+  }, [allDataMap, getNodes, setCenter, setHighlightedNodes]);
+
+  const handleSwitchToDetailSearch = useCallback(() => {
+    if (selectedNodeForSql) {
+      // Store current node for detail search
+      const nodeId = selectedNodeForSql.id;
+
+      // Close SQL viewer
+      setSqlViewerOpen(false);
+
+      // Open detail search (without search query, just showing the node)
+      setIsDetailSearchOpen(true);
+
+      // The detail search modal will need to be enhanced to accept an initial node
+      // For now, we'll just open it and let the user see their last search
+    }
+  }, [selectedNodeForSql]);
+
   // --- SQL Viewer Resize Handler ---
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -853,6 +906,7 @@ function DataLineageVisualizer() {
                   <SqlViewer
                     isOpen={sqlViewerOpen}
                     selectedNode={selectedNodeForSql}
+                    onSwitchToDetailSearch={handleSwitchToDetailSearch}
                   />
                 </div>
               </>
@@ -887,6 +941,7 @@ function DataLineageVisualizer() {
         isOpen={isDetailSearchOpen}
         allData={allData}
         onClose={handleCloseDetailSearch}
+        onSwitchToSqlViewer={handleSwitchToSqlViewer}
       />
     </div>
   );
