@@ -12,7 +12,9 @@
 
 // HSL-based color families with 3 brightness levels
 // Each family uses same hue and saturation, varying only lightness
+// 20 color families for maximum variety across many departments
 const colorFamilies = {
+  // Original 10 families
   blue: ['#8dc5f5', '#5da9f0', '#2d8deb'],      // HSL: (215°, 80%, 75%) -> 63% -> 51%
   green: ['#88e5b8', '#54d69e', '#20c784'],     // HSL: (145°, 75%, 72%) -> 60% -> 48%
   purple: ['#b399f0', '#9166e5', '#6f33da'],    // HSL: (270°, 75%, 73%) -> 61% -> 49%
@@ -23,6 +25,18 @@ const colorFamilies = {
   indigo: ['#a3a8f5', '#7078ed', '#3d48e5'],    // HSL: (235°, 80%, 75%) -> 65% -> 55%
   amber: ['#ffd966', '#ffc933', '#ffb800'],     // HSL: (45°, 100%, 70%) -> 60% -> 50%
   cyan: ['#80e5ff', '#4dd9ff', '#1accff'],      // HSL: (195°, 100%, 75%) -> 65% -> 55%
+
+  // Additional 10 families for backup
+  lime: ['#c4f566', '#a6ed33', '#88d600'],      // HSL: (75°, 90%, 68%) -> 58% -> 48%
+  magenta: ['#f580f5', '#ed4ded', '#e01ae0'],   // HSL: (300°, 85%, 72%) -> 62% -> 52%
+  violet: ['#d1a3f5', '#ba70ed', '#a33de5'],    // HSL: (285°, 80%, 75%) -> 65% -> 55%
+  coral: ['#ff9e80', '#ff6b4d', '#ff381a'],     // HSL: (10°, 100%, 75%) -> 63% -> 55%
+  emerald: ['#66f5b8', '#33ed9e', '#00d684'],   // HSL: (155°, 90%, 68%) -> 58% -> 48%
+  sky: ['#80d4ff', '#4dc2ff', '#1ab0ff'],       // HSL: (200°, 100%, 75%) -> 65% -> 55%
+  rose: ['#ffa3c4', '#ff70a6', '#ff3d88'],      // HSL: (340°, 100%, 75%) -> 65% -> 55%
+  lavender: ['#d4c4f5', '#ba9eed', '#9e70e5'],  // HSL: (260°, 75%, 75%) -> 65% -> 55%
+  mint: ['#99f5d4', '#66eda6', '#33d677'],      // HSL: (150°, 85%, 75%) -> 63% -> 51%
+  peach: ['#ffc499', '#ffad66', '#ff9633'],     // HSL: (30°, 100%, 75%) -> 65% -> 55%
 };
 
 const colorFamilyNames = Object.keys(colorFamilies) as Array<keyof typeof colorFamilies>;
