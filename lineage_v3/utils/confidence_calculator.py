@@ -4,12 +4,16 @@ Unified Confidence Score Calculator
 Centralizes ALL confidence score calculations across the application.
 Ensures consistency between backend parser, evaluation, and frontend display.
 
+Version History:
+- v1.0.0 (2025-11-03): Initial unified calculator
+- v2.0.0 (2025-11-06): Multi-factor confidence model with breakdown
+
 Author: Claude Code Agent
-Date: 2025-11-03
-Version: 1.0.0
+Date: 2025-11-06
+Version: 2.0.0
 """
 
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -232,3 +236,186 @@ class ConfidenceCalculator:
             return 'orange'
         else:
             return 'red'
+
+    # ========================================================================
+    # MULTI-FACTOR CONFIDENCE MODEL (v2.0.0)
+    # ========================================================================
+
+    # Factor weights (must sum to 1.0)
+    WEIGHT_PARSE_SUCCESS = 0.30    # 30% - Did parsing complete without errors?
+    WEIGHT_METHOD_AGREEMENT = 0.25  # 25% - Do regex and SQLGlot agree?
+    WEIGHT_CATALOG_VALID = 0.20     # 20% - Do extracted objects exist in catalog?
+    WEIGHT_COMMENT_HINTS = 0.10     # 10% - Did developer provide hints?
+    WEIGHT_UAT_VALIDATED = 0.15     # 15% - Has user verified this SP?
+
+    @classmethod
+    def calculate_multifactor(
+        cls,
+        parse_success: bool,
+        source_match: float,
+        target_match: float,
+        catalog_validation_rate: float,
+        has_comment_hints: bool = False,
+        uat_validated: bool = False,
+        regex_sources_count: int = 0,
+        regex_targets_count: int = 0,
+        sp_calls_count: int = 0
+    ) -> Tuple[float, Dict[str, Any]]:
+        """
+        Calculate confidence using multi-factor model with detailed breakdown.
+
+        This is the NEW recommended method for confidence calculation (v2.0.0).
+        Provides both final score and breakdown for transparency.
+
+        Args:
+            parse_success: Whether parsing completed without errors
+            source_match: Match percentage for source tables (0.0-1.0)
+            target_match: Match percentage for target tables (0.0-1.0)
+            catalog_validation_rate: % of extracted objects found in catalog (0.0-1.0)
+            has_comment_hints: Whether developer provided comment hints
+            uat_validated: Whether user has verified this SP
+            regex_sources_count: Number of sources found by regex
+            regex_targets_count: Number of targets found by regex
+            sp_calls_count: Number of SP calls found
+
+        Returns:
+            Tuple of (final_confidence, breakdown_dict)
+
+            breakdown_dict = {
+                'parse_success': {'score': 0-1, 'weight': 0.30, 'contribution': 0-0.30},
+                'method_agreement': {'score': 0-1, 'weight': 0.25, 'contribution': 0-0.25},
+                'catalog_validation': {'score': 0-1, 'weight': 0.20, 'contribution': 0-0.20},
+                'comment_hints': {'score': 0-1, 'weight': 0.10, 'contribution': 0-0.10},
+                'uat_validation': {'score': 0-1, 'weight': 0.15, 'contribution': 0-0.15},
+                'total_score': 0.0-1.0,
+                'bucketed_confidence': 0.85/0.75/0.50,
+                'label': 'High'|'Medium'|'Low',
+                'color': 'green'|'yellow'|'orange'
+            }
+
+        Example:
+            >>> confidence, breakdown = calculate_multifactor(
+            ...     parse_success=True,
+            ...     source_match=0.95,
+            ...     target_match=0.95,
+            ...     catalog_validation_rate=1.0,
+            ...     has_comment_hints=True,
+            ...     uat_validated=False
+            ... )
+            >>> confidence
+            0.85
+            >>> breakdown['parse_success']['contribution']
+            0.30
+        """
+        # Factor 1: Parse Success (30%)
+        parse_score = 1.0 if parse_success else 0.0
+
+        # Factor 2: Method Agreement (25%)
+        # Weighted average: targets count more (60%) than sources (40%)
+        agreement_score = (source_match * 0.4) + (target_match * 0.6)
+
+        # Factor 3: Catalog Validation (20%)
+        catalog_score = catalog_validation_rate
+
+        # Factor 4: Comment Hints (10%)
+        hints_score = 1.0 if has_comment_hints else 0.0
+
+        # Factor 5: UAT Validation (15%)
+        uat_score = 1.0 if uat_validated else 0.0
+
+        # Calculate weighted contributions
+        parse_contribution = parse_score * cls.WEIGHT_PARSE_SUCCESS
+        agreement_contribution = agreement_score * cls.WEIGHT_METHOD_AGREEMENT
+        catalog_contribution = catalog_score * cls.WEIGHT_CATALOG_VALID
+        hints_contribution = hints_score * cls.WEIGHT_COMMENT_HINTS
+        uat_contribution = uat_score * cls.WEIGHT_UAT_VALIDATED
+
+        # Total raw score (0.0-1.0)
+        total_score = (
+            parse_contribution +
+            agreement_contribution +
+            catalog_contribution +
+            hints_contribution +
+            uat_contribution
+        )
+
+        # Special case: Orchestrator SPs (only SP calls, no tables)
+        if regex_sources_count == 0 and regex_targets_count == 0 and sp_calls_count > 0:
+            # Orchestrator SPs should get high confidence if parsing succeeded
+            if parse_success:
+                total_score = max(total_score, 0.85)
+
+        # Bucket into standard confidence levels
+        if total_score >= 0.80:  # Slightly lower threshold for multi-factor
+            bucketed_confidence = cls.CONFIDENCE_HIGH  # 0.85
+        elif total_score >= 0.65:
+            bucketed_confidence = cls.CONFIDENCE_MEDIUM  # 0.75
+        elif total_score > 0:
+            bucketed_confidence = cls.CONFIDENCE_LOW  # 0.50
+        else:
+            bucketed_confidence = cls.CONFIDENCE_FAIL  # 0.0
+
+        # Build detailed breakdown
+        breakdown = {
+            'parse_success': {
+                'score': parse_score,
+                'weight': cls.WEIGHT_PARSE_SUCCESS,
+                'contribution': round(parse_contribution, 4)
+            },
+            'method_agreement': {
+                'score': round(agreement_score, 4),
+                'weight': cls.WEIGHT_METHOD_AGREEMENT,
+                'contribution': round(agreement_contribution, 4)
+            },
+            'catalog_validation': {
+                'score': round(catalog_score, 4),
+                'weight': cls.WEIGHT_CATALOG_VALID,
+                'contribution': round(catalog_contribution, 4)
+            },
+            'comment_hints': {
+                'score': hints_score,
+                'weight': cls.WEIGHT_COMMENT_HINTS,
+                'contribution': round(hints_contribution, 4)
+            },
+            'uat_validation': {
+                'score': uat_score,
+                'weight': cls.WEIGHT_UAT_VALIDATED,
+                'contribution': round(uat_contribution, 4)
+            },
+            'total_score': round(total_score, 4),
+            'bucketed_confidence': bucketed_confidence,
+            'label': cls.get_confidence_label(bucketed_confidence),
+            'color': cls.get_confidence_color(bucketed_confidence)
+        }
+
+        return bucketed_confidence, breakdown
+
+    @classmethod
+    def calculate_catalog_validation_rate(
+        cls,
+        extracted_objects: set,
+        catalog_objects: set
+    ) -> float:
+        """
+        Calculate what percentage of extracted objects exist in catalog.
+
+        Args:
+            extracted_objects: Set of table names extracted by parser
+            catalog_objects: Set of table names in database catalog
+
+        Returns:
+            Validation rate (0.0-1.0)
+
+        Example:
+            >>> extracted = {'dbo.Table1', 'dbo.Table2', 'dbo.InvalidTable'}
+            >>> catalog = {'dbo.Table1', 'dbo.Table2', 'dbo.Table3'}
+            >>> calculate_catalog_validation_rate(extracted, catalog)
+            0.6667  # 2 out of 3 extracted objects exist
+        """
+        if not extracted_objects:
+            return 1.0  # No objects to validate = 100% valid
+
+        valid_count = len(extracted_objects & catalog_objects)
+        total_count = len(extracted_objects)
+
+        return valid_count / total_count if total_count > 0 else 1.0

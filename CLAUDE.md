@@ -5,10 +5,11 @@
 - Ask questions last; complete analysis first
 - Use TodoWrite tool; update immediately after completion
 
-## Project: Data Lineage Visualizer v4.1.3
+## Project: Data Lineage Visualizer v4.2.0
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **System:** Python 3.12.3, Node.js, WSL2
-- **Parser:** 97.0% SP confidence | 95.5% overall
+- **Parser:** v4.2.0 | 97.0% SP confidence | 95.5% overall
+- **Confidence:** v2.0.0 (Multi-Factor) with detailed breakdown
 - **Frontend:** v2.9.2 | **API:** v4.0.3
 
 ## Quick Start
@@ -101,10 +102,11 @@ LOG_LEVEL=INFO                                 # DEBUG | INFO | WARNING | ERROR
 - [ENV_SETUP.md](ENV_SETUP.md) - Quick .env setup guide
 - [docs/CONFIGURATION_GUIDE.md](docs/CONFIGURATION_GUIDE.md) - Complete configuration reference
 
-## Parser (v4.1.3)
+## Parser (v4.2.0)
 - **Strategy:** Regex → SQLGlot → Rule Engine
 - **Performance:** 729/763 objects (95.5%), 196/202 SPs (97.0%)
-- **Features:** Dataflow mode, global target exclusion, admin query filtering, incremental parsing
+- **Features:** Comment hints (@LINEAGE_INPUTS/@LINEAGE_OUTPUTS), dataflow mode, global target exclusion, incremental parsing
+- **Confidence:** Multi-factor model v2.0.0 with detailed breakdown (5 weighted factors)
 
 ### Parser Development (MANDATORY)
 
@@ -153,13 +155,36 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 - Re-parses only modified/new + low confidence objects (<0.85)
 - 50-90% faster than full refresh
 
-### Confidence Model
-| Source | Confidence | Applied To |
-|--------|-----------|------------|
-| DMV | 1.0 | Views, Functions |
-| Query Log | 0.95 | Validated SPs |
-| SQLGlot | 0.85 | Successfully parsed SPs |
-| Regex | 0.50 | Failed parses |
+### Confidence Model (v2.0.0 - Multi-Factor)
+**5 Weighted Factors (sum to 1.0):**
+- **Parse Success (30%)**: Did parsing complete without errors?
+- **Method Agreement (25%)**: Do regex and SQLGlot agree?
+- **Catalog Validation (20%)**: Do extracted objects exist in catalog?
+- **Comment Hints (10%)**: Did developer provide @LINEAGE hints?
+- **UAT Validation (15%)**: Has user verified this SP?
+
+**Confidence Levels:**
+- **High (0.85)**: total_score ≥ 0.80
+- **Medium (0.75)**: total_score ≥ 0.65
+- **Low (0.50)**: total_score > 0
+- **Failed (0.0)**: total_score = 0
+
+**Every parsed object includes detailed breakdown:**
+```json
+{
+  "parse_success": {"score": 1.0, "weight": 0.30, "contribution": 0.30},
+  "method_agreement": {"score": 0.95, "weight": 0.25, "contribution": 0.2375},
+  "catalog_validation": {"score": 1.0, "weight": 0.20, "contribution": 0.20},
+  "comment_hints": {"score": 0.0, "weight": 0.10, "contribution": 0.0},
+  "uat_validation": {"score": 0.0, "weight": 0.15, "contribution": 0.0},
+  "total_score": 0.7375,
+  "bucketed_confidence": 0.75,
+  "label": "Medium",
+  "color": "yellow"
+}
+```
+
+**Single Source of Truth:** `ConfidenceCalculator.calculate_multifactor()`
 
 ### Parquet File Detection
 - Auto-detects schema
@@ -184,6 +209,7 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 **Parser & Technical:**
 - [lineage_specs.md](lineage_specs.md) - Parser specification
 - [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing guide
+- [docs/COMMENT_HINTS_DEVELOPER_GUIDE.md](docs/COMMENT_HINTS_DEVELOPER_GUIDE.md) - Using @LINEAGE hints
 - [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
 - [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
 
@@ -284,16 +310,21 @@ ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 
 ---
 
-**Last Updated:** 2025-11-06 (Deployment & Configuration Improvements)
-**Version:** v4.1.3 (IF EXISTS Administrative Query Filtering)
+**Last Updated:** 2025-11-06 (Multi-Factor Confidence System v2.0.0 + Deployment Improvements)
+**Version:** v4.2.0 (Comment Hints Parser + Multi-Factor Confidence)
 **Parser:** 97.0% SP confidence | 95.5% overall | Dataflow mode + no circular dependencies
+**Confidence:** v2.0.0 (Multi-Factor with detailed breakdown)
 **Frontend:** v2.9.2 (Global exclusion patterns + UI simplified) | **API:** v4.0.3
 
 **Recent Changes (2025-11-06):**
+- ✅ **Phase 3**: Multi-factor confidence system (v2.0.0) with 5 weighted factors
+- ✅ **Phase 2**: Comment hints parser (@LINEAGE_INPUTS/@LINEAGE_OUTPUTS)
+- ✅ **Phase 1**: UAT feedback system integration (15% weight)
+- ✅ Confidence breakdown stored in database and exported in all JSON formats
+- ✅ Comprehensive smoke testing (31/31 tests passed)
+- ✅ Updated PARSER_EVOLUTION_LOG.md with all three phases
+- ✅ Single source of truth: ConfidenceCalculator.calculate_multifactor()
 - ✅ Restructured requirements to industry best practices (modular requirements/ directory)
 - ✅ Added comprehensive .env configuration setup with templates
 - ✅ Improved start-app.sh with auto-install and multi-location venv support
-- ✅ Fixed hardcoded paths for universal deployment
 - ✅ Added configuration documentation (ENV_SETUP.md, CONFIGURATION_GUIDE.md)
-- ✅ Created setup-env.sh for interactive environment configuration
-- ✅ Normalized line endings (CRLF → LF) for cross-platform compatibility

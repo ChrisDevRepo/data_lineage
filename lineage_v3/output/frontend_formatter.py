@@ -133,8 +133,9 @@ class FrontendFormatter:
                 if out_id in self.object_id_to_node_id
             ]
             
-            # Get confidence for description
+            # Get confidence and breakdown for description
             confidence = node['provenance']['confidence']
+            confidence_breakdown = node['provenance'].get('confidence_breakdown')  # v2.0.0
 
             if node['object_type'] == 'Stored Procedure':
                 # Show actual parsed confidence (variable)
@@ -142,7 +143,7 @@ class FrontendFormatter:
             else:
                 # Tables and Views always show 1.00 (they exist in metadata)
                 description = "Confidence: 1.00"
-            
+
             # Classify data model type
             data_model_type = self._classify_data_model_type(
                 node['name'],
@@ -158,7 +159,9 @@ class FrontendFormatter:
                 'description': description,
                 'data_model_type': data_model_type,
                 'inputs': sorted(input_node_ids, key=lambda x: int(x)),
-                'outputs': sorted(output_node_ids, key=lambda x: int(x))
+                'outputs': sorted(output_node_ids, key=lambda x: int(x)),
+                'confidence': confidence,  # v2.0.0 - explicit confidence field
+                'confidence_breakdown': confidence_breakdown  # v2.0.0 - multi-factor breakdown
             }
 
             # Conditionally add DDL text if requested (for JSON mode with embedded DDL)

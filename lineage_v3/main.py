@@ -314,7 +314,8 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
                             primary_source=result.get('source', 'parser'),
                             confidence=result['confidence'],
                             inputs=result.get('inputs', []),
-                            outputs=result.get('outputs', [])
+                            outputs=result.get('outputs', []),
+                            confidence_breakdown=result.get('confidence_breakdown')  # v2.0.0
                         )
 
                         # Categorize by confidence

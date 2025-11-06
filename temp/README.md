@@ -10,6 +10,18 @@ This folder contains intermediate scripts, testing files, and debugging code tha
 
 ## Current Contents
 
+### Phase 3 Testing (2025-11-06)
+
+**Multi-Factor Confidence System Tests:**
+1. **smoke_test_confidence.py** - Core confidence calculator tests (21 tests)
+2. **test_hints_standalone.py** - Standalone comment hints parser tests (10 tests)
+3. **smoke_test_report.py** - Test orchestration and reporting
+4. **SMOKE_TEST_RESULTS.md** - Comprehensive test documentation (31/31 tests passed)
+
+**Phase Planning & Analysis:**
+5. **parsing_review/** - Analysis documents from parsing review phase
+6. **uat_feedback/** - Phase 1 UAT feedback system implementation
+
 ### Moved from Root (2025-11-03)
 
 1. **run_evaluation.py** - CLI wrapper for `/sub_DL_OptimizeParsing` (superseded by subagent)
