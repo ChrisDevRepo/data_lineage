@@ -259,6 +259,298 @@ COMMIT TRANSACTION;
 
 ---
 
+## Using Comment Hints for Edge Cases (NEW in v4.2.0)
+
+For scenarios where the parser cannot automatically extract dependencies (e.g., dynamic SQL, complex CATCH blocks), you can use **special comment syntax** to explicitly document table dependencies.
+
+### Syntax
+
+Add these comments anywhere in your stored procedure:
+
+```sql
+-- @LINEAGE_INPUTS: schema.table1, schema.table2
+-- @LINEAGE_OUTPUTS: schema.table3
+```
+
+**Format:**
+- Start with `--` (SQL comment)
+- Keyword: `@LINEAGE_INPUTS:` or `@LINEAGE_OUTPUTS:`
+- Comma-separated list of fully qualified table names (schema.table)
+- One hint per line
+
+### When to Use Comment Hints
+
+Use comment hints for:
+
+| Scenario | Why Parser Fails | Solution |
+|----------|-----------------|----------|
+| **Dynamic SQL** | Table name constructed at runtime | Add hint with actual table |
+| **Complex CATCH Blocks** | Parser assumes logging only | Document data operations |
+| **Conditional Logic** | Only one code path analyzed | Document all possible tables |
+| **Cross-database Dependencies** | External references may not resolve | Explicit documentation |
+| **Concatenated Table Names** | `'Table' + @suffix` patterns | List actual table variants |
+
+### Example 1: Dynamic SQL
+
+**Problem:** Parser can't resolve table names constructed at runtime.
+
+```sql
+CREATE PROC [dbo].[spDynamicLoad] @tableName VARCHAR(100)
+AS
+BEGIN
+    -- @LINEAGE_INPUTS: dbo.SourceData
+    -- @LINEAGE_OUTPUTS: dbo.Customers, dbo.Orders
+    -- Reason: Table name from parameter - could be Customers or Orders
+
+    DECLARE @sql NVARCHAR(MAX);
+    SET @sql = 'INSERT INTO ' + @tableName + ' SELECT * FROM dbo.SourceData';
+    EXEC sp_executesql @sql;
+END
+```
+
+**Result:**
+- Without hints: Confidence = 0.50 (dynamic SQL, no tables extracted)
+- With hints: Confidence = 0.75 (hints provide missing dependencies)
+- Lineage: `SourceData` → `spDynamicLoad` → `Customers`, `Orders`
+
+### Example 2: CATCH Block Dependencies
+
+**Problem:** Parser removes CATCH blocks assuming they only contain logging.
+
+```sql
+CREATE PROC [dbo].[spLoadWithRecovery]
+AS
+BEGIN TRY
+    INSERT INTO dbo.Target SELECT * FROM dbo.Source;
+END TRY
+BEGIN CATCH
+    -- @LINEAGE_INPUTS: dbo.Source
+    -- @LINEAGE_OUTPUTS: dbo.ErrorRecoveryTable
+    -- Reason: CATCH block has real data operation (not just logging)
+
+    -- Move failed records to recovery table
+    INSERT INTO dbo.ErrorRecoveryTable
+    SELECT * FROM dbo.Source WHERE ValidationStatus = 'Failed';
+END CATCH
+```
+
+**Result:**
+- Without hints: Missing `ErrorRecoveryTable` dependency
+- With hints: Complete lineage including error recovery path
+- Confidence: 0.85 (parser + hints)
+
+### Example 3: Conditional Table Access
+
+**Problem:** Parser may only analyze one code path.
+
+```sql
+CREATE PROC [dbo].[spLoadByType] @type VARCHAR(20)
+AS
+BEGIN
+    -- @LINEAGE_INPUTS: dbo.CustomerData, dbo.OrderData, dbo.ProductData
+    -- @LINEAGE_OUTPUTS: dbo.TargetTable
+    -- Reason: Conditional logic - different sources based on @type parameter
+
+    IF @type = 'customers'
+        INSERT INTO dbo.TargetTable SELECT * FROM dbo.CustomerData;
+    ELSE IF @type = 'orders'
+        INSERT INTO dbo.TargetTable SELECT * FROM dbo.OrderData;
+    ELSE
+        INSERT INTO dbo.TargetTable SELECT * FROM dbo.ProductData;
+END
+```
+
+**Result:**
+- Without hints: May only capture one branch
+- With hints: All possible data flows documented
+- Confidence: 0.85 (comprehensive lineage)
+
+### Comment Hints Rules
+
+#### ✅ DO
+
+1. **Use Fully Qualified Names**
+   ```sql
+   -- ✅ GOOD: Explicit schema
+   -- @LINEAGE_INPUTS: CONSUMPTION_FINANCE.DimCustomers, dbo.Staging
+
+   -- ❌ BAD: No schema (ambiguous)
+   -- @LINEAGE_INPUTS: DimCustomers, Staging
+   ```
+
+2. **Document the Reason**
+   ```sql
+   -- @LINEAGE_OUTPUTS: dbo.CustomerArchive
+   -- Reason: Dynamic SQL in loop - iterates through customer partitions
+   ```
+
+3. **Place Hints Near Relevant Code**
+   ```sql
+   -- @LINEAGE_INPUTS: dbo.ExternalData
+   BEGIN CATCH
+       -- Hint is close to the operation it documents
+       SELECT * FROM dbo.ExternalData WHERE Status = 'Error';
+   END CATCH
+   ```
+
+4. **Use for Edge Cases Only**
+   - Only add hints when parser actually fails
+   - Most SPs don't need hints (97% parse successfully)
+   - Check confidence first - only add if < 0.85
+
+#### ❌ DON'T
+
+1. **Include Temp Tables or Table Variables**
+   ```sql
+   -- ❌ BAD: Temp tables filtered automatically
+   -- @LINEAGE_INPUTS: #TempStaging, @TableVar
+
+   -- ✅ GOOD: Only persistent tables
+   -- @LINEAGE_INPUTS: dbo.Staging
+   ```
+
+2. **Add Utility/Logging SPs**
+   ```sql
+   -- ❌ BAD: Utility SPs filtered automatically
+   -- @LINEAGE_OUTPUTS: dbo.LogMessage
+
+   -- ✅ GOOD: Business tables only
+   -- @LINEAGE_OUTPUTS: dbo.FactSales
+   ```
+
+3. **Duplicate What Parser Already Found**
+   ```sql
+   -- ❌ UNNECESSARY: Parser handles this perfectly
+   -- @LINEAGE_INPUTS: dbo.Source
+   INSERT INTO dbo.Target SELECT * FROM dbo.Source;
+
+   -- ✅ ONLY ADD if parser fails (confidence < 0.85)
+   ```
+
+4. **Use Hints as Primary Documentation**
+   - Hints are for parser assistance, not code documentation
+   - Use standard SQL comments for developer notes
+   - Hints are stripped during parsing (not visible to other tools)
+
+### How Hints Affect Confidence
+
+| Scenario | Base Confidence | With Hints | Final Confidence | Explanation |
+|----------|----------------|------------|------------------|-------------|
+| Dynamic SQL only | 0.50 | ✅ | 0.75 | Hints fill complete gap |
+| Parser success + hints agree | 0.85 | ✅ | 0.85 | Hints validate parser (no change) |
+| Parser partial + hints fill gaps | 0.75 | ✅ | 0.85 | Hints complete missing deps |
+| Parser fails + no hints | 0.50 | ❌ | 0.50 | No improvement |
+| Parser success + hints conflict | 0.85 | ⚠️ | 0.75 | Conflict reduces confidence |
+
+**Formula:**
+- **Base Confidence:** Parser quality (0.50, 0.75, 0.85)
+- **Hints Bonus:** +10% if hints validate parser, +25% if hints fill gaps
+- **Hint Validation:** Only tables found in catalog are used
+- **Conflict Penalty:** -10% if hints contradict parser results
+
+### Validation Process
+
+The parser validates comment hints against the database catalog:
+
+```
+Step 1: Extract hints from comments
+Step 2: Parse table names (schema.table format)
+Step 3: Check each table against objects table
+Step 4: Keep only valid tables (exist in catalog)
+Step 5: UNION hints with parsed results (no duplicates)
+```
+
+**Example Validation:**
+```sql
+-- @LINEAGE_INPUTS: dbo.Customers, dbo.NonExistentTable, FINANCE.Accounts
+```
+
+**Validation Results:**
+- ✅ `dbo.Customers` → Valid (exists in catalog)
+- ❌ `dbo.NonExistentTable` → Invalid (not in catalog, ignored)
+- ✅ `FINANCE.Accounts` → Valid (exists in catalog)
+
+**Final Hints Used:** `dbo.Customers`, `FINANCE.Accounts`
+
+### Viewing Hint Results
+
+Check if your hints were applied:
+
+```bash
+# Query lineage_metadata
+python lineage_v3/utils/workspace_query_helper.py "
+SELECT
+    o.schema_name || '.' || o.object_name AS sp_name,
+    m.confidence,
+    m.primary_source,
+    CASE WHEN m.primary_source LIKE '%hints%' THEN 'Yes' ELSE 'No' END AS hints_used
+FROM lineage_metadata m
+JOIN objects o ON m.object_id = o.object_id
+WHERE o.object_type = 'Stored Procedure'
+  AND m.confidence >= 0.75
+ORDER BY hints_used DESC, m.confidence DESC
+"
+```
+
+### UAT Feedback Integration
+
+If parser misses a dependency:
+
+1. **Report the issue** using UAT feedback system:
+   ```bash
+   cd temp/uat_feedback
+   python capture_feedback.py \
+       --sp "dbo.spYourProc" \
+       --issue missing_input \
+       --missing "dbo.MissingTable" \
+       --notes "Table accessed in dynamic SQL"
+   ```
+
+2. **Add comment hint** to the stored procedure:
+   ```sql
+   -- @LINEAGE_INPUTS: dbo.MissingTable
+   -- Reason: Dynamic SQL - reported via UAT feedback
+   ```
+
+3. **Re-run parser**:
+   ```bash
+   cd /home/user/sandbox
+   python lineage_v3/main.py run --parquet parquet_snapshots/
+   ```
+
+4. **Verify fix**:
+   - Check confidence improved (0.50 → 0.75)
+   - Verify missing table now appears in lineage
+
+### Best Practices Summary
+
+1. **Check confidence first** - Only add hints if confidence < 0.85
+2. **Document the reason** - Why is the hint needed?
+3. **Use fully qualified names** - Always include schema
+4. **Validate in catalog** - Ensure tables exist
+5. **Keep hints close to code** - Near the operation they document
+6. **Report issues** - Use UAT feedback for parser improvements
+7. **Review regularly** - Remove hints if parser improves
+
+### FAQ
+
+**Q: Will comment hints work with old parser versions?**
+A: No, this feature requires v4.2.0 or later. Old versions will ignore the comments harmlessly.
+
+**Q: Can I use hints for views or functions?**
+A: Views and functions use DMV metadata (confidence 1.0), so hints are unnecessary and ignored.
+
+**Q: What if I typo a table name in a hint?**
+A: Invalid table names are ignored with a warning in parser logs. Check spelling and catalog.
+
+**Q: Do hints replace the need for good SQL practices?**
+A: No! Use hints only when parser legitimately can't extract dependencies. Always prefer static SQL over dynamic SQL when possible.
+
+**Q: How do I know if my hints are working?**
+A: Check the `primary_source` field in lineage output - it will show "parser_with_hints" if hints were used.
+
+---
+
 ## Troubleshooting Low Confidence
 
 ### Scenario 1: Confidence = 0.50

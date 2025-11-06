@@ -102,6 +102,7 @@ import os
 from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
 from lineage_v3.utils.validators import validate_object_id, sanitize_identifier
 from lineage_v3.utils.confidence_calculator import ConfidenceCalculator
+from lineage_v3.parsers.comment_hints_parser import CommentHintsParser
 from lineage_v3.config import settings
 
 
@@ -240,6 +241,7 @@ class QualityAwareParser:
         """Initialize parser with DuckDB workspace."""
         self.workspace = workspace
         self._object_catalog = None
+        self.hints_parser = CommentHintsParser(workspace)
 
     def parse_object(self, object_id: int) -> Dict[str, Any]:
         """
@@ -290,27 +292,44 @@ class QualityAwareParser:
             parser_sources_valid = self._validate_against_catalog(parser_sources)
             parser_targets_valid = self._validate_against_catalog(parser_targets)
 
+            # STEP 2b: Extract comment hints (v4.2.0)
+            # Use original DDL (not cleaned) to preserve hints in CATCH blocks
+            hint_inputs, hint_outputs = self.hints_parser.extract_hints(ddl, validate=True)
+
+            # Log hint extraction
+            if hint_inputs or hint_outputs:
+                logger.info(f"Comment hints found: {len(hint_inputs)} inputs, {len(hint_outputs)} outputs")
+                logger.debug(f"  Hint inputs: {hint_inputs}")
+                logger.debug(f"  Hint outputs: {hint_outputs}")
+
+            # UNION hints with parser results (no duplicates)
+            parser_sources_with_hints = parser_sources_valid | hint_inputs
+            parser_targets_with_hints = parser_targets_valid | hint_outputs
 
             # STEP 3: Compare counts and calculate quality metrics
+            # Use parser results WITH hints for quality calculation
             quality = self._calculate_quality(
                 len(regex_sources_valid),
                 len(regex_targets_valid),
-                len(parser_sources_valid),
-                len(parser_targets_valid)
+                len(parser_sources_with_hints),
+                len(parser_targets_with_hints)
             )
 
             # STEP 4: Adjust confidence based on quality
             # Pass counts for orchestrator SP handling
+            # Include hint information for confidence boost
+            has_hints = bool(hint_inputs or hint_outputs)
             confidence = self._determine_confidence(
                 quality,
                 regex_sources_count=len(regex_sources_valid),
                 regex_targets_count=len(regex_targets_valid),
-                sp_calls_count=len(regex_sp_calls_valid)
+                sp_calls_count=len(regex_sp_calls_valid),
+                has_hints=has_hints
             )
 
-            # STEP 5: Resolve to object_ids
-            input_ids = self._resolve_table_names(parser_sources_valid)
-            output_ids = self._resolve_table_names(parser_targets_valid)
+            # STEP 5: Resolve to object_ids (use results WITH hints)
+            input_ids = self._resolve_table_names(parser_sources_with_hints)
+            output_ids = self._resolve_table_names(parser_targets_with_hints)
 
             # STEP 5b: Add SP-to-SP lineage (v4.0.1)
             # Stored procedures are OUTPUTS (we call/execute them)
@@ -323,7 +342,7 @@ class QualityAwareParser:
                 'inputs': input_ids,
                 'outputs': output_ids,
                 'confidence': confidence,
-                'source': 'parser',
+                'source': 'parser_with_hints' if has_hints else 'parser',
                 'parse_error': None,
                 'quality_check': {
                     'regex_sources': len(regex_sources_valid),
@@ -331,6 +350,10 @@ class QualityAwareParser:
                     'regex_sp_calls': len(regex_sp_calls_valid),
                     'parser_sources': len(parser_sources_valid),
                     'parser_targets': len(parser_targets_valid),
+                    'hint_inputs': len(hint_inputs),
+                    'hint_outputs': len(hint_outputs),
+                    'final_sources': len(parser_sources_with_hints),
+                    'final_targets': len(parser_targets_with_hints),
                     'source_match': quality['source_match'],
                     'target_match': quality['target_match'],
                     'overall_match': quality['overall_match'],
@@ -562,7 +585,8 @@ class QualityAwareParser:
         quality: Dict[str, Any],
         regex_sources_count: int = 0,
         regex_targets_count: int = 0,
-        sp_calls_count: int = 0
+        sp_calls_count: int = 0,
+        has_hints: bool = False
     ) -> float:
         """
         Determine confidence score based on quality check.
@@ -574,24 +598,37 @@ class QualityAwareParser:
         - Overall match ≥90% → 0.85 (high confidence)
         - Overall match ≥75% → 0.75 (medium confidence)
         - Overall match <75% → 0.5 (low confidence, needs review/rule refinement)
+        - Has comment hints → +0.10 confidence boost (v4.2.0)
 
         Args:
             quality: Quality metrics from _calculate_quality()
             regex_sources_count: Number of source tables found by regex
             regex_targets_count: Number of target tables found by regex
             sp_calls_count: Number of SP calls found (for orchestrator SP detection)
+            has_hints: Whether comment hints were found (v4.2.0)
         """
         source_match = quality['source_match']
         target_match = quality['target_match']
 
         # Use unified confidence calculator
-        return ConfidenceCalculator.from_quality_match(
+        base_confidence = ConfidenceCalculator.from_quality_match(
             source_match=source_match,
             target_match=target_match,
             regex_sources_count=regex_sources_count,
             regex_targets_count=regex_targets_count,
             sp_calls_count=sp_calls_count
         )
+
+        # Apply hint boost if comment hints were provided (v4.2.0)
+        # Hints indicate developer intervention for edge cases
+        if has_hints:
+            # Boost confidence by 0.10 (up to max of 0.95)
+            # Example: 0.50 → 0.60, 0.75 → 0.85, 0.85 → 0.95
+            boosted_confidence = min(base_confidence + 0.10, 0.95)
+            logger.debug(f"Confidence boost from hints: {base_confidence:.2f} → {boosted_confidence:.2f}")
+            return boosted_confidence
+
+        return base_confidence
 
     def _is_excluded(self, schema: str, table: str) -> bool:
         """Check if table should be excluded (temp tables, system schemas)."""
