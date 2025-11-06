@@ -52,6 +52,14 @@ sleep 2
 # Start Frontend (Vite)
 echo "🎨 Starting Frontend on port 3000..."
 cd "$SCRIPT_DIR/frontend"
+
+# Check if node_modules exists
+if [ ! -d "node_modules" ]; then
+    echo "   ❌ Node modules not found! Installing dependencies..."
+    npm install
+    echo "   ✅ Node dependencies installed"
+fi
+
 nohup npm run dev > /tmp/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "   ✅ Frontend started (PID: $FRONTEND_PID)"
