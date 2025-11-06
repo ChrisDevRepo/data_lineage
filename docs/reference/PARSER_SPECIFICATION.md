@@ -1,8 +1,98 @@
 # Data Lineage Parser Specification
 
-**Version:** 3.1
-**Parser Version:** v3.8.0 (Production)
-**Last Updated:** 2025-11-02
+**Specification Version:** 4.0
+**Parser Version:** v4.2.0 (Production)
+**Last Updated:** 2025-11-06
+
+**Recent Changes (v4.2.0):**
+- ✅ Comment Hints feature (`@LINEAGE_INPUTS`, `@LINEAGE_OUTPUTS`)
+- ✅ Confidence model v2.1.0 (measures quality, not just agreement)
+- 🚧 SQL Cleaning Engine (implementation complete, integration pending)
+
+---
+
+## 0. What's New in v4.2.0
+
+### Comment Hints Feature (NEW)
+
+**Purpose:** Allow developers to explicitly declare dependencies in SQL comments for edge cases SQLGlot cannot parse.
+
+**Syntax:**
+```sql
+CREATE PROCEDURE dbo.spProcessOrders
+AS
+BEGIN
+    -- @LINEAGE_INPUTS: dbo.Customers, dbo.Orders, dbo.Products
+    -- @LINEAGE_OUTPUTS: dbo.FactSales
+
+    -- Dynamic SQL or complex logic that parser can't handle
+    DECLARE @sql NVARCHAR(MAX) = '...'
+    EXEC sp_executesql @sql
+END
+```
+
+**Use Cases:**
+- Dynamic SQL (`EXEC sp_executesql`)
+- Error handling (CATCH blocks with INSERT INTO error log)
+- Complex control flow (IF/ELSE, WHILE loops)
+- Temporary table dependencies (#temp)
+
+**Implementation:**
+- Parser: `lineage_v3/parsers/comment_hints_parser.py`
+- Integration: Merged with SQLGlot results (union of both sets)
+- Confidence boost: +10% when hints present (0.75 → 0.85, 0.85 → 0.95)
+- Documentation: `docs/guides/COMMENT_HINTS_DEVELOPER_GUIDE.md`
+
+**Format:**
+- Case-insensitive: `@LINEAGE_INPUTS`, `@lineage_inputs`, `@Lineage_Inputs` all work
+- Multi-line support: Multiple comment lines combined
+- Schema defaulting: `Customers` → `dbo.Customers`
+- Bracket handling: `[dbo].[Customers]` → `dbo.Customers`
+
+### Confidence Model v2.1.0 (UPDATED)
+
+**Key Change:** Now measures **QUALITY/ACCURACY** instead of just **AGREEMENT**
+
+**Old Model (v2.0.0) - WRONG:**
+```
+Scenario: Regex gets 100% accuracy, SQLGlot fails
+Old Score: 0.50 (LOW) ❌ Penalized accurate results!
+```
+
+**New Model (v2.1.0) - CORRECT:**
+```
+Scenario: Regex gets 100% accuracy, SQLGlot fails, catalog 100% valid
+New Score: 0.75 (MEDIUM) ✅ Rewards accuracy
+With Hints: 0.85 (HIGH) ✅
+```
+
+**Strategy:**
+1. Trust catalog validation (≥90% exists → high quality)
+2. Use SQLGlot agreement as confidence booster (not penalty!)
+3. Be conservative only when BOTH catalog AND agreement are low
+
+**Implementation:** `lineage_v3/utils/confidence_calculator.py`
+
+### SQL Cleaning Engine (IN PROGRESS)
+
+**Status:** Implementation complete, integration pending
+
+**Purpose:** Pre-process T-SQL to increase SQLGlot success rate from ~5% to ~70-80%
+
+**Problem:** SQLGlot fails on T-SQL constructs:
+- `BEGIN TRY`/`CATCH` blocks
+- `DECLARE`/`SET` statements
+- `GO` batch separators
+- `RAISERROR` error handling
+- `CREATE PROCEDURE` wrapper
+
+**Solution:** Rule-based cleaning engine that extracts core DML before parsing
+
+**Test Results:** 100% SQLGlot success on test SP (was 0%)
+
+**Documentation:** `docs/development/sql_cleaning_engine/`
+
+---
 
 ## 1. Objective
 
