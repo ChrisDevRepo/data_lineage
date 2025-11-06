@@ -1,0 +1,15 @@
+# ==============================================================================
+# API Dependencies - FastAPI Backend Server
+# ==============================================================================
+# Includes: Base dependencies + API-specific packages
+# ==============================================================================
+
+# Include base dependencies
+-r base.txt
+
+# ------------------------------------------------------------------------------
+# Web Framework
+# ------------------------------------------------------------------------------
+fastapi==0.115.0                 # FastAPI web framework
+uvicorn[standard]==0.32.0        # ASGI server with auto-reload
+python-multipart==0.0.12         # For file uploads and form data

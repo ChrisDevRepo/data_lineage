@@ -8,6 +8,9 @@ echo "║  🚀 Starting Data Lineage Visualizer                          ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Kill any existing processes on ports 3000 and 8000
 echo "🧹 Cleaning up existing processes..."
 lsof -ti:8000 | xargs -r kill -9 2>/dev/null
@@ -16,8 +19,30 @@ sleep 1
 
 # Start Backend (FastAPI)
 echo "🔧 Starting Backend API on port 8000..."
-cd /home/chris/sandbox/api
-source ../venv/bin/activate
+cd "$SCRIPT_DIR/api"
+
+# Activate virtual environment if it exists
+if [ -f "$SCRIPT_DIR/venv/bin/activate" ]; then
+    echo "   📦 Activating virtual environment (./venv)..."
+    source "$SCRIPT_DIR/venv/bin/activate"
+elif [ -f "$SCRIPT_DIR/../venv/bin/activate" ]; then
+    echo "   📦 Activating virtual environment (../venv)..."
+    source "$SCRIPT_DIR/../venv/bin/activate"
+elif [ -f "$SCRIPT_DIR/api/venv/bin/activate" ]; then
+    echo "   📦 Activating virtual environment (./api/venv)..."
+    source "$SCRIPT_DIR/api/venv/bin/activate"
+else
+    echo "   ⚠️  No virtual environment found - using system Python"
+    echo "   💡 Create one with: python3 -m venv $SCRIPT_DIR/venv"
+fi
+
+# Check if FastAPI is installed
+if ! python -c "import fastapi" 2>/dev/null; then
+    echo "   ❌ FastAPI not found! Installing dependencies..."
+    pip install -r "$SCRIPT_DIR/requirements.txt" -q
+    echo "   ✅ Dependencies installed"
+fi
+
 nohup python main.py > /tmp/backend.log 2>&1 &
 BACKEND_PID=$!
 echo "   ✅ Backend started (PID: $BACKEND_PID)"
@@ -26,7 +51,15 @@ sleep 2
 
 # Start Frontend (Vite)
 echo "🎨 Starting Frontend on port 3000..."
-cd /home/chris/sandbox/frontend
+cd "$SCRIPT_DIR/frontend"
+
+# Check if node_modules exists
+if [ ! -d "node_modules" ]; then
+    echo "   ❌ Node modules not found! Installing dependencies..."
+    npm install
+    echo "   ✅ Node dependencies installed"
+fi
+
 nohup npm run dev > /tmp/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "   ✅ Frontend started (PID: $FRONTEND_PID)"
