@@ -5,6 +5,9 @@ Version: 4.2.0
 Date: 2025-11-06
 """
 
+import sys
+sys.path.insert(0, '/home/user/sandbox')
+
 from lineage_v3.parsers.comment_hints_parser import CommentHintsParser
 
 
