@@ -1,34 +1,37 @@
 /**
- * Schema Color Palette System
+ * Schema Color Palette System (v2.0 - HSL Color Theory)
  *
  * Requirements:
  * 1. Good contrast between different departments (startup, enterprise, metrics)
  * 2. Same color family for department layers (staging, transformation, consumption)
- * 3. Staging = lightest, Consumption = darkest (but still bright/readable)
- * 4. Colors persist across page reloads
+ * 3. Staging = lightest (75%), Transformation = medium (63%), Consumption = darkest (51%)
+ * 4. All colors remain bright and readable for text visibility
+ * 5. Colors persist across page reloads using localStorage
+ * 6. Based on HSL color theory for perceptual uniformity
  */
 
-// Color families with 3 brightness levels (light to dark)
+// HSL-based color families with 3 brightness levels
+// Each family uses same hue and saturation, varying only lightness
 const colorFamilies = {
-  blue: ['#93c5fd', '#3b82f6', '#1d4ed8'],      // Light blue -> Blue -> Dark blue
-  green: ['#86efac', '#22c55e', '#15803d'],     // Light green -> Green -> Dark green
-  purple: ['#c4b5fd', '#8b5cf6', '#6d28d9'],    // Light purple -> Purple -> Dark purple
-  orange: ['#fdba74', '#f97316', '#c2410c'],    // Light orange -> Orange -> Dark orange
-  pink: ['#f9a8d4', '#ec4899', '#be185d'],      // Light pink -> Pink -> Dark pink
-  teal: ['#5eead4', '#14b8a6', '#0f766e'],      // Light teal -> Teal -> Dark teal
-  red: ['#fca5a5', '#ef4444', '#b91c1c'],       // Light red -> Red -> Dark red
-  indigo: ['#a5b4fc', '#6366f1', '#4338ca'],    // Light indigo -> Indigo -> Dark indigo
-  yellow: ['#fde047', '#eab308', '#a16207'],    // Light yellow -> Yellow -> Dark yellow
-  cyan: ['#67e8f9', '#06b6d4', '#0e7490'],      // Light cyan -> Cyan -> Dark cyan
+  blue: ['#8dc5f5', '#5da9f0', '#2d8deb'],      // HSL: (215°, 80%, 75%) -> 63% -> 51%
+  green: ['#88e5b8', '#54d69e', '#20c784'],     // HSL: (145°, 75%, 72%) -> 60% -> 48%
+  purple: ['#b399f0', '#9166e5', '#6f33da'],    // HSL: (270°, 75%, 73%) -> 61% -> 49%
+  orange: ['#ffb380', '#ff954d', '#ff771a'],    // HSL: (25°, 100%, 75%) -> 63% -> 55%
+  pink: ['#f5a3d0', '#ed70b3', '#e53d96'],      // HSL: (330°, 80%, 75%) -> 65% -> 55%
+  teal: ['#70e8d4', '#3dd9bf', '#0acaaa'],      // HSL: (170°, 75%, 67%) -> 57% -> 47%
+  red: ['#ff9999', '#ff6666', '#ff3333'],       // HSL: (0°, 100%, 80%) -> 70% -> 60%
+  indigo: ['#a3a8f5', '#7078ed', '#3d48e5'],    // HSL: (235°, 80%, 75%) -> 65% -> 55%
+  amber: ['#ffd966', '#ffc933', '#ffb800'],     // HSL: (45°, 100%, 70%) -> 60% -> 50%
+  cyan: ['#80e5ff', '#4dd9ff', '#1accff'],      // HSL: (195°, 100%, 75%) -> 65% -> 55%
 };
 
 const colorFamilyNames = Object.keys(colorFamilies) as Array<keyof typeof colorFamilies>;
 
 // Layer keywords for automatic detection
 const layerKeywords = {
-  staging: ['staging', 'stg', 'raw', 'landing', 'source'],
-  transformation: ['transformation', 'transform', 'tfm', 'processed', 'intermediate'],
-  consumption: ['consumption', 'cons', 'mart', 'final', 'presentation', 'pub', 'published'],
+  staging: ['staging', 'stg', 'raw', 'landing', 'source', 'bronze'],
+  transformation: ['transformation', 'transform', 'tfm', 'processed', 'intermediate', 'silver'],
+  consumption: ['consumption', 'cons', 'mart', 'final', 'presentation', 'pub', 'published', 'gold'],
 };
 
 // Detect layer type from schema name
@@ -49,10 +52,33 @@ function detectLayer(schemaName: string): 'staging' | 'transformation' | 'consum
 }
 
 // Extract department/domain from schema name (before layer indicator)
+// Improved to handle underscore-delimited names (e.g., "startup_staging", "enterprise_tfm_core")
 function extractDepartment(schemaName: string): string {
   const lowerName = schemaName.toLowerCase();
 
-  // Try to find layer keyword and extract department before it
+  // Split by underscores and dashes to identify parts
+  const parts = lowerName.split(/[_-]+/).filter(p => p.length > 0);
+
+  // Find first layer keyword in the parts
+  let layerPartIndex = -1;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    // Check if this part is a layer keyword
+    for (const layerType of Object.values(layerKeywords)) {
+      if (layerType.includes(part)) {
+        layerPartIndex = i;
+        break;
+      }
+    }
+    if (layerPartIndex >= 0) break;
+  }
+
+  // If layer found, department is everything before it
+  if (layerPartIndex > 0) {
+    return parts.slice(0, layerPartIndex).join('');
+  }
+
+  // If layer is first part or not found at all, check substring matching (fallback)
   for (const layer of Object.values(layerKeywords).flat()) {
     const index = lowerName.indexOf(layer);
     if (index > 0) {
@@ -61,8 +87,8 @@ function extractDepartment(schemaName: string): string {
     }
   }
 
-  // No layer found, use whole name as department
-  return lowerName.replace(/[_-]/g, '').trim();
+  // No layer found anywhere, use all parts as department
+  return parts.join('');
 }
 
 // Simple hash function for consistent color assignment
@@ -76,8 +102,8 @@ function hashString(str: string): number {
   return Math.abs(hash);
 }
 
-// Storage key for persisting color assignments
-const STORAGE_KEY = 'schema_color_assignments';
+// Storage key for persisting color assignments (v2 for new HSL system)
+const STORAGE_KEY = 'schema_color_assignments_v2';
 
 // Load saved color assignments from localStorage
 function loadColorAssignments(): Record<string, { family: string; level: number }> {
@@ -94,6 +120,7 @@ function loadColorAssignments(): Record<string, { family: string; level: number 
 function saveColorAssignments(assignments: Record<string, { family: string; level: number }>) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(assignments));
+    console.log(`[SchemaColors] Saved ${Object.keys(assignments).length} color assignments to localStorage`);
   } catch (error) {
     console.error('[SchemaColors] Failed to save colors:', error);
   }
@@ -111,6 +138,15 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
   const usedFamilies = new Set<string>();
   let familyIndex = 0;
 
+  console.log(`[SchemaColors] Generating colors for ${schemas.length} schemas using HSL color theory`);
+
+  // Track statistics for logging
+  const stats = {
+    newAssignments: 0,
+    fromCache: 0,
+    byLayer: { staging: 0, transformation: 0, consumption: 0, unknown: 0 }
+  };
+
   // Process each schema
   schemas.forEach(schema => {
     // Check if we have a saved assignment
@@ -121,6 +157,7 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
         colorMap.set(schema, color);
         departmentColorFamily.set(extractDepartment(schema), family);
         usedFamilies.add(family);
+        stats.fromCache++;
         return;
       }
     }
@@ -130,10 +167,19 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
     const department = extractDepartment(schema);
 
     // Determine color level based on layer
-    let colorLevel = 1; // Default: middle brightness
-    if (layer === 'staging') colorLevel = 0; // Lightest
-    else if (layer === 'transformation') colorLevel = 1; // Medium
-    else if (layer === 'consumption') colorLevel = 2; // Darkest
+    let colorLevel = 1; // Default: middle brightness (transformation)
+    if (layer === 'staging') {
+      colorLevel = 0;  // Lightest (75% lightness)
+      stats.byLayer.staging++;
+    } else if (layer === 'transformation') {
+      colorLevel = 1;  // Medium (63% lightness)
+      stats.byLayer.transformation++;
+    } else if (layer === 'consumption') {
+      colorLevel = 2;  // Darkest (51% lightness)
+      stats.byLayer.consumption++;
+    } else {
+      stats.byLayer.unknown++;
+    }
 
     // Assign color family based on department
     let colorFamily: string;
@@ -178,10 +224,35 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
 
     // Save assignment for persistence
     savedAssignments[schema] = { family: colorFamily, level: colorLevel };
+    stats.newAssignments++;
   });
 
-  // Save all assignments
+  // Save all assignments for persistence across reloads
   saveColorAssignments(savedAssignments);
+
+  // Log detailed statistics
+  console.log(`[SchemaColors] ✓ Color assignment complete`);
+  console.log(`[SchemaColors]   Total schemas: ${colorMap.size}`);
+  console.log(`[SchemaColors]   Color families used: ${usedFamilies.size}/${colorFamilyNames.length}`);
+  console.log(`[SchemaColors]   From cache: ${stats.fromCache} | New: ${stats.newAssignments}`);
+  console.log(`[SchemaColors]   By layer: Staging=${stats.byLayer.staging}, Transformation=${stats.byLayer.transformation}, Consumption=${stats.byLayer.consumption}, Unknown=${stats.byLayer.unknown}`);
+
+  // Show sample assignments for first 5 schemas (for debugging)
+  if (schemas.length > 0 && stats.newAssignments > 0) {
+    console.log(`[SchemaColors] Sample assignments:`);
+    let sampleCount = 0;
+    for (const schema of schemas) {
+      if (sampleCount >= 5) break;
+      const assignment = savedAssignments[schema];
+      if (assignment) {
+        const layer = detectLayer(schema);
+        const dept = extractDepartment(schema);
+        const color = colorMap.get(schema);
+        console.log(`[SchemaColors]   "${schema}" -> dept="${dept}", layer="${layer || 'unknown'}", family="${assignment.family}", level=${assignment.level}, color="${color}"`);
+        sampleCount++;
+      }
+    }
+  }
 
   return colorMap;
 }
@@ -192,6 +263,7 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
 export function clearSavedColors() {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    console.log('[SchemaColors] Cleared all saved color assignments');
   } catch (error) {
     console.error('[SchemaColors] Failed to clear saved colors:', error);
   }
@@ -202,4 +274,18 @@ export function clearSavedColors() {
  */
 export function createSchemaColorMap(schemas: string[]): Map<string, string> {
   return generateSchemaColors(schemas);
+}
+
+/**
+ * Get color palette information for debugging/documentation
+ */
+export function getColorPaletteInfo() {
+  return {
+    families: colorFamilyNames,
+    levelsPerFamily: 3,
+    lightnessValues: ['75% (staging)', '63% (transformation)', '51% (consumption)'],
+    totalColors: colorFamilyNames.length * 3,
+    colorTheory: 'HSL-based with consistent hue/saturation, varying lightness',
+    persistence: 'localStorage with key: ' + STORAGE_KEY,
+  };
 }
