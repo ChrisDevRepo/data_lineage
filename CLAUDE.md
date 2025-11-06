@@ -111,22 +111,24 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 **Start Here:**
 - [README.md](README.md) - Project overview
 - [lineage_specs.md](lineage_specs.md) - Parser spec
-- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing guide
+- [docs/SYSTEM_OVERVIEW.md](docs/SYSTEM_OVERVIEW.md) - **NEW** Architecture & components
+- [docs/SETUP_AND_DEPLOYMENT.md](docs/SETUP_AND_DEPLOYMENT.md) - **NEW** Installation & deployment
+- [docs/MAINTENANCE_GUIDE.md](docs/MAINTENANCE_GUIDE.md) - **NEW** Operations & troubleshooting
 
-**API & Frontend:**
-- [api/README.md](api/README.md)
-- [frontend/README.md](frontend/README.md)
-- [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md)
-- [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md) - **NEW v2.9.1**
+**Parser & Technical:**
+- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing guide
+- [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
+- [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
 
 **Evaluation:**
-- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md)
-- [evaluation_baselines/README.md](evaluation_baselines/README.md)
+- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md) - Parser evaluation framework
+- [evaluation_baselines/README.md](evaluation_baselines/README.md) - Baseline management
 
-**Additional:**
-- [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md)
-- [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md)
-- [docs/QUERY_LOGS_ANALYSIS.md](docs/QUERY_LOGS_ANALYSIS.md)
+**Component-Specific:**
+- [api/README.md](api/README.md) - Backend API documentation
+- [frontend/README.md](frontend/README.md) - Frontend guide
+- [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md) - UI design system
+- [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md) - Performance optimizations
 
 ---
 
@@ -161,7 +163,14 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 
 ---
 
-**Last Updated:** 2025-11-04
+**Last Updated:** 2025-11-06 (Repository Cleanup & Production Documentation)
 **Version:** v4.1.3 (IF EXISTS Administrative Query Filtering)
 **Parser:** 97.0% SP confidence | 95.5% overall | Dataflow mode + no circular dependencies
-**Frontend:** v2.9.2 (Global exclusion patterns + UI simplified) | **API:** v4.0.0
+**Frontend:** v2.9.2 (Global exclusion patterns + UI simplified) | **API:** v4.0.3
+
+**Recent Changes (2025-11-06):**
+- ✅ Repository cleaned for production readiness
+- ✅ Archived outdated development documents to docs/archive/2025-11-06/
+- ✅ Removed experimental sqlglot_improvement/ directory
+- ✅ Created comprehensive production documentation (SYSTEM_OVERVIEW, SETUP_AND_DEPLOYMENT, MAINTENANCE_GUIDE)
+- ✅ Cleaned temp/ directory and optimization_reports/
