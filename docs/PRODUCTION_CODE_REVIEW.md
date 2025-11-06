@@ -345,40 +345,28 @@ async def health_check():
 
 ---
 
-### 🔴 Critical #3: Missing Dockerfile (MEDIUM PRIORITY - Azure Deployment)
+### 🔴 Critical #3: Azure Web Apps Native Deployment (MEDIUM PRIORITY)
 
-**Status:** ❌ No Dockerfile found
+**Status:** ✅ Using Azure Web Apps native Python deployment (no Docker required)
 
-**Impact:** Azure Web App deployment requires container image
+**Impact:** Azure Web Apps for Linux natively supports Python applications without containerization
 
-**Recommended Dockerfile:**
-```dockerfile
-# Dockerfile
-FROM python:3.12-slim
+**Deployment Method:**
+Azure Web Apps can deploy Python applications directly using:
+1. **Native Python runtime** (recommended for this project)
+2. ZIP deployment via Azure CLI
+3. GitHub Actions CI/CD
 
-WORKDIR /app
+**Configuration:**
+- **Runtime:** Python 3.12
+- **Startup Command:** `python -m uvicorn api.main:app --host 0.0.0.0 --port 8000`
+- **Environment Variables:** Set in Azure Portal App Service Configuration
+- **Persistent Storage:** Enable Azure Files mount for `/home/data` directory
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY api/ ./api/
-COPY lineage_v3/ ./lineage_v3/
-
-# Create data directory for persistent storage
-RUN mkdir -p /app/data
-
-# Expose port
-EXPOSE 8000
-
-# Run application
-CMD ["python", "api/main.py"]
-```
-
-**Also needed:**
-- `.dockerignore` (exclude .git, node_modules, __pycache__, etc.)
-- `docker-compose.yml` (optional, for local testing)
+**Prerequisites:**
+- `requirements.txt` must include `uvicorn[standard]`
+- Environment variables configured in Azure portal
+- CORS origins updated for production frontend URL
 
 ---
 
@@ -398,26 +386,26 @@ CMD ["python", "api/main.py"]
 
 ---
 
-### Win 2: Add .dockerignore (5 min)
-```bash
-# .dockerignore
-.git/
-.github/
-node_modules/
-frontend/node_modules/
-__pycache__/
-*.pyc
-.env
-.env.local
-*.log
-dist/
-build/
-.vscode/
-.idea/
-*.md
-docs/
-tests/
+### Win 2: Add .editorconfig for Team Consistency (5 min) ✅ COMPLETED
+```ini
+# .editorconfig
+# Ensures consistent coding styles across different editors and IDEs
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.py]
+indent_size = 4
+max_line_length = 120
 ```
+
+**Status:** ✅ Completed - .editorconfig added to repository
 
 ---
 
@@ -513,21 +501,33 @@ if os.getenv('ENVIRONMENT') == 'production':
 
 ## 6️⃣ Azure Deployment Notes
 
-### Backend (Azure App Service)
+### Backend (Azure App Service - Native Python)
 
-✅ **Ready with checklist:**
-1. Create Dockerfile (see Critical #3)
-2. Build and push image to Azure Container Registry
-3. Create App Service (Linux, Docker)
-4. Configure environment variables:
+✅ **Ready with native Python deployment:**
+1. Create Azure App Service (Linux, Python 3.12 runtime)
+2. Deploy via ZIP file or GitHub Actions:
+   ```bash
+   # ZIP deployment
+   az webapp deployment source config-zip \
+     --resource-group <rg-name> \
+     --name <app-name> \
+     --src deploy.zip
+   ```
+3. Configure **Startup Command** in Azure Portal:
+   ```bash
+   python -m uvicorn api.main:app --host 0.0.0.0 --port 8000
+   ```
+4. Configure environment variables in App Service Configuration:
    ```bash
    ALLOWED_ORIGINS=https://your-frontend.azurewebsites.net
    LOG_LEVEL=WARNING
-   DUCKDB_PATH=/app/data/lineage_workspace.duckdb
+   DUCKDB_PATH=/home/data/lineage_workspace.duckdb
+   PYTHONUNBUFFERED=1
    ```
-5. Mount persistent volume for `/app/data` (optional, for DuckDB persistence)
-6. Enable Application Insights
-7. Configure auto-scaling (if needed)
+5. Enable persistent storage (Azure Files mount to `/home/data` for DuckDB)
+6. Add `uvicorn[standard]` to requirements.txt
+7. Enable Application Insights for monitoring
+8. Configure auto-scaling (if needed)
 
 ### Frontend (Azure Static Web Apps)
 
@@ -653,10 +653,13 @@ test('should load and display graph', async ({ page }) => {
 ### Pre-Deployment (Must Complete)
 
 - [ ] **Critical #1:** Verify CORS env var set in Azure
-- [ ] **Critical #2:** Create version constant (single source)
-- [ ] **Critical #3:** Create Dockerfile + .dockerignore
-- [ ] **Fix #1:** Add environment variable for API URL in frontend
-- [ ] Set up Azure Container Registry
+- [x] **Critical #2:** Create version constant (single source) ✅
+- [x] **Critical #3:** Configure Azure Web Apps native Python deployment ✅
+- [x] **Fix #1:** Add environment variable for API URL in frontend ✅
+- [x] **Quick Win:** Add .gitattributes for line endings ✅
+- [x] **Quick Win:** Add .editorconfig for team consistency ✅
+- [x] **Quick Win:** Add LICENSE file ✅
+- [ ] Add `uvicorn[standard]` to requirements.txt
 - [ ] Configure Application Insights
 - [ ] Test upload/parse flow with sample data
 - [ ] Enable HTTPS redirect in Azure
@@ -696,10 +699,12 @@ test('should load and display graph', async ({ page }) => {
 
 ### Immediate Actions (Before Rollout)
 
-1. ✅ Create Dockerfile (1-2 hours)
-2. ✅ Add frontend environment variable for API URL (30 min)
-3. ✅ Verify Azure CORS configuration (15 min)
-4. ✅ Test end-to-end with Azure deployment (2-3 hours)
+1. ✅ Create version constant in api/main.py (COMPLETED)
+2. ✅ Add frontend environment variable for API URL (COMPLETED)
+3. ✅ Add .gitattributes, .editorconfig, LICENSE (COMPLETED)
+4. ⏳ Add `uvicorn[standard]` to requirements.txt (PENDING)
+5. ⏳ Verify Azure CORS configuration (PENDING)
+6. ⏳ Test end-to-end with Azure deployment (PENDING)
 
 ### Post-Launch Priorities
 
@@ -717,16 +722,17 @@ test('should load and display graph', async ({ page }) => {
 - ✅ Performance optimized for 2-3 concurrent users
 - ✅ Code quality is high
 - ✅ Documentation is comprehensive
+- ✅ Azure Web Apps native deployment (no Docker complexity)
 
 **Biggest Risks:**
-1. 🟡 Missing Dockerfile (medium) - Blocks Azure deployment
-2. 🟡 No automated tests (medium) - Increases regression risk
-3. 🟢 Large component files (low) - Maintainability concern only
+1. 🟡 No automated tests (medium) - Increases regression risk
+2. 🟢 Large component files (low) - Maintainability concern only
+3. 🟢 Environment configuration (low) - Needs verification in Azure
 
 **Mitigation:**
-- Address Dockerfile immediately (Critical #3)
 - Add tests post-launch (reduce future risk)
 - Refactor components iteratively (not urgent)
+- Document Azure environment setup thoroughly
 
 ---
 
