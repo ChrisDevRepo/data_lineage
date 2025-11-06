@@ -1,10 +1,10 @@
 # Archive 2025-11-06
 
-## Production Readiness Cleanup
+## Production Readiness Cleanup & Documentation Reorganization
 
-Files archived during repository cleanup for production readiness.
+Files archived during repository cleanup and documentation reorganization.
 
-### Archived Files
+### Production Readiness (Initial Cleanup)
 
 - **CODEBASE_REVIEW_FINDINGS.md** - Code review from 2025-11-05
 - **CODEBASE_REVIEW_FINDINGS_DATAFLOW.md** - Dataflow mode review
@@ -12,6 +12,31 @@ Files archived during repository cleanup for production readiness.
 - **PROJECT_STATUS.md** - Project status snapshot (v4.0.3, 97% SP confidence achieved)
 - **CONFIDENCE_METRICS_FIX.md** - Pre-v4.0.3 metrics fix documentation
 - **sqlglot_improvement_experiments/** - Experimental SQLGlot coverage improvements
+
+### Documentation Reorganization (2025-11-06)
+
+**Phase 2 Validation Work (phase2_validation/):**
+- **COMMENT_HINTS_VALIDATION_REPORT.md** - Detailed validation analysis (13 KB)
+- **COMMENT_HINTS_QUICK_REFERENCE.md** - Developer quick reference (12 KB)
+- **PHASE2_VALIDATION_EXECUTIVE_SUMMARY.md** - High-level summary (15 KB)
+- **PHASE2_DELIVERABLES_SUMMARY.md** - Project deliverables (13 KB)
+- **test_hint_validation.sql** - Original test SP with swapped hints
+- **test_hint_validation_CORRECTED.sql** - Corrected golden record
+- **test_comment_hints_validation.py** - Automated validation suite
+
+**Status:** ✅ Phase 2 complete, feature implemented, tests passing
+
+**Confidence Model Analysis (confidence_analysis/):**
+- **CRITICAL_CONFIDENCE_MODEL_FLAW.md** - Problem analysis (11 KB)
+- **CONFIDENCE_MODEL_FIX_SUMMARY.md** - v2.1.0 fix summary (6.5 KB)
+- **SQLGLOT_FAILURE_DEEP_ANALYSIS.md** - Technical analysis (13 KB)
+
+**Status:** ✅ Fix implemented in confidence_calculator.py v2.1.0
+
+**One-Time Analyses:**
+- **PRODUCTION_CODE_REVIEW.md** - Production readiness review (22 KB)
+- **REPOSITORY_CLEANUP_ANALYSIS.md** - Cleanup plan and analysis (15 KB)
+- **OPEN_TASKS.md** - Post-cleanup task tracking (8.2 KB)
 
 ### Reason for Archival
 
