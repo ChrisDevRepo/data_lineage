@@ -1,15 +1,16 @@
-# Evaluation Baselines
+# Parser Evaluation Baselines
 
-This directory stores baseline snapshots and evaluation history for the `sub_DL_OptimizeParsing` subagent.
+**Location:** `tests/baselines/parser/`
+**Purpose:** Store baseline snapshots and evaluation history for the `sub_DL_OptimizeParsing` subagent
 
 ---
 
 ## Directory Structure
 
 ```
-evaluation_baselines/
-├── baseline_v3.7.0.duckdb          # Frozen baseline snapshot
-├── baseline_v3.8.0.duckdb          # Next baseline after improvements
+tests/baselines/parser/
+├── baseline_v4.2.0.duckdb          # Current production baseline
+├── baseline_v3.8.0.duckdb          # Previous version baseline
 ├── current_evaluation.duckdb        # Evaluation run history
 └── README.md                        # This file
 ```

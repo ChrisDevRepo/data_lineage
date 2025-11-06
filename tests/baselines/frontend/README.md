@@ -1,11 +1,12 @@
-# Frontend Test Baselines
+# Frontend Visual Regression Baselines
 
-Visual regression testing baseline screenshots for Data Lineage Visualizer.
+**Location:** `tests/baselines/frontend/`
+**Purpose:** Visual regression testing baseline screenshots for Data Lineage Visualizer
 
 ## Structure
 
 ```
-test_baselines/
+tests/baselines/frontend/
 └── desktop/          # Desktop baselines (1920x1080)
     └── homepage_loaded.png  # Main graph view (140KB)
 ```
