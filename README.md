@@ -20,25 +20,37 @@ Visualize tables, views, and stored procedures with their dependencies. Built fo
 
 ## Quick Start
 
-### 1. Start Services
+### 1. Installation
 
-**Automated (Recommended):**
 ```bash
-cd /home/chris/sandbox
+# Clone repository
+git clone <repo-url>
+cd sandbox
+
+# Install dependencies (one command!)
+pip install -r requirements.txt
+
+# (Optional) Setup environment configuration - only if you need custom settings
+./setup-env.sh
+
+# Start application
 ./start-app.sh
-# Starts both backend (8000) and frontend (3000)
-# Logs: /tmp/backend.log and /tmp/frontend.log
 ```
 
-**Manual (Alternative):**
+**What `start-app.sh` does:**
+- ✅ Auto-detects and activates virtual environment (multiple locations)
+- ✅ Auto-installs missing Python dependencies
+- ✅ Auto-installs missing Node dependencies
+- ✅ Starts backend on `http://localhost:8000`
+- ✅ Starts frontend on `http://localhost:3000`
+
+**Manual Start (Alternative):**
 ```bash
 # Terminal 1 - Backend API
-cd /home/chris/sandbox
-python3 api/main.py
+cd api && python3 main.py
 
 # Terminal 2 - Frontend
-cd /home/chris/sandbox/frontend
-npm run dev
+cd frontend && npm run dev
 ```
 
 **Stop Services:**
@@ -96,15 +108,30 @@ Synapse DMVs → PySpark Extractor → Parquet Files
 ## Repository Structure
 
 ```
-/home/chris/sandbox/
-├── api/                  # FastAPI backend
-├── frontend/            # React visualization
-├── lineage_v3/          # Core parser
-├── extractor/           # PySpark DMV extractor
-├── docs/                # Documentation
-├── tests/               # Test suite
-├── README.md            # This file
-└── CLAUDE.md            # Developer guide
+sandbox/
+├── api/                        # FastAPI backend
+├── frontend/                   # React visualization
+├── lineage_v3/                 # Core parser
+│   └── config/                 # Configuration (Pydantic settings)
+├── requirements/               # Modular dependencies (NEW)
+│   ├── base.txt               # Shared dependencies
+│   ├── parser.txt             # Parser-specific
+│   ├── api.txt                # API-specific
+│   └── dev.txt                # Development tools
+├── docs/                       # Documentation
+│   ├── CONFIGURATION_GUIDE.md # Complete config reference (NEW)
+│   ├── SYSTEM_OVERVIEW.md     # Architecture guide
+│   └── SETUP_AND_DEPLOYMENT.md # Installation guide
+├── extractor/                  # PySpark DMV extractor
+├── tests/                      # Test suite
+├── start-app.sh               # One-command startup (NEW)
+├── stop-app.sh                # Stop all services (NEW)
+├── setup-env.sh               # Interactive .env setup (NEW)
+├── .env.example               # Environment template (NEW)
+├── ENV_SETUP.md               # Quick config guide (NEW)
+├── requirements.txt           # Production dependencies
+├── README.md                  # This file
+└── CLAUDE.md                  # Developer guide
 ```
 
 ---
@@ -138,45 +165,68 @@ Synapse DMVs → PySpark Extractor → Parquet Files
 
 ## Documentation
 
-**Essential:**
+**Getting Started:**
 - [CLAUDE.md](CLAUDE.md) - Complete developer guide
+- [ENV_SETUP.md](ENV_SETUP.md) - Environment configuration quick start **NEW**
+- [docs/SETUP_AND_DEPLOYMENT.md](docs/SETUP_AND_DEPLOYMENT.md) - Installation & deployment
+- [docs/SYSTEM_OVERVIEW.md](docs/SYSTEM_OVERVIEW.md) - Architecture & components
+
+**Configuration:**
+- [docs/CONFIGURATION_GUIDE.md](docs/CONFIGURATION_GUIDE.md) - Complete configuration reference **NEW**
+- [.env.example](.env.example) - Simple template (copy to .env) **NEW**
+- [.env.template](.env.template) - Detailed template with all options
+
+**Parser & Technical:**
 - [lineage_specs.md](lineage_specs.md) - Parser specification
-- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL best practices
+- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing guide
+- [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
+- [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
 
 **Component-Specific:**
-- [api/README.md](api/README.md) - API documentation
+- [api/README.md](api/README.md) - Backend API documentation
 - [frontend/README.md](frontend/README.md) - Frontend guide
+- [requirements/README.md](requirements/README.md) - Dependency structure **NEW**
 - [extractor/README.md](extractor/README.md) - Extractor setup
+- [docs/MAINTENANCE_GUIDE.md](docs/MAINTENANCE_GUIDE.md) - Operations & troubleshooting
 
 **Advanced:**
-- [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
-- [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
-- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md) - Parser evaluation
-- [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md) - Frontend performance **NEW**
+- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md) - Parser evaluation framework
+- [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md) - Frontend performance
 
 ---
 
 ## Requirements
 
 **System:**
-- Python 3.12+
-- Node.js 24+
-- WSL2 Ubuntu (development)
+- Python 3.10+ (required by Click 8.3.0)
+- Node.js 18+
+- Linux, macOS, or WSL2
 
-**Setup:**
+**Dependencies:**
+
+Modular structure for flexible deployment:
 ```bash
-# Python packages
+# Full stack (recommended)
 pip install -r requirements.txt
 
-# Node packages
-cd frontend && npm install
+# Component-specific
+pip install -r requirements/parser.txt  # Parser only
+pip install -r requirements/api.txt     # API only
+pip install -r requirements/dev.txt     # Development tools
 ```
 
-**Environment Variables:**
+**Configuration (Optional):**
+
+No `.env` file needed for local development! All settings have defaults.
+
+Create `.env` only if you need custom settings:
 ```bash
-cp .env.template .env
-# Azure OpenAI credentials not required in v4.0.0 (slim architecture)
+cp .env.example .env  # Works immediately, no editing needed
+# OR
+./setup-env.sh        # Interactive setup with guidance
 ```
+
+See [ENV_SETUP.md](ENV_SETUP.md) for details.
 
 ---
 

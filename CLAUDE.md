@@ -8,30 +8,105 @@
 ## Project: Data Lineage Visualizer v4.1.3
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **System:** Python 3.12.3, Node.js, WSL2
-- **Dir:** `/home/chris/sandbox`
-- **Branch:** `feature/dataflow-mode`
 - **Parser:** 97.0% SP confidence | 95.5% overall
-- **Frontend:** v2.9.2
+- **Frontend:** v2.9.2 | **API:** v4.0.3
 
 ## Quick Start
-```bash
-# Backend: http://localhost:8000
-cd /home/chris/sandbox/api && python3 main.py
 
-# Frontend: http://localhost:3000
-cd /home/chris/sandbox/frontend && npm run dev
+### One-Command Startup
+```bash
+./start-app.sh  # Starts both backend (port 8000) and frontend (port 3000)
+```
+
+**What it does:**
+- ✅ Auto-detects and activates venv (checks: `./venv`, `../venv`, `./api/venv`, system Python)
+- ✅ Auto-installs missing Python dependencies
+- ✅ Auto-installs missing Node dependencies
+- ✅ Starts backend on `http://localhost:8000`
+- ✅ Starts frontend on `http://localhost:3000`
+
+### Component-Specific
+```bash
+# Backend only
+cd api && python3 main.py
+
+# Frontend only
+cd frontend && npm run dev
 
 # Parser (incremental / full-refresh)
 python lineage_v3/main.py run --parquet parquet_snapshots/
 python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 ```
 
+## Installation
+
+### First-Time Setup
+```bash
+# 1. Clone repository
+git clone <repo-url>
+cd sandbox
+
+# 2. Install dependencies (one command!)
+pip install -r requirements.txt
+
+# 3. (Optional) Setup environment configuration
+./setup-env.sh  # Only if you need custom settings
+
+# 4. Start application
+./start-app.sh
+```
+
+### Requirements Structure (Modular)
+```
+requirements/
+├── base.txt      # Shared dependencies (pydantic, rich, dotenv)
+├── parser.txt    # Parser: duckdb, sqlglot, pandas + base
+├── api.txt       # API: fastapi, uvicorn + base
+└── dev.txt       # Dev: pytest, black, ruff, mypy + all
+
+requirements.txt  # Production: installs parser + api
+```
+
+**Install options:**
+```bash
+pip install -r requirements.txt              # Full stack (recommended)
+pip install -r requirements/parser.txt       # Parser only
+pip install -r requirements/api.txt          # API only
+pip install -r requirements/dev.txt          # Development tools
+```
+
+## Configuration
+
+### Environment Variables (Optional)
+
+**No .env file needed for local development!** All settings have defaults.
+
+**Create .env only if you need custom settings:**
+```bash
+cp .env.example .env  # Copy template (works immediately, no editing needed!)
+# OR
+./setup-env.sh        # Interactive setup with guidance
+```
+
+**Common customizations:**
+```bash
+# .env
+ALLOWED_ORIGINS=http://localhost:3000           # CORS origins (comma-separated)
+PATH_WORKSPACE_FILE=lineage_workspace.duckdb   # DuckDB workspace path
+PATH_OUTPUT_DIR=lineage_output                 # Output directory
+LOG_LEVEL=INFO                                 # DEBUG | INFO | WARNING | ERROR
+```
+
+**Documentation:**
+- [ENV_SETUP.md](ENV_SETUP.md) - Quick .env setup guide
+- [docs/CONFIGURATION_GUIDE.md](docs/CONFIGURATION_GUIDE.md) - Complete configuration reference
+
 ## Parser (v4.1.3)
 - **Strategy:** Regex → SQLGlot → Rule Engine
 - **Performance:** 729/763 objects (95.5%), 196/202 SPs (97.0%)
-- **Features:** Dataflow mode, global target exclusion, admin query filtering
+- **Features:** Dataflow mode, global target exclusion, admin query filtering, incremental parsing
 
-## Parser Development (MANDATORY)
+### Parser Development (MANDATORY)
 
 **🚨 ALWAYS use `/sub_DL_OptimizeParsing` for parser changes 🚨**
 
@@ -46,7 +121,7 @@ python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 /sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD_before_description
 /sub_DL_OptimizeParsing compare --run1 run_YYYYMMDD_HHMMSS --run2 run_YYYYMMDD_HHMMSS
 
-# 4. Pass criteria: Zero regressions, expected improvements, progress toward 95%
+# 4. Pass criteria: Zero regressions, expected improvements
 
 # 5. Update docs/PARSER_EVOLUTION_LOG.md
 ```
@@ -76,12 +151,7 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 ### Incremental Parsing
 - DuckDB persists between runs
 - Re-parses only modified/new + low confidence objects (<0.85)
-- 50-90% faster
-
-### Parquet File Detection
-- Auto-detects by schema
-- Required: objects, dependencies, definitions
-- Optional: query_logs, table_columns
+- 50-90% faster than full refresh
 
 ### Confidence Model
 | Source | Confidence | Applied To |
@@ -91,31 +161,28 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 | SQLGlot | 0.85 | Successfully parsed SPs |
 | Regex | 0.50 | Failed parses |
 
-### Quality Assurance
-- **`check_unrelated_objects.py`** - Finds objects with no inputs AND outputs
-  - Pattern analysis (INSERT, UPDATE, FROM, JOIN)
-  - Export: `temp/unrelated_objects_report.json`
-
----
-
-## Git Guidelines
-
-- **Branch:** `feature/slim-parser-no-ai` | **Main:** `main`
-- **DO:** Commit frequently, push to origin
-- **DON'T:** Rebase, merge from other branches, merge to main (requires approval)
+### Parquet File Detection
+- Auto-detects schema
+- Required: objects, dependencies, definitions
+- Optional: query_logs, table_columns
 
 ---
 
 ## Essential Documentation
 
-**Start Here:**
+**Getting Started:**
 - [README.md](README.md) - Project overview
-- [lineage_specs.md](lineage_specs.md) - Parser spec
-- [docs/SYSTEM_OVERVIEW.md](docs/SYSTEM_OVERVIEW.md) - **NEW** Architecture & components
-- [docs/SETUP_AND_DEPLOYMENT.md](docs/SETUP_AND_DEPLOYMENT.md) - **NEW** Installation & deployment
-- [docs/MAINTENANCE_GUIDE.md](docs/MAINTENANCE_GUIDE.md) - **NEW** Operations & troubleshooting
+- [ENV_SETUP.md](ENV_SETUP.md) - Environment configuration quick start
+- [docs/SETUP_AND_DEPLOYMENT.md](docs/SETUP_AND_DEPLOYMENT.md) - Installation & deployment
+- [docs/SYSTEM_OVERVIEW.md](docs/SYSTEM_OVERVIEW.md) - Architecture & components
+
+**Configuration:**
+- [docs/CONFIGURATION_GUIDE.md](docs/CONFIGURATION_GUIDE.md) - Complete configuration reference
+- [.env.example](.env.example) - Simple template (copy to .env)
+- [.env.template](.env.template) - Detailed template with all options
 
 **Parser & Technical:**
+- [lineage_specs.md](lineage_specs.md) - Parser specification
 - [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing guide
 - [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
 - [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
@@ -127,57 +194,106 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 **Component-Specific:**
 - [api/README.md](api/README.md) - Backend API documentation
 - [frontend/README.md](frontend/README.md) - Frontend guide
-- [frontend/docs/UI_STANDARDIZATION_GUIDE.md](frontend/docs/UI_STANDARDIZATION_GUIDE.md) - UI design system
-- [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md) - Performance optimizations
+- [requirements/README.md](requirements/README.md) - Dependency structure
+- [docs/MAINTENANCE_GUIDE.md](docs/MAINTENANCE_GUIDE.md) - Operations & troubleshooting
 
 ---
 
 ## Troubleshooting
 
-**Import Errors:**
+### Startup Issues
+
+**Port conflicts:**
 ```bash
-python lineage_v3/main.py validate
-
-# Install all dependencies (production)
-pip install -r requirements.txt
-
-# Or install specific components
-pip install -r requirements/parser.txt  # Parser only
-pip install -r requirements/api.txt     # API only
-pip install -r requirements/dev.txt     # Development tools
+./stop-app.sh  # Kill processes on ports 3000 and 8000
 ```
 
-**Low Confidence (<0.85):**
+**Missing dependencies:**
+```bash
+pip install -r requirements.txt  # Python dependencies
+cd frontend && npm install        # Node dependencies
+```
+
+**Virtual environment issues:**
+```bash
+# Create venv if missing
+python3 -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### Parser Issues
+
+**Low confidence (<0.85):**
 - Use `/sub_DL_OptimizeParsing` to analyze quality
 - Review [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md)
-- Improve regex patterns + SQLGlot preprocessing
+- Check [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) for similar issues
 
-**Frontend Issues:**
-- Check JSON path in Import Data modal
-- Verify JSON format
-- Check browser console
-
-**Performance (Large Datasets >1,000 nodes):**
-- **v2.9.1 optimizations:** Debouncing, layout caching, optimized filtering
-- See [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md)
-- **Supports 5,000+ nodes** smoothly (100x faster schema toggling)
-
-**Port Conflicts:**
+**Import errors:**
 ```bash
-lsof -ti:8000 | xargs -r kill  # Backend
-lsof -ti:3000 | xargs -r kill  # Frontend
+python lineage_v3/main.py validate  # Validate environment
+pip install -r requirements.txt     # Reinstall dependencies
 ```
+
+### Frontend Issues
+
+**API connection errors:**
+- Check `frontend/.env.development` has correct `VITE_API_URL`
+- Verify backend is running on `http://localhost:8000`
+- Check browser console for CORS errors
+
+**Build errors:**
+```bash
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+npm run dev
+```
+
+### Configuration Issues
+
+**CORS errors:**
+```bash
+# .env
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
+```
+
+**Custom paths not working:**
+- Verify `.env` exists (not `.env.example`)
+- Check syntax: `PATH_WORKSPACE_FILE=path/to/file.duckdb` (no quotes)
+- See [docs/CONFIGURATION_GUIDE.md](docs/CONFIGURATION_GUIDE.md)
 
 ---
 
-**Last Updated:** 2025-11-06 (Repository Cleanup & Production Documentation)
+## Git Guidelines
+
+- **Commit frequently** - Small, focused commits
+- **Push to feature branches** - Never push directly to main
+- **Pull requests required** - For merging to main
+- **DON'T:** Rebase, force push, or merge from other branches without approval
+
+---
+
+## Scripts & Utilities
+
+| Script | Purpose |
+|--------|---------|
+| `start-app.sh` | Start both backend and frontend |
+| `stop-app.sh` | Stop all services (kill ports 3000/8000) |
+| `setup-env.sh` | Interactive .env setup |
+
+---
+
+**Last Updated:** 2025-11-06 (Deployment & Configuration Improvements)
 **Version:** v4.1.3 (IF EXISTS Administrative Query Filtering)
 **Parser:** 97.0% SP confidence | 95.5% overall | Dataflow mode + no circular dependencies
 **Frontend:** v2.9.2 (Global exclusion patterns + UI simplified) | **API:** v4.0.3
 
 **Recent Changes (2025-11-06):**
-- ✅ Repository cleaned for production readiness
-- ✅ Archived outdated development documents to docs/archive/2025-11-06/
-- ✅ Removed experimental sqlglot_improvement/ directory
-- ✅ Created comprehensive production documentation (SYSTEM_OVERVIEW, SETUP_AND_DEPLOYMENT, MAINTENANCE_GUIDE)
-- ✅ Cleaned temp/ directory and optimization_reports/
+- ✅ Restructured requirements to industry best practices (modular requirements/ directory)
+- ✅ Added comprehensive .env configuration setup with templates
+- ✅ Improved start-app.sh with auto-install and multi-location venv support
+- ✅ Fixed hardcoded paths for universal deployment
+- ✅ Added configuration documentation (ENV_SETUP.md, CONFIGURATION_GUIDE.md)
+- ✅ Created setup-env.sh for interactive environment configuration
+- ✅ Normalized line endings (CRLF → LF) for cross-platform compatibility
