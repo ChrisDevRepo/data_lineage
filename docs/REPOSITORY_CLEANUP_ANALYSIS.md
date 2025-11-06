@@ -281,13 +281,14 @@ rm test_confidence_fix.py
 
 ### Issue 2: AI References in Documentation
 
-**Checked Files:**
-- ✅ `README.md` - No AI references
-- ⚠️ `docs/DUCKDB_SCHEMA.md` - May contain historical AI references (need to verify)
-- ✅ `docs/PARSING_USER_GUIDE.md` - Mentions "AI Fallback (Phase 5) - Not yet implemented" (accurate historical note)
+**Status:** ✅ RESOLVED (2025-11-06)
 
-**Action Required:**
-- Verify and update DUCKDB_SCHEMA.md if AI references exist
+All AI references have been removed from production documentation:
+- ✅ `README.md` - No AI references
+- ✅ `docs/DUCKDB_SCHEMA.md` - Removed "ai" from primary_source field (line 433)
+- ✅ `docs/PARSING_USER_GUIDE.md` - All AI Fallback / Phase 5 references removed, updated to v4.1.3
+
+**Note:** AI was completely removed from the solution in v4.0+. Parser now uses only Regex + SQLGlot + Rule Engine.
 
 ### Issue 3: Version Numbers Consistency
 
