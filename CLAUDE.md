@@ -5,12 +5,13 @@
 - Ask questions last; complete analysis first
 - Use TodoWrite tool; update immediately after completion
 
-## Project: Data Lineage Visualizer v4.1.3
+## Project: Data Lineage Visualizer v4.2.0
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **System:** Python 3.12.3, Node.js, WSL2
 - **Dir:** `/home/chris/sandbox`
 - **Branch:** `feature/dataflow-mode`
-- **Parser:** 97.0% SP confidence | 95.5% overall
+- **Parser:** v4.2.0 | 97.0% SP confidence | 95.5% overall
+- **Confidence:** v2.0.0 (Multi-Factor) with detailed breakdown
 - **Frontend:** v2.9.2
 
 ## Quick Start
@@ -26,10 +27,11 @@ python lineage_v3/main.py run --parquet parquet_snapshots/
 python lineage_v3/main.py run --parquet parquet_snapshots/ --full-refresh
 ```
 
-## Parser (v4.1.3)
+## Parser (v4.2.0)
 - **Strategy:** Regex → SQLGlot → Rule Engine
 - **Performance:** 729/763 objects (95.5%), 196/202 SPs (97.0%)
-- **Features:** Dataflow mode, global target exclusion, admin query filtering
+- **Features:** Comment hints (@LINEAGE_INPUTS/@LINEAGE_OUTPUTS), dataflow mode, global target exclusion
+- **Confidence:** Multi-factor model v2.0.0 with detailed breakdown (5 weighted factors)
 
 ## Parser Development (MANDATORY)
 
@@ -83,13 +85,36 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 - Required: objects, dependencies, definitions
 - Optional: query_logs, table_columns
 
-### Confidence Model
-| Source | Confidence | Applied To |
-|--------|-----------|------------|
-| DMV | 1.0 | Views, Functions |
-| Query Log | 0.95 | Validated SPs |
-| SQLGlot | 0.85 | Successfully parsed SPs |
-| Regex | 0.50 | Failed parses |
+### Confidence Model (v2.0.0 - Multi-Factor)
+**5 Weighted Factors (sum to 1.0):**
+- **Parse Success (30%)**: Did parsing complete without errors?
+- **Method Agreement (25%)**: Do regex and SQLGlot agree?
+- **Catalog Validation (20%)**: Do extracted objects exist in catalog?
+- **Comment Hints (10%)**: Did developer provide @LINEAGE hints?
+- **UAT Validation (15%)**: Has user verified this SP?
+
+**Confidence Levels:**
+- **High (0.85)**: total_score ≥ 0.80
+- **Medium (0.75)**: total_score ≥ 0.65
+- **Low (0.50)**: total_score > 0
+- **Failed (0.0)**: total_score = 0
+
+**Every parsed object includes detailed breakdown:**
+```json
+{
+  "parse_success": {"score": 1.0, "weight": 0.30, "contribution": 0.30},
+  "method_agreement": {"score": 0.95, "weight": 0.25, "contribution": 0.2375},
+  "catalog_validation": {"score": 1.0, "weight": 0.20, "contribution": 0.20},
+  "comment_hints": {"score": 0.0, "weight": 0.10, "contribution": 0.0},
+  "uat_validation": {"score": 0.0, "weight": 0.15, "contribution": 0.0},
+  "total_score": 0.7375,
+  "bucketed_confidence": 0.75,
+  "label": "Medium",
+  "color": "yellow"
+}
+```
+
+**Single Source of Truth:** `ConfidenceCalculator.calculate_multifactor()`
 
 ### Quality Assurance
 - **`check_unrelated_objects.py`** - Finds objects with no inputs AND outputs
@@ -163,14 +188,17 @@ lsof -ti:3000 | xargs -r kill  # Frontend
 
 ---
 
-**Last Updated:** 2025-11-06 (Repository Cleanup & Production Documentation)
-**Version:** v4.1.3 (IF EXISTS Administrative Query Filtering)
+**Last Updated:** 2025-11-06 (Multi-Factor Confidence System v2.0.0)
+**Version:** v4.2.0 (Comment Hints Parser + Multi-Factor Confidence)
 **Parser:** 97.0% SP confidence | 95.5% overall | Dataflow mode + no circular dependencies
+**Confidence:** v2.0.0 (Multi-Factor with detailed breakdown)
 **Frontend:** v2.9.2 (Global exclusion patterns + UI simplified) | **API:** v4.0.3
 
 **Recent Changes (2025-11-06):**
-- ✅ Repository cleaned for production readiness
-- ✅ Archived outdated development documents to docs/archive/2025-11-06/
-- ✅ Removed experimental sqlglot_improvement/ directory
-- ✅ Created comprehensive production documentation (SYSTEM_OVERVIEW, SETUP_AND_DEPLOYMENT, MAINTENANCE_GUIDE)
-- ✅ Cleaned temp/ directory and optimization_reports/
+- ✅ **Phase 3**: Multi-factor confidence system (v2.0.0) with 5 weighted factors
+- ✅ **Phase 2**: Comment hints parser (@LINEAGE_INPUTS/@LINEAGE_OUTPUTS)
+- ✅ **Phase 1**: UAT feedback system integration (15% weight)
+- ✅ Confidence breakdown stored in database and exported in all JSON formats
+- ✅ Comprehensive smoke testing (31/31 tests passed)
+- ✅ Updated PARSER_EVOLUTION_LOG.md with all three phases
+- ✅ Single source of truth: ConfidenceCalculator.calculate_multifactor()
