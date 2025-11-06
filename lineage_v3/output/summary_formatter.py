@@ -84,13 +84,17 @@ class SummaryFormatter:
         
         # Step 4: Get confidence distribution
         confidence_stats = self._get_confidence_stats()
-        
+
+        # Step 4b: Get confidence breakdown statistics (v2.0.0)
+        breakdown_stats = self._get_breakdown_stats()
+
         # Step 5: Build summary
         summary = self._build_summary(
             total_counts,
             parsed_counts,
             source_distribution,
-            confidence_stats
+            confidence_stats,
+            breakdown_stats
         )
         
         # Step 6: Write to JSON file
@@ -224,12 +228,99 @@ class SummaryFormatter:
             }
         }
     
+    def _get_breakdown_stats(self) -> Dict[str, Any]:
+        """
+        Get statistics about confidence breakdown factors (v2.0.0).
+
+        Analyzes stored procedures with multi-factor breakdowns to show
+        average contribution of each factor.
+
+        Returns:
+            Dict with average factor contributions and counts
+        """
+        # Check if lineage_metadata exists and has breakdown column
+        tables = [row[0] for row in self.workspace.query("SHOW TABLES")]
+
+        if 'lineage_metadata' not in tables:
+            return {'available': False, 'note': 'No breakdowns available'}
+
+        try:
+            query = """
+            SELECT confidence_breakdown
+            FROM lineage_metadata
+            WHERE confidence_breakdown IS NOT NULL
+              AND confidence_breakdown != ''
+            """
+
+            results = self.workspace.query(query)
+
+            if not results or len(results) == 0:
+                return {'available': False, 'note': 'No breakdowns stored yet'}
+
+            import json
+
+            # Aggregate breakdown statistics
+            total_count = 0
+            sum_parse_success = 0.0
+            sum_method_agreement = 0.0
+            sum_catalog_validation = 0.0
+            sum_comment_hints = 0.0
+            sum_uat_validation = 0.0
+
+            for row in results:
+                breakdown_json = row[0]
+                if not breakdown_json:
+                    continue
+
+                try:
+                    breakdown = json.loads(breakdown_json)
+                    total_count += 1
+
+                    sum_parse_success += breakdown['parse_success']['contribution']
+                    sum_method_agreement += breakdown['method_agreement']['contribution']
+                    sum_catalog_validation += breakdown['catalog_validation']['contribution']
+                    sum_comment_hints += breakdown['comment_hints']['contribution']
+                    sum_uat_validation += breakdown['uat_validation']['contribution']
+
+                except (json.JSONDecodeError, KeyError) as e:
+                    logger.debug(f"Failed to parse breakdown: {e}")
+                    continue
+
+            if total_count == 0:
+                return {'available': False, 'note': 'No valid breakdowns found'}
+
+            # Calculate averages
+            return {
+                'available': True,
+                'total_objects_with_breakdown': total_count,
+                'average_contributions': {
+                    'parse_success': round(sum_parse_success / total_count, 4),
+                    'method_agreement': round(sum_method_agreement / total_count, 4),
+                    'catalog_validation': round(sum_catalog_validation / total_count, 4),
+                    'comment_hints': round(sum_comment_hints / total_count, 4),
+                    'uat_validation': round(sum_uat_validation / total_count, 4)
+                },
+                'factor_weights': {
+                    'parse_success': 0.30,
+                    'method_agreement': 0.25,
+                    'catalog_validation': 0.20,
+                    'comment_hints': 0.10,
+                    'uat_validation': 0.15
+                },
+                'note': 'Multi-factor confidence model (v2.0.0)'
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to calculate breakdown stats: {e}")
+            return {'available': False, 'error': str(e)}
+
     def _build_summary(
         self,
         total_counts: Dict[str, int],
         parsed_counts: Dict[str, int],
         source_distribution: Dict[str, int],
-        confidence_stats: Dict[str, Any]
+        confidence_stats: Dict[str, Any],
+        breakdown_stats: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Build complete summary statistics."""
         # Calculate totals
@@ -257,7 +348,8 @@ class SummaryFormatter:
             'by_object_type': by_object_type,
             'by_primary_source': source_distribution,
             'object_type_counts': total_counts,
-            'confidence_statistics': confidence_stats
+            'confidence_statistics': confidence_stats,
+            'confidence_breakdown_statistics': breakdown_stats  # v2.0.0
         }
-        
+
         return summary

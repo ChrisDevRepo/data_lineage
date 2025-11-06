@@ -121,7 +121,7 @@ class InternalFormatter:
         Fetch dependencies from lineage_metadata.
 
         Returns:
-            Dict mapping object_id to dependency metadata including inputs/outputs
+            Dict mapping object_id to dependency metadata including inputs/outputs/breakdown
         """
         # Check if lineage_metadata table exists
         tables = [row[0] for row in self.workspace.query("SHOW TABLES")]
@@ -133,7 +133,8 @@ class InternalFormatter:
                 primary_source,
                 confidence,
                 inputs,
-                outputs
+                outputs,
+                confidence_breakdown
             FROM lineage_metadata
             ORDER BY object_id
             """
@@ -146,12 +147,14 @@ class InternalFormatter:
                 # Parse JSON arrays for inputs/outputs
                 inputs = json.loads(row[3]) if row[3] else []
                 outputs = json.loads(row[4]) if row[4] else []
+                breakdown = json.loads(row[5]) if row[5] else None
 
                 deps[row[0]] = {
                     'primary_source': row[1] or 'unknown',
                     'confidence': row[2] or 0.0,
                     'inputs': inputs,
-                    'outputs': outputs
+                    'outputs': outputs,
+                    'confidence_breakdown': breakdown  # v2.0.0
                 }
 
             logger.info(f"Fetched dependencies for {len(deps)} objects from lineage_metadata")
@@ -216,7 +219,8 @@ class InternalFormatter:
                 'outputs': dep_meta['outputs'],  # Use actual outputs from lineage_metadata
                 'provenance': {
                     'primary_source': dep_meta['primary_source'],
-                    'confidence': float(dep_meta['confidence'])
+                    'confidence': float(dep_meta['confidence']),
+                    'confidence_breakdown': dep_meta.get('confidence_breakdown')  # v2.0.0
                 }
             }
 
