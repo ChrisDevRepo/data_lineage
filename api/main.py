@@ -1,5 +1,5 @@
 """
-Data Lineage Visualizer API v4.0.3
+Data Lineage Visualizer API
 
 FastAPI backend providing REST API for lineage analysis and visualization.
 
@@ -48,6 +48,9 @@ logger = logging.getLogger(__name__)
 # Application Configuration
 # ============================================================================
 
+# API version (single source of truth)
+API_VERSION = "4.0.3"
+
 # Job storage configuration
 JOBS_DIR = Path("/tmp/jobs")
 
@@ -74,7 +77,7 @@ async def lifespan(app: FastAPI):
     # Startup
     JOBS_DIR.mkdir(exist_ok=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)  # Create parent directories if needed
-    logger.info("🚀 Data Lineage Visualizer API v4.0.3")
+    logger.info(f"🚀 Data Lineage Visualizer API v{API_VERSION}")
     logger.info(f"📁 Jobs directory: {JOBS_DIR}")
     logger.info(f"💾 Data directory: {DATA_DIR}")
     if LATEST_DATA_FILE.exists():
@@ -90,7 +93,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Data Lineage Visualizer API",
     description="Web API for data lineage extraction from Synapse DMV Parquet files",
-    version="4.0.3",
+    version=API_VERSION,
     lifespan=lifespan
 )
 
@@ -170,7 +173,7 @@ async def health_check():
     """
     return HealthResponse(
         status="ok",
-        version="4.0.3",
+        version=API_VERSION,
         uptime_seconds=time.time() - START_TIME
     )
 

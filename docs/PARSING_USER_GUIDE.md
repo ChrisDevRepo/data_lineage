@@ -1,26 +1,27 @@
 # SQL Parsing User Guide
 
-**Version:** 3.8.0
-**Last Updated:** 2025-11-02
+**Version:** 4.1.3
+**Last Updated:** 2025-11-06
 **For:** DBAs, Data Engineers, External Users
 
 ---
 
 ## Overview
 
-The Vibecoding Lineage Parser extracts data lineage from Azure Synapse stored procedures, views, and tables using a **multi-source approach**:
+The Data Lineage Parser extracts data lineage from Azure Synapse stored procedures, views, and tables using a **multi-source approach**:
 
 | Source | Object Types | Confidence | Coverage |
 |--------|--------------|------------|----------|
 | **DMV** | Views | 1.0 | 100% |
-| **Metadata + Reverse Lookup** | Tables | 1.0 | 32% (referenced tables only) |
-| **Dual-Parser** (SQLGlot + SQLLineage) | Stored Procedures | 0.50-0.95 | 100% attempted |
-| **AI Fallback** (Phase 5) | Complex SPs | 0.70 | Not yet implemented |
+| **Metadata + Reverse Lookup** | Tables | 1.0 | Referenced tables |
+| **Parser** (SQLGlot + Regex + Rules) | Stored Procedures | 0.50-0.95 | 100% attempted |
+| **Query Log Validation** | Validated SPs | 0.95 | Optional |
 
-**Current Performance:**
-- Total Objects: 85 (16 SPs, 1 View, 68 Tables)
-- High Confidence (≥0.85): 79.5%
-- Industry Benchmark: 30-40% → **We're 2x better!**
+**Current Performance (v4.1.3):**
+- Total Objects: 763 (202 SPs, 61 Views, 500 Tables)
+- High Confidence (≥0.85): 95.5% (729/763 objects)
+- SP Confidence: 97.0% (196/202 SPs)
+- Industry Benchmark: 30-40% → **We're 3x better!**
 
 ---
 
@@ -168,7 +169,7 @@ EXCLUDED_UTILITY_SPS = {
 
 | Pattern | Why | Current Behavior |
 |---------|-----|------------------|
-| **Dynamic SQL** | `EXEC('SELECT * FROM ' + @table)` | Runtime table name → Confidence 0.50 (Phase 5) |
+| **Dynamic SQL** | `EXEC('SELECT * FROM ' + @table)` | Runtime table name → Confidence 0.50 |
 | **Temp Tables** | `#TempTable` | Session-specific → Excluded (traced through) |
 | **Table Variables** | `@TableVar` | Batch-specific → Excluded (traced through) |
 | **System Tables** | `sys.objects`, `INFORMATION_SCHEMA` | Out of scope → Filtered |
@@ -184,7 +185,7 @@ EXCLUDED_UTILITY_SPS = {
 | **0.95** | Dual-Parser Agreement | Both SQLGlot and SQLLineage agree (≥90% match) |
 | **0.85** | Single Parser Success | SQLGlot parsed successfully with quality validation |
 | **0.75** | Moderate Agreement | Parsers mostly agree (≥70% match) |
-| **0.50** | Low Confidence | Complex SQL or parser disagreement → **Needs AI (Phase 5)** |
+| **0.50** | Low Confidence | Complex SQL or parser disagreement → **May need SQL refactoring** |
 | **0.00** | Parse Failed | No lineage extracted → **Review SQL** |
 
 ---
@@ -282,7 +283,7 @@ ORDER BY dual_parser_agreement ASC
 **Solution:**
 - Review SP for patterns in "Out of Scope" section
 - Refactor if possible (see Best Practices)
-- Wait for Phase 5 (AI fallback) for automatic improvement
+- Consider SQL simplification for better parsing
 
 ### Scenario 2: Missing Expected Tables
 
@@ -370,7 +371,7 @@ The parser generates 3 JSON files in `lineage_output/`:
 | Subqueries | ✅ | |
 | Temp Tables (#) | ⚠️ | Traced through, not exposed |
 | Table Variables (@) | ⚠️ | Traced through, not exposed |
-| Dynamic SQL | ❌ | Phase 5 AI fallback (0.50-0.70) |
+| Dynamic SQL | ❌ | Runtime table names (0.50) |
 | System Tables | ❌ | Filtered (out of scope) |
 
 ---
@@ -406,16 +407,13 @@ ORDER BY m.confidence ASC
 
 ## Roadmap
 
-### ✅ Phase 4 Complete (Current)
+### ✅ Current Version (v4.1.3)
 - DMV dependencies for Views (Confidence 1.0)
-- Dual-parser (SQLGlot + SQLLineage) for SPs
-- Enhanced preprocessing (+100% improvement: 4 SPs → 8 SPs at ≥0.85)
-- Bidirectional graph (reverse lookup for Tables)
-
-### 🚧 Phase 5 Next (AI Fallback)
-- Handle dynamic SQL patterns
-- Improve 8 low-confidence SPs (0.50 → 0.70-0.85)
-- Context-aware parsing for complex procedures
+- SQLGlot + Regex + Rule Engine for SPs (97% high confidence)
+- Dataflow mode (DML only, filters admin queries)
+- Global target exclusion (no false inputs)
+- IF EXISTS filtering (no circular dependencies)
+- SP-to-SP lineage tracking (EXEC/EXECUTE calls)
 
 ---
 

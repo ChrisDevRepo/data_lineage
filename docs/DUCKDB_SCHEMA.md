@@ -430,7 +430,7 @@ These tables are created and managed by the lineage parser to track progress and
 | `object_id` | INTEGER | Object identifier (FK to objects.object_id) | 1001 |
 | `last_parsed_modify_date` | TIMESTAMP | modify_date when object was last parsed | 2024-02-15 14:22:00 |
 | `last_parsed_at` | TIMESTAMP | When parser last analyzed this object | 2024-02-20 09:15:00 |
-| `primary_source` | TEXT | Source with highest confidence | "dmv", "query_log", "parser", "ai" |
+| `primary_source` | TEXT | Source with highest confidence | "dmv", "query_log", "parser" |
 | `confidence` | REAL | Confidence score (0.0-1.0) | 1.0 |
 | `inputs` | TEXT | JSON array of input object_ids | "[1002, 1003]" |
 | `outputs` | TEXT | JSON array of output object_ids | "[2001]" |

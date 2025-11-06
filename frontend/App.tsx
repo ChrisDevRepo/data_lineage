@@ -28,6 +28,7 @@ import { generateSampleData } from './utils/data';
 import { DataNode } from './types';
 import { CONSTANTS } from './constants';
 import { INTERACTION_CONSTANTS } from './interaction-constants';
+import { API_BASE_URL } from './config';
 
 // --- Main App Component ---
 function DataLineageVisualizer() {
@@ -49,7 +50,7 @@ function DataLineageVisualizer() {
 
       try {
         const fetchStart = Date.now();
-        const response = await fetch('http://localhost:8000/api/latest-data');
+        const response = await fetch(`${API_BASE_URL}/api/latest-data`);
         console.log(`[Performance] API fetch took ${Date.now() - fetchStart}ms`);
 
         if (!response.ok) {
