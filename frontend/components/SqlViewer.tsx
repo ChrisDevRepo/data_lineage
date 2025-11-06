@@ -120,7 +120,7 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
           // Empty state: No node selected
           <div className="flex flex-col items-center justify-center h-full text-gray-500 text-center p-8">
             <p className="my-2 text-base">
-              Click on any Stored Procedure or View to see its SQL definition
+              Right-click on any node and select "Show SQL" to view its definition
             </p>
           </div>
         ) : isLoading ? (
