@@ -36,6 +36,14 @@ else
     echo "   💡 Create one with: python3 -m venv $SCRIPT_DIR/venv"
 fi
 
+# Check if FastAPI is installed
+if ! python -c "import fastapi" 2>/dev/null; then
+    echo "   ❌ FastAPI not found! Installing dependencies..."
+    pip install -r "$SCRIPT_DIR/requirements.txt" -q
+    pip install -r "$SCRIPT_DIR/api/requirements.txt" -q
+    echo "   ✅ Dependencies installed"
+fi
+
 nohup python main.py > /tmp/backend.log 2>&1 &
 BACKEND_PID=$!
 echo "   ✅ Backend started (PID: $BACKEND_PID)"
