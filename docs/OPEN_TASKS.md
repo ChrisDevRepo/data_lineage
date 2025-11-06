@@ -82,32 +82,7 @@ find . -name "*.md" -exec grep -l "\[.*\](.*\.md)" {} \;
 
 ## Category 2: Code Quality Improvements
 
-### Task 2.1: Review DUCKDB_SCHEMA.md for AI References
-
-**Priority:** 🟡 Medium
-**Effort:** 15 minutes
-**Status:** ⏳ Pending
-
-**Issue:**
-CODEBASE_REVIEW_FINDINGS.md (archived) mentioned potential AI references in docs/DUCKDB_SCHEMA.md:
-- Lines 547, 598-602 may mention "AI Fallback" as step 6 in pipeline
-- Need to verify and remove if present
-
-**Action Required:**
-```bash
-# Check for AI references
-grep -n "AI" docs/DUCKDB_SCHEMA.md
-
-# If found, update to remove Step 6 and confidence table entry
-```
-
-**Expected Change:**
-- Pipeline should show 5 steps (DMV → Query Logs → Gap Detection → SQLGlot → Output)
-- Remove AI confidence row from table
-
----
-
-### Task 2.2: Remove AI Type Literals from Code
+### Task 2.1: Remove AI Type Literals from Code
 
 **Priority:** 🟢 Low (Informational Only)
 **Effort:** 15 minutes
@@ -319,24 +294,22 @@ find . -name "README.md" | grep extractor
 | Priority | Tasks | Effort |
 |----------|-------|--------|
 | 🔴 Critical | 0 | - |
-| 🟡 Medium | 6 | ~8-11 hours |
+| 🟡 Medium | 5 | ~7-10 hours |
 | 🟢 Low | 7 | ~5-6 hours |
-| **Total** | **13** | **~13-17 hours** |
+| **Total** | **12** | **~12-16 hours** |
 
 ### Quick Wins (< 1 hour each)
 
 1. ✅ Verify internal links (30 min)
-2. ✅ Review DUCKDB_SCHEMA.md for AI references (15 min)
-3. ✅ Remove AI type literals from code (15 min)
-4. ✅ Check duplicate extractor/README.md (5 min)
-5. ✅ Add health check monitoring script (30 min)
+2. ✅ Remove AI type literals from code (15 min)
+3. ✅ Check duplicate extractor/README.md (5 min)
+4. ✅ Add health check monitoring script (30 min)
 
 ### Recommended Next Steps
 
 **Pre-Deployment:**
 1. ✅ Standardize version numbers (Task 1.1)
-2. ✅ Review DUCKDB_SCHEMA.md (Task 2.1)
-3. ✅ End-to-end testing (Task 3.1)
+2. ✅ End-to-end testing (Task 3.1)
 
 **Post-Deployment:**
 4. ✅ Configure GitHub Actions (Task 4.2)
