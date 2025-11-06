@@ -25,6 +25,15 @@ ENV/
 # Environment variables (NEVER commit credentials!)
 .env
 .env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# EXCEPTION: These should be committed (not in gitignore):
+# .env.template        - Template with documentation
+# .env.development     - Frontend development config (no secrets)
+# .env.production      - Frontend production config (no secrets)
 
 # DuckDB workspace files
 *.duckdb
