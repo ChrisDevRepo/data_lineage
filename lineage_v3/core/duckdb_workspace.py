@@ -61,7 +61,8 @@ class DuckDBWorkspace:
             primary_source TEXT,
             confidence REAL,
             inputs TEXT,  -- JSON array of integer object_ids
-            outputs TEXT  -- JSON array of integer object_ids
+            outputs TEXT,  -- JSON array of integer object_ids
+            confidence_breakdown TEXT  -- JSON object with multi-factor breakdown (v2.0.0)
         )
     """
 
@@ -168,6 +169,27 @@ class DuckDBWorkspace:
 
         # Create lineage_metadata table
         self.connection.execute(self.SCHEMA_LINEAGE_METADATA)
+
+        # Migration: Add confidence_breakdown column if it doesn't exist (v2.0.0)
+        try:
+            # Check if column exists
+            columns = self.connection.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'lineage_metadata'
+            """).fetchall()
+
+            column_names = [col[0] for col in columns]
+
+            if 'confidence_breakdown' not in column_names:
+                logger.info("Migrating lineage_metadata: adding confidence_breakdown column...")
+                self.connection.execute("""
+                    ALTER TABLE lineage_metadata
+                    ADD COLUMN confidence_breakdown TEXT
+                """)
+                logger.info("✓ Migration complete: confidence_breakdown column added")
+        except Exception as e:
+            logger.warning(f"Could not check/add confidence_breakdown column: {e}")
 
         # Create lineage_results table
         self.connection.execute(self.SCHEMA_LINEAGE_RESULTS)
@@ -598,7 +620,8 @@ class DuckDBWorkspace:
         primary_source: str,
         confidence: float,
         inputs: List[int],
-        outputs: List[int]
+        outputs: List[int],
+        confidence_breakdown: Dict[str, Any] = None
     ):
         """
         Update lineage_metadata for an object using UNION merge strategy.
@@ -613,6 +636,7 @@ class DuckDBWorkspace:
             confidence: Confidence score (0.0-1.0)
             inputs: List of input object_ids
             outputs: List of output object_ids
+            confidence_breakdown: Multi-factor confidence breakdown (v2.0.0)
         """
         if not self.connection:
             raise RuntimeError("Not connected to DuckDB workspace")
@@ -668,6 +692,7 @@ class DuckDBWorkspace:
         # Convert to JSON
         inputs_json = json.dumps(merged_inputs)
         outputs_json = json.dumps(merged_outputs)
+        breakdown_json = json.dumps(confidence_breakdown) if confidence_breakdown else None
 
         # Write merged result
         query = """
@@ -678,8 +703,9 @@ class DuckDBWorkspace:
                 primary_source,
                 confidence,
                 inputs,
-                outputs
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                outputs,
+                confidence_breakdown
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         self.connection.execute(query, [
@@ -689,7 +715,8 @@ class DuckDBWorkspace:
             final_source,
             final_confidence,
             inputs_json,
-            outputs_json
+            outputs_json,
+            breakdown_json
         ])
 
     def clear_orphaned_metadata(self):
