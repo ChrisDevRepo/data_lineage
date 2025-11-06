@@ -8,6 +8,9 @@ echo "║  🚀 Starting Data Lineage Visualizer                          ║"
 echo "╚════════════════════════════════════════════════════════════════╝"
 echo ""
 
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Kill any existing processes on ports 3000 and 8000
 echo "🧹 Cleaning up existing processes..."
 lsof -ti:8000 | xargs -r kill -9 2>/dev/null
@@ -16,7 +19,7 @@ sleep 1
 
 # Start Backend (FastAPI)
 echo "🔧 Starting Backend API on port 8000..."
-cd /home/chris/sandbox/api
+cd "$SCRIPT_DIR/api"
 source ../venv/bin/activate
 nohup python main.py > /tmp/backend.log 2>&1 &
 BACKEND_PID=$!
@@ -26,7 +29,7 @@ sleep 2
 
 # Start Frontend (Vite)
 echo "🎨 Starting Frontend on port 3000..."
-cd /home/chris/sandbox/frontend
+cd "$SCRIPT_DIR/frontend"
 nohup npm run dev > /tmp/frontend.log 2>&1 &
 FRONTEND_PID=$!
 echo "   ✅ Frontend started (PID: $FRONTEND_PID)"
