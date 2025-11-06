@@ -1003,6 +1003,23 @@ function DataLineageVisualizer() {
           nodeId={contextMenu.nodeId}
           nodeName={contextMenu.nodeName}
           onStartTracing={() => handleStartTracing(contextMenu.nodeId)}
+          onShowSql={sqlViewerEnabled ? () => {
+            const originalNode = allDataMap.get(contextMenu.nodeId);
+            if (originalNode) {
+              const nodeForSql: any = {
+                id: originalNode.id,
+                name: originalNode.name,
+                schema: originalNode.schema,
+                objectType: originalNode.object_type
+              };
+              if ('ddl_text' in originalNode) {
+                nodeForSql.ddl_text = originalNode.ddl_text;
+              }
+              setSelectedNodeForSql(nodeForSql);
+              setSqlViewerOpen(true);
+            }
+          } : undefined}
+          sqlViewerEnabled={sqlViewerEnabled}
           onClose={() => setContextMenu(null)}
         />
       )}
