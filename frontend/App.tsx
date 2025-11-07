@@ -124,10 +124,10 @@ function DataLineageVisualizer() {
   // --- Callback to apply exclude terms ---
   const applyExcludeTerms = useCallback(() => {
     if (excludeTerm.trim()) {
-      // Split by comma, trim whitespace, filter empty strings, convert to lowercase
+      // Split by comma, trim whitespace, filter empty strings (preserve case for wildcards)
       const terms = excludeTerm
         .split(',')
-        .map(term => term.trim().toLowerCase())
+        .map(term => term.trim())
         .filter(term => term.length > 0);
 
       setActiveExcludeTerms(terms);
