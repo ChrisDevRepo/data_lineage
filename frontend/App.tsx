@@ -26,6 +26,7 @@ import { useInteractiveTrace } from './hooks/useInteractiveTrace';
 import { useDataFiltering } from './hooks/useDataFiltering';
 import { getDagreLayoutedElements } from './utils/layout';
 import { generateSampleData } from './utils/data';
+import { logger } from './utils/logger';
 import { DataNode } from './types';
 import { CONSTANTS } from './constants';
 import { INTERACTION_CONSTANTS } from './interaction-constants';
@@ -52,7 +53,7 @@ function DataLineageVisualizer() {
       try {
         const fetchStart = Date.now();
         const response = await fetch(`${API_BASE_URL}/api/latest-data`);
-        console.log(`[Performance] API fetch took ${Date.now() - fetchStart}ms`);
+        logger.perf(`API fetch took ${Date.now() - fetchStart}ms`);
 
         if (!response.ok) {
           throw new Error(`API returned ${response.status}`);
@@ -60,7 +61,7 @@ function DataLineageVisualizer() {
 
         const parseStart = Date.now();
         const data = await response.json();
-        console.log(`[Performance] JSON parse took ${Date.now() - parseStart}ms, data size: ${data.length} objects`);
+        logger.perf(`JSON parse took ${Date.now() - parseStart}ms, data size: ${data.length} objects`);
         const headerValue = response.headers.get('x-data-available');
 
         // Simple check: if we got an array with data, use it
@@ -74,7 +75,7 @@ function DataLineageVisualizer() {
         setAllData(generateSampleData());
       } finally {
         const elapsed = Date.now() - startTime;
-        console.log(`[Performance] Total data load time: ${elapsed}ms`);
+        logger.perf(`Total data load time: ${elapsed}ms`);
         setIsLoadingData(false);
       }
     };
@@ -134,12 +135,21 @@ function DataLineageVisualizer() {
         .filter(term => term.length > 0);
 
       setActiveExcludeTerms(terms);
-      console.log('[App] Applied exclude terms:', terms);
+      logger.debug('[App] Applied exclude terms:', terms);
 
       // Show notification
       addNotification(`Excluding ${terms.length} term(s): ${terms.join(', ')}`, 'info');
     }
   }, [excludeTerm, addNotification]);
+
+  // --- Callback to clear exclude terms and restore hidden objects ---
+  const clearExcludeTerms = useCallback(() => {
+    setExcludeTerm('');
+    setActiveExcludeTerms([]);
+    if (activeExcludeTerms.length > 0) {
+      addNotification('Cleared exclude terms, showing all objects', 'info');
+    }
+  }, [activeExcludeTerms.length, addNotification]);
 
   // --- localStorage Persistence ---
   const hasInitializedPreferences = useRef(false);
@@ -153,7 +163,7 @@ function DataLineageVisualizer() {
         if (savedLayout === 'LR' || savedLayout === 'TB') {
           setLayout(savedLayout);
         }
-        console.log('[localStorage] Loaded layout preference:', savedLayout);
+        logger.debug('[localStorage] Loaded layout preference:', savedLayout);
       }
     } catch (error) {
       console.error('[localStorage] Failed to load layout preference:', error);
@@ -164,7 +174,7 @@ function DataLineageVisualizer() {
   useEffect(() => {
     if (schemas.length > 0 && selectedSchemas.size > 0 && !hasInitializedPreferences.current) {
       hasInitializedPreferences.current = true;
-      console.log('[localStorage] Preferences initialized, will now save on changes');
+      logger.debug('[localStorage] Preferences initialized, will now save on changes');
     }
   }, [schemas.length, selectedSchemas.size]);
 
@@ -183,7 +193,7 @@ function DataLineageVisualizer() {
         layout
       };
       localStorage.setItem('lineage_filter_preferences', JSON.stringify(preferences));
-      console.log('[localStorage] Saved preferences:', preferences);
+      logger.debug('[localStorage] Saved preferences:', preferences);
     } catch (error) {
       console.error('[localStorage] Failed to save preferences:', error);
     }
@@ -423,7 +433,7 @@ function DataLineageVisualizer() {
       setFocusedNodeId(null);
       if (!query) {
         setHighlightedNodes(new Set());
-        fitView({ duration: 500 });
+        fitView({ duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS });
         return;
       }
 
@@ -499,7 +509,10 @@ function DataLineageVisualizer() {
     setSelectedNodeForSql(null);
 
     // Fit view after reset
-    setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
+    setTimeout(() => fitView({
+      padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+      duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS
+    }), 100);
 
     addNotification('View reset (schema and type filters preserved).', 'info');
   };
@@ -534,7 +547,10 @@ function DataLineageVisualizer() {
 
     // Auto-fit view after a short delay (to let layout calculate)
     setTimeout(() => {
-      fitView({ padding: 0.2, duration: 800 });
+      fitView({
+        padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+        duration: INTERACTION_CONSTANTS.FIT_VIEW_AFTER_SEARCH_MS
+      });
     }, 200);
   }, [handleApplyTrace, fitView]);
 
@@ -576,7 +592,10 @@ function DataLineageVisualizer() {
 
     // Auto-fit view
     setTimeout(() => {
-      fitView({ padding: 0.2, duration: 800 });
+      fitView({
+        padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+        duration: INTERACTION_CONSTANTS.FIT_VIEW_AFTER_SEARCH_MS
+      });
     }, 200);
   }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms, fitView, setHighlightedNodes]);
 
@@ -897,6 +916,7 @@ function DataLineageVisualizer() {
             excludeTerm={excludeTerm}
             setExcludeTerm={setExcludeTerm}
             applyExcludeTerms={applyExcludeTerms}
+            clearExcludeTerms={clearExcludeTerms}
             autocompleteSuggestions={autocompleteSuggestions}
             setAutocompleteSuggestions={setAutocompleteSuggestions}
             selectedSchemas={selectedSchemas}

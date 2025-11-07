@@ -16,6 +16,7 @@ type ToolbarProps = {
     excludeTerm: string;
     setExcludeTerm: (term: string) => void;
     applyExcludeTerms: () => void;
+    clearExcludeTerms: () => void;
     selectedSchemas: Set<string>;
     setSelectedSchemas: (schemas: Set<string>) => void;
     schemas: string[];
@@ -50,7 +51,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     const {
         searchTerm, setSearchTerm, executeSearch,
         autocompleteSuggestions, setAutocompleteSuggestions,
-        excludeTerm, setExcludeTerm, applyExcludeTerms,
+        excludeTerm, setExcludeTerm, applyExcludeTerms, clearExcludeTerms,
         selectedSchemas, setSelectedSchemas, schemas,
         selectedTypes, setSelectedTypes, dataModelTypes,
         layout, setLayout, hideUnrelated, setHideUnrelated,
@@ -128,9 +129,6 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         setAutocompleteSuggestions([]);
     };
 
-    const clearExcludeTerm = () => {
-        setExcludeTerm('');
-    };
 
     // Filter schemas based on search term
     const filteredSchemas = schemaSearchTerm.trim()
@@ -194,13 +192,13 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                                 }
                             }}
                         />
-                        {/* X button to clear */}
+                        {/* X button to clear and restore hidden objects */}
                         {excludeTerm && (
                             <button
                                 type="button"
-                                onClick={clearExcludeTerm}
+                                onClick={clearExcludeTerms}
                                 className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors rounded"
-                                title="Clear"
+                                title="Clear and show all objects"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
