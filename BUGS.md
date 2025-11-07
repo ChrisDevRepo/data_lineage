@@ -145,6 +145,41 @@ Simple regex smoke test (`FROM/JOIN schema.table`) doesn't match parser sophisti
 
 ---
 
+## 🔴 BUG-006: Smoke Test Subagent Query Bug
+
+**Status:** 🔴 OPEN
+**Reported:** 2025-11-07
+**Priority:** LOW
+
+### Issue
+
+Smoke test subagent reported "Total SPs with lineage metadata: 0" when actual value was 349.
+
+**Root Cause:** Incorrect SQL query in subagent
+```sql
+-- WRONG: Uses string literals with double quotes
+WHERE object_type = "Stored Procedure"  -- ❌ DuckDB error
+
+-- CORRECT: Use single quotes
+WHERE object_type = 'Stored Procedure'  -- ✅
+```
+
+### Impact
+
+- Misleading test results
+- False alarm about missing data
+- Wasted debugging time
+
+### Fix Required
+
+1. Update subagent smoke test query syntax
+2. Add SQL syntax validation
+3. Test with actual database before reporting
+
+**Actual Data:** 349/349 SPs have metadata (100%) ✓
+
+---
+
 ## 🔴 BUG-005: FTS Extension Download Fails (Network Dependency)
 
 **Status:** 🟢 RESOLVED (Made Optional)
