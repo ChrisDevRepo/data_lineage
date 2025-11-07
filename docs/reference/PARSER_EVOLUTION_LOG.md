@@ -4,6 +4,56 @@
 
 ---
 
+## Version 4.2.0 (2025-11-07) - Parse Failure Guidance
+
+### **Feature: Actionable User Feedback for Parse Failures**
+
+**Problem:** Users saw red nodes with "Confidence: 0.00" but had no idea WHY parsing failed or HOW to fix it.
+
+**Solution:** Implemented comprehensive parse failure detection and user-friendly descriptions with actionable guidance.
+
+### Changes
+
+#### 1. Parse Failure Detection (`quality_aware_parser.py`)
+
+**New Method:** `_detect_parse_failure_reason(ddl, parse_error, expected_count, found_count)`
+
+**Detects 8 T-SQL Patterns:**
+- Dynamic SQL: `EXEC(@var)`, `sp_executesql @var`
+- WHILE loops, CURSOR usage
+- Deep nesting (5+ BEGIN/END), Complex CASE (10+)
+- Multiple CTEs (10+), String concatenation
+
+**Output:** Detailed explanation with expected vs found counts and actionable solution.
+
+#### 2. Enhanced Parser Output
+
+Added to all parse results:
+- `parse_failure_reason`: When confidence < 0.65
+- `expected_count`: Expected tables from DDL
+- `found_count`: Actual tables extracted
+
+#### 3. Frontend Description Formatting (`frontend_formatter.py`)
+
+**New Method:** `_format_sp_description()` generates:
+- `✅ High Confidence: 0.95`
+- `⚠️ Medium Confidence: 0.75 | Manual hints used`
+- `⚠️ Low Confidence: 0.50 | Dynamic SQL → Add hints`
+- `❌ Parse Failed: 0.00 | WHILE loop | Expected 8, found 0`
+
+### Impact
+
+**User Workflow:**
+1. See red node with detailed description
+2. Read: "Dynamic SQL detected → Add @LINEAGE hints"
+3. Add hints to DDL
+4. Confidence improves: 0.0 → 0.75
+5. Node turns yellow/green ✅
+
+**Documentation:** `docs/features/PARSE_FAILURE_WORKFLOW.md`
+
+---
+
 ## SQL Cleaning Engine v1.0.0 - T-SQL Pre-Processing for SQLGlot (2025-11-06)
 
 ### Changes
