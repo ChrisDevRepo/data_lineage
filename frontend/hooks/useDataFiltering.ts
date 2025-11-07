@@ -15,6 +15,7 @@ type UseDataFilteringProps = {
     performInteractiveTrace: (config: TraceConfig) => Set<string>;
     isInTraceExitMode: boolean;
     traceExitNodes: Set<string>;
+    isTraceFilterApplied: boolean;
 };
 
 export function useDataFiltering({
@@ -27,7 +28,8 @@ export function useDataFiltering({
     traceConfig,
     performInteractiveTrace,
     isInTraceExitMode,
-    traceExitNodes
+    traceExitNodes,
+    isTraceFilterApplied
 }: UseDataFilteringProps) {
     const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
     const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -234,15 +236,27 @@ export function useDataFiltering({
     };
 
     const finalVisibleData = useMemo(() => {
-        console.log('[useDataFiltering] Recalculating finalVisibleData. activeExcludeTerms:', activeExcludeTerms, 'isTraceModeActive:', isTraceModeActive);
+        console.log('[useDataFiltering] Recalculating finalVisibleData. activeExcludeTerms:', activeExcludeTerms, 'isTraceModeActive:', isTraceModeActive, 'isTraceFilterApplied:', isTraceFilterApplied);
 
-        // If in trace mode, the trace config's filters take precedence.
-        if (isTraceModeActive && traceConfig) {
+        // If trace filtering is applied (Apply button clicked), show only traced nodes
+        if (isTraceModeActive && isTraceFilterApplied && traceConfig) {
             const tracedIds = performInteractiveTrace(traceConfig);
             const result = preFilteredData.filter(node =>
                 tracedIds.has(node.id) && !shouldExcludeNode(node)
             );
-            console.log('[useDataFiltering] Trace mode - showing', result.length, 'nodes');
+            console.log('[useDataFiltering] Trace mode (Apply clicked) - showing', result.length, 'traced nodes');
+            return result;
+        }
+
+        // If in trace mode but Apply not clicked yet, show ALL filtered objects (same as default view)
+        // The trace is only for highlighting, not for filtering visibility
+        if (isTraceModeActive && traceConfig) {
+            const result = preFilteredData.filter(node =>
+                debouncedSelectedSchemas.has(node.schema) &&
+                (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
+                !shouldExcludeNode(node)
+            );
+            console.log('[useDataFiltering] Trace mode (Apply not clicked) - showing', result.length, 'nodes with highlighting');
             return result;
         }
 
@@ -268,7 +282,7 @@ export function useDataFiltering({
         );
         console.log('[useDataFiltering] Default filtering - showing', result.length, 'nodes');
         return result;
-    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, activeExcludeTerms]);
+    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, activeExcludeTerms, isTraceFilterApplied]);
 
     return {
         finalVisibleData,

@@ -13,7 +13,8 @@ export const INTERACTION_CONSTANTS = {
   FIT_VIEW_PADDING: 0.2,
   FIT_VIEW_DURATION_MS: 500,
   FIT_VIEW_AFTER_SEARCH_MS: 800,
-  SEARCH_ZOOM_LEVEL: 1.2,
+  FOCUS_NODE_ZOOM_LEVEL: 0.8, // Zoom level when focusing on a specific node (search, SQL viewer, detail search)
+  FOCUS_NODE_DURATION_MS: 800, // Animation duration for focusing on nodes
 
   // Window resize
   WINDOW_RESIZE_DEBOUNCE_MS: 150,

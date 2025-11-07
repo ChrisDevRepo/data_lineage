@@ -310,21 +310,12 @@ ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 
 ---
 
-**Last Updated:** 2025-11-06 (Multi-Factor Confidence System v2.0.0 + Deployment Improvements)
-**Version:** v4.2.0 (Comment Hints Parser + Multi-Factor Confidence)
-**Parser:** 97.0% SP confidence | 95.5% overall | Dataflow mode + no circular dependencies
-**Confidence:** v2.0.0 (Multi-Factor with detailed breakdown)
-**Frontend:** v2.9.2 (Global exclusion patterns + UI simplified) | **API:** v4.0.3
+## Version Information
 
-**Recent Changes (2025-11-06):**
-- ✅ **Phase 3**: Multi-factor confidence system (v2.0.0) with 5 weighted factors
-- ✅ **Phase 2**: Comment hints parser (@LINEAGE_INPUTS/@LINEAGE_OUTPUTS)
-- ✅ **Phase 1**: UAT feedback system integration (15% weight)
-- ✅ Confidence breakdown stored in database and exported in all JSON formats
-- ✅ Comprehensive smoke testing (31/31 tests passed)
-- ✅ Updated PARSER_EVOLUTION_LOG.md with all three phases
-- ✅ Single source of truth: ConfidenceCalculator.calculate_multifactor()
-- ✅ Restructured requirements to industry best practices (modular requirements/ directory)
-- ✅ Added comprehensive .env configuration setup with templates
-- ✅ Improved start-app.sh with auto-install and multi-location venv support
-- ✅ Added configuration documentation (ENV_SETUP.md, CONFIGURATION_GUIDE.md)
+**Last Updated:** 2025-11-06
+**Project Version:** v4.2.0
+
+For detailed version history and change logs:
+- [docs/reference/PARSER_EVOLUTION_LOG.md](docs/reference/PARSER_EVOLUTION_LOG.md) - Parser version history
+- [README.md Changelog](README.md#changelog) - Recent releases
+- Git commit history - Detailed changes

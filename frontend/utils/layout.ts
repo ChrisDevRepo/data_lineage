@@ -42,10 +42,7 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
                     data: { ...nodeData, schemaColor: schemaColorMap.get(nodeData!.schema) }
                 };
             }),
-            edges: cached.edges.map(e => ({
-                ...e,
-                animated: isTraceModeActive
-            }))
+            edges: cached.edges
         };
     }
 
@@ -71,8 +68,7 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
                     source,
                     target,
                     style: { stroke: '#9ca3af', strokeWidth: 1.5 },
-                    markerEnd: { type: MarkerType.ArrowClosed, color: '#9ca3af', width: 20, height: 20 },
-                    animated: isTraceModeActive
+                    markerEnd: { type: MarkerType.ArrowClosed, color: '#9ca3af', width: 20, height: 20 }
                 });
             }
         });

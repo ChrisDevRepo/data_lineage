@@ -15,10 +15,11 @@ import { Legend } from './components/Legend';
 import { Toolbar } from './components/Toolbar';
 import { ImportDataModal } from './components/ImportDataModal';
 import { InfoModal } from './components/InfoModal';
-import { InteractiveTracePanel } from './components/InteractiveTracePanel';
 import { NotificationContainer, NotificationHistory } from './components/NotificationSystem';
 import { SqlViewer } from './components/SqlViewer';
 import { DetailSearchModal } from './components/DetailSearchModal';
+import { NodeContextMenu } from './components/NodeContextMenu';
+import { InlineTraceControls } from './components/InlineTraceControls';
 import { useGraphology } from './hooks/useGraphology';
 import { useNotifications } from './hooks/useNotifications';
 import { useInteractiveTrace } from './hooks/useInteractiveTrace';
@@ -93,6 +94,7 @@ function DataLineageVisualizer() {
   const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
   const [isInTraceExitMode, setIsInTraceExitMode] = useState(false);
   const [isTraceLocked, setIsTraceLocked] = useState(false);
+  const [isTraceFilterApplied, setIsTraceFilterApplied] = useState(false); // Track if Apply button was clicked
 
   const {
     finalVisibleData,
@@ -118,7 +120,8 @@ function DataLineageVisualizer() {
     traceConfig,
     performInteractiveTrace,
     isInTraceExitMode,
-    traceExitNodes
+    traceExitNodes,
+    isTraceFilterApplied
   });
 
   // --- Callback to apply exclude terms ---
@@ -198,6 +201,7 @@ function DataLineageVisualizer() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isDetailSearchOpen, setIsDetailSearchOpen] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string; nodeName: string } | null>(null);
 
   // --- SQL Viewer State ---
   const [sqlViewerOpen, setSqlViewerOpen] = useState(false);
@@ -315,6 +319,8 @@ function DataLineageVisualizer() {
       setIsInTraceExitMode(false);
       const tracedIds = performInteractiveTrace(traceConfig);
       setTraceExitNodes(tracedIds);
+      // Highlight the traced nodes in the graph
+      setHighlightedNodes(tracedIds);
     }
   }, [isTraceModeActive, traceConfig, performInteractiveTrace]);
 
@@ -332,6 +338,19 @@ function DataLineageVisualizer() {
   }, [isTraceModeActive, setHighlightedNodes, isInTraceExitMode, traceExitNodes]);
 
   // --- Event Handlers ---
+  const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: ReactFlowNode) => {
+    event.preventDefault();
+    const originalNode = allDataMap.get(node.id);
+    if (originalNode) {
+      setContextMenu({
+        x: event.clientX,
+        y: event.clientY,
+        nodeId: node.id,
+        nodeName: originalNode.name
+      });
+    }
+  }, [allDataMap]);
+
   const handleNodeClick = useCallback((_: React.MouseEvent, node: ReactFlowNode) => {
     // If locked, don't exit trace mode - just allow node interactions
     if (isTraceLocked) {
@@ -429,7 +448,7 @@ function DataLineageVisualizer() {
       setCenter(
         reactFlowNode.position.x + (reactFlowNode.width || 192) / 2,
         reactFlowNode.position.y + (reactFlowNode.height || 48) / 2,
-        { zoom: 1.2, duration: 800 }
+        { zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL, duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS }
       );
       setSearchTerm('');
     } catch (error) {
@@ -441,6 +460,9 @@ function DataLineageVisualizer() {
   const handlePaneClick = () => {
     // Close any open dropdowns in toolbar
     setCloseDropdownsTrigger(prev => prev + 1);
+
+    // Close context menu
+    setContextMenu(null);
 
     // If locked, don't clear anything - just return
     if (isTraceLocked) {
@@ -459,12 +481,13 @@ function DataLineageVisualizer() {
   };
 
   const handleResetView = () => {
-    // Reset all filters and selections to default
-    setSelectedSchemas(new Set(schemas));
-    setSelectedTypes(new Set(dataModelTypes));
+    // Reset view controls but PRESERVE schema and type filter selections
+    // Only reset: highlights, focus, search, excludeTerms, hideUnrelated, trace mode
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
     setSearchTerm('');
+    setExcludeTerm(''); // Clear exclude input field
+    setActiveExcludeTerms([]); // Clear active exclude filters
     setHideUnrelated(false);
     setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
@@ -478,7 +501,7 @@ function DataLineageVisualizer() {
     // Fit view after reset
     setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
 
-    addNotification('View reset to default.', 'info');
+    addNotification('View reset (schema and type filters preserved).', 'info');
   };
 
   const handleCloseDetailSearch = useCallback((nodeId: string | null) => {
@@ -493,8 +516,8 @@ function DataLineageVisualizer() {
         const node = getNodes().find(n => n.id === nodeId);
         if (node) {
           setCenter(node.position.x + 100, node.position.y, {
-            duration: 800,
-            zoom: 1.5
+            duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS,
+            zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL
           });
         }
       }, 100);
@@ -514,6 +537,57 @@ function DataLineageVisualizer() {
       fitView({ padding: 0.2, duration: 800 });
     }, 200);
   }, [handleApplyTrace, fitView]);
+
+  // --- Inline Trace Handlers ---
+  const handleStartTracing = useCallback((nodeId: string) => {
+    // Set up initial trace config with default values
+    const initialConfig = {
+      startNodeId: nodeId,
+      endNodeId: null,
+      upstreamLevels: 3,
+      downstreamLevels: 3,
+      includedSchemas: selectedSchemas,
+      includedTypes: selectedTypes,
+      exclusionPatterns: activeExcludeTerms
+    };
+    handleApplyTrace(initialConfig);
+    setIsTraceModeActive(true);
+    setIsTraceFilterApplied(false); // Show all objects when trace menu opens
+  }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms]);
+
+  const handleInlineTraceApply = useCallback((config: { startNodeId: string; upstreamLevels: number; downstreamLevels: number }) => {
+    // Build full config using existing filters
+    const fullConfig = {
+      startNodeId: config.startNodeId,
+      endNodeId: null,
+      upstreamLevels: config.upstreamLevels,
+      downstreamLevels: config.downstreamLevels,
+      includedSchemas: selectedSchemas,
+      includedTypes: selectedTypes,
+      exclusionPatterns: activeExcludeTerms
+    };
+    handleApplyTrace(fullConfig);
+
+    // Filter to traced nodes when Apply is clicked
+    setIsTraceFilterApplied(true);
+
+    // Highlight the start node
+    setHighlightedNodes(new Set([config.startNodeId]));
+
+    // Auto-fit view
+    setTimeout(() => {
+      fitView({ padding: 0.2, duration: 800 });
+    }, 200);
+  }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms, fitView, setHighlightedNodes]);
+
+  const handleEndTracing = useCallback(() => {
+    // End button just closes the trace menu bar and returns to normal view
+    setIsTraceModeActive(false);
+    setIsTraceFilterApplied(false);
+    setTraceExitNodes(new Set());
+    setIsInTraceExitMode(false);
+    addNotification('Trace ended', 'info');
+  }, [addNotification]);
 
   // --- Lock Toggle Handler ---
   const handleToggleLock = () => {
@@ -540,6 +614,50 @@ function DataLineageVisualizer() {
       setSelectedNodeForSql(null); // Clear selection when closing
     }
   };
+
+  // --- View Transition Handlers (Detail Search <-> SQL Viewer) ---
+  const handleSwitchToSqlViewer = useCallback((nodeId: string) => {
+    // Close detail search
+    setIsDetailSearchOpen(false);
+
+    // Find the node data
+    const originalNode = allDataMap.get(nodeId);
+    if (originalNode) {
+      const nodeForSql: any = {
+        id: originalNode.id,
+        name: originalNode.name,
+        schema: originalNode.schema,
+        objectType: originalNode.object_type
+      };
+
+      // Only add ddl_text if it exists in source data (JSON mode)
+      if ('ddl_text' in originalNode) {
+        nodeForSql.ddl_text = originalNode.ddl_text;
+      }
+
+      setSelectedNodeForSql(nodeForSql);
+      setSqlViewerOpen(true);
+
+      // Highlight and zoom to the node in the graph
+      setHighlightedNodes(new Set([nodeId]));
+      setTimeout(() => {
+        const node = getNodes().find(n => n.id === nodeId);
+        if (node) {
+          setCenter(node.position.x + 100, node.position.y, {
+            duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS,
+            zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL
+          });
+        }
+      }, 100);
+    }
+  }, [allDataMap, getNodes, setCenter, setHighlightedNodes]);
+
+  const handleSwitchToDetailSearch = useCallback(() => {
+    // Close SQL viewer and open detail search with the current SQL node
+    setSqlViewerOpen(false);
+    setIsDetailSearchOpen(true);
+    // initialNodeId will be passed to DetailSearchModal via selectedNodeForSql
+  }, []);
 
   // --- SQL Viewer Resize Handler ---
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -771,7 +889,7 @@ function DataLineageVisualizer() {
       </header>
       <main className="flex-grow p-4 relative bg-gray-100 overflow-hidden">
         <NotificationContainer activeToasts={activeToasts} onDismissToast={removeActiveToast} />
-        <div className={`w-full h-full bg-white rounded-lg shadow-md flex flex-col text-gray-800 transition-all duration-300 ${isTraceModeActive ? 'pr-80' : ''}`}>
+        <div className="w-full h-full bg-white rounded-lg shadow-md flex flex-col text-gray-800 transition-all duration-300">
           <Toolbar
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -809,6 +927,15 @@ function DataLineageVisualizer() {
             onToggleLock={handleToggleLock}
             closeDropdownsTrigger={closeDropdownsTrigger}
           />
+          {isTraceModeActive && traceConfig && (
+            <InlineTraceControls
+              startNodeId={traceConfig.startNodeId}
+              startNodeName={allData.find(n => n.id === traceConfig.startNodeId)?.name || ''}
+              allData={allData}
+              onApply={handleInlineTraceApply}
+              onEnd={handleEndTracing}
+            />
+          )}
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
             <div className={`relative ${!isResizing ? 'transition-all duration-300' : ''}`} style={{ width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%' }}>
@@ -834,6 +961,7 @@ function DataLineageVisualizer() {
                 nodeTypes={nodeTypes}
                 onPaneClick={handlePaneClick}
                 onNodeClick={handleNodeClick}
+                onNodeContextMenu={handleNodeContextMenu}
                 fitView
                 minZoom={0.1}
                 proOptions={{ hideAttribution: true }}
@@ -864,24 +992,17 @@ function DataLineageVisualizer() {
                   <SqlViewer
                     isOpen={sqlViewerOpen}
                     selectedNode={selectedNodeForSql}
+                    onSwitchToDetailSearch={handleSwitchToDetailSearch}
+                    onClose={() => {
+                      setSqlViewerOpen(false);
+                      setSelectedNodeForSql(null);
+                    }}
                   />
                 </div>
               </>
             )}
           </div>
         </div>
-        <InteractiveTracePanel
-          isOpen={isTraceModeActive}
-          onClose={handleExitTraceMode}
-          onApply={handleApplyTraceWithFit}
-          availableSchemas={schemas}
-          inheritedSchemaFilter={selectedSchemas}
-          availableTypes={dataModelTypes}
-          inheritedTypeFilter={selectedTypes}
-          allData={allData}
-          addNotification={addNotification}
-          activeExcludeTerms={activeExcludeTerms}
-        />
       </main>
       <ImportDataModal
         isOpen={isImportModalOpen}
@@ -899,7 +1020,23 @@ function DataLineageVisualizer() {
         isOpen={isDetailSearchOpen}
         allData={allData}
         onClose={handleCloseDetailSearch}
+        onSwitchToSqlViewer={handleSwitchToSqlViewer}
+        initialNodeId={selectedNodeForSql?.id || null}
+        initialSelectedSchemas={selectedSchemas}
+        initialSelectedTypes={selectedTypes}
       />
+      {contextMenu && (
+        <NodeContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          nodeId={contextMenu.nodeId}
+          nodeName={contextMenu.nodeName}
+          onStartTracing={() => handleStartTracing(contextMenu.nodeId)}
+          onShowSql={() => handleSwitchToSqlViewer(contextMenu.nodeId)}
+          sqlViewerEnabled={sqlViewerEnabled}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }

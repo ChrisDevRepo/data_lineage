@@ -389,11 +389,11 @@ async def search_ddl(q: str = Query(..., min_length=1, max_length=200, descripti
                     d.object_name as name,
                     o.object_type as type,
                     d.schema_name as schema,
-                    fts_main_definitions.match_bm25(d.object_id, ?) as score,
+                    fts_main_unified_ddl_materialized.match_bm25(d.object_id, ?) as score,
                     substr(d.definition, 1, 150) as snippet
                 FROM definitions d
                 JOIN objects o ON d.object_id = o.object_id
-                WHERE fts_main_definitions.match_bm25(d.object_id, ?) IS NOT NULL
+                WHERE fts_main_unified_ddl_materialized.match_bm25(d.object_id, ?) IS NOT NULL
                 ORDER BY score DESC
                 LIMIT 100
             """, [q, q]).fetchdf()

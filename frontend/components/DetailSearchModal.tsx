@@ -19,6 +19,10 @@ interface DetailSearchModalProps {
   isOpen: boolean;
   allData: DataNode[];
   onClose: (selectedNodeId: string | null) => void;
+  onSwitchToSqlViewer?: (nodeId: string) => void;
+  initialNodeId?: string | null; // Pre-load this node's DDL when opening
+  initialSelectedSchemas?: Set<string>; // Initial schemas from main menu filters
+  initialSelectedTypes?: Set<string>; // Initial types from main menu filters
 }
 
 interface SearchResult {
@@ -35,7 +39,15 @@ interface FilterOptions {
   objectTypes: string[];
 }
 
-export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, allData, onClose }) => {
+export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
+  isOpen,
+  allData,
+  onClose,
+  onSwitchToSqlViewer,
+  initialNodeId = null,
+  initialSelectedSchemas = new Set(),
+  initialSelectedTypes = new Set()
+}) => {
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -50,9 +62,9 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
   const [topPanelHeight, setTopPanelHeight] = useState(25);
   const [isResizing, setIsResizing] = useState(false);
 
-  // Filter state - Changed to Sets for multi-select
-  const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
-  const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(new Set());
+  // Filter state - Initialize from main menu filters
+  const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(initialSelectedSchemas);
+  const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(initialSelectedTypes);
   const [showSearchHelp, setShowSearchHelp] = useState(false);
   const [showSchemaFilter, setShowSchemaFilter] = useState(false);
   const [showTypeFilter, setShowTypeFilter] = useState(false);
@@ -85,6 +97,14 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
       objectTypes: Array.from(objectTypes).sort()
     };
   }, [allData]);
+
+  // Reset filters when modal opens with new initial values from main menu
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedSchemas(new Set(initialSelectedSchemas));
+      setSelectedObjectTypes(new Set(initialSelectedTypes));
+    }
+  }, [isOpen, initialSelectedSchemas, initialSelectedTypes]);
 
   // Handle resize mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -263,8 +283,65 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     });
   };
 
-  // Note: Automatic Monaco find widget activation is not reliable
-  // Users can manually press Ctrl+F to search within the DDL viewer
+  // Trigger Monaco search when DDL loads
+  useEffect(() => {
+    if (editorRef.current && ddlText && searchQuery.trim() && !isLoadingDdl) {
+      // Small delay to ensure editor is fully rendered
+      const timer = setTimeout(() => {
+        try {
+          const editor = editorRef.current;
+
+          // Clean search query for Monaco (remove boolean operators, quotes, wildcards)
+          const cleanQuery = searchQuery
+            .replace(/\b(AND|OR|NOT)\b/gi, ' ')
+            .replace(/["'*]/g, '')
+            .trim()
+            .split(/\s+/)
+            .filter(term => term.length > 2)
+            .join(' ');
+
+          if (cleanQuery) {
+            // Trigger the find action
+            editor.trigger('search', 'actions.find', null);
+
+            // Set the search string in the find widget
+            const findController = editor.getContribution('editor.contrib.findController');
+            if (findController) {
+              findController.getState().change({ searchString: cleanQuery }, false);
+              // Find and select first match
+              editor.trigger('search', 'editor.action.nextMatchFindAction', null);
+            }
+          }
+        } catch (error) {
+          console.error('[DetailSearchModal] Error triggering Monaco search:', error);
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [ddlText, searchQuery, isLoadingDdl]);
+
+  // Auto-load DDL when initialNodeId is provided (switching from SQL view)
+  useEffect(() => {
+    if (isOpen && initialNodeId && allData.length > 0) {
+      // Find the node in allData
+      const node = allData.find(n => n.id === initialNodeId);
+      if (node) {
+        // Create a search result object for this node
+        const result: SearchResult = {
+          id: node.id,
+          name: node.name,
+          type: node.object_type,
+          schema: node.schema,
+          score: 1.0,
+          snippet: ''
+        };
+
+        // Load its DDL
+        handleResultClick(result);
+      }
+    }
+  }, [isOpen, initialNodeId, allData]);
 
   // Highlight matching text in search results
   const highlightText = (text: string, query: string) => {
@@ -691,13 +768,27 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
                 {selectedResult ? `${selectedResult.name} - DDL` : 'DDL Viewer'}
               </h3>
               {ddlText && !isLoadingDdl && (
-                <div className="text-xs text-gray-500 italic">
-                  Press{' '}
-                  <kbd className="bg-gray-200 px-1.5 py-0.5 rounded border border-gray-300 font-mono text-xs">
-                    Ctrl+F
-                  </kbd>{' '}
-                  to search
-                </div>
+                <>
+                  <div className="text-xs text-gray-500 italic">
+                    Press{' '}
+                    <kbd className="bg-gray-200 px-1.5 py-0.5 rounded border border-gray-300 font-mono text-xs">
+                      Ctrl+F
+                    </kbd>{' '}
+                    to search
+                  </div>
+                  {onSwitchToSqlViewer && selectedResult && (
+                    <button
+                      onClick={() => onSwitchToSqlViewer(selectedResult.id)}
+                      className="h-8 px-3 flex items-center gap-2 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-400 rounded text-xs font-medium text-gray-700 hover:text-blue-700 transition-all"
+                      title="Switch to graph view with side panel"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                      </svg>
+                      <span>View in Graph</span>
+                    </button>
+                  )}
+                </>
               )}
             </div>
 

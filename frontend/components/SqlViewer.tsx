@@ -12,9 +12,11 @@ type SqlViewerProps = {
     objectType: string;
     ddl_text?: string | null; // Optional: only present in JSON uploads
   } | null;
+  onSwitchToDetailSearch?: () => void;
+  onClose?: () => void;
 };
 
-export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selectedNode }) => {
+export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selectedNode, onSwitchToDetailSearch, onClose }) => {
   const [ddlText, setDdlText] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,11 +93,38 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
 
         {/* Search hint - only show when SQL is loaded */}
         {ddlText && !isLoading && (
-          <div className="text-xs text-gray-500 italic mr-2">
-            Press <kbd className="bg-gray-200 px-1.5 py-0.5 rounded border border-gray-300 font-mono text-xs">
-              Ctrl+F
-            </kbd> to search
-          </div>
+          <>
+            <div className="text-xs text-gray-500 italic mr-2">
+              Press <kbd className="bg-gray-200 px-1.5 py-0.5 rounded border border-gray-300 font-mono text-xs">
+                Ctrl+F
+              </kbd> to search
+            </div>
+            {onSwitchToDetailSearch && (
+              <button
+                onClick={onSwitchToDetailSearch}
+                className="h-8 px-3 flex items-center gap-2 bg-white hover:bg-blue-50 border border-gray-300 hover:border-blue-400 rounded text-xs font-medium text-gray-700 hover:text-blue-700 transition-all"
+                title="Switch to fullscreen view"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+                <span>Fullscreen</span>
+              </button>
+            )}
+          </>
+        )}
+
+        {/* Close Button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="h-8 w-8 flex items-center justify-center bg-white hover:bg-red-50 border border-gray-300 hover:border-red-400 rounded text-gray-500 hover:text-red-600 transition-all"
+            title="Close SQL Viewer"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         )}
       </div>
 
@@ -105,7 +134,7 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
           // Empty state: No node selected
           <div className="flex flex-col items-center justify-center h-full text-gray-500 text-center p-8">
             <p className="my-2 text-base">
-              Click on any Stored Procedure or View to see its SQL definition
+              Right-click on any node and select "Show SQL" to view its definition
             </p>
           </div>
         ) : isLoading ? (

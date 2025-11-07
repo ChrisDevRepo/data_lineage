@@ -66,6 +66,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
     const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
     const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
+    const [schemaSearchTerm, setSchemaSearchTerm] = useState('');
     const schemaFilterRef = useRef<HTMLDivElement>(null);
     const typeFilterRef = useRef<HTMLDivElement>(null);
     const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -80,7 +81,10 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     }, [closeDropdownsTrigger]);
 
     // Close dropdowns when clicking outside
-    useClickOutside(schemaFilterRef, () => setIsSchemaFilterOpen(false));
+    useClickOutside(schemaFilterRef, () => {
+        setIsSchemaFilterOpen(false);
+        setSchemaSearchTerm(''); // Clear search when closing
+    });
     useClickOutside(typeFilterRef, () => setIsTypeFilterOpen(false));
     useClickOutside(searchContainerRef, () => {
         setIsAutocompleteOpen(false);
@@ -99,6 +103,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
             setSearchTerm(e.target.value);
+            // Autocomplete triggers after 5 characters (set in INTERACTION_CONSTANTS)
             setIsAutocompleteOpen(true);
         } catch (error) {
             console.error('[Toolbar] Error during search input change:', error);
@@ -127,6 +132,11 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         setExcludeTerm('');
     };
 
+    // Filter schemas based on search term
+    const filteredSchemas = schemaSearchTerm.trim()
+        ? schemas.filter(s => s.toLowerCase().includes(schemaSearchTerm.toLowerCase()))
+        : schemas;
+
     return (
         <div className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-gray-200 bg-white">
             {/* LEFT: Search + Filters */}
@@ -140,7 +150,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             value={searchTerm}
                             onChange={handleSearchInputChange}
                             disabled={isTraceModeActive}
-                            className="text-sm h-9 w-56 pl-3 pr-9 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
+                            className="text-sm h-9 w-64 pl-3 pr-9 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
                         />
                         <button type="submit" disabled={isTraceModeActive} className="absolute right-0 top-0 h-9 w-9 flex items-center justify-center text-gray-400 hover:text-primary-600 disabled:opacity-50 transition-colors" title="Search">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
@@ -174,7 +184,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             value={excludeTerm}
                             onChange={handleExcludeInputChange}
                             disabled={isTraceModeActive}
-                            className="text-sm h-9 w-40 pl-3 pr-8 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
+                            className="text-sm h-9 w-56 pl-3 pr-8 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
                             title="Enter terms to exclude (comma-separated). Use * for wildcards."
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && excludeTerm.trim()) {
@@ -220,7 +230,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                         </svg>
                     </Button>
                     {isSchemaFilterOpen && (
-                        <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-80 overflow-y-auto">
+                        <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-96 flex flex-col">
                             <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
                                 <span className="text-xs font-semibold text-gray-700">Schemas <span className="text-gray-500">({selectedSchemas.size}/{schemas.length})</span></span>
                                 <div className="flex gap-1">
@@ -246,15 +256,49 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                                     </button>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                {schemas.map(s => (
-                                    <Checkbox key={s} checked={selectedSchemas.has(s)} onChange={() => {
-                                        const newSet = new Set(selectedSchemas);
-                                        if (newSet.has(s)) newSet.delete(s);
-                                        else newSet.add(s);
-                                        setSelectedSchemas(newSet);
-                                    }} label={s} />
-                                ))}
+                            {/* Search Input */}
+                            <div className="mb-3">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search schemas..."
+                                        value={schemaSearchTerm}
+                                        onChange={(e) => setSchemaSearchTerm(e.target.value)}
+                                        className="w-full h-8 pl-8 pr-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                        autoFocus
+                                    />
+                                    <svg className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                    </svg>
+                                    {schemaSearchTerm && (
+                                        <button
+                                            onClick={() => setSchemaSearchTerm('')}
+                                            className="absolute right-2 top-1.5 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded"
+                                            title="Clear search"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            {/* Schemas List */}
+                            <div className="space-y-2 overflow-y-auto flex-1 pr-1">
+                                {filteredSchemas.length > 0 ? (
+                                    filteredSchemas.map(s => (
+                                        <Checkbox key={s} checked={selectedSchemas.has(s)} onChange={() => {
+                                            const newSet = new Set(selectedSchemas);
+                                            if (newSet.has(s)) newSet.delete(s);
+                                            else newSet.add(s);
+                                            setSelectedSchemas(newSet);
+                                        }} label={s} />
+                                    ))
+                                ) : (
+                                    <div className="text-xs text-gray-500 text-center py-4">
+                                        No schemas match "{schemaSearchTerm}"
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -337,37 +381,14 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                 </Button>
             </div>
 
-            {/* CENTER: Primary Action (ONE only) */}
-            <div className="flex-1 flex items-center justify-center">
-                {isInTraceExitMode && isTraceLocked ? (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 border border-yellow-300 rounded-md text-sm text-yellow-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                        </svg>
-                        Trace Locked
-                        <button onClick={onToggleLock} className="ml-1 hover:underline font-medium">Unlock</button>
-                    </div>
-                ) : (
-                    <Button onClick={onStartTrace} variant="primary" size="md" disabled={isTraceModeActive} title="Start Interactive Trace" className="w-36 flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                        </svg>
-                        Start Trace
-                    </Button>
-                )}
-            </div>
+            {/* CENTER: Spacer (trace controls now in inline bar when active) */}
+            <div className="flex-1"></div>
 
             {/* RIGHT: Action Icons */}
             <div className="flex items-center gap-1">
                 <Button onClick={onOpenDetailSearch} disabled={!hasDdlData} variant="icon" title="Detail Search">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
-                    </svg>
-                </Button>
-
-                <Button onClick={onToggleSqlViewer} disabled={!sqlViewerEnabled} variant="icon" className={sqlViewerOpen ? 'bg-blue-50 text-blue-600' : ''} title={sqlViewerOpen ? 'Close SQL Viewer' : 'Open SQL Viewer'}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
                     </svg>
                 </Button>
 
