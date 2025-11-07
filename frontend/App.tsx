@@ -1005,6 +1005,8 @@ function DataLineageVisualizer() {
         onClose={handleCloseDetailSearch}
         onSwitchToSqlViewer={handleSwitchToSqlViewer}
         initialNodeId={selectedNodeForSql?.id || null}
+        initialSelectedSchemas={selectedSchemas}
+        initialSelectedTypes={selectedTypes}
       />
       {contextMenu && (
         <NodeContextMenu

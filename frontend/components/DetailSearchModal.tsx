@@ -21,6 +21,8 @@ interface DetailSearchModalProps {
   onClose: (selectedNodeId: string | null) => void;
   onSwitchToSqlViewer?: (nodeId: string) => void;
   initialNodeId?: string | null; // Pre-load this node's DDL when opening
+  initialSelectedSchemas?: Set<string>; // Initial schemas from main menu filters
+  initialSelectedTypes?: Set<string>; // Initial types from main menu filters
 }
 
 interface SearchResult {
@@ -37,7 +39,15 @@ interface FilterOptions {
   objectTypes: string[];
 }
 
-export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, allData, onClose, onSwitchToSqlViewer, initialNodeId = null }) => {
+export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
+  isOpen,
+  allData,
+  onClose,
+  onSwitchToSqlViewer,
+  initialNodeId = null,
+  initialSelectedSchemas = new Set(),
+  initialSelectedTypes = new Set()
+}) => {
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -51,9 +61,9 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
   const [topPanelHeight, setTopPanelHeight] = useState(25);
   const [isResizing, setIsResizing] = useState(false);
 
-  // Filter state - Changed to Sets for multi-select
-  const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
-  const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(new Set());
+  // Filter state - Initialize from main menu filters
+  const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(initialSelectedSchemas);
+  const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(initialSelectedTypes);
   const [showSearchHelp, setShowSearchHelp] = useState(false);
   const [showSchemaFilter, setShowSchemaFilter] = useState(false);
   const [showTypeFilter, setShowTypeFilter] = useState(false);
@@ -86,6 +96,14 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
       objectTypes: Array.from(objectTypes).sort()
     };
   }, [allData]);
+
+  // Reset filters when modal opens with new initial values from main menu
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedSchemas(new Set(initialSelectedSchemas));
+      setSelectedObjectTypes(new Set(initialSelectedTypes));
+    }
+  }, [isOpen, initialSelectedSchemas, initialSelectedTypes]);
 
   // Handle resize mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
