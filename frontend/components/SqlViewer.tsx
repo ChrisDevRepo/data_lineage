@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { SpinnerContainer } from './ui/Spinner';
 import { API_BASE_URL } from '../config';
+import { MONACO_EDITOR_OPTIONS } from '../constants/monacoConfig';
 
 type SqlViewerProps = {
   isOpen: boolean;
@@ -195,28 +196,7 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
             theme="light"
             value={ddlText}
             onMount={handleEditorDidMount}
-            options={{
-              readOnly: true,
-              minimap: { enabled: false },
-              scrollBeyondLastLine: false,
-              wordWrap: 'on',
-              fontSize: 14,
-              lineNumbers: 'on',
-              renderWhitespace: 'selection',
-              scrollbar: {
-                vertical: 'visible',
-                horizontal: 'visible',
-                verticalScrollbarSize: 16,
-                horizontalScrollbarSize: 16,
-              },
-              overviewRulerBorder: true,
-              overviewRulerLanes: 3,
-              find: {
-                addExtraSpaceOnTop: false,
-                autoFindInSelection: 'never',
-                seedSearchStringFromSelection: 'always',
-              },
-            }}
+            options={MONACO_EDITOR_OPTIONS}
           />
         )}
       </div>

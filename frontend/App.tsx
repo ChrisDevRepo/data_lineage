@@ -407,8 +407,8 @@ function DataLineageVisualizer() {
       setHighlightedNodes(new Set([node.id]));
     }
   }, [isInTraceExitMode, isTraceLocked, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
-  
-  const handleDataImport = (newData: DataNode[]) => {
+
+  const handleDataImport = useCallback((newData: DataNode[]) => {
     const processedData = newData.map(node => ({ ...node, schema: node.schema.toUpperCase() }));
     setAllData(processedData);
 
@@ -425,9 +425,9 @@ function DataLineageVisualizer() {
     addNotification('Data imported successfully! Note: JSON imports are temporary. Upload parquet files to persist data.', 'info');
     // Don't auto-close modal - let user close it after viewing summary
     // setIsImportModalOpen(false);
-  };
-  
-  const executeSearch = (query: string) => {
+  }, [addNotification]);
+
+  const executeSearch = useCallback((query: string) => {
     try {
       if (isTraceModeActive) return;
       setFocusedNodeId(null);
@@ -465,9 +465,9 @@ function DataLineageVisualizer() {
       console.error('[Search] Error during search:', error);
       addNotification('An error occurred while searching. Please try again.', 'error');
     }
-  };
+  }, [isTraceModeActive, allData, nodes, fitView, setCenter, addNotification, setHighlightedNodes]);
 
-  const handlePaneClick = () => {
+  const handlePaneClick = useCallback(() => {
     // Close any open dropdowns in toolbar
     setCloseDropdownsTrigger(prev => prev + 1);
 
@@ -488,9 +488,9 @@ function DataLineageVisualizer() {
       setTraceExitNodes(new Set());
       setIsInTraceExitMode(false);
     }
-  };
+  }, [isTraceLocked, isInTraceExitMode, setHighlightedNodes]);
 
-  const handleResetView = () => {
+  const handleResetView = useCallback(() => {
     // Reset view controls but PRESERVE schema and type filter selections
     // Only reset: highlights, focus, search, excludeTerms, hideUnrelated, trace mode
     setHighlightedNodes(new Set());
@@ -515,7 +515,7 @@ function DataLineageVisualizer() {
     }), 100);
 
     addNotification('View reset (schema and type filters preserved).', 'info');
-  };
+  }, [fitView, addNotification, setHighlightedNodes]);
 
   const handleCloseDetailSearch = useCallback((nodeId: string | null) => {
     setIsDetailSearchOpen(false);

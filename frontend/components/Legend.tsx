@@ -14,7 +14,7 @@ const LegendIcon = () => (
     </svg>
 );
 
-export const Legend = ({ isCollapsed, onToggle, schemas, schemaColorMap, selectedSchemas }: LegendProps) => {
+export const Legend = React.memo(({ isCollapsed, onToggle, schemas, schemaColorMap, selectedSchemas }: LegendProps) => {
     const [isSchemasExpanded, setIsSchemasExpanded] = useState(false);
 
     // Filter to show only selected schemas
@@ -83,4 +83,4 @@ export const Legend = ({ isCollapsed, onToggle, schemas, schemaColorMap, selecte
             </div>
         </div>
     );
-};
+});

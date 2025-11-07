@@ -6,6 +6,7 @@ import { Checkbox } from './ui/Checkbox';
 import { API_BASE_URL } from '../config';
 import { useClickOutside } from '../hooks/useClickOutside';
 import { INTERACTION_CONSTANTS } from '../interaction-constants';
+import { MONACO_EDITOR_OPTIONS } from '../constants/monacoConfig';
 
 // Debounce utility
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
@@ -810,28 +811,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                   theme="light"
                   value={ddlText}
                   onMount={handleEditorDidMount}
-                  options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    wordWrap: 'on',
-                    fontSize: 14,
-                    lineNumbers: 'on',
-                    renderWhitespace: 'selection',
-                    scrollbar: {
-                      vertical: 'visible',
-                      horizontal: 'visible',
-                      verticalScrollbarSize: 16,
-                      horizontalScrollbarSize: 16,
-                    },
-                    overviewRulerBorder: true,
-                    overviewRulerLanes: 3,
-                    find: {
-                      addExtraSpaceOnTop: false,
-                      autoFindInSelection: 'never',
-                      seedSearchStringFromSelection: 'always',
-                    },
-                  }}
+                  options={MONACO_EDITOR_OPTIONS}
                 />
               )}
             </div>
