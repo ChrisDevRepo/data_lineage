@@ -317,6 +317,8 @@ function DataLineageVisualizer() {
       setIsInTraceExitMode(false);
       const tracedIds = performInteractiveTrace(traceConfig);
       setTraceExitNodes(tracedIds);
+      // Highlight the traced nodes in the graph
+      setHighlightedNodes(tracedIds);
     }
   }, [isTraceModeActive, traceConfig, performInteractiveTrace]);
 
@@ -477,12 +479,13 @@ function DataLineageVisualizer() {
   };
 
   const handleResetView = () => {
-    // Reset all filters and selections to default
-    setSelectedSchemas(new Set(schemas));
-    setSelectedTypes(new Set(dataModelTypes));
+    // Reset view controls but PRESERVE schema and type filter selections
+    // Only reset: highlights, focus, search, excludeTerms, hideUnrelated, trace mode
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
     setSearchTerm('');
+    setExcludeTerm(''); // Clear exclude input field
+    setActiveExcludeTerms([]); // Clear active exclude filters
     setHideUnrelated(false);
     setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
@@ -496,7 +499,7 @@ function DataLineageVisualizer() {
     // Fit view after reset
     setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
 
-    addNotification('View reset to default.', 'info');
+    addNotification('View reset (schema and type filters preserved).', 'info');
   };
 
   const handleCloseDetailSearch = useCallback((nodeId: string | null) => {
@@ -875,7 +878,7 @@ function DataLineageVisualizer() {
       </header>
       <main className="flex-grow p-4 relative bg-gray-100 overflow-hidden">
         <NotificationContainer activeToasts={activeToasts} onDismissToast={removeActiveToast} />
-        <div className={`w-full h-full bg-white rounded-lg shadow-md flex flex-col text-gray-800 transition-all duration-300 ${isTraceModeActive ? 'pr-80' : ''}`}>
+        <div className="w-full h-full bg-white rounded-lg shadow-md flex flex-col text-gray-800 transition-all duration-300">
           <Toolbar
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
@@ -995,6 +998,8 @@ function DataLineageVisualizer() {
           nodeId={contextMenu.nodeId}
           nodeName={contextMenu.nodeName}
           onStartTracing={() => handleStartTracing(contextMenu.nodeId)}
+          onShowSql={() => handleSwitchToSqlViewer(contextMenu.nodeId)}
+          sqlViewerEnabled={sqlViewerEnabled}
           onClose={() => setContextMenu(null)}
         />
       )}

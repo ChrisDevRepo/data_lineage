@@ -6,6 +6,8 @@ interface NodeContextMenuProps {
   nodeId: string;
   nodeName: string;
   onStartTracing: () => void;
+  onShowSql?: () => void;
+  sqlViewerEnabled?: boolean;
   onClose: () => void;
 }
 
@@ -15,6 +17,8 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   nodeId,
   nodeName,
   onStartTracing,
+  onShowSql,
+  sqlViewerEnabled,
   onClose
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -62,6 +66,22 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
         </svg>
         <span className="text-gray-700">Start Tracing from <span className="font-semibold text-primary-600">{nodeName}</span></span>
       </button>
+
+      {/* Show SQL (if enabled) */}
+      {sqlViewerEnabled && onShowSql && (
+        <button
+          onClick={() => {
+            onShowSql();
+            onClose();
+          }}
+          className="w-full px-4 py-2 text-left text-sm hover:bg-primary-50 flex items-center gap-2 transition-colors border-t border-gray-100"
+        >
+          <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+          <span className="text-gray-700">Show SQL for <span className="font-semibold">{nodeName}</span></span>
+        </button>
+      )}
     </div>
   );
 };

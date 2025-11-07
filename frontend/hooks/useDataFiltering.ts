@@ -220,11 +220,13 @@ export function useDataFiltering({
     };
 
     const finalVisibleData = useMemo(() => {
-        // If in trace mode, the trace config's filters take precedence.
+        // If in trace mode, show ALL filtered objects (same as default view)
+        // The trace is only for highlighting, not for filtering visibility
         if (isTraceModeActive && traceConfig) {
-            const tracedIds = performInteractiveTrace(traceConfig);
             return preFilteredData.filter(node =>
-                tracedIds.has(node.id) && !shouldExcludeNode(node)
+                debouncedSelectedSchemas.has(node.schema) &&
+                (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
+                !shouldExcludeNode(node)
             );
         }
 
