@@ -20,6 +20,7 @@ interface DetailSearchModalProps {
   allData: DataNode[];
   onClose: (selectedNodeId: string | null) => void;
   onSwitchToSqlViewer?: (nodeId: string) => void;
+  initialNodeId?: string | null; // Pre-load this node's DDL when opening
 }
 
 interface SearchResult {
@@ -36,7 +37,7 @@ interface FilterOptions {
   objectTypes: string[];
 }
 
-export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, allData, onClose, onSwitchToSqlViewer }) => {
+export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, allData, onClose, onSwitchToSqlViewer, initialNodeId = null }) => {
   // State
   const [searchQuery, setSearchQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -288,6 +289,28 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
       return () => clearTimeout(timer);
     }
   }, [ddlText, searchQuery, isLoadingDdl]);
+
+  // Auto-load DDL when initialNodeId is provided (switching from SQL view)
+  useEffect(() => {
+    if (isOpen && initialNodeId && allData.length > 0) {
+      // Find the node in allData
+      const node = allData.find(n => n.id === initialNodeId);
+      if (node) {
+        // Create a search result object for this node
+        const result: SearchResult = {
+          id: node.id,
+          name: node.name,
+          type: node.object_type,
+          schema: node.schema,
+          score: 1.0,
+          snippet: ''
+        };
+
+        // Load its DDL
+        handleResultClick(result);
+      }
+    }
+  }, [isOpen, initialNodeId, allData]);
 
   // Highlight matching text in search results
   const highlightText = (text: string, query: string) => {

@@ -639,20 +639,11 @@ function DataLineageVisualizer() {
   }, [allDataMap, getNodes, setCenter, setHighlightedNodes]);
 
   const handleSwitchToDetailSearch = useCallback(() => {
-    if (selectedNodeForSql) {
-      // Store current node for detail search
-      const nodeId = selectedNodeForSql.id;
-
-      // Close SQL viewer
-      setSqlViewerOpen(false);
-
-      // Open detail search (without search query, just showing the node)
-      setIsDetailSearchOpen(true);
-
-      // The detail search modal will need to be enhanced to accept an initial node
-      // For now, we'll just open it and let the user see their last search
-    }
-  }, [selectedNodeForSql]);
+    // Close SQL viewer and open detail search with the current SQL node
+    setSqlViewerOpen(false);
+    setIsDetailSearchOpen(true);
+    // initialNodeId will be passed to DetailSearchModal via selectedNodeForSql
+  }, []);
 
   // --- SQL Viewer Resize Handler ---
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -995,6 +986,7 @@ function DataLineageVisualizer() {
         allData={allData}
         onClose={handleCloseDetailSearch}
         onSwitchToSqlViewer={handleSwitchToSqlViewer}
+        initialNodeId={selectedNodeForSql?.id || null}
       />
       {contextMenu && (
         <NodeContextMenu
