@@ -66,7 +66,7 @@ export const InlineTraceControls: React.FC<InlineTraceControlsProps> = ({
     <div className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-gray-200 bg-blue-50">
       <div className="flex items-center gap-4 flex-shrink-0">
         {/* Start Node Input */}
-        <div className="relative flex-shrink-0" style={{ width: '320px' }}>
+        <div className="relative flex-shrink-0" style={{ width: '256px' }}>
           <input
             type="text"
             value={startSearch}

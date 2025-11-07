@@ -150,7 +150,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             value={searchTerm}
                             onChange={handleSearchInputChange}
                             disabled={isTraceModeActive}
-                            className="text-sm h-9 w-80 pl-3 pr-9 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
+                            className="text-sm h-9 w-64 pl-3 pr-9 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
                         />
                         <button type="submit" disabled={isTraceModeActive} className="absolute right-0 top-0 h-9 w-9 flex items-center justify-center text-gray-400 hover:text-primary-600 disabled:opacity-50 transition-colors" title="Search">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
@@ -184,7 +184,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             value={excludeTerm}
                             onChange={handleExcludeInputChange}
                             disabled={isTraceModeActive}
-                            className="text-sm h-9 w-80 pl-3 pr-8 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
+                            className="text-sm h-9 w-56 pl-3 pr-8 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
                             title="Enter terms to exclude (comma-separated)"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && excludeTerm.trim()) {
