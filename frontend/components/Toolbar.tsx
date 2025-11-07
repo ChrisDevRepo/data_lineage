@@ -103,7 +103,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         try {
             setSearchTerm(e.target.value);
-            setIsAutocompleteOpen(true);
+            // Autocomplete disabled - search only triggers on Enter key
         } catch (error) {
             console.error('[Toolbar] Error during search input change:', error);
             // Reset to empty string on error

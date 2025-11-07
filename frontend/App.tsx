@@ -448,7 +448,7 @@ function DataLineageVisualizer() {
       setCenter(
         reactFlowNode.position.x + (reactFlowNode.width || 192) / 2,
         reactFlowNode.position.y + (reactFlowNode.height || 48) / 2,
-        { zoom: 1.2, duration: 800 }
+        { zoom: 0.8, duration: 800 }
       );
       setSearchTerm('');
     } catch (error) {
@@ -517,7 +517,7 @@ function DataLineageVisualizer() {
         if (node) {
           setCenter(node.position.x + 100, node.position.y, {
             duration: 800,
-            zoom: 1.5
+            zoom: 0.8
           });
         }
       }, 100);
@@ -645,7 +645,7 @@ function DataLineageVisualizer() {
         if (node) {
           setCenter(node.position.x + 100, node.position.y, {
             duration: 800,
-            zoom: 1.2
+            zoom: 0.8
           });
         }
       }, 100);
