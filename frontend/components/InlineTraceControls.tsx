@@ -62,16 +62,15 @@ export const InlineTraceControls: React.FC<InlineTraceControlsProps> = ({
   };
 
   return (
-    <div className="bg-blue-50 border-b border-blue-200 px-4 py-3">
-      <div className="flex items-center gap-4 flex-wrap">
+    <div className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-gray-200 bg-white">
+      <div className="flex items-center gap-4 flex-shrink-0">
         {/* Start Node Input */}
         <div className="relative flex-shrink-0" style={{ width: '280px' }}>
-          <label className="text-xs font-medium text-gray-700 mb-1 block">Start Node</label>
           <input
             type="text"
             value={startSearch}
             onChange={handleSearchChange}
-            placeholder="Search for node..."
+            placeholder="Start node..."
             className="w-full h-9 px-3 bg-white border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           {suggestions.length > 0 && (
@@ -91,84 +90,77 @@ export const InlineTraceControls: React.FC<InlineTraceControlsProps> = ({
         </div>
 
         {/* Upstream Levels */}
-        <div className="flex items-end gap-2">
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Upstream</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                max="99"
-                value={upstream}
-                onChange={(e) => {
-                  setUpstream(parseInt(e.target.value) || 0);
-                  setIsUpstreamAll(false);
-                }}
-                disabled={isUpstreamAll}
-                className="w-16 h-9 px-2 bg-white border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-              />
-              <button
-                onClick={() => setIsUpstreamAll(!isUpstreamAll)}
-                className={`h-9 px-3 rounded text-sm font-medium transition-colors ${
-                  isUpstreamAll
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                All
-              </button>
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">Upstream:</span>
+          <input
+            type="number"
+            min="0"
+            max="99"
+            value={upstream}
+            onChange={(e) => {
+              setUpstream(parseInt(e.target.value) || 0);
+              setIsUpstreamAll(false);
+            }}
+            disabled={isUpstreamAll}
+            className="w-16 h-9 px-2 bg-white border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+          />
+          <button
+            onClick={() => setIsUpstreamAll(!isUpstreamAll)}
+            className={`h-9 px-3 rounded text-sm font-medium transition-colors ${
+              isUpstreamAll
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            All
+          </button>
         </div>
 
         {/* Downstream Levels */}
-        <div className="flex items-end gap-2">
-          <div>
-            <label className="text-xs font-medium text-gray-700 mb-1 block">Downstream</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="0"
-                max="99"
-                value={downstream}
-                onChange={(e) => {
-                  setDownstream(parseInt(e.target.value) || 0);
-                  setIsDownstreamAll(false);
-                }}
-                disabled={isDownstreamAll}
-                className="w-16 h-9 px-2 bg-white border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-              />
-              <button
-                onClick={() => setIsDownstreamAll(!isDownstreamAll)}
-                className={`h-9 px-3 rounded text-sm font-medium transition-colors ${
-                  isDownstreamAll
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                All
-              </button>
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">Downstream:</span>
+          <input
+            type="number"
+            min="0"
+            max="99"
+            value={downstream}
+            onChange={(e) => {
+              setDownstream(parseInt(e.target.value) || 0);
+              setIsDownstreamAll(false);
+            }}
+            disabled={isDownstreamAll}
+            className="w-16 h-9 px-2 bg-white border border-gray-300 rounded text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+          />
+          <button
+            onClick={() => setIsDownstreamAll(!isDownstreamAll)}
+            className={`h-9 px-3 rounded text-sm font-medium transition-colors ${
+              isDownstreamAll
+                ? 'bg-blue-600 text-white'
+                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            All
+          </button>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-end gap-2 ml-auto">
-          <Button
-            onClick={handleApply}
-            variant="primary"
-            className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
-          >
-            Apply Trace
-          </Button>
-          <Button
-            onClick={onEnd}
-            variant="secondary"
-            className="h-9 px-4 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded text-sm font-medium transition-colors"
-          >
-            End Tracing
-          </Button>
-        </div>
+      </div>
+
+      {/* Action Buttons (right side) */}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <Button
+          onClick={handleApply}
+          variant="primary"
+          className="h-9 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium transition-colors"
+        >
+          Apply
+        </Button>
+        <Button
+          onClick={onEnd}
+          variant="secondary"
+          className="h-9 px-4 bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 rounded text-sm font-medium transition-colors"
+        >
+          End Trace
+        </Button>
       </div>
     </div>
   );

@@ -334,37 +334,14 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                 </Button>
             </div>
 
-            {/* CENTER: Primary Action (ONE only) */}
-            <div className="flex-1 flex items-center justify-center">
-                {isInTraceExitMode && isTraceLocked ? (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-50 border border-yellow-300 rounded-md text-sm text-yellow-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-                        </svg>
-                        Trace Locked
-                        <button onClick={onToggleLock} className="ml-1 hover:underline font-medium">Unlock</button>
-                    </div>
-                ) : (
-                    <Button onClick={onStartTrace} variant="primary" size="md" disabled={isTraceModeActive} title="Start Interactive Trace" className="w-36 flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                        </svg>
-                        Start Trace
-                    </Button>
-                )}
-            </div>
+            {/* CENTER: Spacer (trace controls now in inline bar when active) */}
+            <div className="flex-1"></div>
 
             {/* RIGHT: Action Icons */}
             <div className="flex items-center gap-1">
                 <Button onClick={onOpenDetailSearch} disabled={!hasDdlData} variant="icon" title="Detail Search">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607ZM10.5 7.5v6m3-3h-6" />
-                    </svg>
-                </Button>
-
-                <Button onClick={onToggleSqlViewer} disabled={!sqlViewerEnabled} variant="icon" className={sqlViewerOpen ? 'bg-blue-50 text-blue-600' : ''} title={sqlViewerOpen ? 'Close SQL Viewer' : 'Open SQL Viewer'}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M14.25 9.75 16.5 12l-2.25 2.25m-4.5 0L7.5 12l2.25-2.25M6 20.25h12A2.25 2.25 0 0 0 20.25 18V6A2.25 2.25 0 0 0 18 3.75H6A2.25 2.25 0 0 0 3.75 6v12A2.25 2.25 0 0 0 6 20.25Z" />
                     </svg>
                 </Button>
 
