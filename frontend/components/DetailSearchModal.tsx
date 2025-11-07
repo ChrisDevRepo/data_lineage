@@ -41,6 +41,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
   const [results, setResults] = useState<SearchResult[]>([]);
   const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false); // Track if search has been performed
   const [ddlText, setDdlText] = useState<string | null>(null);
   const [isLoadingDdl, setIsLoadingDdl] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -185,16 +186,27 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     []
   );
 
-  // Trigger search when query or filters change
-  useEffect(() => {
+  // Manual search trigger - removed auto-trigger on typing
+  const handleManualSearch = () => {
     if (searchQuery.trim()) {
       setIsSearching(true);
+      setHasSearched(true);
       debouncedSearch(searchQuery, selectedSchemas, selectedObjectTypes);
     } else {
       setResults([]);
       setIsSearching(false);
+      setHasSearched(false);
     }
-  }, [searchQuery, selectedSchemas, selectedObjectTypes, debouncedSearch]);
+  };
+
+  // Trigger search when filters change (but NOT when query changes - user must press Enter or click button)
+  useEffect(() => {
+    if (searchQuery.trim() && results.length > 0) {
+      // Re-run search if filters change while results are showing
+      handleManualSearch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSchemas, selectedObjectTypes]);
 
   // Handle result click - fetch full DDL
   const handleResultClick = async (result: SearchResult) => {
@@ -232,6 +244,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
     setDdlText(null);
     setError(null);
     setIsSearching(false);
+    setHasSearched(false);
     setIsLoadingDdl(false);
     setSelectedSchemas(new Set());
     setSelectedObjectTypes(new Set());
@@ -391,16 +404,29 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
         <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-200">
           {/* Search input */}
           <div className="relative flex-1 max-w-2xl">
-            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <button
+              onClick={handleManualSearch}
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-primary-600 transition-colors cursor-pointer"
+              title="Search (or press Enter)"
+              type="button"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
             <input
               type="text"
-              placeholder="Search DDL definitions..."
+              placeholder="Search DDL definitions... (press Enter or click 🔍)"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleManualSearch();
+                }
+              }}
               autoFocus
-              className="w-full h-9 pl-9 pr-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors"
+              className="w-full h-9 pl-10 pr-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors"
             />
           </div>
 
@@ -588,11 +614,17 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({ isOpen, al
 
             {!searchQuery.trim() && results.length === 0 && !error && (
               <div className="text-center text-gray-500 py-8 text-sm">
-                Start typing to search across all DDL definitions...
+                Enter search query and press <kbd className="bg-gray-200 px-2 py-1 rounded border border-gray-300 font-mono text-xs">Enter</kbd> or click the <span className="text-primary-600">🔍</span> icon
               </div>
             )}
 
-            {searchQuery.trim() && results.length === 0 && !isSearching && !error && (
+            {searchQuery.trim() && !hasSearched && results.length === 0 && !isSearching && !error && (
+              <div className="text-center text-blue-600 py-8 text-sm">
+                Press <kbd className="bg-gray-200 px-2 py-1 rounded border border-gray-300 font-mono text-xs">Enter</kbd> or click <span className="text-primary-600">🔍</span> to search for "{searchQuery}"
+              </div>
+            )}
+
+            {searchQuery.trim() && hasSearched && results.length === 0 && !isSearching && !error && (
               <div className="text-center text-gray-500 py-8 text-sm">
                 No matches found for "{searchQuery}"
               </div>
