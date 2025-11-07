@@ -167,10 +167,10 @@ export function useInteractiveTrace(
 
     }, [lineageGraph]);
 
-    const handleApplyTrace = (config: Omit<TraceConfig, 'startNodeId'> & { startNodeId: string }) => {
+    const handleApplyTrace = useCallback((config: Omit<TraceConfig, 'startNodeId'> & { startNodeId: string }) => {
         setTraceConfig(config);
         addNotification('Trace applied successfully!', 'info');
-    };
+    }, [addNotification]);
 
     const handleExitTraceMode = useCallback(() => {
         setIsTraceModeActive(false);

@@ -20,12 +20,14 @@ import { SqlViewer } from './components/SqlViewer';
 import { DetailSearchModal } from './components/DetailSearchModal';
 import { NodeContextMenu } from './components/NodeContextMenu';
 import { InlineTraceControls } from './components/InlineTraceControls';
+import { TracedFilterBanner } from './components/TracedFilterBanner';
 import { useGraphology } from './hooks/useGraphology';
 import { useNotifications } from './hooks/useNotifications';
 import { useInteractiveTrace } from './hooks/useInteractiveTrace';
 import { useDataFiltering } from './hooks/useDataFiltering';
 import { getDagreLayoutedElements } from './utils/layout';
 import { generateSampleData } from './utils/data';
+import { logger } from './utils/logger';
 import { DataNode } from './types';
 import { CONSTANTS } from './constants';
 import { INTERACTION_CONSTANTS } from './interaction-constants';
@@ -52,7 +54,7 @@ function DataLineageVisualizer() {
       try {
         const fetchStart = Date.now();
         const response = await fetch(`${API_BASE_URL}/api/latest-data`);
-        console.log(`[Performance] API fetch took ${Date.now() - fetchStart}ms`);
+        logger.perf(`API fetch took ${Date.now() - fetchStart}ms`);
 
         if (!response.ok) {
           throw new Error(`API returned ${response.status}`);
@@ -60,7 +62,7 @@ function DataLineageVisualizer() {
 
         const parseStart = Date.now();
         const data = await response.json();
-        console.log(`[Performance] JSON parse took ${Date.now() - parseStart}ms, data size: ${data.length} objects`);
+        logger.perf(`JSON parse took ${Date.now() - parseStart}ms, data size: ${data.length} objects`);
         const headerValue = response.headers.get('x-data-available');
 
         // Simple check: if we got an array with data, use it
@@ -74,7 +76,7 @@ function DataLineageVisualizer() {
         setAllData(generateSampleData());
       } finally {
         const elapsed = Date.now() - startTime;
-        console.log(`[Performance] Total data load time: ${elapsed}ms`);
+        logger.perf(`Total data load time: ${elapsed}ms`);
         setIsLoadingData(false);
       }
     };
@@ -89,12 +91,21 @@ function DataLineageVisualizer() {
   // --- Custom Hooks for Logic Encapsulation ---
   const { addNotification, activeToasts, removeActiveToast, notificationHistory, clearNotificationHistory } = useNotifications();
   const { lineageGraph, schemas, schemaColorMap, dataModelTypes } = useGraphology(allData);
-  const { traceConfig, isTraceModeActive, setIsTraceModeActive, performInteractiveTrace, handleApplyTrace, handleExitTraceMode } = useInteractiveTrace(addNotification, lineageGraph);
+  const { traceConfig, isTraceModeActive, setIsTraceModeActive, performInteractiveTrace, handleApplyTrace } = useInteractiveTrace(addNotification, lineageGraph);
   // Store previous trace results for when we exit trace mode (as state for reactivity)
   const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
   const [isInTraceExitMode, setIsInTraceExitMode] = useState(false);
-  const [isTraceLocked, setIsTraceLocked] = useState(false);
   const [isTraceFilterApplied, setIsTraceFilterApplied] = useState(false); // Track if Apply button was clicked
+
+  // Traced filtered mode: after "End Trace", user stays in filtered view with banner
+  const [isInTracedFilterMode, setIsInTracedFilterMode] = useState(false);
+  const [tracedFilterConfig, setTracedFilterConfig] = useState<{
+    startNodeName: string;
+    upstreamLevels: number;
+    downstreamLevels: number;
+    totalNodes: number;
+  } | null>(null);
+
 
   const {
     finalVisibleData,
@@ -134,12 +145,21 @@ function DataLineageVisualizer() {
         .filter(term => term.length > 0);
 
       setActiveExcludeTerms(terms);
-      console.log('[App] Applied exclude terms:', terms);
+      logger.debug('[App] Applied exclude terms:', terms);
 
       // Show notification
       addNotification(`Excluding ${terms.length} term(s): ${terms.join(', ')}`, 'info');
     }
   }, [excludeTerm, addNotification]);
+
+  // --- Callback to clear exclude terms and restore hidden objects ---
+  const clearExcludeTerms = useCallback(() => {
+    setExcludeTerm('');
+    setActiveExcludeTerms([]);
+    if (activeExcludeTerms.length > 0) {
+      addNotification('Cleared exclude terms, showing all objects', 'info');
+    }
+  }, [activeExcludeTerms.length, addNotification]);
 
   // --- localStorage Persistence ---
   const hasInitializedPreferences = useRef(false);
@@ -153,7 +173,7 @@ function DataLineageVisualizer() {
         if (savedLayout === 'LR' || savedLayout === 'TB') {
           setLayout(savedLayout);
         }
-        console.log('[localStorage] Loaded layout preference:', savedLayout);
+        logger.debug('[localStorage] Loaded layout preference:', savedLayout);
       }
     } catch (error) {
       console.error('[localStorage] Failed to load layout preference:', error);
@@ -164,7 +184,7 @@ function DataLineageVisualizer() {
   useEffect(() => {
     if (schemas.length > 0 && selectedSchemas.size > 0 && !hasInitializedPreferences.current) {
       hasInitializedPreferences.current = true;
-      console.log('[localStorage] Preferences initialized, will now save on changes');
+      logger.debug('[localStorage] Preferences initialized, will now save on changes');
     }
   }, [schemas.length, selectedSchemas.size]);
 
@@ -183,7 +203,7 @@ function DataLineageVisualizer() {
         layout
       };
       localStorage.setItem('lineage_filter_preferences', JSON.stringify(preferences));
-      console.log('[localStorage] Saved preferences:', preferences);
+      logger.debug('[localStorage] Saved preferences:', preferences);
     } catch (error) {
       console.error('[localStorage] Failed to save preferences:', error);
     }
@@ -352,12 +372,8 @@ function DataLineageVisualizer() {
   }, [allDataMap]);
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: ReactFlowNode) => {
-    // If locked, don't exit trace mode - just allow node interactions
-    if (isTraceLocked) {
-      // Allow highlighting within the locked subset, but don't clear the trace
-      // Just update the focused node for SQL viewer, etc.
-    } else if (isInTraceExitMode) {
-      // Exit trace exit mode if we're clicking a node and not locked
+    // Exit trace exit mode if we're clicking a node
+    if (isInTraceExitMode) {
       setIsInTraceExitMode(false);
       setTraceExitNodes(new Set());
     }
@@ -396,9 +412,9 @@ function DataLineageVisualizer() {
       setFocusedNodeId(node.id);
       setHighlightedNodes(new Set([node.id]));
     }
-  }, [isInTraceExitMode, isTraceLocked, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
-  
-  const handleDataImport = (newData: DataNode[]) => {
+  }, [isInTraceExitMode, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
+
+  const handleDataImport = useCallback((newData: DataNode[]) => {
     const processedData = newData.map(node => ({ ...node, schema: node.schema.toUpperCase() }));
     setAllData(processedData);
 
@@ -415,15 +431,15 @@ function DataLineageVisualizer() {
     addNotification('Data imported successfully! Note: JSON imports are temporary. Upload parquet files to persist data.', 'info');
     // Don't auto-close modal - let user close it after viewing summary
     // setIsImportModalOpen(false);
-  };
-  
-  const executeSearch = (query: string) => {
+  }, [addNotification]);
+
+  const executeSearch = useCallback((query: string) => {
     try {
       if (isTraceModeActive) return;
       setFocusedNodeId(null);
       if (!query) {
         setHighlightedNodes(new Set());
-        fitView({ duration: 500 });
+        fitView({ duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS });
         return;
       }
 
@@ -455,19 +471,14 @@ function DataLineageVisualizer() {
       console.error('[Search] Error during search:', error);
       addNotification('An error occurred while searching. Please try again.', 'error');
     }
-  };
+  }, [isTraceModeActive, allData, nodes, fitView, setCenter, addNotification, setHighlightedNodes]);
 
-  const handlePaneClick = () => {
+  const handlePaneClick = useCallback(() => {
     // Close any open dropdowns in toolbar
     setCloseDropdownsTrigger(prev => prev + 1);
 
     // Close context menu
     setContextMenu(null);
-
-    // If locked, don't clear anything - just return
-    if (isTraceLocked) {
-      return;
-    }
 
     // Clear highlights and focused node when clicking outside
     setHighlightedNodes(new Set());
@@ -478,11 +489,11 @@ function DataLineageVisualizer() {
       setTraceExitNodes(new Set());
       setIsInTraceExitMode(false);
     }
-  };
+  }, [isInTraceExitMode, setHighlightedNodes]);
 
-  const handleResetView = () => {
+  const handleResetView = useCallback(() => {
     // Reset view controls but PRESERVE schema and type filter selections
-    // Only reset: highlights, focus, search, excludeTerms, hideUnrelated, trace mode
+    // Only reset: highlights, focus, search, excludeTerms, hideUnrelated, trace mode, traced filter mode
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
     setSearchTerm('');
@@ -492,17 +503,22 @@ function DataLineageVisualizer() {
     setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
-    setIsTraceLocked(false);
+    setIsTraceFilterApplied(false); // Clear trace filter
+    setIsInTracedFilterMode(false); // Exit traced filtered mode
+    setTracedFilterConfig(null); // Clear traced config
 
     // Also close SQL viewer and clear selection
     setSqlViewerOpen(false);
     setSelectedNodeForSql(null);
 
     // Fit view after reset
-    setTimeout(() => fitView({ padding: 0.2, duration: 500 }), 100);
+    setTimeout(() => fitView({
+      padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+      duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS
+    }), 100);
 
     addNotification('View reset (schema and type filters preserved).', 'info');
-  };
+  }, [fitView, addNotification, setHighlightedNodes]);
 
   const handleCloseDetailSearch = useCallback((nodeId: string | null) => {
     setIsDetailSearchOpen(false);
@@ -534,7 +550,10 @@ function DataLineageVisualizer() {
 
     // Auto-fit view after a short delay (to let layout calculate)
     setTimeout(() => {
-      fitView({ padding: 0.2, duration: 800 });
+      fitView({
+        padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+        duration: INTERACTION_CONSTANTS.FIT_VIEW_AFTER_SEARCH_MS
+      });
     }, 200);
   }, [handleApplyTrace, fitView]);
 
@@ -556,16 +575,19 @@ function DataLineageVisualizer() {
   }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms]);
 
   const handleInlineTraceApply = useCallback((config: { startNodeId: string; upstreamLevels: number; downstreamLevels: number }) => {
-    // Build full config using existing filters
+    // Build full config using CURRENT filters from main toolbar
+    // Create NEW Set/Array instances to ensure React detects changes
     const fullConfig = {
       startNodeId: config.startNodeId,
       endNodeId: null,
       upstreamLevels: config.upstreamLevels,
       downstreamLevels: config.downstreamLevels,
-      includedSchemas: selectedSchemas,
-      includedTypes: selectedTypes,
-      exclusionPatterns: activeExcludeTerms
+      includedSchemas: new Set(selectedSchemas), // NEW Set instance
+      includedTypes: new Set(selectedTypes),     // NEW Set instance
+      exclusionPatterns: [...activeExcludeTerms] // NEW Array instance
     };
+
+    logger.debug('[Trace] Applying trace with config:', fullConfig);
     handleApplyTrace(fullConfig);
 
     // Filter to traced nodes when Apply is clicked
@@ -576,34 +598,39 @@ function DataLineageVisualizer() {
 
     // Auto-fit view
     setTimeout(() => {
-      fitView({ padding: 0.2, duration: 800 });
+      fitView({
+        padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+        duration: INTERACTION_CONSTANTS.FIT_VIEW_AFTER_SEARCH_MS
+      });
     }, 200);
   }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms, fitView, setHighlightedNodes]);
 
   const handleEndTracing = useCallback(() => {
-    // End button just closes the trace menu bar and returns to normal view
+    // When "End Trace" is clicked:
+    // 1. Close the trace controls bar (isTraceModeActive = false)
+    // 2. Keep the traced nodes visible (don't reset isTraceFilterApplied)
+    // 3. Activate "traced filtered mode" with visual banner
+    // 4. Main toolbar remains fully active for further filtering
+
+    if (traceConfig && isTraceFilterApplied && nodes.length > 0) {
+      // Store trace config for banner display
+      const startNode = allData.find(n => n.id === traceConfig.startNodeId);
+      setTracedFilterConfig({
+        startNodeName: startNode?.name || traceConfig.startNodeId,
+        upstreamLevels: traceConfig.upstreamLevels,
+        downstreamLevels: traceConfig.downstreamLevels,
+        totalNodes: nodes.length // Current visible nodes count
+      });
+      setIsInTracedFilterMode(true);
+      // No notification - the amber banner is the visual indicator
+    }
+    // If closing without applying, just close silently (no notification)
+
+    // Close trace bar
     setIsTraceModeActive(false);
-    setIsTraceFilterApplied(false);
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
-    addNotification('Trace ended', 'info');
-  }, [addNotification]);
-
-  // --- Lock Toggle Handler ---
-  const handleToggleLock = () => {
-    setIsTraceLocked(prev => {
-      const newState = !prev;
-      if (newState) {
-        addNotification('Trace locked - node subset preserved', 'info');
-      } else {
-        // When unlocking, clear the trace
-        setIsInTraceExitMode(false);
-        setTraceExitNodes(new Set());
-        addNotification('Trace unlocked - full view restored', 'info');
-      }
-      return newState;
-    });
-  };
+  }, [traceConfig, isTraceFilterApplied, nodes.length, allData]);
 
   // --- SQL Viewer Toggle Handler ---
   const handleToggleSqlViewer = () => {
@@ -897,6 +924,7 @@ function DataLineageVisualizer() {
             excludeTerm={excludeTerm}
             setExcludeTerm={setExcludeTerm}
             applyExcludeTerms={applyExcludeTerms}
+            clearExcludeTerms={clearExcludeTerms}
             autocompleteSuggestions={autocompleteSuggestions}
             setAutocompleteSuggestions={setAutocompleteSuggestions}
             selectedSchemas={selectedSchemas}
@@ -922,9 +950,7 @@ function DataLineageVisualizer() {
             onOpenDetailSearch={() => setIsDetailSearchOpen(true)}
             notificationHistory={notificationHistory}
             onClearNotificationHistory={clearNotificationHistory}
-            isTraceLocked={isTraceLocked}
             isInTraceExitMode={isInTraceExitMode}
-            onToggleLock={handleToggleLock}
             closeDropdownsTrigger={closeDropdownsTrigger}
           />
           {isTraceModeActive && traceConfig && (
@@ -936,26 +962,19 @@ function DataLineageVisualizer() {
               onEnd={handleEndTracing}
             />
           )}
+          {/* Traced Filter Banner - shown after End Trace */}
+          {isInTracedFilterMode && tracedFilterConfig && (
+            <TracedFilterBanner
+              startNodeName={tracedFilterConfig.startNodeName}
+              upstreamLevels={tracedFilterConfig.upstreamLevels}
+              downstreamLevels={tracedFilterConfig.downstreamLevels}
+              totalNodes={tracedFilterConfig.totalNodes}
+              onReset={handleResetView}
+            />
+          )}
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
             <div className={`relative ${!isResizing ? 'transition-all duration-300' : ''}`} style={{ width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%' }}>
-              {/* Active Trace Mode Banner */}
-              {isTraceModeActive && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
-                  <span className="font-semibold">You are in Interactive Trace Mode.</span>
-                  <button onClick={handleExitTraceMode} className="text-blue-100 hover:text-white underline font-bold">Exit</button>
-                </div>
-              )}
-              {/* Trace Filtered Mode Banner (after End Trace) */}
-              {!isTraceModeActive && isInTraceExitMode && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>
-                  <span className="font-semibold">Viewing Trace Filtered Results ({traceExitNodes.size} objects)</span>
-                  <button onClick={handleResetView} className="text-yellow-100 hover:text-white underline font-bold">Reset View</button>
-                </div>
-              )}
               <ReactFlow
                 nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}

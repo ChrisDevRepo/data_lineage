@@ -238,17 +238,21 @@ export function useDataFiltering({
     const finalVisibleData = useMemo(() => {
         console.log('[useDataFiltering] Recalculating finalVisibleData. activeExcludeTerms:', activeExcludeTerms, 'isTraceModeActive:', isTraceModeActive, 'isTraceFilterApplied:', isTraceFilterApplied);
 
-        // If trace filtering is applied (Apply button clicked), show only traced nodes
-        if (isTraceModeActive && isTraceFilterApplied && traceConfig) {
+        // If trace filter is applied (during or after trace mode), combine with base filters (AND condition)
+        // This ensures trace + schemas + types + exclude all work together
+        if (isTraceFilterApplied && traceConfig) {
             const tracedIds = performInteractiveTrace(traceConfig);
             const result = preFilteredData.filter(node =>
-                tracedIds.has(node.id) && !shouldExcludeNode(node)
+                tracedIds.has(node.id) &&
+                debouncedSelectedSchemas.has(node.schema) &&
+                (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
+                !shouldExcludeNode(node)
             );
-            console.log('[useDataFiltering] Trace mode (Apply clicked) - showing', result.length, 'traced nodes');
+            console.log('[useDataFiltering] Trace filter applied - showing', result.length, 'nodes (trace AND base filters)');
             return result;
         }
 
-        // If in trace mode but Apply not clicked yet, show ALL filtered objects (same as default view)
+        // If in trace mode but Apply not clicked yet, show ALL filtered objects (base filters only)
         // The trace is only for highlighting, not for filtering visibility
         if (isTraceModeActive && traceConfig) {
             const result = preFilteredData.filter(node =>
@@ -257,19 +261,6 @@ export function useDataFiltering({
                 !shouldExcludeNode(node)
             );
             console.log('[useDataFiltering] Trace mode (Apply not clicked) - showing', result.length, 'nodes with highlighting');
-            return result;
-        }
-
-        // If in trace exit mode, show only the traced nodes (preserve trace results)
-        // but still allow filtering by schemas and types within this subset
-        if (isInTraceExitMode && traceExitNodes.size > 0) {
-            const result = preFilteredData.filter(node =>
-                traceExitNodes.has(node.id) &&
-                debouncedSelectedSchemas.has(node.schema) &&
-                (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
-                !shouldExcludeNode(node)
-            );
-            console.log('[useDataFiltering] Trace exit mode - showing', result.length, 'nodes');
             return result;
         }
 
@@ -282,7 +273,7 @@ export function useDataFiltering({
         );
         console.log('[useDataFiltering] Default filtering - showing', result.length, 'nodes');
         return result;
-    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, activeExcludeTerms, isTraceFilterApplied]);
+    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, activeExcludeTerms, isTraceFilterApplied]);
 
     return {
         finalVisibleData,

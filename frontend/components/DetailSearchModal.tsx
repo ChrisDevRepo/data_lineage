@@ -5,6 +5,8 @@ import { tokens } from '../design-tokens';
 import { Checkbox } from './ui/Checkbox';
 import { API_BASE_URL } from '../config';
 import { useClickOutside } from '../hooks/useClickOutside';
+import { INTERACTION_CONSTANTS } from '../interaction-constants';
+import { MONACO_EDITOR_OPTIONS } from '../constants/monacoConfig';
 
 // Debounce utility
 function debounce<T extends (...args: any[]) => any>(func: T, wait: number): T {
@@ -202,7 +204,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
       } finally {
         setIsSearching(false);
       }
-    }, 300),
+    }, INTERACTION_CONSTANTS.SEARCH_DEBOUNCE_MS),
     []
   );
 
@@ -481,19 +483,9 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
         <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-200">
           {/* Search input */}
           <div className="relative flex-1 max-w-2xl">
-            <button
-              onClick={handleManualSearch}
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 hover:text-primary-600 transition-colors cursor-pointer"
-              title="Search (or press Enter)"
-              type="button"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
             <input
               type="text"
-              placeholder="Search DDL definitions... (press Enter or click 🔍)"
+              placeholder="Type to search DDL definitions, then press Enter to search..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -503,7 +495,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                 }
               }}
               autoFocus
-              className="w-full h-9 pl-10 pr-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors"
+              className="w-full h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors"
             />
           </div>
 
@@ -819,28 +811,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                   theme="light"
                   value={ddlText}
                   onMount={handleEditorDidMount}
-                  options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    wordWrap: 'on',
-                    fontSize: 14,
-                    lineNumbers: 'on',
-                    renderWhitespace: 'selection',
-                    scrollbar: {
-                      vertical: 'visible',
-                      horizontal: 'visible',
-                      verticalScrollbarSize: 16,
-                      horizontalScrollbarSize: 16,
-                    },
-                    overviewRulerBorder: true,
-                    overviewRulerLanes: 3,
-                    find: {
-                      addExtraSpaceOnTop: false,
-                      autoFindInSelection: 'never',
-                      seedSearchStringFromSelection: 'always',
-                    },
-                  }}
+                  options={MONACO_EDITOR_OPTIONS}
                 />
               )}
             </div>

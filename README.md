@@ -321,8 +321,9 @@ See [PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) for complete details.
 
 ## Support
 
-**Issues:** Use GitHub issue tracker
-**Developer Guide:** See [CLAUDE.md](CLAUDE.md)
+**Known Issues:** See [BUGS.md](BUGS.md) for tracked bugs and feature requests
+**Developer Guide:** See [CLAUDE.md](CLAUDE.md) for setup, workflows, and troubleshooting
+**GitHub Issues:** Use GitHub issue tracker for new bugs or questions
 
 ---
 

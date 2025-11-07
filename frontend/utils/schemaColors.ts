@@ -10,6 +10,8 @@
  * 6. Based on HSL color theory for perceptual uniformity
  */
 
+import { logger } from './logger';
+
 // HSL-based color families with 3 brightness levels
 // Each family uses same hue and saturation, varying only lightness
 // 20 color families for maximum variety across many departments
@@ -135,7 +137,7 @@ function loadColorAssignments(): Record<string, { family: string; level: number 
 function saveColorAssignments(assignments: Record<string, { family: string; level: number }>) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(assignments));
-    console.log(`[SchemaColors] Saved ${Object.keys(assignments).length} color assignments to localStorage`);
+    logger.debug(`[SchemaColors] Saved ${Object.keys(assignments).length} color assignments to localStorage`);
   } catch (error) {
     console.error('[SchemaColors] Failed to save colors:', error);
   }
@@ -153,7 +155,7 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
   const usedFamilies = new Set<string>();
   let familyIndex = 0;
 
-  console.log(`[SchemaColors] Generating colors for ${schemas.length} schemas using HSL color theory`);
+  logger.debug(`[SchemaColors] Generating colors for ${schemas.length} schemas using HSL color theory`);
 
   // Track statistics for logging
   const stats = {
@@ -246,15 +248,15 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
   saveColorAssignments(savedAssignments);
 
   // Log detailed statistics
-  console.log(`[SchemaColors] ✓ Color assignment complete`);
-  console.log(`[SchemaColors]   Total schemas: ${colorMap.size}`);
-  console.log(`[SchemaColors]   Color families used: ${usedFamilies.size}/${colorFamilyNames.length}`);
-  console.log(`[SchemaColors]   From cache: ${stats.fromCache} | New: ${stats.newAssignments}`);
-  console.log(`[SchemaColors]   By layer: Staging=${stats.byLayer.staging}, Transformation=${stats.byLayer.transformation}, Consumption=${stats.byLayer.consumption}, Unknown=${stats.byLayer.unknown}`);
+  logger.debug(`[SchemaColors] ✓ Color assignment complete`);
+  logger.debug(`[SchemaColors]   Total schemas: ${colorMap.size}`);
+  logger.debug(`[SchemaColors]   Color families used: ${usedFamilies.size}/${colorFamilyNames.length}`);
+  logger.debug(`[SchemaColors]   From cache: ${stats.fromCache} | New: ${stats.newAssignments}`);
+  logger.debug(`[SchemaColors]   By layer: Staging=${stats.byLayer.staging}, Transformation=${stats.byLayer.transformation}, Consumption=${stats.byLayer.consumption}, Unknown=${stats.byLayer.unknown}`);
 
   // Show sample assignments for first 5 schemas (for debugging)
   if (schemas.length > 0 && stats.newAssignments > 0) {
-    console.log(`[SchemaColors] Sample assignments:`);
+    logger.debug(`[SchemaColors] Sample assignments:`);
     let sampleCount = 0;
     for (const schema of schemas) {
       if (sampleCount >= 5) break;
@@ -263,7 +265,7 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
         const layer = detectLayer(schema);
         const dept = extractDepartment(schema);
         const color = colorMap.get(schema);
-        console.log(`[SchemaColors]   "${schema}" -> dept="${dept}", layer="${layer || 'unknown'}", family="${assignment.family}", level=${assignment.level}, color="${color}"`);
+        logger.debug(`[SchemaColors]   "${schema}" -> dept="${dept}", layer="${layer || 'unknown'}", family="${assignment.family}", level=${assignment.level}, color="${color}"`);
         sampleCount++;
       }
     }
@@ -278,7 +280,7 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
 export function clearSavedColors() {
   try {
     localStorage.removeItem(STORAGE_KEY);
-    console.log('[SchemaColors] Cleared all saved color assignments');
+    logger.debug('[SchemaColors] Cleared all saved color assignments');
   } catch (error) {
     console.error('[SchemaColors] Failed to clear saved colors:', error);
   }

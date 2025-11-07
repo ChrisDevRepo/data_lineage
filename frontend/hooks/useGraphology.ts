@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import Graph from 'graphology';
 import { DataNode } from '../types';
 import { createSchemaColorMap } from '../utils/schemaColors';
+import { logger } from '../utils/logger';
 
 export function useGraphology(allData: DataNode[]) {
     const lineageGraph = useMemo(() => {
@@ -27,7 +28,7 @@ export function useGraphology(allData: DataNode[]) {
                 }
             });
         });
-        console.log(`[Performance] Graph built in ${Date.now() - startTime}ms (${graph.order} nodes, ${graph.size} edges)`);
+        logger.perf(`Graph built in ${Date.now() - startTime}ms (${graph.order} nodes, ${graph.size} edges)`);
         return graph;
     }, [allData]);
 

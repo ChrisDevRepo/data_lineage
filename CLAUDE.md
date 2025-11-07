@@ -227,6 +227,8 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 
 ## Troubleshooting
 
+**Known Issues & Bug Tracking:** See [BUGS.md](BUGS.md) for documented issues with business context, technical references, and current status.
+
 ### Startup Issues
 
 **Port conflicts:**
