@@ -448,7 +448,7 @@ function DataLineageVisualizer() {
       setCenter(
         reactFlowNode.position.x + (reactFlowNode.width || 192) / 2,
         reactFlowNode.position.y + (reactFlowNode.height || 48) / 2,
-        { zoom: 0.8, duration: 800 }
+        { zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL, duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS }
       );
       setSearchTerm('');
     } catch (error) {
@@ -516,8 +516,8 @@ function DataLineageVisualizer() {
         const node = getNodes().find(n => n.id === nodeId);
         if (node) {
           setCenter(node.position.x + 100, node.position.y, {
-            duration: 800,
-            zoom: 0.8
+            duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS,
+            zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL
           });
         }
       }, 100);
@@ -644,8 +644,8 @@ function DataLineageVisualizer() {
         const node = getNodes().find(n => n.id === nodeId);
         if (node) {
           setCenter(node.position.x + 100, node.position.y, {
-            duration: 800,
-            zoom: 0.8
+            duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS,
+            zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL
           });
         }
       }, 100);
