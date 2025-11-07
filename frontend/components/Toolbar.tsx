@@ -40,9 +40,7 @@ type ToolbarProps = {
     onOpenDetailSearch: () => void;
     notificationHistory: Notification[];
     onClearNotificationHistory: () => void;
-    isTraceLocked: boolean;
     isInTraceExitMode: boolean;
-    onToggleLock: () => void;
     closeDropdownsTrigger?: number; // Increment this to close all dropdowns from outside
 };
 
@@ -60,7 +58,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         sqlViewerOpen, onToggleSqlViewer, sqlViewerEnabled, hasDdlData,
         onOpenDetailSearch,
         notificationHistory, onClearNotificationHistory,
-        isTraceLocked, isInTraceExitMode, onToggleLock,
+        isInTraceExitMode,
         closeDropdownsTrigger
     } = props;
 

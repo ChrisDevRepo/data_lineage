@@ -94,8 +94,8 @@ function DataLineageVisualizer() {
   // Store previous trace results for when we exit trace mode (as state for reactivity)
   const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
   const [isInTraceExitMode, setIsInTraceExitMode] = useState(false);
-  const [isTraceLocked, setIsTraceLocked] = useState(false);
   const [isTraceFilterApplied, setIsTraceFilterApplied] = useState(false); // Track if Apply button was clicked
+
 
   const {
     finalVisibleData,
@@ -362,12 +362,8 @@ function DataLineageVisualizer() {
   }, [allDataMap]);
 
   const handleNodeClick = useCallback((_: React.MouseEvent, node: ReactFlowNode) => {
-    // If locked, don't exit trace mode - just allow node interactions
-    if (isTraceLocked) {
-      // Allow highlighting within the locked subset, but don't clear the trace
-      // Just update the focused node for SQL viewer, etc.
-    } else if (isInTraceExitMode) {
-      // Exit trace exit mode if we're clicking a node and not locked
+    // Exit trace exit mode if we're clicking a node
+    if (isInTraceExitMode) {
       setIsInTraceExitMode(false);
       setTraceExitNodes(new Set());
     }
@@ -406,7 +402,7 @@ function DataLineageVisualizer() {
       setFocusedNodeId(node.id);
       setHighlightedNodes(new Set([node.id]));
     }
-  }, [isInTraceExitMode, isTraceLocked, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
+  }, [isInTraceExitMode, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
 
   const handleDataImport = useCallback((newData: DataNode[]) => {
     const processedData = newData.map(node => ({ ...node, schema: node.schema.toUpperCase() }));
@@ -474,11 +470,6 @@ function DataLineageVisualizer() {
     // Close context menu
     setContextMenu(null);
 
-    // If locked, don't clear anything - just return
-    if (isTraceLocked) {
-      return;
-    }
-
     // Clear highlights and focused node when clicking outside
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
@@ -488,7 +479,7 @@ function DataLineageVisualizer() {
       setTraceExitNodes(new Set());
       setIsInTraceExitMode(false);
     }
-  }, [isTraceLocked, isInTraceExitMode, setHighlightedNodes]);
+  }, [isInTraceExitMode, setHighlightedNodes]);
 
   const handleResetView = useCallback(() => {
     // Reset view controls but PRESERVE schema and type filter selections
@@ -502,7 +493,6 @@ function DataLineageVisualizer() {
     setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
-    setIsTraceLocked(false);
 
     // Also close SQL viewer and clear selection
     setSqlViewerOpen(false);
@@ -572,16 +562,19 @@ function DataLineageVisualizer() {
   }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms]);
 
   const handleInlineTraceApply = useCallback((config: { startNodeId: string; upstreamLevels: number; downstreamLevels: number }) => {
-    // Build full config using existing filters
+    // Build full config using CURRENT filters from main toolbar
+    // Create NEW Set/Array instances to ensure React detects changes
     const fullConfig = {
       startNodeId: config.startNodeId,
       endNodeId: null,
       upstreamLevels: config.upstreamLevels,
       downstreamLevels: config.downstreamLevels,
-      includedSchemas: selectedSchemas,
-      includedTypes: selectedTypes,
-      exclusionPatterns: activeExcludeTerms
+      includedSchemas: new Set(selectedSchemas), // NEW Set instance
+      includedTypes: new Set(selectedTypes),     // NEW Set instance
+      exclusionPatterns: [...activeExcludeTerms] // NEW Array instance
     };
+
+    logger.debug('[Trace] Applying trace with config:', fullConfig);
     handleApplyTrace(fullConfig);
 
     // Filter to traced nodes when Apply is clicked
@@ -607,22 +600,6 @@ function DataLineageVisualizer() {
     setIsInTraceExitMode(false);
     addNotification('Trace ended', 'info');
   }, [addNotification]);
-
-  // --- Lock Toggle Handler ---
-  const handleToggleLock = () => {
-    setIsTraceLocked(prev => {
-      const newState = !prev;
-      if (newState) {
-        addNotification('Trace locked - node subset preserved', 'info');
-      } else {
-        // When unlocking, clear the trace
-        setIsInTraceExitMode(false);
-        setTraceExitNodes(new Set());
-        addNotification('Trace unlocked - full view restored', 'info');
-      }
-      return newState;
-    });
-  };
 
   // --- SQL Viewer Toggle Handler ---
   const handleToggleSqlViewer = () => {
@@ -942,9 +919,7 @@ function DataLineageVisualizer() {
             onOpenDetailSearch={() => setIsDetailSearchOpen(true)}
             notificationHistory={notificationHistory}
             onClearNotificationHistory={clearNotificationHistory}
-            isTraceLocked={isTraceLocked}
             isInTraceExitMode={isInTraceExitMode}
-            onToggleLock={handleToggleLock}
             closeDropdownsTrigger={closeDropdownsTrigger}
           />
           {isTraceModeActive && traceConfig && (
