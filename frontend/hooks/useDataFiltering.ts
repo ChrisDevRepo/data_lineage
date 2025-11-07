@@ -14,6 +14,7 @@ type UseDataFilteringProps = {
     performInteractiveTrace: (config: TraceConfig) => Set<string>;
     isInTraceExitMode: boolean;
     traceExitNodes: Set<string>;
+    isTraceFilterApplied: boolean;
 };
 
 export function useDataFiltering({
@@ -26,7 +27,8 @@ export function useDataFiltering({
     traceConfig,
     performInteractiveTrace,
     isInTraceExitMode,
-    traceExitNodes
+    traceExitNodes,
+    isTraceFilterApplied
 }: UseDataFilteringProps) {
     const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
     const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
@@ -220,7 +222,15 @@ export function useDataFiltering({
     };
 
     const finalVisibleData = useMemo(() => {
-        // If in trace mode, show ALL filtered objects (same as default view)
+        // If trace filtering is applied (Apply button clicked), show only traced nodes
+        if (isTraceModeActive && isTraceFilterApplied && traceConfig) {
+            const tracedIds = performInteractiveTrace(traceConfig);
+            return preFilteredData.filter(node =>
+                tracedIds.has(node.id) && !shouldExcludeNode(node)
+            );
+        }
+
+        // If in trace mode but Apply not clicked yet, show ALL filtered objects (same as default view)
         // The trace is only for highlighting, not for filtering visibility
         if (isTraceModeActive && traceConfig) {
             return preFilteredData.filter(node =>
@@ -248,7 +258,7 @@ export function useDataFiltering({
             (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
             !shouldExcludeNode(node)
         );
-    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, activeExcludeTerms]);
+    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, activeExcludeTerms, isTraceFilterApplied]);
 
     return {
         finalVisibleData,

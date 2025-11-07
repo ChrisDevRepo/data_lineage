@@ -94,6 +94,7 @@ function DataLineageVisualizer() {
   const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
   const [isInTraceExitMode, setIsInTraceExitMode] = useState(false);
   const [isTraceLocked, setIsTraceLocked] = useState(false);
+  const [isTraceFilterApplied, setIsTraceFilterApplied] = useState(false); // Track if Apply button was clicked
 
   const {
     finalVisibleData,
@@ -119,7 +120,8 @@ function DataLineageVisualizer() {
     traceConfig,
     performInteractiveTrace,
     isInTraceExitMode,
-    traceExitNodes
+    traceExitNodes,
+    isTraceFilterApplied
   });
 
   // --- Callback to apply exclude terms ---
@@ -550,6 +552,7 @@ function DataLineageVisualizer() {
     };
     handleApplyTrace(initialConfig);
     setIsTraceModeActive(true);
+    setIsTraceFilterApplied(false); // Show all objects when trace menu opens
   }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms]);
 
   const handleInlineTraceApply = useCallback((config: { startNodeId: string; upstreamLevels: number; downstreamLevels: number }) => {
@@ -565,6 +568,9 @@ function DataLineageVisualizer() {
     };
     handleApplyTrace(fullConfig);
 
+    // Filter to traced nodes when Apply is clicked
+    setIsTraceFilterApplied(true);
+
     // Highlight the start node
     setHighlightedNodes(new Set([config.startNodeId]));
 
@@ -575,8 +581,13 @@ function DataLineageVisualizer() {
   }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms, fitView, setHighlightedNodes]);
 
   const handleEndTracing = useCallback(() => {
-    handleExitTraceMode();
-  }, [handleExitTraceMode]);
+    // End button just closes the trace menu bar and returns to normal view
+    setIsTraceModeActive(false);
+    setIsTraceFilterApplied(false);
+    setTraceExitNodes(new Set());
+    setIsInTraceExitMode(false);
+    addNotification('Trace ended', 'info');
+  }, [addNotification]);
 
   // --- Lock Toggle Handler ---
   const handleToggleLock = () => {
@@ -965,6 +976,10 @@ function DataLineageVisualizer() {
                     isOpen={sqlViewerOpen}
                     selectedNode={selectedNodeForSql}
                     onSwitchToDetailSearch={handleSwitchToDetailSearch}
+                    onClose={() => {
+                      setSqlViewerOpen(false);
+                      setSelectedNodeForSql(null);
+                    }}
                   />
                 </div>
               </>

@@ -13,9 +13,10 @@ type SqlViewerProps = {
     ddl_text?: string | null; // Optional: only present in JSON uploads
   } | null;
   onSwitchToDetailSearch?: () => void;
+  onClose?: () => void;
 };
 
-export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selectedNode, onSwitchToDetailSearch }) => {
+export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selectedNode, onSwitchToDetailSearch, onClose }) => {
   const [ddlText, setDdlText] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,6 +112,19 @@ export const SqlViewer: React.FC<SqlViewerProps> = React.memo(({ isOpen, selecte
               </button>
             )}
           </>
+        )}
+
+        {/* Close Button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="h-8 w-8 flex items-center justify-center bg-white hover:bg-red-50 border border-gray-300 hover:border-red-400 rounded text-gray-500 hover:text-red-600 transition-all"
+            title="Close SQL Viewer"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         )}
       </div>
 

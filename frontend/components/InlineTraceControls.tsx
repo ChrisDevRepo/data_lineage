@@ -38,7 +38,8 @@ export const InlineTraceControls: React.FC<InlineTraceControlsProps> = ({
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setStartSearch(value);
-    if (value.trim()) {
+    // Only show suggestions after 5 characters
+    if (value.trim().length >= 5) {
       setSuggestions(
         allData.filter(n => n.name.toLowerCase().includes(value.toLowerCase())).slice(0, 5)
       );
@@ -62,10 +63,10 @@ export const InlineTraceControls: React.FC<InlineTraceControlsProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-gray-200 bg-white">
+    <div className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-gray-200 bg-blue-50">
       <div className="flex items-center gap-4 flex-shrink-0">
         {/* Start Node Input */}
-        <div className="relative flex-shrink-0" style={{ width: '280px' }}>
+        <div className="relative flex-shrink-0" style={{ width: '320px' }}>
           <input
             type="text"
             value={startSearch}
