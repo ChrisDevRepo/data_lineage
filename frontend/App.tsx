@@ -20,6 +20,7 @@ import { SqlViewer } from './components/SqlViewer';
 import { DetailSearchModal } from './components/DetailSearchModal';
 import { NodeContextMenu } from './components/NodeContextMenu';
 import { InlineTraceControls } from './components/InlineTraceControls';
+import { TracedFilterBanner } from './components/TracedFilterBanner';
 import { useGraphology } from './hooks/useGraphology';
 import { useNotifications } from './hooks/useNotifications';
 import { useInteractiveTrace } from './hooks/useInteractiveTrace';
@@ -95,6 +96,15 @@ function DataLineageVisualizer() {
   const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
   const [isInTraceExitMode, setIsInTraceExitMode] = useState(false);
   const [isTraceFilterApplied, setIsTraceFilterApplied] = useState(false); // Track if Apply button was clicked
+
+  // Traced filtered mode: after "End Trace", user stays in filtered view with banner
+  const [isInTracedFilterMode, setIsInTracedFilterMode] = useState(false);
+  const [tracedFilterConfig, setTracedFilterConfig] = useState<{
+    startNodeName: string;
+    upstreamLevels: number;
+    downstreamLevels: number;
+    totalNodes: number;
+  } | null>(null);
 
 
   const {
@@ -483,7 +493,7 @@ function DataLineageVisualizer() {
 
   const handleResetView = useCallback(() => {
     // Reset view controls but PRESERVE schema and type filter selections
-    // Only reset: highlights, focus, search, excludeTerms, hideUnrelated, trace mode
+    // Only reset: highlights, focus, search, excludeTerms, hideUnrelated, trace mode, traced filter mode
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
     setSearchTerm('');
@@ -493,6 +503,9 @@ function DataLineageVisualizer() {
     setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
+    setIsTraceFilterApplied(false); // Clear trace filter
+    setIsInTracedFilterMode(false); // Exit traced filtered mode
+    setTracedFilterConfig(null); // Clear traced config
 
     // Also close SQL viewer and clear selection
     setSqlViewerOpen(false);
@@ -593,13 +606,32 @@ function DataLineageVisualizer() {
   }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms, fitView, setHighlightedNodes]);
 
   const handleEndTracing = useCallback(() => {
-    // End button just closes the trace menu bar and returns to normal view
+    // When "End Trace" is clicked:
+    // 1. Close the trace controls bar (isTraceModeActive = false)
+    // 2. Keep the traced nodes visible (don't reset isTraceFilterApplied)
+    // 3. Activate "traced filtered mode" with visual banner
+    // 4. Main toolbar remains fully active for further filtering
+
+    if (traceConfig && isTraceFilterApplied && nodes.length > 0) {
+      // Store trace config for banner display
+      const startNode = allData.find(n => n.id === traceConfig.startNodeId);
+      setTracedFilterConfig({
+        startNodeName: startNode?.name || traceConfig.startNodeId,
+        upstreamLevels: traceConfig.upstreamLevels,
+        downstreamLevels: traceConfig.downstreamLevels,
+        totalNodes: nodes.length // Current visible nodes count
+      });
+      setIsInTracedFilterMode(true);
+      addNotification('Trace filter applied - Use "Reset View" to clear', 'info');
+    } else {
+      addNotification('Trace ended', 'info');
+    }
+
+    // Close trace bar
     setIsTraceModeActive(false);
-    setIsTraceFilterApplied(false);
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
-    addNotification('Trace ended', 'info');
-  }, [addNotification]);
+  }, [traceConfig, isTraceFilterApplied, nodes.length, allData, addNotification]);
 
   // --- SQL Viewer Toggle Handler ---
   const handleToggleSqlViewer = () => {
@@ -931,6 +963,16 @@ function DataLineageVisualizer() {
               onEnd={handleEndTracing}
             />
           )}
+          {/* Traced Filter Banner - shown after End Trace */}
+          {isInTracedFilterMode && tracedFilterConfig && (
+            <TracedFilterBanner
+              startNodeName={tracedFilterConfig.startNodeName}
+              upstreamLevels={tracedFilterConfig.upstreamLevels}
+              downstreamLevels={tracedFilterConfig.downstreamLevels}
+              totalNodes={tracedFilterConfig.totalNodes}
+              onReset={handleResetView}
+            />
+          )}
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
             <div className={`relative ${!isResizing ? 'transition-all duration-300' : ''}`} style={{ width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%' }}>
@@ -939,16 +981,6 @@ function DataLineageVisualizer() {
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
                   <span className="font-semibold">You are in Interactive Trace Mode.</span>
                   <button onClick={handleExitTraceMode} className="text-blue-100 hover:text-white underline font-bold">Exit</button>
-                </div>
-              )}
-              {/* Trace Filtered Mode Banner (after End Trace) */}
-              {!isTraceModeActive && isInTraceExitMode && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
-                  </svg>
-                  <span className="font-semibold">Viewing Trace Filtered Results ({traceExitNodes.size} objects)</span>
-                  <button onClick={handleResetView} className="text-yellow-100 hover:text-white underline font-bold">Reset View</button>
                 </div>
               )}
               <ReactFlow
