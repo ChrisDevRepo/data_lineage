@@ -198,16 +198,20 @@ export function useDataFiltering({
     // Static pre-filter: Apply "Hide Unrelated" BEFORE any other filters
     // This is memoized separately so it doesn't recalculate when clicking nodes
     const preFilteredData = useMemo(() => {
+        console.log('[useDataFiltering] hideUnrelated:', hideUnrelated, 'allData length:', allData.length);
         if (hideUnrelated) {
             // Filter out nodes with NO connections in the complete graph
-            return allData.filter(node => {
+            const filtered = allData.filter(node => {
                 if (lineageGraph.hasNode(node.id)) {
                     const neighbors = lineageGraph.neighbors(node.id);
                     return neighbors.length > 0; // Keep only nodes with at least one connection
                 }
                 return false; // Remove nodes not in graph
             });
+            console.log('[useDataFiltering] After hideUnrelated filter:', filtered.length, 'nodes');
+            return filtered;
         }
+        console.log('[useDataFiltering] hideUnrelated OFF, returning all data');
         return allData; // No pre-filtering if hideUnrelated is off
     }, [allData, lineageGraph, hideUnrelated]);
 
@@ -216,36 +220,48 @@ export function useDataFiltering({
         if (activeExcludeTerms.length === 0) return false;
 
         const nodeName = node.name.toLowerCase();
-        return activeExcludeTerms.some(term => nodeName.includes(term));
+        const excluded = activeExcludeTerms.some(term => nodeName.includes(term));
+        if (excluded) {
+            console.log('[useDataFiltering] Excluding node:', node.name, 'due to terms:', activeExcludeTerms);
+        }
+        return excluded;
     };
 
     const finalVisibleData = useMemo(() => {
+        console.log('[useDataFiltering] Recalculating finalVisibleData. activeExcludeTerms:', activeExcludeTerms, 'isTraceModeActive:', isTraceModeActive);
+
         // If in trace mode, the trace config's filters take precedence.
         if (isTraceModeActive && traceConfig) {
             const tracedIds = performInteractiveTrace(traceConfig);
-            return preFilteredData.filter(node =>
+            const result = preFilteredData.filter(node =>
                 tracedIds.has(node.id) && !shouldExcludeNode(node)
             );
+            console.log('[useDataFiltering] Trace mode - showing', result.length, 'nodes');
+            return result;
         }
 
         // If in trace exit mode, show only the traced nodes (preserve trace results)
         // but still allow filtering by schemas and types within this subset
         if (isInTraceExitMode && traceExitNodes.size > 0) {
-            return preFilteredData.filter(node =>
+            const result = preFilteredData.filter(node =>
                 traceExitNodes.has(node.id) &&
                 debouncedSelectedSchemas.has(node.schema) &&
                 (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
                 !shouldExcludeNode(node)
             );
+            console.log('[useDataFiltering] Trace exit mode - showing', result.length, 'nodes');
+            return result;
         }
 
         // Default behavior: filter by selected schemas and types
         // Optimized O(n) array filtering instead of O(n²) graph iteration
-        return preFilteredData.filter(node =>
+        const result = preFilteredData.filter(node =>
             debouncedSelectedSchemas.has(node.schema) &&
             (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
             !shouldExcludeNode(node)
         );
+        console.log('[useDataFiltering] Default filtering - showing', result.length, 'nodes');
+        return result;
     }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, isInTraceExitMode, traceExitNodes, activeExcludeTerms]);
 
     return {
