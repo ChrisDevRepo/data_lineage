@@ -91,7 +91,7 @@ function DataLineageVisualizer() {
   // --- Custom Hooks for Logic Encapsulation ---
   const { addNotification, activeToasts, removeActiveToast, notificationHistory, clearNotificationHistory } = useNotifications();
   const { lineageGraph, schemas, schemaColorMap, dataModelTypes } = useGraphology(allData);
-  const { traceConfig, isTraceModeActive, setIsTraceModeActive, performInteractiveTrace, handleApplyTrace, handleExitTraceMode } = useInteractiveTrace(addNotification, lineageGraph);
+  const { traceConfig, isTraceModeActive, setIsTraceModeActive, performInteractiveTrace, handleApplyTrace } = useInteractiveTrace(addNotification, lineageGraph);
   // Store previous trace results for when we exit trace mode (as state for reactivity)
   const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
   const [isInTraceExitMode, setIsInTraceExitMode] = useState(false);
@@ -622,16 +622,15 @@ function DataLineageVisualizer() {
         totalNodes: nodes.length // Current visible nodes count
       });
       setIsInTracedFilterMode(true);
-      addNotification('Trace filter applied - Use "Reset View" to clear', 'info');
-    } else {
-      addNotification('Trace ended', 'info');
+      // No notification - the amber banner is the visual indicator
     }
+    // If closing without applying, just close silently (no notification)
 
     // Close trace bar
     setIsTraceModeActive(false);
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
-  }, [traceConfig, isTraceFilterApplied, nodes.length, allData, addNotification]);
+  }, [traceConfig, isTraceFilterApplied, nodes.length, allData]);
 
   // --- SQL Viewer Toggle Handler ---
   const handleToggleSqlViewer = () => {
@@ -976,13 +975,6 @@ function DataLineageVisualizer() {
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
             <div className={`relative ${!isResizing ? 'transition-all duration-300' : ''}`} style={{ width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%' }}>
-              {/* Active Trace Mode Banner */}
-              {isTraceModeActive && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
-                  <span className="font-semibold">You are in Interactive Trace Mode.</span>
-                  <button onClick={handleExitTraceMode} className="text-blue-100 hover:text-white underline font-bold">Exit</button>
-                </div>
-              )}
               <ReactFlow
                 nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
