@@ -66,6 +66,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
     const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
     const [isAutocompleteOpen, setIsAutocompleteOpen] = useState(false);
+    const [schemaSearchTerm, setSchemaSearchTerm] = useState('');
     const schemaFilterRef = useRef<HTMLDivElement>(null);
     const typeFilterRef = useRef<HTMLDivElement>(null);
     const searchContainerRef = useRef<HTMLDivElement>(null);
@@ -80,7 +81,10 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     }, [closeDropdownsTrigger]);
 
     // Close dropdowns when clicking outside
-    useClickOutside(schemaFilterRef, () => setIsSchemaFilterOpen(false));
+    useClickOutside(schemaFilterRef, () => {
+        setIsSchemaFilterOpen(false);
+        setSchemaSearchTerm(''); // Clear search when closing
+    });
     useClickOutside(typeFilterRef, () => setIsTypeFilterOpen(false));
     useClickOutside(searchContainerRef, () => {
         setIsAutocompleteOpen(false);
@@ -126,6 +130,11 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     const clearExcludeTerm = () => {
         setExcludeTerm('');
     };
+
+    // Filter schemas based on search term
+    const filteredSchemas = schemaSearchTerm.trim()
+        ? schemas.filter(s => s.toLowerCase().includes(schemaSearchTerm.toLowerCase()))
+        : schemas;
 
     return (
         <div className="flex items-center justify-between gap-4 px-4 py-2.5 border-b border-gray-200 bg-white">
@@ -220,7 +229,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                         </svg>
                     </Button>
                     {isSchemaFilterOpen && (
-                        <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-80 overflow-y-auto">
+                        <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-96 flex flex-col">
                             <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
                                 <span className="text-xs font-semibold text-gray-700">Schemas <span className="text-gray-500">({selectedSchemas.size}/{schemas.length})</span></span>
                                 <div className="flex gap-1">
@@ -246,15 +255,49 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                                     </button>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                {schemas.map(s => (
-                                    <Checkbox key={s} checked={selectedSchemas.has(s)} onChange={() => {
-                                        const newSet = new Set(selectedSchemas);
-                                        if (newSet.has(s)) newSet.delete(s);
-                                        else newSet.add(s);
-                                        setSelectedSchemas(newSet);
-                                    }} label={s} />
-                                ))}
+                            {/* Search Input */}
+                            <div className="mb-3">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder="Search schemas..."
+                                        value={schemaSearchTerm}
+                                        onChange={(e) => setSchemaSearchTerm(e.target.value)}
+                                        className="w-full h-8 pl-8 pr-3 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                        autoFocus
+                                    />
+                                    <svg className="absolute left-2.5 top-2 w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                                    </svg>
+                                    {schemaSearchTerm && (
+                                        <button
+                                            onClick={() => setSchemaSearchTerm('')}
+                                            className="absolute right-2 top-1.5 w-5 h-5 flex items-center justify-center text-gray-400 hover:text-gray-600 rounded"
+                                            title="Clear search"
+                                        >
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                            {/* Schemas List */}
+                            <div className="space-y-2 overflow-y-auto flex-1 pr-1">
+                                {filteredSchemas.length > 0 ? (
+                                    filteredSchemas.map(s => (
+                                        <Checkbox key={s} checked={selectedSchemas.has(s)} onChange={() => {
+                                            const newSet = new Set(selectedSchemas);
+                                            if (newSet.has(s)) newSet.delete(s);
+                                            else newSet.add(s);
+                                            setSelectedSchemas(newSet);
+                                        }} label={s} />
+                                    ))
+                                ) : (
+                                    <div className="text-xs text-gray-500 text-center py-4">
+                                        No schemas match "{schemaSearchTerm}"
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
