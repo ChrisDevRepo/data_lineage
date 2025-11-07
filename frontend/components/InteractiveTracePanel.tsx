@@ -14,10 +14,11 @@ type InteractiveTracePanelProps = {
     inheritedTypeFilter: Set<string>;
     allData: DataNode[];
     addNotification: (text: string, type: 'info' | 'error') => void;
+    activeExcludeTerms: string[];  // Base exclude terms from main toolbar
 };
 
 // OPTIMIZATION: Memoize to prevent unnecessary re-renders
-export const InteractiveTracePanel = React.memo(({ isOpen, onClose, onApply, availableSchemas, inheritedSchemaFilter, availableTypes, inheritedTypeFilter, allData, addNotification }: InteractiveTracePanelProps) => {
+export const InteractiveTracePanel = React.memo(({ isOpen, onClose, onApply, availableSchemas, inheritedSchemaFilter, availableTypes, inheritedTypeFilter, allData, addNotification, activeExcludeTerms }: InteractiveTracePanelProps) => {
     const [traceMode, setTraceMode] = useState<'levels' | 'path'>('levels'); // 'levels' = level-based, 'path' = start-to-end path
     const [startNodeSearch, setStartNodeSearch] = useState('');
     const [startSuggestions, setStartSuggestions] = useState<DataNode[]>([]);
@@ -90,14 +91,25 @@ export const InteractiveTracePanel = React.memo(({ isOpen, onClose, onApply, ava
             addNotification('Start and end nodes must be different.', 'error');
             return;
         }
+
+        // Merge panel exclusions with base exclude terms from main toolbar
+        const panelExclusions = exclusions.split(';').map(p => p.trim()).filter(p => p !== '');
+        const allExclusions = [...new Set([...activeExcludeTerms, ...panelExclusions])];
+
+        console.log('[InteractiveTracePanel] Applying trace with CURRENT base filters:');
+        console.log('  - Schemas:', Array.from(inheritedSchemaFilter));
+        console.log('  - Types:', Array.from(inheritedTypeFilter));
+        console.log('  - Exclude terms (merged):', allExclusions);
+        console.log('  - Levels:', { upstream: isUpstreamAll ? 'ALL' : upstream, downstream: isDownstreamAll ? 'ALL' : downstream });
+
         onApply({
             startNodeId: selectedNode.id,
             endNodeId: traceMode === 'path' ? selectedEndNode?.id : null,
             upstreamLevels: isUpstreamAll ? Number.MAX_SAFE_INTEGER : upstream,
             downstreamLevels: isDownstreamAll ? Number.MAX_SAFE_INTEGER : downstream,
-            includedSchemas: includedSchemas,
-            includedTypes: includedTypes,
-            exclusionPatterns: exclusions.split(';').map(p => p.trim()).filter(p => p !== ''),
+            includedSchemas: inheritedSchemaFilter,  // Always use CURRENT from main toolbar!
+            includedTypes: inheritedTypeFilter,      // Always use CURRENT from main toolbar!
+            exclusionPatterns: allExclusions,        // Merge panel + base exclusions
         });
     };
 

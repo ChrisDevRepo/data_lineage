@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { DataNode, TraceConfig } from '../types';
 import Graph from 'graphology';
 import { INTERACTION_CONSTANTS } from '../interaction-constants';
+import { patternToRegex } from '../utils/layout';
 
 type UseDataFilteringProps = {
     allData: DataNode[];
@@ -216,13 +217,18 @@ export function useDataFiltering({
     }, [allData, lineageGraph, hideUnrelated]);
 
     // Helper function to check if a node should be excluded based on exclude terms
+    // Supports wildcard patterns (e.g., "*_VAT", "tmp_*", "*test*")
     const shouldExcludeNode = (node: DataNode): boolean => {
         if (activeExcludeTerms.length === 0) return false;
 
-        const nodeName = node.name.toLowerCase();
-        const excluded = activeExcludeTerms.some(term => nodeName.includes(term));
+        // Convert patterns to regex (supports wildcards like trace mode)
+        const excluded = activeExcludeTerms.some(term => {
+            const regex = patternToRegex(term);
+            return regex.test(node.name);
+        });
+
         if (excluded) {
-            console.log('[useDataFiltering] Excluding node:', node.name, 'due to terms:', activeExcludeTerms);
+            console.log('[useDataFiltering] Excluding node:', node.name, 'due to patterns:', activeExcludeTerms);
         }
         return excluded;
     };
