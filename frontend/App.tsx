@@ -127,10 +127,10 @@ function DataLineageVisualizer() {
   // --- Callback to apply exclude terms ---
   const applyExcludeTerms = useCallback(() => {
     if (excludeTerm.trim()) {
-      // Split by comma, trim whitespace, filter empty strings, convert to lowercase
+      // Split by comma, trim whitespace, filter empty strings (preserve case for wildcards)
       const terms = excludeTerm
         .split(',')
-        .map(term => term.trim().toLowerCase())
+        .map(term => term.trim())
         .filter(term => term.length > 0);
 
       setActiveExcludeTerms(terms);
@@ -939,6 +939,23 @@ function DataLineageVisualizer() {
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
             <div className={`relative ${!isResizing ? 'transition-all duration-300' : ''}`} style={{ width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%' }}>
+              {/* Active Trace Mode Banner */}
+              {isTraceModeActive && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
+                  <span className="font-semibold">You are in Interactive Trace Mode.</span>
+                  <button onClick={handleExitTraceMode} className="text-blue-100 hover:text-white underline font-bold">Exit</button>
+                </div>
+              )}
+              {/* Trace Filtered Mode Banner (after End Trace) */}
+              {!isTraceModeActive && isInTraceExitMode && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-yellow-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                  </svg>
+                  <span className="font-semibold">Viewing Trace Filtered Results ({traceExitNodes.size} objects)</span>
+                  <button onClick={handleResetView} className="text-yellow-100 hover:text-white underline font-bold">Reset View</button>
+                </div>
+              )}
               <ReactFlow
                 nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
