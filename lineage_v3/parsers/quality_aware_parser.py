@@ -1083,11 +1083,21 @@ class QualityAwareParser:
         return self._get_object_catalog()
 
     def _validate_against_catalog(self, table_names: Set[str]) -> Set[str]:
-        """Only return tables that exist in database."""
+        """
+        Only return tables that exist in database.
+
+        Filters out:
+        - dummy.* tables (temp table placeholders from SQL Cleaning Engine)
+        - Tables not in catalog
+        """
         catalog = self._get_object_catalog()
         validated = set()
 
         for name in table_names:
+            # Filter out dummy.* temp table placeholders (introduced by SQL Cleaning Engine)
+            if name.lower().startswith('dummy.'):
+                continue
+
             if name in catalog:
                 validated.add(name)
             else:

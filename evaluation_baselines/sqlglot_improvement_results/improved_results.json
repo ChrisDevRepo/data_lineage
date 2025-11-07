@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-11-07T12:31:49.763661",
+  "timestamp": "2025-11-07T13:46:22.359148",
   "total_sps": 349,
-  "success_count": 282,
+  "success_count": 284,
   "results": [
     {
       "object_id": 715842,
@@ -18,8 +18,8 @@
     {
       "object_id": 2758733,
       "object_name": "STAGING_CADENCE.spLoadReconciliation_Case4.5",
-      "success": false,
-      "tables_count": 0
+      "success": true,
+      "tables_count": 1
     },
     {
       "object_id": 8606994,
@@ -288,8 +288,8 @@
     {
       "object_id": 328279845,
       "object_name": "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudgetData",
-      "success": false,
-      "tables_count": 0
+      "success": true,
+      "tables_count": 1
     },
     {
       "object_id": 334006966,

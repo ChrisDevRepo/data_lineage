@@ -521,6 +521,202 @@ class SQLCleaningRules:
             examples_after=["SELECT 1\n\nSELECT 2"]
         )
 
+    # ------------------------------------------------------------------------
+    # NEW RULES (2025-11-07) - Simple, Smart Improvements
+    # ------------------------------------------------------------------------
+
+    @staticmethod
+    def replace_temp_tables() -> RegexRule:
+        """
+        Replace temp table references (#table) with dummy schema (dummy.table).
+
+        This is a BRILLIANT simple solution that makes temp tables parseable by SQLGlot!
+        Instead of trying to remove temp table DDL, we replace # with dummy. schema,
+        making it valid SQL that SQLGlot can parse. Then filter out dummy.* in catalog validation.
+
+        Example:
+            SELECT * INTO #TempData FROM SourceTable
+            INSERT INTO #TempData VALUES (1, 2)
+            SELECT * FROM #TempData
+
+        Becomes:
+            SELECT * INTO dummy.TempData FROM SourceTable
+            INSERT INTO dummy.TempData VALUES (1, 2)
+            SELECT * FROM dummy.TempData
+
+        Why it works:
+        - Valid SQL syntax (SQLGlot can parse it)
+        - Simple regex replacement
+        - Filter out dummy.* objects later
+        - No need to handle CREATE TABLE #temp / DROP TABLE #temp separately
+        """
+        return RegexRule(
+            name="ReplaceTempTables",
+            category=RuleCategory.TABLE_MANAGEMENT,
+            description="Replace #table with dummy.table for parseability",
+            pattern=r'#(\w+)',
+            replacement=r'dummy.\1',
+            flags=re.IGNORECASE,
+            priority=15,  # Early - before DECLARE removal
+            examples_before=[
+                "SELECT * INTO #temp FROM Table1",
+                "INSERT INTO #staging SELECT * FROM Table2",
+                "SELECT a.ID FROM #temp a JOIN Table3 b ON a.ID = b.ID"
+            ],
+            examples_after=[
+                "SELECT * INTO dummy.temp FROM Table1",
+                "INSERT INTO dummy.staging SELECT * FROM Table2",
+                "SELECT a.ID FROM dummy.temp a JOIN Table3 b ON a.ID = b.ID"
+            ]
+        )
+
+    @staticmethod
+    def remove_if_object_id_checks() -> RegexRule:
+        """
+        Remove IF object_id(...) administrative checks.
+
+        These are administrative existence checks before dropping temp tables,
+        not actual data lineage. Remove them to reduce noise.
+
+        Example:
+            if object_id(N'tempdb..#temp') is not null
+            begin drop table #temp; end;
+
+        Becomes:
+            (removed)
+
+        Why: Administrative cleanup, not data flow
+        """
+        return RegexRule(
+            name="RemoveIFObjectID",
+            category=RuleCategory.TABLE_MANAGEMENT,
+            description="Remove IF object_id(...) administrative checks",
+            pattern=r"if\s+object_id\s*\(\s*N?['\"]tempdb\.\.[#\w]+['\"]\\s*\)\s+is\s+not\s+null\s+begin\s+drop\s+table\s+[#\w\.]+\s*;?\s*end\s*;?",
+            replacement='',
+            flags=re.IGNORECASE | re.DOTALL,
+            priority=25,  # After temp table replacement
+            examples_before=[
+                "if object_id(N'tempdb..#temp') is not null\nbegin drop table #temp; end;",
+                "IF OBJECT_ID(N'tempdb..#staging') IS NOT NULL BEGIN DROP TABLE #staging END"
+            ],
+            examples_after=[
+                "",
+                ""
+            ]
+        )
+
+    @staticmethod
+    def remove_drop_table() -> RegexRule:
+        """
+        Remove DROP TABLE statements.
+
+        DROP TABLE is administrative cleanup, not data lineage.
+        After replacing #temp with dummy.temp, we can safely remove all DROP statements.
+
+        Example:
+            DROP TABLE #temp
+            DROP TABLE IF EXISTS staging
+
+        Becomes:
+            (removed)
+
+        Why: Cleanup operations don't show data flow
+        """
+        return RegexRule(
+            name="RemoveDropTable",
+            category=RuleCategory.TABLE_MANAGEMENT,
+            description="Remove DROP TABLE statements (not lineage-relevant)",
+            pattern=r'drop\s+table\s+(?:if\s+exists\s+)?[#\w\.\[\]]+\s*;?',
+            replacement='',
+            flags=re.IGNORECASE,
+            priority=26,  # After IF EXISTS removal
+            examples_before=[
+                "DROP TABLE #temp",
+                "DROP TABLE IF EXISTS staging.temp_data",
+                "drop table [dbo].[TempStaging];"
+            ],
+            examples_after=[
+                "",
+                "",
+                ""
+            ]
+        )
+
+    @staticmethod
+    def flatten_simple_begin_end() -> RegexRule:
+        """
+        Flatten standalone BEGIN/END blocks (non-control-flow).
+
+        Remove BEGIN/END wrappers that don't belong to IF/WHILE/TRY control structures.
+        This reduces nesting depth without losing DML statements.
+
+        Example:
+            BEGIN
+                INSERT INTO Table1 SELECT * FROM Table2
+            END
+
+        Becomes:
+            INSERT INTO Table1 SELECT * FROM Table2
+
+        Why: Standalone BEGIN/END adds complexity without value
+        Note: Preserves BEGIN/END for TRY/CATCH, IF, WHILE (handled by other rules)
+        """
+        return RegexRule(
+            name="FlattenSimpleBEGIN",
+            category=RuleCategory.WRAPPER,
+            description="Remove standalone BEGIN/END wrappers",
+            pattern=r'\n\s*BEGIN\s*\n\s*((?:INSERT|UPDATE|DELETE|MERGE|SELECT|WITH)[\s\S]*?)\n\s*END\s*;?',
+            replacement=r'\n\1\n',
+            flags=re.IGNORECASE,
+            priority=35,  # After control flow handling
+            examples_before=[
+                "\nBEGIN\n    INSERT INTO Target SELECT * FROM Source\nEND",
+                "\nBEGIN\n    UPDATE Table1 SET X = 1\nEND;"
+            ],
+            examples_after=[
+                "\n    INSERT INTO Target SELECT * FROM Source\n",
+                "\n    UPDATE Table1 SET X = 1\n"
+            ]
+        )
+
+    @staticmethod
+    def extract_if_block_dml() -> RegexRule:
+        """
+        Extract DML from simple IF blocks.
+
+        Pull INSERT/UPDATE/DELETE/MERGE statements from IF wrappers.
+        This captures conditional lineage even when condition might not be met at runtime.
+
+        Example:
+            IF @condition = 1
+            BEGIN
+                INSERT INTO Target SELECT * FROM Source
+            END
+
+        Becomes:
+            INSERT INTO Target SELECT * FROM Source
+
+        Why: We want lineage regardless of runtime condition
+        Note: Only handles simple single-statement IF blocks
+        """
+        return RegexRule(
+            name="ExtractIFBlockDML",
+            category=RuleCategory.EXTRACTION,
+            description="Extract DML from IF blocks",
+            pattern=r'IF\s+[^B]+?\s+BEGIN\s+(INSERT|UPDATE|DELETE|MERGE)\s+([^;]+?)\s*;?\s*END',
+            replacement=r'\1 \2',
+            flags=re.IGNORECASE | re.DOTALL,
+            priority=40,  # After BEGIN/END flattening
+            examples_before=[
+                "IF @x = 1 BEGIN INSERT INTO T1 SELECT * FROM T2 END",
+                "IF EXISTS (SELECT 1) BEGIN UPDATE Table SET X = 1 END"
+            ],
+            examples_after=[
+                "INSERT INTO T1 SELECT * FROM T2",
+                "UPDATE Table SET X = 1"
+            ]
+        )
+
 
 class RuleEngine:
     """
@@ -551,13 +747,18 @@ class RuleEngine:
 
     @staticmethod
     def _load_default_rules() -> List[CleaningRule]:
-        """Load all built-in cleaning rules"""
+        """Load all built-in cleaning rules (15 total - 10 original + 5 new)"""
         return [
             SQLCleaningRules.remove_go_statements(),
+            SQLCleaningRules.replace_temp_tables(),              # NEW (Priority 15)
             SQLCleaningRules.remove_declare_statements(),
             SQLCleaningRules.remove_set_statements(),
+            SQLCleaningRules.remove_if_object_id_checks(),       # NEW (Priority 25)
+            SQLCleaningRules.remove_drop_table(),                # NEW (Priority 26)
             SQLCleaningRules.extract_try_content(),
             SQLCleaningRules.remove_raiserror(),
+            SQLCleaningRules.flatten_simple_begin_end(),         # NEW (Priority 35)
+            SQLCleaningRules.extract_if_block_dml(),             # NEW (Priority 40)
             SQLCleaningRules.remove_exec_statements(),
             SQLCleaningRules.remove_transaction_control(),
             SQLCleaningRules.remove_truncate(),

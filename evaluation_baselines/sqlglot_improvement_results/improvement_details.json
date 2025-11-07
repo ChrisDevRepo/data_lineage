@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-11-07T12:31:49.766952",
+  "timestamp": "2025-11-07T13:46:22.361649",
   "total_sps": 349,
   "details": [
     {
@@ -47,14 +47,18 @@
       "baseline_success": false,
       "baseline_tables_count": 0,
       "baseline_tables": [],
-      "improved_success": false,
-      "improved_tables_count": 0,
-      "improved_tables": [],
+      "improved_success": true,
+      "improved_tables_count": 1,
+      "improved_tables": [
+        "STAGING_CADENCE.spLoadReconciliation_Case4.5"
+      ],
       "improvement": {
-        "success_changed": false,
-        "tables_gained": [],
+        "success_changed": true,
+        "tables_gained": [
+          "STAGING_CADENCE.spLoadReconciliation_Case4.5"
+        ],
         "tables_lost": [],
-        "net_table_change": 0
+        "net_table_change": 1
       }
     },
     {
@@ -1062,14 +1066,18 @@
       "baseline_success": false,
       "baseline_tables_count": 0,
       "baseline_tables": [],
-      "improved_success": false,
-      "improved_tables_count": 0,
-      "improved_tables": [],
+      "improved_success": true,
+      "improved_tables_count": 1,
+      "improved_tables": [
+        "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudgetData"
+      ],
       "improvement": {
-        "success_changed": false,
-        "tables_gained": [],
+        "success_changed": true,
+        "tables_gained": [
+          "CONSUMPTION_ClinOpsFinance.spLoadCadenceBudgetData"
+        ],
         "tables_lost": [],
-        "net_table_change": 0
+        "net_table_change": 1
       }
     },
     {
@@ -1757,7 +1765,7 @@
         "CONSUMPTION_FINANCE.DimProjects",
         "CONSUMPTION_FINANCE.Fact_SAP_Sales_Details",
         "dbo.DimDate",
-        "dbo.TotalInvoiceLines"
+        "dummy.TotalInvoiceLines"
       ],
       "improvement": {
         "success_changed": true,
@@ -1768,7 +1776,7 @@
           "CONSUMPTION_FINANCE.DimProjects",
           "CONSUMPTION_FINANCE.Fact_SAP_Sales_Details",
           "dbo.DimDate",
-          "dbo.TotalInvoiceLines"
+          "dummy.TotalInvoiceLines"
         ],
         "tables_lost": [],
         "net_table_change": 7
@@ -1929,14 +1937,14 @@
       "improved_tables": [
         "CONSUMPTION_FINANCE.DimActuality",
         "STAGING_FINANCE_COGNOS.t_Actuality_filter",
-        "dbo.t"
+        "dummy.t"
       ],
       "improvement": {
         "success_changed": true,
         "tables_gained": [
           "CONSUMPTION_FINANCE.DimActuality",
           "STAGING_FINANCE_COGNOS.t_Actuality_filter",
-          "dbo.t"
+          "dummy.t"
         ],
         "tables_lost": [],
         "net_table_change": 3
@@ -2811,14 +2819,14 @@
       "improved_tables": [
         "CONSUMPTION_FINANCE.DimConsType",
         "STAGING_FINANCE_COGNOS.t_ConsType_filter",
-        "dbo.t"
+        "dummy.t"
       ],
       "improvement": {
         "success_changed": true,
         "tables_gained": [
           "CONSUMPTION_FINANCE.DimConsType",
           "STAGING_FINANCE_COGNOS.t_ConsType_filter",
-          "dbo.t"
+          "dummy.t"
         ],
         "tables_lost": [],
         "net_table_change": 3
@@ -3309,14 +3317,14 @@
       "improved_tables": [
         "CONSUMPTION_FINANCE.DimAccount",
         "STAGING_FINANCE_COGNOS.t_Account_filter",
-        "dbo.t"
+        "dummy.t"
       ],
       "improvement": {
         "success_changed": true,
         "tables_gained": [
           "CONSUMPTION_FINANCE.DimAccount",
           "STAGING_FINANCE_COGNOS.t_Account_filter",
-          "dbo.t"
+          "dummy.t"
         ],
         "tables_lost": [],
         "net_table_change": 3
@@ -3645,14 +3653,14 @@
       "improved_tables": [
         "CONSUMPTION_PRIMA.EnrollmentPlanSites",
         "CONSUMPTION_PRIMA.EnrollmentPlanSitesHistory",
-        "dbo.t"
+        "dummy.t"
       ],
       "improvement": {
         "success_changed": true,
         "tables_gained": [
           "CONSUMPTION_PRIMA.EnrollmentPlanSites",
           "CONSUMPTION_PRIMA.EnrollmentPlanSitesHistory",
-          "dbo.t"
+          "dummy.t"
         ],
         "tables_lost": [],
         "net_table_change": 3
@@ -4407,7 +4415,7 @@
         "CONSUMPTION_FINANCE.v_CCR2PowerBI_facts",
         "STAGING_FINANCE_COGNOS.v_CCR2PowerBI_facts",
         "dbo.cte",
-        "dbo.t"
+        "dummy.t"
       ],
       "improvement": {
         "success_changed": true,
@@ -4415,7 +4423,7 @@
           "CONSUMPTION_FINANCE.v_CCR2PowerBI_facts",
           "STAGING_FINANCE_COGNOS.v_CCR2PowerBI_facts",
           "dbo.cte",
-          "dbo.t"
+          "dummy.t"
         ],
         "tables_lost": [],
         "net_table_change": 4
@@ -5738,7 +5746,7 @@
         "CONSUMPTION_FINANCE.QuarterRanges",
         "dbo.DimDate",
         "dbo.cte",
-        "dbo.t"
+        "dummy.t"
       ],
       "improvement": {
         "success_changed": true,
@@ -5748,7 +5756,7 @@
           "CONSUMPTION_FINANCE.QuarterRanges",
           "dbo.DimDate",
           "dbo.cte",
-          "dbo.t"
+          "dummy.t"
         ],
         "tables_lost": [],
         "net_table_change": 6
@@ -6414,13 +6422,13 @@
       "improved_tables_count": 2,
       "improved_tables": [
         "dbo.DimDate",
-        "dbo.ForecastingConfig"
+        "dummy.ForecastingConfig"
       ],
       "improvement": {
         "success_changed": true,
         "tables_gained": [
           "dbo.DimDate",
-          "dbo.ForecastingConfig"
+          "dummy.ForecastingConfig"
         ],
         "tables_lost": [],
         "net_table_change": 2
@@ -6508,13 +6516,13 @@
       "improved_tables_count": 2,
       "improved_tables": [
         "dbo.DimDate",
-        "dbo.ForecastingConfig"
+        "dummy.ForecastingConfig"
       ],
       "improvement": {
         "success_changed": true,
         "tables_gained": [
           "dbo.DimDate",
-          "dbo.ForecastingConfig"
+          "dummy.ForecastingConfig"
         ],
         "tables_lost": [],
         "net_table_change": 2
@@ -7049,14 +7057,14 @@
       "improved_tables": [
         "CONSUMPTION_FINANCE.DimCurrency",
         "STAGING_FINANCE_COGNOS.t_Currency_filter",
-        "dbo.t"
+        "dummy.t"
       ],
       "improvement": {
         "success_changed": true,
         "tables_gained": [
           "CONSUMPTION_FINANCE.DimCurrency",
           "STAGING_FINANCE_COGNOS.t_Currency_filter",
-          "dbo.t"
+          "dummy.t"
         ],
         "tables_lost": [],
         "net_table_change": 3
