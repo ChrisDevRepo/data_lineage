@@ -32,7 +32,7 @@ export const InteractiveTracePanel = React.memo(({ isOpen, onClose, onApply, ava
     const [isDownstreamAll, setIsDownstreamAll] = useState(false);
     const [includedSchemas, setIncludedSchemas] = useState(new Set(availableSchemas));
     const [includedTypes, setIncludedTypes] = useState(new Set(availableTypes));
-    const [exclusions, setExclusions] = useState("*_TMP;*_BAK");
+    const [exclusions, setExclusions] = useState("*_TMP,*_BAK");
 
     // Inherit schema and type filters from detail mode when opening trace mode
     useEffect(() => {
@@ -93,7 +93,7 @@ export const InteractiveTracePanel = React.memo(({ isOpen, onClose, onApply, ava
         }
 
         // Merge panel exclusions with base exclude terms from main toolbar
-        const panelExclusions = exclusions.split(';').map(p => p.trim()).filter(p => p !== '');
+        const panelExclusions = exclusions.split(',').map(p => p.trim()).filter(p => p !== '');
         const allExclusions = [...new Set([...activeExcludeTerms, ...panelExclusions])];
 
         console.log('[InteractiveTracePanel] Applying trace with CURRENT base filters:');
@@ -125,9 +125,7 @@ export const InteractiveTracePanel = React.memo(({ isOpen, onClose, onApply, ava
         setDownstream(3);
         setIsUpstreamAll(false);
         setIsDownstreamAll(false);
-        setIncludedSchemas(new Set(availableSchemas));
-        setIncludedTypes(new Set(availableTypes));
-        setExclusions("*_TMP;*_BAK");
+        setExclusions("*_TMP,*_BAK");
     };
 
     return (
@@ -293,47 +291,44 @@ export const InteractiveTracePanel = React.memo(({ isOpen, onClose, onApply, ava
                     {/* Divider */}
                     <div className="border-t border-gray-200"></div>
 
-                    {/* Included Schemas */}
-                    <div>
-                        <label className="block mb-1.5 text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                            Schemas ({includedSchemas.size}/{availableSchemas.length})
-                        </label>
-                        <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 space-y-1 bg-white">
-                            {availableSchemas.map(s => (
-                                <Checkbox
-                                    key={s}
-                                    checked={includedSchemas.has(s)}
-                                    onChange={() => {
-                                        const newSet = new Set(includedSchemas);
-                                        if (newSet.has(s)) newSet.delete(s);
-                                        else newSet.add(s);
-                                        setIncludedSchemas(newSet);
-                                    }}
-                                    label={s}
-                                />
-                            ))}
+                    {/* Base Filters (Read-Only - from main toolbar) */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-md p-3 space-y-2">
+                        <div className="flex items-center gap-2 mb-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-blue-600">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
+                            </svg>
+                            <label className="block text-xs font-semibold text-blue-700 uppercase tracking-wide">
+                                Base Filters (from main toolbar)
+                            </label>
                         </div>
-                    </div>
-
-                    {/* Included Types */}
-                    <div>
-                        <label className="block mb-1.5 text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                            Types ({includedTypes.size}/{availableTypes.length})
-                        </label>
-                        <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 space-y-1 bg-white">
-                            {availableTypes.map(t => (
-                                <Checkbox
-                                    key={t}
-                                    checked={includedTypes.has(t)}
-                                    onChange={() => {
-                                        const newSet = new Set(includedTypes);
-                                        if (newSet.has(t)) newSet.delete(t);
-                                        else newSet.add(t);
-                                        setIncludedTypes(newSet);
-                                    }}
-                                    label={t}
-                                />
-                            ))}
+                        <div className="text-xs text-blue-700">
+                            <div className="mb-1">
+                                <span className="font-medium">Schemas:</span> {inheritedSchemaFilter.size}/{availableSchemas.length} selected
+                                {inheritedSchemaFilter.size <= 5 && (
+                                    <div className="text-blue-600 mt-0.5 ml-2">
+                                        {Array.from(inheritedSchemaFilter).join(', ')}
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <span className="font-medium">Types:</span> {inheritedTypeFilter.size}/{availableTypes.length} selected
+                                {inheritedTypeFilter.size <= 5 && (
+                                    <div className="text-blue-600 mt-0.5 ml-2">
+                                        {Array.from(inheritedTypeFilter).join(', ')}
+                                    </div>
+                                )}
+                            </div>
+                            {activeExcludeTerms.length > 0 && (
+                                <div className="mt-1">
+                                    <span className="font-medium">Excluded:</span>
+                                    <div className="text-blue-600 mt-0.5 ml-2 font-mono text-xs">
+                                        {activeExcludeTerms.join(', ')}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="text-xs text-blue-600 italic mt-1">
+                            Change these in the main toolbar above
                         </div>
                     </div>
 
@@ -348,9 +343,9 @@ export const InteractiveTracePanel = React.memo(({ isOpen, onClose, onApply, ava
                             value={exclusions}
                             onChange={e => setExclusions(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 rounded-md font-mono text-xs focus:outline-none focus:ring-2 focus:ring-green-500"
-                            placeholder="*_TMP;*_BAK"
+                            placeholder="*_TMP,*_BAK"
                         />
-                        <p className="text-xs text-gray-500 mt-1">Separate with semicolons (;)</p>
+                        <p className="text-xs text-gray-500 mt-1">Separate with commas (,). Use * for wildcards.</p>
                     </div>
                 </main>
 

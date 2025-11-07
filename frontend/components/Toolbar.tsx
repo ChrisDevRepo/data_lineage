@@ -175,7 +175,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             onChange={handleExcludeInputChange}
                             disabled={isTraceModeActive}
                             className="text-sm h-9 w-40 pl-3 pr-8 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
-                            title="Enter terms to exclude (comma-separated)"
+                            title="Enter terms to exclude (comma-separated). Use * for wildcards."
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && excludeTerm.trim()) {
                                     // Trigger hide on Enter key
