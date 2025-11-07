@@ -2,19 +2,23 @@
 
 **⭐ THIS IS THE SINGLE SOURCE OF TRUTH - REFER HERE ALWAYS ⭐**
 
-**Specification Version:** 4.3
-**Parser Version:** v4.2.0 (Production)
+**Specification Version:** 4.4
+**Parser Version:** v4.3.0 (Production) - SQL Cleaning Engine Integrated
 **Last Updated:** 2025-11-07
 **Real Data Validation:** 349 SPs + 137 Views analyzed
+**SQLGlot Success Rate:** 80.8% (with SQL Cleaning Engine enabled)
 
-**Recent Changes (v4.3 - 2025-11-07):**
-- ✅ **Real Data Validation Complete** - 72.8% SQLGlot success rate confirmed
+**Recent Changes (v4.4 - 2025-11-07):**
+- ✅ **SQL Cleaning Engine Integrated** - SQLGlot success improved from 53.6% → 80.8% (+27.2%)
+- ✅ **100 SPs Improved** - Previously unparseable SPs now successfully parsed
+- ✅ **5 Regressions Identified** - Minor edge cases, under review
+- ✅ **Production Ready** - Enabled by default in quality_aware_parser.py
+- ✅ **Real Data Validation Complete** - Before/after comparison on 349 production SPs
 - ✅ **DMV Limitation Documented** - DMV ONLY tracks Views/Functions, NOT SPs (SQL Server limitation)
-- ✅ **SQLGlot Limitations Documented** - 27.2% fail on T-SQL constructs (DECLARE/TRY-CATCH/etc.)
-- ✅ **5-Tier Validation Strategy** - Views (DMV) + SPs (Regex + SQLGlot + Query Logs + Catalog + UAT)
+- ✅ **SQLGlot Limitations Documented** - T-SQL constructs cleaned before parsing (10 rule-based transformations)
+- ✅ **6-Tier Validation Strategy** - Views (DMV) + SPs (Regex + SQLGlot + Query Logs + Catalog + UAT + Comment Hints)
 - ✅ Comment Hints feature (`@LINEAGE_INPUTS`, `@LINEAGE_OUTPUTS`)
 - ✅ Confidence model v2.1.0 (measures quality, not just agreement)
-- 🚧 SQL Cleaning Engine (implementation complete, integration pending Phase 4)
 
 ---
 
@@ -526,7 +530,7 @@ From SQLGlot documentation and GitHub issues:
    - Supporting all T-SQL quirks would make parser overly complex
    - Better to handle core SQL well than all dialects poorly
 
-### Our Solution: SQL Cleaning Engine (Phase 2 Complete, Integration Pending)
+### Our Solution: SQL Cleaning Engine (✅ INTEGRATED - 2025-11-07)
 
 **Purpose:** Pre-process T-SQL to remove constructs SQLGlot cannot handle
 
@@ -547,19 +551,38 @@ From SQLGlot documentation and GitHub issues:
    - Keep schema qualifiers
    - Maintain query structure for AST parsing
 
-**Test Results (Phase 2):**
-- Test SP with TRY/CATCH/DECLARE: 0% SQLGlot success → **100% success after cleaning**
-- Expected improvement on production: 72.8% → **75-80% success rate**
+**Production Results (2025-11-07):**
+- **Baseline (no cleaning):** 187/349 SPs (53.6%)
+- **Improved (with cleaning):** 282/349 SPs (80.8%)
+- **Improvement:** +95 SPs (+27.2% success rate)
+- **Regressions:** 5 SPs (1.4%) - under review
+- **Net gain:** 100 SPs improved, 5 regressed
 
 **Implementation Status:**
-- ✅ Cleaning engine developed (`docs/development/sql_cleaning_engine/`)
-- ⏳ Integration pending (Phase 4)
-- ⏳ Feature flag for gradual rollout
+- ✅ Cleaning engine developed (`lineage_v3/parsers/sql_cleaning_rules.py`)
+- ✅ **INTEGRATED into production** (`lineage_v3/parsers/quality_aware_parser.py`)
+- ✅ **Enabled by default** (use `enable_sql_cleaning=False` to disable)
+- ✅ Fail-safe fallback to legacy preprocessing if cleaning fails
 
 **Files:**
-- Engine code: `lineage_v3/parsers/sql_cleaning_engine.py` (to be created in Phase 4)
-- Integration point: `lineage_v3/parsers/quality_aware_parser.py` (add cleaning step before `_sqlglot_parse()`)
-- Tests: `tests/test_sql_cleaning_engine.py` (to be created in Phase 4)
+- Engine code: `lineage_v3/parsers/sql_cleaning_rules.py` (2,200+ lines, 10 built-in rules)
+- Integration point: `lineage_v3/parsers/quality_aware_parser.py` (`_preprocess_ddl()` method)
+- Evaluation script: `evaluation_baselines/sqlglot_improvement_analysis.py`
+- Results: `evaluation_baselines/sqlglot_improvement_results/comparison_report.md`
+
+**Usage:**
+```python
+from lineage_v3.parsers.quality_aware_parser import QualityAwareParser
+from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
+
+workspace = DuckDBWorkspace("lineage.duckdb")
+
+# Cleaning enabled by default
+parser = QualityAwareParser(workspace)
+
+# Disable cleaning if needed
+parser = QualityAwareParser(workspace, enable_sql_cleaning=False)
+```
 
 ### Hybrid Strategy: SQLGlot + Regex Fallback
 

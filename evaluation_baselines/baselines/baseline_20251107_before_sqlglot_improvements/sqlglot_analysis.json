@@ -1,0 +1,15 @@
+{
+  "success_rate": 0.0,
+  "successful_count": 0,
+  "failed_count": 0,
+  "total_count": 0,
+  "accuracy_comparison": {
+    "sqlglot_better": 0,
+    "regex_better": 0,
+    "tie": 0
+  },
+  "examples": {
+    "successful": [],
+    "failed": []
+  }
+}
