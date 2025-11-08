@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { DataNode } from '../types';
-import { tokens } from '../design-tokens';
 import { Checkbox } from './ui/Checkbox';
 import { API_BASE_URL } from '../config';
 import { useClickOutside } from '../hooks/useClickOutside';
@@ -23,8 +22,6 @@ interface DetailSearchModalProps {
   onClose: (selectedNodeId: string | null) => void;
   onSwitchToSqlViewer?: (nodeId: string) => void;
   initialNodeId?: string | null; // Pre-load this node's DDL when opening
-  initialSelectedSchemas?: Set<string>; // Initial schemas from main menu filters
-  initialSelectedTypes?: Set<string>; // Initial types from main menu filters
 }
 
 interface SearchResult {
@@ -46,9 +43,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   allData,
   onClose,
   onSwitchToSqlViewer,
-  initialNodeId = null,
-  initialSelectedSchemas = new Set(),
-  initialSelectedTypes = new Set()
+  initialNodeId = null
 }) => {
   // State
   const [searchQuery, setSearchQuery] = useState('');

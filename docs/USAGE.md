@@ -205,9 +205,16 @@ Find upstream/downstream dependencies:
 Search across all DDL definitions:
 
 1. Click "Detail Search" in toolbar
-2. Type search term
-3. Press Enter
-4. Click result to view DDL
-5. Use Ctrl+F to search within DDL
+2. Type search term and press **Enter** to search
+3. Use **Schema** and **Type** filters to narrow results
+4. Click result to view DDL in Monaco editor
+5. Use **Ctrl+F** within Monaco for manual DDL search
+6. Click **Clear** button to reset search, results, and DDL viewer
+
+**Tips:**
+- Filters show "X/Total" format (e.g., "Schemas (5/10)")
+- Blue highlight indicates partial filter selection
+- Full-width search input for better visibility
+- No auto-search in Monaco - use Ctrl+F for manual search
 
 See [REFERENCE.md](REFERENCE.md) for technical specifications.
