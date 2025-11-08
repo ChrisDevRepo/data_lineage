@@ -8,9 +8,10 @@ Version History:
 - v1.0.0 (2025-11-03): Initial unified calculator
 - v2.0.0 (2025-11-06): Multi-factor confidence model with breakdown
 - v2.1.0 (2025-11-06): Fixed "Method Agreement" flaw - now measures accuracy not agreement
+- v2.1.0 (2025-11-08): Added simplified 4-value confidence model (0, 75, 85, 100)
 
 Author: Claude Code Agent
-Date: 2025-11-06
+Date: 2025-11-08
 Version: 2.1.0
 """
 
@@ -487,3 +488,145 @@ class ConfidenceCalculator:
         total_count = len(extracted_objects)
 
         return valid_count / total_count if total_count > 0 else 1.0
+
+    # ========================================================================
+    # SIMPLIFIED CONFIDENCE MODEL (v2.1.0)
+    # ========================================================================
+
+    @classmethod
+    def calculate_simple(
+        cls,
+        parse_succeeded: bool,
+        expected_tables: int,
+        found_tables: int,
+        is_orchestrator: bool = False,
+        parse_failure_reason: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Simple 4-value confidence model based on completeness.
+
+        This is a simplified alternative to the multi-factor model.
+        Returns confidence in {0, 75, 85, 100} only.
+
+        User Requirement:
+        "Simpler, no bonus in calc. Only four different percent values possible."
+        "The calculation should not be complicated and not be a black box."
+
+        Logic:
+        - Parse failed → 0%
+        - Orchestrator (only EXEC, no tables) → 100%
+        - Completeness ≥90% → 100%
+        - Completeness 70-89% → 85%
+        - Completeness 50-69% → 75%
+        - Completeness <50% → 0%
+
+        Args:
+            parse_succeeded: Whether parsing completed without errors
+            expected_tables: Number of tables expected (from smoke test)
+            found_tables: Number of tables actually found by parser
+            is_orchestrator: Whether SP only calls other SPs (no table access)
+            parse_failure_reason: Optional reason for parse failure
+
+        Returns:
+            {
+                'confidence': 0 | 75 | 85 | 100,
+                'breakdown': {
+                    'parse_succeeded': bool,
+                    'expected_tables': int,
+                    'found_tables': int,
+                    'completeness_pct': float,
+                    'is_orchestrator': bool,
+                    'explanation': str,
+                    'to_improve': str (optional)
+                }
+            }
+
+        Examples:
+            >>> # Perfect match
+            >>> calculate_simple(True, 8, 8)
+            {'confidence': 100, 'breakdown': {'completeness_pct': 100.0, ...}}
+
+            >>> # Good match
+            >>> calculate_simple(True, 10, 7)
+            {'confidence': 85, 'breakdown': {'completeness_pct': 70.0, ...}}
+
+            >>> # Parse failed
+            >>> calculate_simple(False, 8, 1, parse_failure_reason="Dynamic SQL")
+            {'confidence': 0, 'breakdown': {'parse_succeeded': False, ...}}
+
+            >>> # Orchestrator
+            >>> calculate_simple(True, 0, 0, is_orchestrator=True)
+            {'confidence': 100, 'breakdown': {'is_orchestrator': True, ...}}
+        """
+        # Failed parsing
+        if not parse_succeeded:
+            return {
+                'confidence': 0,
+                'breakdown': {
+                    'parse_succeeded': False,
+                    'expected_tables': expected_tables,
+                    'found_tables': found_tables,
+                    'completeness_pct': 0.0,
+                    'is_orchestrator': is_orchestrator,
+                    'failure_reason': parse_failure_reason or 'Parse failed',
+                    'to_fix': 'Add @LINEAGE_INPUTS/@LINEAGE_OUTPUTS comment hints'
+                }
+            }
+
+        # Orchestrator special case (only calls other SPs, no table access)
+        if is_orchestrator:
+            return {
+                'confidence': 100,
+                'breakdown': {
+                    'parse_succeeded': True,
+                    'expected_tables': expected_tables,
+                    'found_tables': found_tables,
+                    'completeness_pct': 100.0,
+                    'is_orchestrator': True,
+                    'explanation': 'Orchestrator SP (only calls other SPs)'
+                }
+            }
+
+        # Calculate completeness
+        if expected_tables == 0:
+            completeness_pct = 100.0
+        else:
+            completeness_pct = (found_tables / expected_tables) * 100
+
+        # Map to 4 discrete values
+        if completeness_pct >= 90:
+            confidence = 100
+            explanation = f'Found {found_tables}/{expected_tables} tables ({completeness_pct:.0f}%) - Perfect or near-perfect'
+            to_improve = None
+        elif completeness_pct >= 70:
+            confidence = 85
+            missing = expected_tables - found_tables
+            explanation = f'Found {found_tables}/{expected_tables} tables ({completeness_pct:.0f}%) - Good, most found'
+            to_improve = f'Add @LINEAGE hints for {missing} missing table{"s" if missing > 1 else ""}'
+        elif completeness_pct >= 50:
+            confidence = 75
+            missing = expected_tables - found_tables
+            explanation = f'Found {found_tables}/{expected_tables} tables ({completeness_pct:.0f}%) - Acceptable, partial'
+            to_improve = f'Add @LINEAGE hints for {missing} missing table{"s" if missing > 1 else ""}'
+        else:
+            confidence = 0
+            missing = expected_tables - found_tables
+            explanation = f'Found {found_tables}/{expected_tables} tables ({completeness_pct:.0f}%) - Too incomplete'
+            to_improve = f'Add @LINEAGE hints for {missing} missing table{"s" if missing > 1 else ""}' if missing > 0 else 'Review parsing logic'
+
+        breakdown = {
+            'parse_succeeded': True,
+            'expected_tables': expected_tables,
+            'found_tables': found_tables,
+            'completeness_pct': round(completeness_pct, 1),
+            'is_orchestrator': is_orchestrator,
+            'explanation': explanation
+        }
+
+        if to_improve:
+            breakdown['to_improve'] = to_improve
+
+        return {
+            'confidence': confidence,
+            'breakdown': breakdown
+        }
