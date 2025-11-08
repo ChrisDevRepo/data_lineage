@@ -22,6 +22,8 @@ interface DetailSearchModalProps {
   onClose: (selectedNodeId: string | null) => void;
   onSwitchToSqlViewer?: (nodeId: string) => void;
   initialNodeId?: string | null; // Pre-load this node's DDL when opening
+  initialSelectedSchemas?: Set<string>; // Schemas selected in main view
+  initialSelectedTypes?: Set<string>; // Types selected in main view
 }
 
 interface SearchResult {
@@ -43,7 +45,9 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   allData,
   onClose,
   onSwitchToSqlViewer,
-  initialNodeId = null
+  initialNodeId = null,
+  initialSelectedSchemas = new Set(),
+  initialSelectedTypes = new Set()
 }) => {
   // State
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,7 +66,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   // Filter state - Independent from main menu (default: all selected)
   const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
   const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(new Set());
-  const [showSearchHelp, setShowSearchHelp] = useState(false);
   const [showSchemaFilter, setShowSchemaFilter] = useState(false);
   const [showTypeFilter, setShowTypeFilter] = useState(false);
 
@@ -95,13 +98,13 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     };
   }, [allData]);
 
-  // Initialize filters to ALL when modal opens
+  // Initialize filters from main view selections, or ALL if nothing selected
   useEffect(() => {
     if (isOpen && filterOptions.schemas.length > 0) {
-      setSelectedSchemas(new Set(filterOptions.schemas));
-      setSelectedObjectTypes(new Set(filterOptions.objectTypes));
+      setSelectedSchemas(initialSelectedSchemas.size > 0 ? new Set(initialSelectedSchemas) : new Set(filterOptions.schemas));
+      setSelectedObjectTypes(initialSelectedTypes.size > 0 ? new Set(initialSelectedTypes) : new Set(filterOptions.objectTypes));
     }
-  }, [isOpen, filterOptions.schemas, filterOptions.objectTypes]);
+  }, [isOpen, filterOptions.schemas, filterOptions.objectTypes, initialSelectedSchemas, initialSelectedTypes]);
 
   // Handle resize mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -336,7 +339,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     onClose(selectedResult?.id || null);
     handleClear();
     setIsLoadingDdl(false);
-    setShowSearchHelp(false);
     setShowSchemaFilter(false);
     setShowTypeFilter(false);
     // Don't reset filters - let useEffect reinitialize them on next open
@@ -638,7 +640,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
             </div>
           </div>
 
-          {/* Right-side status and help */}
+          {/* Right-side status */}
           <div className="flex items-center gap-2 ml-auto">
             {isSearching && (
               <div className="w-5 h-5 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
@@ -649,39 +651,8 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                 {results.length} {results.length === 1 ? 'match' : 'matches'}
               </span>
             )}
-
-            {/* Search help toggle */}
-            <button
-              onClick={() => setShowSearchHelp(!showSearchHelp)}
-              className={`h-9 w-9 flex items-center justify-center border border-gray-300 rounded-md transition-colors ${
-                showSearchHelp ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'
-              }`}
-              title="Search syntax help"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
           </div>
         </div>
-
-        {/* Search help panel */}
-        {showSearchHelp && (
-          <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
-            <div className="p-3 bg-white border border-blue-300 rounded text-xs text-gray-700 leading-relaxed">
-              <div className="font-medium mb-2 text-primary-600">
-                Search Tips:
-              </div>
-              <div className="space-y-2">
-                <div><strong>Text matching:</strong> Search finds your text anywhere in object names, descriptions, or DDL content</div>
-                <div><strong>Exact match:</strong> Searches for the exact text you type (e.g., "dim customer" finds objects containing "dim customer")</div>
-                <div><strong>Case insensitive:</strong> Search is not case-sensitive</div>
-                <div><strong>Use filters:</strong> Narrow results by Schema and Object Type for better precision</div>
-                <div><strong>Precise search:</strong> Click a result to view full DDL, then use Ctrl+F for exact pattern matching</div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
