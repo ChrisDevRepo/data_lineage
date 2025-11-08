@@ -99,24 +99,26 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     };
   }, [allData]);
 
-  // Initialize filters from main view selections (true sync - no fallback to ALL)
-  // Only initialize ONCE when modal opens, then user can modify independently
+  // Initialize filters to ALL available options from allData
+  // This ensures filters match actual data, not potentially mismatched parent filters
   useEffect(() => {
     if (isOpen && filterOptions.schemas.length > 0 && !hasInitializedFilters.current) {
-      console.log('[DetailSearchModal] Initializing filters:', {
-        initialSelectedSchemas: Array.from(initialSelectedSchemas),
-        initialSelectedTypes: Array.from(initialSelectedTypes),
-        filterOptions,
-        allDataLength: allData.length
+      console.log('[DetailSearchModal] Initializing filters to ALL:', {
+        filterOptionsSchemas: filterOptions.schemas,
+        filterOptionsTypes: filterOptions.objectTypes,
+        allDataLength: allData.length,
+        parentSchemas: Array.from(initialSelectedSchemas),
+        parentTypes: Array.from(initialSelectedTypes)
       });
 
-      // Create new Sets with values from parent
-      const newSelectedSchemas = new Set(Array.from(initialSelectedSchemas));
-      const newSelectedTypes = new Set(Array.from(initialSelectedTypes));
+      // Initialize with ALL schemas and types from filterOptions (derived from allData)
+      // This ensures filter values exactly match the actual data
+      const newSelectedSchemas = new Set(filterOptions.schemas);
+      const newSelectedTypes = new Set(filterOptions.objectTypes);
 
       console.log('[DetailSearchModal] After initialization:', {
-        newSelectedSchemas: Array.from(newSelectedSchemas),
-        newSelectedTypes: Array.from(newSelectedTypes)
+        selectedSchemas: Array.from(newSelectedSchemas),
+        selectedObjectTypes: Array.from(newSelectedTypes)
       });
 
       setSelectedSchemas(newSelectedSchemas);
