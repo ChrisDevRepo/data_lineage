@@ -100,13 +100,13 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     };
   }, [allData]);
 
-  // Initialize filters from main menu or ALL if none selected
+  // Initialize filters to ALL when modal opens
   useEffect(() => {
     if (isOpen && filterOptions.schemas.length > 0) {
-      setSelectedSchemas(initialSelectedSchemas.size > 0 ? initialSelectedSchemas : new Set(filterOptions.schemas));
-      setSelectedObjectTypes(initialSelectedTypes.size > 0 ? initialSelectedTypes : new Set(filterOptions.objectTypes));
+      setSelectedSchemas(new Set(filterOptions.schemas));
+      setSelectedObjectTypes(new Set(filterOptions.objectTypes));
     }
-  }, [isOpen, filterOptions.schemas, filterOptions.objectTypes, initialSelectedSchemas, initialSelectedTypes]);
+  }, [isOpen, filterOptions.schemas, filterOptions.objectTypes]);
 
   // Handle resize mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -341,11 +341,10 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     onClose(selectedResult?.id || null);
     handleClear();
     setIsLoadingDdl(false);
-    setSelectedSchemas(new Set());
-    setSelectedObjectTypes(new Set());
     setShowSearchHelp(false);
     setShowSchemaFilter(false);
     setShowTypeFilter(false);
+    // Don't reset filters - let useEffect reinitialize them on next open
   };
 
   // Handle editor mount
@@ -517,7 +516,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
         {/* Header Row 2: Search Controls */}
         <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-200">
           {/* Search input */}
-          <div className="relative flex-1 max-w-2xl">
+          <div className="relative flex-1">
             <input
               type="text"
               placeholder="Type to search DDL definitions, then press Enter to search..."
@@ -547,102 +546,105 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
             )}
           </div>
 
-          {/* Schema filter - Multi-select */}
-          <div className="relative" ref={schemaFilterRef}>
-            <button
-              onClick={() => {
-                setShowSchemaFilter(!showSchemaFilter);
-                if (!showSchemaFilter) setShowTypeFilter(false); // Close other dropdown
-              }}
-              className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedSchemas.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
-              title={`Schemas (${selectedSchemas.size > 0 ? selectedSchemas.size : 'All'})`}
-            >
-              Schemas ({selectedSchemas.size > 0 ? selectedSchemas.size : filterOptions.schemas.length})
-            </button>
-            {showSchemaFilter && (
-              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-60 overflow-hidden flex flex-col">
-                <div className="p-2 border-b border-gray-200 bg-gray-50">
-                  <button
-                    onClick={() => {
-                      if (selectedSchemas.size === filterOptions.schemas.length) {
-                        setSelectedSchemas(new Set());
-                      } else {
-                        setSelectedSchemas(new Set(filterOptions.schemas));
-                      }
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    {selectedSchemas.size === filterOptions.schemas.length ? 'Deselect All' : 'Select All'}
-                  </button>
-                </div>
-                <div className="p-3 space-y-2 overflow-y-auto">
-                  {filterOptions.schemas.map(schema => (
-                    <Checkbox
-                      key={schema}
-                      checked={selectedSchemas.has(schema)}
-                      onChange={() => {
-                        const newSet = new Set(selectedSchemas);
-                        if (newSet.has(schema)) newSet.delete(schema);
-                        else newSet.add(schema);
-                        setSelectedSchemas(newSet);
-                      }}
-                      label={schema}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Object type filter - Multi-select */}
-          <div className="relative" ref={typeFilterRef}>
-            <button
-              onClick={() => {
-                setShowTypeFilter(!showTypeFilter);
-                if (!showTypeFilter) setShowSchemaFilter(false); // Close other dropdown
-              }}
-              className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedObjectTypes.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
-              title={`Object Types (${selectedObjectTypes.size > 0 ? selectedObjectTypes.size : 'All'})`}
-            >
-              Object Types ({selectedObjectTypes.size > 0 ? selectedObjectTypes.size : filterOptions.objectTypes.length})
-            </button>
-            {showTypeFilter && (
-              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-60 overflow-hidden flex flex-col">
-                <div className="p-2 border-b border-gray-200 bg-gray-50">
-                  <button
-                    onClick={() => {
-                      if (selectedObjectTypes.size === filterOptions.objectTypes.length) {
-                        setSelectedObjectTypes(new Set());
-                      } else {
-                        setSelectedObjectTypes(new Set(filterOptions.objectTypes));
-                      }
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    {selectedObjectTypes.size === filterOptions.objectTypes.length ? 'Deselect All' : 'Select All'}
-                  </button>
-                </div>
-                <div className="p-3 space-y-2 overflow-y-auto">
-                  {filterOptions.objectTypes.map(type => (
-                    <Checkbox
-                      key={type}
-                      checked={selectedObjectTypes.has(type)}
-                      onChange={() => {
-                        const newSet = new Set(selectedObjectTypes);
-                        if (newSet.has(type)) newSet.delete(type);
-                        else newSet.add(type);
-                        setSelectedObjectTypes(newSet);
-                      }}
-                      label={type}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Search status indicators */}
+          {/* Filters group */}
           <div className="flex items-center gap-2">
+            {/* Schema filter */}
+            <div className="relative" ref={schemaFilterRef}>
+              <button
+                onClick={() => {
+                  setShowSchemaFilter(!showSchemaFilter);
+                  if (!showSchemaFilter) setShowTypeFilter(false);
+                }}
+                className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap ${selectedSchemas.size < filterOptions.schemas.length && selectedSchemas.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
+                title="Filter by schema"
+              >
+                Schemas ({selectedSchemas.size}/{filterOptions.schemas.length})
+              </button>
+              {showSchemaFilter && (
+                <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-96 overflow-hidden flex flex-col">
+                  <div className="p-2 border-b border-gray-200 bg-gray-50">
+                    <button
+                      onClick={() => {
+                        if (selectedSchemas.size === filterOptions.schemas.length) {
+                          setSelectedSchemas(new Set());
+                        } else {
+                          setSelectedSchemas(new Set(filterOptions.schemas));
+                        }
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {selectedSchemas.size === filterOptions.schemas.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                  </div>
+                  <div className="p-3 space-y-2 overflow-y-auto">
+                    {filterOptions.schemas.map(schema => (
+                      <Checkbox
+                        key={schema}
+                        checked={selectedSchemas.has(schema)}
+                        onChange={() => {
+                          const newSet = new Set(selectedSchemas);
+                          if (newSet.has(schema)) newSet.delete(schema);
+                          else newSet.add(schema);
+                          setSelectedSchemas(newSet);
+                        }}
+                        label={schema}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Object type filter */}
+            <div className="relative" ref={typeFilterRef}>
+              <button
+                onClick={() => {
+                  setShowTypeFilter(!showTypeFilter);
+                  if (!showTypeFilter) setShowSchemaFilter(false);
+                }}
+                className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap ${selectedObjectTypes.size < filterOptions.objectTypes.length && selectedObjectTypes.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
+                title="Filter by object type"
+              >
+                Types ({selectedObjectTypes.size}/{filterOptions.objectTypes.length})
+              </button>
+              {showTypeFilter && (
+                <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-96 overflow-hidden flex flex-col">
+                  <div className="p-2 border-b border-gray-200 bg-gray-50">
+                    <button
+                      onClick={() => {
+                        if (selectedObjectTypes.size === filterOptions.objectTypes.length) {
+                          setSelectedObjectTypes(new Set());
+                        } else {
+                          setSelectedObjectTypes(new Set(filterOptions.objectTypes));
+                        }
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {selectedObjectTypes.size === filterOptions.objectTypes.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                  </div>
+                  <div className="p-3 space-y-2 overflow-y-auto">
+                    {filterOptions.objectTypes.map(type => (
+                      <Checkbox
+                        key={type}
+                        checked={selectedObjectTypes.has(type)}
+                        onChange={() => {
+                          const newSet = new Set(selectedObjectTypes);
+                          if (newSet.has(type)) newSet.delete(type);
+                          else newSet.add(type);
+                          setSelectedObjectTypes(newSet);
+                        }}
+                        label={type}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right-side status and help */}
+          <div className="flex items-center gap-2 ml-auto">
             {isSearching && (
               <div className="w-5 h-5 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
             )}
