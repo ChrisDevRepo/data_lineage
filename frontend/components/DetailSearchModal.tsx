@@ -103,6 +103,11 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   // Only initialize ONCE when modal opens, then user can modify independently
   useEffect(() => {
     if (isOpen && filterOptions.schemas.length > 0 && !hasInitializedFilters.current) {
+      console.log('[DetailSearchModal] Initializing filters:', {
+        initialSelectedSchemas: Array.from(initialSelectedSchemas),
+        initialSelectedTypes: Array.from(initialSelectedTypes),
+        filterOptions
+      });
       setSelectedSchemas(new Set(initialSelectedSchemas));
       setSelectedObjectTypes(new Set(initialSelectedTypes));
       hasInitializedFilters.current = true;
@@ -183,6 +188,13 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
       try {
         const lowerQuery = query.toLowerCase();
         const searchResults: SearchResult[] = [];
+
+        console.log('[DetailSearchModal] debouncedSearch called:', {
+          query,
+          schemasFilter: Array.from(schemas),
+          objectTypesFilter: Array.from(objectTypes),
+          allDataLength: allData.length
+        });
 
         // Check if DDL text is embedded (JSON mode) or needs API (parquet mode)
         const hasDDLEmbedded = allData.length > 0 && allData[0].ddl_text !== undefined;
@@ -271,6 +283,11 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
         // Sort by score (highest first)
         searchResults.sort((a, b) => b.score - a.score);
 
+        console.log('[DetailSearchModal] Search complete:', {
+          resultsCount: searchResults.length,
+          results: searchResults.slice(0, 5) // First 5 results for debugging
+        });
+
         setResults(searchResults);
       } catch (err) {
         console.error('[DetailSearchModal] Search failed:', err);
@@ -286,6 +303,11 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   // Manual search trigger - removed auto-trigger on typing
   const handleManualSearch = () => {
     if (searchQuery.trim()) {
+      console.log('[DetailSearchModal] Manual search triggered:', {
+        searchQuery,
+        selectedSchemas: Array.from(selectedSchemas),
+        selectedObjectTypes: Array.from(selectedObjectTypes)
+      });
       setIsSearching(true);
       setHasSearched(true);
       debouncedSearch(searchQuery, selectedSchemas, selectedObjectTypes);
