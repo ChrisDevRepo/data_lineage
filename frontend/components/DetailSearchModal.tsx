@@ -164,7 +164,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Debounced search function
+  // Client-side search function (searches in-memory data)
   const debouncedSearch = useMemo(
     () => debounce(async (query: string, schemas: Set<string>, objectTypes: Set<string>) => {
       if (!query.trim()) {
@@ -177,26 +177,67 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
       setError(null);
 
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/api/search-ddl?q=${encodeURIComponent(query)}`
-        );
+        const lowerQuery = query.toLowerCase();
+        const searchResults: SearchResult[] = [];
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-          throw new Error(errorData.detail || 'Search failed');
-        }
+        // Search through all loaded data
+        allData.forEach(node => {
+          // Apply schema and type filters first
+          if (schemas.size > 0 && !schemas.has(node.schema)) return;
+          if (objectTypes.size > 0 && !objectTypes.has(node.object_type)) return;
 
-        let data = await response.json();
+          // Calculate match score
+          let score = 0;
+          let snippet = '';
 
-        // Client-side filtering by schemas and object types (multi-select)
-        if (schemas.size > 0) {
-          data = data.filter((result: SearchResult) => schemas.has(result.schema));
-        }
-        if (objectTypes.size > 0) {
-          data = data.filter((result: SearchResult) => objectTypes.has(result.type));
-        }
+          // Search in node name (highest priority)
+          const nameLower = node.name.toLowerCase();
+          if (nameLower.includes(lowerQuery)) {
+            score += nameLower.startsWith(lowerQuery) ? 10 : 5;
+            snippet = node.name;
+          }
 
-        setResults(data);
+          // Search in description if available
+          if (node.description) {
+            const descLower = node.description.toLowerCase();
+            if (descLower.includes(lowerQuery)) {
+              score += 2;
+              snippet = node.description.substring(0, 150);
+            }
+          }
+
+          // Search in DDL text if available
+          if (node.ddl_text) {
+            const ddlLower = node.ddl_text.toLowerCase();
+            if (ddlLower.includes(lowerQuery)) {
+              score += 1;
+              if (!snippet) {
+                // Find the position of the match and extract context
+                const matchIndex = ddlLower.indexOf(lowerQuery);
+                const start = Math.max(0, matchIndex - 50);
+                const end = Math.min(node.ddl_text.length, matchIndex + 100);
+                snippet = '...' + node.ddl_text.substring(start, end) + '...';
+              }
+            }
+          }
+
+          // Add to results if match found
+          if (score > 0) {
+            searchResults.push({
+              id: node.id,
+              name: node.name,
+              type: node.object_type,
+              schema: node.schema,
+              score: score,
+              snippet: snippet || 'No preview available'
+            });
+          }
+        });
+
+        // Sort by score (highest first)
+        searchResults.sort((a, b) => b.score - a.score);
+
+        setResults(searchResults);
       } catch (err) {
         console.error('[DetailSearchModal] Search failed:', err);
         setError(err instanceof Error ? err.message : 'Search failed');
@@ -205,7 +246,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
         setIsSearching(false);
       }
     }, INTERACTION_CONSTANTS.SEARCH_DEBOUNCE_MS),
-    []
+    [allData]
   );
 
   // Manual search trigger - removed auto-trigger on typing
