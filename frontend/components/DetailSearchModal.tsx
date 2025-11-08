@@ -100,14 +100,13 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     };
   }, [allData]);
 
-  // Initialize filters to ALL when modal opens (independent from main menu)
+  // Initialize filters from main menu or ALL if none selected
   useEffect(() => {
     if (isOpen && filterOptions.schemas.length > 0) {
-      // Select all schemas and object types by default
-      setSelectedSchemas(new Set(filterOptions.schemas));
-      setSelectedObjectTypes(new Set(filterOptions.objectTypes));
+      setSelectedSchemas(initialSelectedSchemas.size > 0 ? initialSelectedSchemas : new Set(filterOptions.schemas));
+      setSelectedObjectTypes(initialSelectedTypes.size > 0 ? initialSelectedTypes : new Set(filterOptions.objectTypes));
     }
-  }, [isOpen, filterOptions.schemas, filterOptions.objectTypes]);
+  }, [isOpen, filterOptions.schemas, filterOptions.objectTypes, initialSelectedSchemas, initialSelectedTypes]);
 
   // Handle resize mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
