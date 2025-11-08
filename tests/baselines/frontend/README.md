@@ -41,8 +41,3 @@ tests/baselines/frontend/
 - **Tolerance:** 0.1% pixel difference (minor rendering variations)
 - **Storage:** ~140KB (1 PNG image)
 - **Version Control:** Committed to Git (no LFS needed)
-
----
-
-**Last Updated:** 2025-11-02
-**Frontend Version:** v2.9.0

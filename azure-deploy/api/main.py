@@ -25,7 +25,8 @@ from datetime import datetime
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from models import (
     UploadResponse,
@@ -108,6 +109,18 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE"],  # Only methods we use
     allow_headers=["Content-Type", "X-Requested-With"],
 )
+
+# ============================================================================
+# Static File Serving (React Frontend)
+# ============================================================================
+
+# Mount static assets (JS, CSS, images)
+STATIC_DIR = Path(__file__).parent.parent / "static"
+if STATIC_DIR.exists() and (STATIC_DIR / "assets").exists():
+    app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="assets")
+    logger.info(f"📦 Serving static assets from: {STATIC_DIR / 'assets'}")
+else:
+    logger.warning(f"⚠️  Static assets directory not found: {STATIC_DIR / 'assets'}")
 
 
 # ============================================================================
@@ -746,6 +759,41 @@ async def clear_all_data():
             status_code=500,
             detail=f"Failed to clear data: {str(e)}"
         )
+
+
+# ============================================================================
+# Frontend SPA Routes (Must be LAST - catch-all routing)
+# ============================================================================
+
+# Serve React app for root path
+@app.get("/", include_in_schema=False)
+async def serve_frontend_root():
+    """Serve the React frontend index.html for root path"""
+    index_path = STATIC_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    else:
+        raise HTTPException(status_code=404, detail="Frontend not found")
+
+
+# Catch-all route for React Router (SPA) - must be LAST
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_frontend_spa(full_path: str):
+    """
+    Serve React app for all non-API routes (enables client-side routing).
+
+    This catch-all must be the last route defined to avoid intercepting API calls.
+    """
+    # Don't intercept actual API endpoints (return 404 for invalid API calls)
+    if full_path.startswith(("api/", "health", "jobs")):
+        raise HTTPException(status_code=404, detail=f"Endpoint not found: /{full_path}")
+
+    # Serve index.html for all other routes (let React Router handle it)
+    index_path = STATIC_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    else:
+        raise HTTPException(status_code=404, detail="Frontend not found")
 
 
 # ============================================================================

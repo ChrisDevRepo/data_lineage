@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { CONSTANTS } from '../constants';
 import { DataNode } from '../types';
-import { getConfidenceLevel } from '../src/utils/confidenceUtils';
+import { getConfidenceLevel } from '../utils/confidenceUtils';
 
 type CustomNodeData = DataNode & {
     isHighlighted: boolean;

@@ -32,7 +32,6 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
     const cacheKey = getCacheKey(nodeIds, layout);
     if (data.length > 300 && layoutCache.has(cacheKey)) {
         const cached = layoutCache.get(cacheKey)!;
-        console.log(`[Performance] Layout retrieved from cache (${data.length} nodes)`);
         // Still need to update node data with latest colors and properties
         return {
             nodes: cached.nodes.map(n => {
@@ -87,9 +86,6 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
     initialEdges.forEach((edge) => g.setEdge(edge.source, edge.target));
 
     dagre.layout(g);
-
-    const layoutTime = Date.now() - startTime;
-    console.log(`[Performance] Layout calculated in ${layoutTime}ms (${initialNodes.length} nodes, ${initialEdges.length} edges)`);
 
     const result = {
         nodes: initialNodes.map((node) => {

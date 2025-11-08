@@ -366,7 +366,6 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
 
                 {/* Hide Unrelated Toggle */}
                 <Button onClick={() => {
-                    console.log('[Toolbar] Hide Unrelated clicked. Current value:', hideUnrelated, 'New value:', !hideUnrelated);
                     setHideUnrelated(!hideUnrelated);
                 }} variant="icon" className={hideUnrelated ? 'bg-blue-50 text-blue-600' : ''} title={hideUnrelated ? 'Show All Nodes' : 'Hide Unrelated Nodes'}>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
