@@ -326,27 +326,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     }
   };
 
-  // Handle close
-  const handleClose = () => {
-    // Pass last selected object ID to parent for zoom
-    onClose(selectedResult?.id || null);
-
-    // Reset state
-    setSearchQuery('');
-    setResults([]);
-    setSelectedResult(null);
-    setDdlText(null);
-    setError(null);
-    setIsSearching(false);
-    setHasSearched(false);
-    setIsLoadingDdl(false);
-    setSelectedSchemas(new Set());
-    setSelectedObjectTypes(new Set());
-    setShowSearchHelp(false);
-    setShowSchemaFilter(false);
-    setShowTypeFilter(false);
-  };
-
   // Handle clear button - clear search and results
   const handleClear = () => {
     setSearchQuery('');
@@ -356,6 +335,18 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     setError(null);
     setIsSearching(false);
     setHasSearched(false);
+  };
+
+  // Handle close
+  const handleClose = () => {
+    onClose(selectedResult?.id || null);
+    handleClear();
+    setIsLoadingDdl(false);
+    setSelectedSchemas(new Set());
+    setSelectedObjectTypes(new Set());
+    setShowSearchHelp(false);
+    setShowSchemaFilter(false);
+    setShowTypeFilter(false);
   };
 
   // Handle editor mount
