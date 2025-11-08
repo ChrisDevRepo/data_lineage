@@ -210,15 +210,30 @@ class FrontendFormatter:
         # Only classify tables and views
         if object_type not in ["Table", "View"]:
             return "Other"
-        
-        # Check for dimension tables (starts with "Dim")
-        if object_name.startswith("Dim"):
+
+        # Normalize name for matching (check patterns)
+        name_lower = object_name.lower()
+
+        # Check for dimension patterns:
+        # - Tables: Dim*, DIM*
+        # - Views: vw_Dim*, v_Dim*, vwDim*, vDim*
+        if (object_name.startswith("Dim") or
+            name_lower.startswith("vw_dim") or
+            name_lower.startswith("v_dim") or
+            name_lower.startswith("vwdim") or
+            name_lower.startswith("vdim")):
             return "Dimension"
-        
-        # Check for fact tables (starts with "Fact")
-        if object_name.startswith("Fact"):
+
+        # Check for fact patterns:
+        # - Tables: Fact*, FACT*
+        # - Views: vw_Fact*, v_Fact*, vwFact*, vFact*
+        if (object_name.startswith("Fact") or
+            name_lower.startswith("vw_fact") or
+            name_lower.startswith("v_fact") or
+            name_lower.startswith("vwfact") or
+            name_lower.startswith("vfact")):
             return "Fact"
-        
+
         # Default to Other for staging tables, junction tables, etc.
         return "Other"
 
