@@ -511,7 +511,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
         {/* Header Row 2: Search Controls */}
         <div className="flex items-center gap-3 px-4 py-2.5 bg-white border-b border-gray-200">
           {/* Search input */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 max-w-2xl">
             <input
               type="text"
               placeholder="Type to search DDL definitions, then press Enter to search..."
@@ -556,7 +556,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                 Schemas ({selectedSchemas.size}/{filterOptions.schemas.length})
               </button>
               {showSchemaFilter && (
-                <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-96 overflow-hidden flex flex-col">
+                <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-[600px] overflow-hidden flex flex-col">
                   <div className="p-2 border-b border-gray-200 bg-gray-50">
                     <button
                       onClick={() => {
@@ -571,7 +571,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                       {selectedSchemas.size === filterOptions.schemas.length ? 'Deselect All' : 'Select All'}
                     </button>
                   </div>
-                  <div className="p-3 space-y-2 overflow-y-auto">
+                  <div className="p-2 space-y-1 overflow-y-auto">
                     {filterOptions.schemas.map(schema => (
                       <Checkbox
                         key={schema}
@@ -603,7 +603,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                 Types ({selectedObjectTypes.size}/{filterOptions.objectTypes.length})
               </button>
               {showTypeFilter && (
-                <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-96 overflow-hidden flex flex-col">
+                <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-[600px] overflow-hidden flex flex-col">
                   <div className="p-2 border-b border-gray-200 bg-gray-50">
                     <button
                       onClick={() => {
@@ -618,7 +618,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                       {selectedObjectTypes.size === filterOptions.objectTypes.length ? 'Deselect All' : 'Select All'}
                     </button>
                   </div>
-                  <div className="p-3 space-y-2 overflow-y-auto">
+                  <div className="p-2 space-y-1 overflow-y-auto">
                     {filterOptions.objectTypes.map(type => (
                       <Checkbox
                         key={type}
