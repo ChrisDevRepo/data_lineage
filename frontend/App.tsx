@@ -490,14 +490,14 @@ function DataLineageVisualizer() {
   }, [isInTraceExitMode, setHighlightedNodes]);
 
   const handleResetView = useCallback(() => {
-    // Reset view controls but PRESERVE schema and type filter selections
-    // Only reset: highlights, focus, search, excludeTerms, hideUnrelated, trace mode, traced filter mode
+    // Reset view controls but PRESERVE schema, type, and hideUnrelated filter selections
+    // Only reset: highlights, focus, search, excludeTerms, trace mode, traced filter mode
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
     setSearchTerm('');
     setExcludeTerm(''); // Clear exclude input field
     setActiveExcludeTerms([]); // Clear active exclude filters
-    setHideUnrelated(false);
+    // hideUnrelated is preserved (not reset) - it's a persistent filter preference
     setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);

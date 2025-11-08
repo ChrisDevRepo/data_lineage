@@ -137,7 +137,6 @@ function loadColorAssignments(): Record<string, { family: string; level: number 
 function saveColorAssignments(assignments: Record<string, { family: string; level: number }>) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(assignments));
-    logger.debug(`[SchemaColors] Saved ${Object.keys(assignments).length} color assignments to localStorage`);
   } catch (error) {
     console.error('[SchemaColors] Failed to save colors:', error);
   }
@@ -155,7 +154,7 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
   const usedFamilies = new Set<string>();
   let familyIndex = 0;
 
-  logger.debug(`[SchemaColors] Generating colors for ${schemas.length} schemas using HSL color theory`);
+  // Generating schema colors
 
   // Track statistics for logging
   const stats = {
@@ -247,29 +246,7 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
   // Save all assignments for persistence across reloads
   saveColorAssignments(savedAssignments);
 
-  // Log detailed statistics
-  logger.debug(`[SchemaColors] ✓ Color assignment complete`);
-  logger.debug(`[SchemaColors]   Total schemas: ${colorMap.size}`);
-  logger.debug(`[SchemaColors]   Color families used: ${usedFamilies.size}/${colorFamilyNames.length}`);
-  logger.debug(`[SchemaColors]   From cache: ${stats.fromCache} | New: ${stats.newAssignments}`);
-  logger.debug(`[SchemaColors]   By layer: Staging=${stats.byLayer.staging}, Transformation=${stats.byLayer.transformation}, Consumption=${stats.byLayer.consumption}, Unknown=${stats.byLayer.unknown}`);
-
-  // Show sample assignments for first 5 schemas (for debugging)
-  if (schemas.length > 0 && stats.newAssignments > 0) {
-    logger.debug(`[SchemaColors] Sample assignments:`);
-    let sampleCount = 0;
-    for (const schema of schemas) {
-      if (sampleCount >= 5) break;
-      const assignment = savedAssignments[schema];
-      if (assignment) {
-        const layer = detectLayer(schema);
-        const dept = extractDepartment(schema);
-        const color = colorMap.get(schema);
-        logger.debug(`[SchemaColors]   "${schema}" -> dept="${dept}", layer="${layer || 'unknown'}", family="${assignment.family}", level=${assignment.level}, color="${color}"`);
-        sampleCount++;
-      }
-    }
-  }
+  // Color assignment complete (debug logs removed for cleaner console)
 
   return colorMap;
 }
@@ -280,7 +257,6 @@ export function generateSchemaColors(schemas: string[]): Map<string, string> {
 export function clearSavedColors() {
   try {
     localStorage.removeItem(STORAGE_KEY);
-    logger.debug('[SchemaColors] Cleared all saved color assignments');
   } catch (error) {
     console.error('[SchemaColors] Failed to clear saved colors:', error);
   }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { DataNode } from '../types';
-import { tokens } from '../design-tokens';
 import { Checkbox } from './ui/Checkbox';
 import { API_BASE_URL } from '../config';
 import { useClickOutside } from '../hooks/useClickOutside';
@@ -23,8 +22,8 @@ interface DetailSearchModalProps {
   onClose: (selectedNodeId: string | null) => void;
   onSwitchToSqlViewer?: (nodeId: string) => void;
   initialNodeId?: string | null; // Pre-load this node's DDL when opening
-  initialSelectedSchemas?: Set<string>; // Initial schemas from main menu filters
-  initialSelectedTypes?: Set<string>; // Initial types from main menu filters
+  initialSelectedSchemas?: Set<string>; // Schemas selected in main view
+  initialSelectedTypes?: Set<string>; // Types selected in main view
 }
 
 interface SearchResult {
@@ -67,7 +66,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   // Filter state - Independent from main menu (default: all selected)
   const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
   const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(new Set());
-  const [showSearchHelp, setShowSearchHelp] = useState(false);
   const [showSchemaFilter, setShowSchemaFilter] = useState(false);
   const [showTypeFilter, setShowTypeFilter] = useState(false);
 
@@ -75,6 +73,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const schemaFilterRef = useRef<HTMLDivElement>(null);
   const typeFilterRef = useRef<HTMLDivElement>(null);
+  const hasInitializedFilters = useRef(false);
 
   // Auto-close dropdowns when clicking outside
   useClickOutside(schemaFilterRef, () => setShowSchemaFilter(false));
@@ -100,14 +99,48 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     };
   }, [allData]);
 
-  // Initialize filters to ALL when modal opens (independent from main menu)
+  // Initialize filters to ALL available options from allData
+  // This ensures filters match actual data, not potentially mismatched parent filters
   useEffect(() => {
-    if (isOpen && filterOptions.schemas.length > 0) {
-      // Select all schemas and object types by default
-      setSelectedSchemas(new Set(filterOptions.schemas));
-      setSelectedObjectTypes(new Set(filterOptions.objectTypes));
+    if (isOpen && filterOptions.schemas.length > 0 && !hasInitializedFilters.current) {
+      console.log('[DetailSearchModal] Initializing filters to ALL:', {
+        filterOptionsSchemas: filterOptions.schemas,
+        filterOptionsTypes: filterOptions.objectTypes,
+        allDataLength: allData.length,
+        parentSchemas: Array.from(initialSelectedSchemas),
+        parentTypes: Array.from(initialSelectedTypes)
+      });
+
+      // Initialize with ALL schemas and types from filterOptions (derived from allData)
+      // This ensures filter values exactly match the actual data
+      const newSelectedSchemas = new Set(filterOptions.schemas);
+      const newSelectedTypes = new Set(filterOptions.objectTypes);
+
+      console.log('[DetailSearchModal] After initialization:', {
+        selectedSchemas: Array.from(newSelectedSchemas),
+        selectedObjectTypes: Array.from(newSelectedTypes)
+      });
+
+      setSelectedSchemas(newSelectedSchemas);
+      setSelectedObjectTypes(newSelectedTypes);
+      hasInitializedFilters.current = true;
+    } else if (!isOpen) {
+      // Reset the flag when modal closes so it reinitializes on next open
+      hasInitializedFilters.current = false;
     }
-  }, [isOpen, filterOptions.schemas, filterOptions.objectTypes]);
+  }, [isOpen, filterOptions.schemas.length, filterOptions.objectTypes.length, allData.length]);
+
+  // Debug: Log filter state changes
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[DetailSearchModal] Filter state updated:', {
+        selectedSchemas: Array.from(selectedSchemas),
+        selectedObjectTypes: Array.from(selectedObjectTypes),
+        filterOptionsSchemas: filterOptions.schemas,
+        filterOptionsTypes: filterOptions.objectTypes
+      });
+    }
+  }, [selectedSchemas, selectedObjectTypes, isOpen]);
 
   // Handle resize mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -180,6 +213,13 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
       try {
         const lowerQuery = query.toLowerCase();
         const searchResults: SearchResult[] = [];
+
+        console.log('[DetailSearchModal] debouncedSearch called:', {
+          query,
+          schemasFilter: Array.from(schemas),
+          objectTypesFilter: Array.from(objectTypes),
+          allDataLength: allData.length
+        });
 
         // Check if DDL text is embedded (JSON mode) or needs API (parquet mode)
         const hasDDLEmbedded = allData.length > 0 && allData[0].ddl_text !== undefined;
@@ -268,6 +308,11 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
         // Sort by score (highest first)
         searchResults.sort((a, b) => b.score - a.score);
 
+        console.log('[DetailSearchModal] Search complete:', {
+          resultsCount: searchResults.length,
+          results: searchResults.slice(0, 5) // First 5 results for debugging
+        });
+
         setResults(searchResults);
       } catch (err) {
         console.error('[DetailSearchModal] Search failed:', err);
@@ -283,6 +328,11 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   // Manual search trigger - removed auto-trigger on typing
   const handleManualSearch = () => {
     if (searchQuery.trim()) {
+      console.log('[DetailSearchModal] Manual search triggered:', {
+        searchQuery,
+        selectedSchemas: Array.from(selectedSchemas),
+        selectedObjectTypes: Array.from(selectedObjectTypes)
+      });
       setIsSearching(true);
       setHasSearched(true);
       debouncedSearch(searchQuery, selectedSchemas, selectedObjectTypes);
@@ -326,12 +376,8 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     }
   };
 
-  // Handle close
-  const handleClose = () => {
-    // Pass last selected object ID to parent for zoom
-    onClose(selectedResult?.id || null);
-
-    // Reset state
+  // Handle clear button - clear search and results
+  const handleClear = () => {
     setSearchQuery('');
     setResults([]);
     setSelectedResult(null);
@@ -339,12 +385,16 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     setError(null);
     setIsSearching(false);
     setHasSearched(false);
+  };
+
+  // Handle close
+  const handleClose = () => {
+    onClose(selectedResult?.id || null);
+    handleClear();
     setIsLoadingDdl(false);
-    setSelectedSchemas(new Set());
-    setSelectedObjectTypes(new Set());
-    setShowSearchHelp(false);
     setShowSchemaFilter(false);
     setShowTypeFilter(false);
+    // Don't reset filters - let useEffect reinitialize them on next open
   };
 
   // Handle editor mount
@@ -356,44 +406,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
       editor.getAction('actions.find').run();
     });
   };
-
-  // Trigger Monaco search when DDL loads
-  useEffect(() => {
-    if (editorRef.current && ddlText && searchQuery.trim() && !isLoadingDdl) {
-      // Small delay to ensure editor is fully rendered
-      const timer = setTimeout(() => {
-        try {
-          const editor = editorRef.current;
-
-          // Clean search query for Monaco (remove boolean operators, quotes, wildcards)
-          const cleanQuery = searchQuery
-            .replace(/\b(AND|OR|NOT)\b/gi, ' ')
-            .replace(/["'*]/g, '')
-            .trim()
-            .split(/\s+/)
-            .filter(term => term.length > 2)
-            .join(' ');
-
-          if (cleanQuery) {
-            // Trigger the find action
-            editor.trigger('search', 'actions.find', null);
-
-            // Set the search string in the find widget
-            const findController = editor.getContribution('editor.contrib.findController');
-            if (findController) {
-              findController.getState().change({ searchString: cleanQuery }, false);
-              // Find and select first match
-              editor.trigger('search', 'editor.action.nextMatchFindAction', null);
-            }
-          }
-        } catch (error) {
-          console.error('[DetailSearchModal] Error triggering Monaco search:', error);
-        }
-      }, 100);
-
-      return () => clearTimeout(timer);
-    }
-  }, [ddlText, searchQuery, isLoadingDdl]);
 
   // Auto-load DDL when initialNodeId is provided (switching from SQL view)
   useEffect(() => {
@@ -567,106 +579,131 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                 }
               }}
               autoFocus
-              className="w-full h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors"
+              className="w-full h-9 px-3 pr-20 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors"
             />
-          </div>
-
-          {/* Schema filter - Multi-select */}
-          <div className="relative" ref={schemaFilterRef}>
-            <button
-              onClick={() => {
-                setShowSchemaFilter(!showSchemaFilter);
-                if (!showSchemaFilter) setShowTypeFilter(false); // Close other dropdown
-              }}
-              className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedSchemas.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
-              title={`Schemas (${selectedSchemas.size > 0 ? selectedSchemas.size : 'All'})`}
-            >
-              Schemas ({selectedSchemas.size > 0 ? selectedSchemas.size : filterOptions.schemas.length})
-            </button>
-            {showSchemaFilter && (
-              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-60 overflow-hidden flex flex-col">
-                <div className="p-2 border-b border-gray-200 bg-gray-50">
-                  <button
-                    onClick={() => {
-                      if (selectedSchemas.size === filterOptions.schemas.length) {
-                        setSelectedSchemas(new Set());
-                      } else {
-                        setSelectedSchemas(new Set(filterOptions.schemas));
-                      }
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    {selectedSchemas.size === filterOptions.schemas.length ? 'Deselect All' : 'Select All'}
-                  </button>
-                </div>
-                <div className="p-3 space-y-2 overflow-y-auto">
-                  {filterOptions.schemas.map(schema => (
-                    <Checkbox
-                      key={schema}
-                      checked={selectedSchemas.has(schema)}
-                      onChange={() => {
-                        const newSet = new Set(selectedSchemas);
-                        if (newSet.has(schema)) newSet.delete(schema);
-                        else newSet.add(schema);
-                        setSelectedSchemas(newSet);
-                      }}
-                      label={schema}
-                    />
-                  ))}
-                </div>
-              </div>
+            {/* Clear button */}
+            {(searchQuery || results.length > 0 || ddlText) && (
+              <button
+                onClick={handleClear}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-3 flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded text-xs font-medium text-gray-700 transition-colors"
+                title="Clear search and results"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear
+              </button>
             )}
           </div>
 
-          {/* Object type filter - Multi-select */}
-          <div className="relative" ref={typeFilterRef}>
-            <button
-              onClick={() => {
-                setShowTypeFilter(!showTypeFilter);
-                if (!showTypeFilter) setShowSchemaFilter(false); // Close other dropdown
-              }}
-              className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedObjectTypes.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
-              title={`Object Types (${selectedObjectTypes.size > 0 ? selectedObjectTypes.size : 'All'})`}
-            >
-              Object Types ({selectedObjectTypes.size > 0 ? selectedObjectTypes.size : filterOptions.objectTypes.length})
-            </button>
-            {showTypeFilter && (
-              <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-60 overflow-hidden flex flex-col">
-                <div className="p-2 border-b border-gray-200 bg-gray-50">
-                  <button
-                    onClick={() => {
-                      if (selectedObjectTypes.size === filterOptions.objectTypes.length) {
-                        setSelectedObjectTypes(new Set());
-                      } else {
-                        setSelectedObjectTypes(new Set(filterOptions.objectTypes));
-                      }
-                    }}
-                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
-                  >
-                    {selectedObjectTypes.size === filterOptions.objectTypes.length ? 'Deselect All' : 'Select All'}
-                  </button>
-                </div>
-                <div className="p-3 space-y-2 overflow-y-auto">
-                  {filterOptions.objectTypes.map(type => (
-                    <Checkbox
-                      key={type}
-                      checked={selectedObjectTypes.has(type)}
-                      onChange={() => {
-                        const newSet = new Set(selectedObjectTypes);
-                        if (newSet.has(type)) newSet.delete(type);
-                        else newSet.add(type);
-                        setSelectedObjectTypes(newSet);
-                      }}
-                      label={type}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Search status indicators */}
+          {/* Filters group */}
           <div className="flex items-center gap-2">
+            {/* Schema filter */}
+            <div className="relative" ref={schemaFilterRef}>
+              <button
+                onClick={() => {
+                  setShowSchemaFilter(!showSchemaFilter);
+                  if (!showSchemaFilter) setShowTypeFilter(false);
+                }}
+                className={`h-9 px-3 w-40 bg-white border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap ${selectedSchemas.size < filterOptions.schemas.length && selectedSchemas.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
+                title="Filter by schema"
+              >
+                Schemas ({selectedSchemas.size}/{filterOptions.schemas.length})
+              </button>
+              {showSchemaFilter && (
+                <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-[600px] overflow-hidden flex flex-col">
+                  <div className="p-2 border-b border-gray-200 bg-gray-50">
+                    <button
+                      onClick={() => {
+                        if (selectedSchemas.size === filterOptions.schemas.length) {
+                          setSelectedSchemas(new Set());
+                        } else {
+                          setSelectedSchemas(new Set(filterOptions.schemas));
+                        }
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {selectedSchemas.size === filterOptions.schemas.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                  </div>
+                  <div className="p-2 space-y-1 overflow-y-auto">
+                    {filterOptions.schemas.map(schema => (
+                      <Checkbox
+                        key={schema}
+                        checked={selectedSchemas.has(schema)}
+                        onChange={() => {
+                          const newSet = new Set(selectedSchemas);
+                          if (newSet.has(schema)) newSet.delete(schema);
+                          else newSet.add(schema);
+                          setSelectedSchemas(newSet);
+                        }}
+                        label={schema}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Object type filter */}
+            <div className="relative" ref={typeFilterRef}>
+              <button
+                onClick={() => {
+                  console.log('[DetailSearchModal] Type filter button clicked:', {
+                    currentShowState: showTypeFilter,
+                    selectedObjectTypes: Array.from(selectedObjectTypes),
+                    filterOptionsTypes: filterOptions.objectTypes,
+                    checkboxStates: filterOptions.objectTypes.map(type => ({
+                      type,
+                      checked: selectedObjectTypes.has(type)
+                    }))
+                  });
+                  setShowTypeFilter(!showTypeFilter);
+                  if (!showTypeFilter) setShowSchemaFilter(false);
+                }}
+                className={`h-9 px-3 w-40 bg-white border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap ${selectedObjectTypes.size < filterOptions.objectTypes.length && selectedObjectTypes.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
+                title="Filter by object type"
+              >
+                Object Types ({selectedObjectTypes.size}/{filterOptions.objectTypes.length})
+              </button>
+              {showTypeFilter && (
+                <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-[600px] overflow-hidden flex flex-col">
+                  <div className="p-2 border-b border-gray-200 bg-gray-50">
+                    <button
+                      onClick={() => {
+                        if (selectedObjectTypes.size === filterOptions.objectTypes.length) {
+                          setSelectedObjectTypes(new Set());
+                        } else {
+                          setSelectedObjectTypes(new Set(filterOptions.objectTypes));
+                        }
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {selectedObjectTypes.size === filterOptions.objectTypes.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                  </div>
+                  <div className="p-2 space-y-1 overflow-y-auto">
+                    {filterOptions.objectTypes.map(type => (
+                      <Checkbox
+                        key={type}
+                        checked={selectedObjectTypes.has(type)}
+                        onChange={() => {
+                          const newSet = new Set(selectedObjectTypes);
+                          if (newSet.has(type)) newSet.delete(type);
+                          else newSet.add(type);
+                          setSelectedObjectTypes(newSet);
+                        }}
+                        label={type}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right-side status */}
+          <div className="flex items-center gap-2 ml-auto">
             {isSearching && (
               <div className="w-5 h-5 border-2 border-gray-300 border-t-primary-600 rounded-full animate-spin" />
             )}
@@ -676,62 +713,8 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                 {results.length} {results.length === 1 ? 'match' : 'matches'}
               </span>
             )}
-
-            {/* Search help toggle */}
-            <button
-              onClick={() => setShowSearchHelp(!showSearchHelp)}
-              className={`h-9 w-9 flex items-center justify-center border border-gray-300 rounded-md transition-colors ${
-                showSearchHelp ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'
-              }`}
-              title="Search syntax help"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </button>
-
-            {/* Clear filters button */}
-            {(selectedSchemas.size > 0 || selectedObjectTypes.size > 0) && (
-              <button
-                onClick={() => {
-                  setSelectedSchemas(new Set());
-                  setSelectedObjectTypes(new Set());
-                }}
-                className="h-9 px-3 bg-white hover:bg-gray-50 border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap"
-                title="Clear filters"
-              >
-                Clear Filters
-              </button>
-            )}
           </div>
         </div>
-
-        {/* Search help panel */}
-        {showSearchHelp && (
-          <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
-            <div className="p-3 bg-white border border-blue-300 rounded text-xs text-gray-700 leading-relaxed">
-              <div className="font-medium mb-2 text-primary-600">
-                Advanced Search Syntax:
-              </div>
-              <div className="grid grid-cols-[minmax(180px,auto)_1fr] gap-y-2 gap-x-6">
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer AND order</code>
-                <span>Both words must appear</span>
-
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer OR client</code>
-                <span>Either word can appear</span>
-
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer NOT temp</code>
-                <span>Exclude results with "temp"</span>
-
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">"SELECT * FROM"</code>
-                <span>Exact phrase search</span>
-
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">cust*</code>
-                <span>Wildcard (matches customer, customers, etc.)</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
