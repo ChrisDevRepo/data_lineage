@@ -1,7 +1,5 @@
 # Metrics Package
 
-**Version:** 3.7.0
-**Date:** 2025-11-02
 **Purpose:** Single source of truth for all lineage metrics
 
 ## Overview
@@ -274,15 +272,6 @@ count = sp_metrics['confidence']['high']['count']
 - **Usage in Tests:** `test_isolated_objects.py` (Test 4)
 - **Full Documentation:** `METRICS_SERVICE_IMPLEMENTATION_COMPLETE.md`
 
-## Version History
-
-- **v3.7.0** (2025-11-02): Initial implementation
-  - Created MetricsService as single source of truth
-  - Updated all consumers (CLI, JSON, tests)
-  - Added explicit scope to all metrics
-  - Fixed "160 vs 471" confusion
-
 ---
 
-**Status:** ✅ Production Ready
-**All consumers synchronized as of v3.7.0**
+**Status:** Production Ready

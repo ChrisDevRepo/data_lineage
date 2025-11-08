@@ -759,6 +759,6 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True,  # Enable auto-reload during development
+        reload=False,  # Disabled for production/UAT (enable for local dev)
         log_level="info"
     )

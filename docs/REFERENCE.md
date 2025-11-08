@@ -241,26 +241,4 @@ Check parsing job status.
 }
 ```
 
-## Version History
-
-### v4.2.0 (2025-11-07) - Parse Failure Workflow
-- Added `parse_failure_reason` field
-- Added `expected_count` and `found_count` fields
-- Enhanced SP descriptions with actionable guidance
-
-### v2.1.0 (2025-11-08) - Simplified Confidence
-- 4 discrete confidence values: 0, 75, 85, 100
-- Transparent formula based on completeness
-- Removed hidden orchestrator bonus
-
-### v2.0.0 (2025-11-06) - Multi-Factor Confidence
-- 5 weighted factors (parse, agreement, catalog, hints, UAT)
-- Detailed breakdown for transparency
-- **Status:** Deprecated, use v2.1.0
-
-### v4.0.0 (2025-10-27) - SQL Viewer
-- Added on-demand DDL fetching
-- Monaco editor integration
-- Removed DDL from frontend JSON
-
 See [CLAUDE.md](../CLAUDE.md) for current project status and quick reference.

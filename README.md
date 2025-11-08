@@ -230,95 +230,6 @@ See [ENV_SETUP.md](ENV_SETUP.md) for details.
 
 ---
 
-## Changelog
-
-### v2.9.1 (Frontend) - Performance Optimizations (2025-11-04)
-
-**MAJOR PERFORMANCE IMPROVEMENTS:** Supports 5,000+ nodes smoothly
-
-**Problem Solved:**
-- Browser freezing when deselecting schemas (1,067 nodes)
-- Laggy pan/zoom on large graphs
-- Slow filter updates
-
-**Optimizations:**
-1. **Debounced filter updates (150ms)** - Batch rapid changes → **100x faster schema toggling**
-2. **Layout caching** - 95%+ cache hit rate → 30x faster repeat operations
-3. **Optimized filtering logic** - Direct array filtering → 40-60% faster
-4. **ReactFlow performance props** - Disabled drag overhead → Smooth 60fps
-5. **Visual loading indicator** - User feedback during calculations
-
-**Benchmarks (1,067 nodes):**
-- Schema deselect: FREEZE (2-3s) → <5ms (**100x faster**)
-- Initial load: 600ms → 250ms (2.4x faster)
-- Layout switch: 500ms → <5ms cached (100x faster)
-
-**Files:** `App.tsx`, `hooks/useDataFiltering.ts`, `utils/layout.ts` (~100 lines)
-**Docs:** [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md)
-
----
-
-### v4.1.3 (Parser) - IF EXISTS/IF NOT EXISTS Filtering (2025-11-04)
-
-**CRITICAL FIX:** Eliminates circular dependencies from IF EXISTS checks
-
-- **Problem**: IF EXISTS (SELECT ... FROM Table) created bidirectional dependencies
-- **Solution**: Added preprocessing patterns to remove IF EXISTS/IF NOT EXISTS before parsing
-- **Impact**: Clean unidirectional lineage (SP → Table writes only)
-- **Example**: spLoadFactLaborCostForEarnedValue now shows table only in outputs
-- **Result**: Zero circular dependencies in lineage graphs ✅
-
----
-
-### v4.1.2 (Parser) - Global Target Exclusion Fix (2025-11-04)
-
-**FIX:** Eliminates false positive inputs from DML target tables
-
-**Problem Solved:**
-- DML targets (e.g., INSERT INTO target) were appearing in both inputs AND outputs
-- Root cause: Multi-statement processing accumulated sources globally, but target exclusion was per-statement
-- Example: `spLoadGLCognosData` showed GLCognosData as input (wrong) and output (correct)
-
-**Solution:**
-- Global target exclusion after all statements parsed: `sources_final = sources - targets`
-- Works for INSERT, UPDATE, MERGE, DELETE operations
-- Handles CTEs, temp tables, and complex multi-statement SPs
-
-**Impact:**
-- Clean lineage graphs with no false positive inputs
-- Accurate data flow visualization
-- Smoke test: 100% passing (spLoadGLCognosData now shows only legitimate inputs)
-
-**Files Modified:**
-- `lineage_v3/parsers/quality_aware_parser.py` - Global exclusion logic
-- `temp/smoke_test/` - Automated test suite with comprehensive documentation
-
-### v4.1.0 - Dataflow-Focused Lineage (2025-11-04)
-
-**BREAKING CHANGE:** Switches from "complete" mode to "dataflow" mode by default
-
-**What Changed:**
-- Parser now shows ONLY data transformation operations (DML)
-- Filters out housekeeping (TRUNCATE/DROP) and administrative queries (SELECT COUNT)
-- Cleaner, more focused lineage graphs
-
-**What's Shown:**
-- ✅ INSERT, UPDATE, DELETE, MERGE, SELECT INTO
-- ❌ TRUNCATE, DROP, SELECT COUNT, CATCH blocks, ROLLBACK paths
-
-See [PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) for complete details.
-
-### v4.0.3 - SP-to-SP Direction Fix (2025-11-04)
-- Fixed SP-to-SP lineage to show correct arrow direction
-- EXEC/EXECUTE calls now properly shown as outputs (not inputs)
-- Corrects 151 SP-to-SP relationships
-
-### v4.0.2 - Orchestrator SP Confidence (2025-11-03)
-- Fixed confidence scoring for orchestrator SPs (SP calls only, no tables)
-- 97.0% SP confidence achieved (exceeded 95% goal)
-
----
-
 ## Support
 
 **Known Issues:** See [BUGS.md](BUGS.md) for tracked bugs and feature requests
@@ -327,7 +238,6 @@ See [PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) for complete details.
 
 ---
 
-**Version:** v4.1.3 (Parser) | v2.9.1 (Frontend) | v4.0.0 (API)
 **Status:** Production Ready
 **Author:** Christian Wagner
 **Built with:** [Claude Code](https://claude.com/claude-code)

@@ -341,12 +341,6 @@ python lineage_v3/main.py run --parquet parquet_snapshots/
 
 For more information about the lineage parser, see the main documentation.
 
-## Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0.0 | 2025-10-26 | Initial release - Production-ready extractor for external users |
-
 ## Support
 
 For issues or questions:

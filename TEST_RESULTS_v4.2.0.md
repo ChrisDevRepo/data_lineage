@@ -1,7 +1,6 @@
-# Parser Test Results - v4.2.0
-**Date:** 2025-11-07
+# Parser Test Results
+
 **Test Run:** temp/ parquet files
-**Parser Version:** v4.2.0 (Parse Failure Workflow)
 
 ---
 
@@ -278,9 +277,3 @@ Parser logic works but output integration missing. Requires database schema upda
 2. Fix workspace writer (persist new fields)
 3. Verify frontend descriptions working
 4. Test with failing SPs dataset
-
----
-
-**Author:** Claude Code (Sonnet 4.5)
-**Test Date:** 2025-11-07
-**Test Environment:** WSL2 Sandbox

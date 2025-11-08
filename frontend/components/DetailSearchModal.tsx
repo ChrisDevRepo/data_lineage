@@ -103,23 +103,10 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   // This ensures filters match actual data, not potentially mismatched parent filters
   useEffect(() => {
     if (isOpen && filterOptions.schemas.length > 0 && !hasInitializedFilters.current) {
-      console.log('[DetailSearchModal] Initializing filters to ALL:', {
-        filterOptionsSchemas: filterOptions.schemas,
-        filterOptionsTypes: filterOptions.objectTypes,
-        allDataLength: allData.length,
-        parentSchemas: Array.from(initialSelectedSchemas),
-        parentTypes: Array.from(initialSelectedTypes)
-      });
-
       // Initialize with ALL schemas and types from filterOptions (derived from allData)
       // This ensures filter values exactly match the actual data
       const newSelectedSchemas = new Set(filterOptions.schemas);
       const newSelectedTypes = new Set(filterOptions.objectTypes);
-
-      console.log('[DetailSearchModal] After initialization:', {
-        selectedSchemas: Array.from(newSelectedSchemas),
-        selectedObjectTypes: Array.from(newSelectedTypes)
-      });
 
       setSelectedSchemas(newSelectedSchemas);
       setSelectedObjectTypes(newSelectedTypes);
@@ -130,17 +117,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     }
   }, [isOpen, filterOptions.schemas.length, filterOptions.objectTypes.length, allData.length]);
 
-  // Debug: Log filter state changes
-  useEffect(() => {
-    if (isOpen) {
-      console.log('[DetailSearchModal] Filter state updated:', {
-        selectedSchemas: Array.from(selectedSchemas),
-        selectedObjectTypes: Array.from(selectedObjectTypes),
-        filterOptionsSchemas: filterOptions.schemas,
-        filterOptionsTypes: filterOptions.objectTypes
-      });
-    }
-  }, [selectedSchemas, selectedObjectTypes, isOpen]);
 
   // Handle resize mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -213,13 +189,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
       try {
         const lowerQuery = query.toLowerCase();
         const searchResults: SearchResult[] = [];
-
-        console.log('[DetailSearchModal] debouncedSearch called:', {
-          query,
-          schemasFilter: Array.from(schemas),
-          objectTypesFilter: Array.from(objectTypes),
-          allDataLength: allData.length
-        });
 
         // Check if DDL text is embedded (JSON mode) or needs API (parquet mode)
         const hasDDLEmbedded = allData.length > 0 && allData[0].ddl_text !== undefined;
@@ -308,11 +277,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
         // Sort by score (highest first)
         searchResults.sort((a, b) => b.score - a.score);
 
-        console.log('[DetailSearchModal] Search complete:', {
-          resultsCount: searchResults.length,
-          results: searchResults.slice(0, 5) // First 5 results for debugging
-        });
-
         setResults(searchResults);
       } catch (err) {
         console.error('[DetailSearchModal] Search failed:', err);
@@ -328,11 +292,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   // Manual search trigger - removed auto-trigger on typing
   const handleManualSearch = () => {
     if (searchQuery.trim()) {
-      console.log('[DetailSearchModal] Manual search triggered:', {
-        searchQuery,
-        selectedSchemas: Array.from(selectedSchemas),
-        selectedObjectTypes: Array.from(selectedObjectTypes)
-      });
       setIsSearching(true);
       setHasSearched(true);
       debouncedSearch(searchQuery, selectedSchemas, selectedObjectTypes);
@@ -649,15 +608,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
             <div className="relative" ref={typeFilterRef}>
               <button
                 onClick={() => {
-                  console.log('[DetailSearchModal] Type filter button clicked:', {
-                    currentShowState: showTypeFilter,
-                    selectedObjectTypes: Array.from(selectedObjectTypes),
-                    filterOptionsTypes: filterOptions.objectTypes,
-                    checkboxStates: filterOptions.objectTypes.map(type => ({
-                      type,
-                      checked: selectedObjectTypes.has(type)
-                    }))
-                  });
                   setShowTypeFilter(!showTypeFilter);
                   if (!showTypeFilter) setShowSchemaFilter(false);
                 }}

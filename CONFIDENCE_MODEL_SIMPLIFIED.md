@@ -1,7 +1,5 @@
 # Simplified Confidence Model - 4 Values Only
 
-**Version:** v2.1.0 (Simplified)
-**Date:** 2025-11-07
 **Status:** Proposed
 
 ---
@@ -278,9 +276,3 @@ def calculate_confidence_simple(
 1. **Thresholds OK?** 90%, 70%, 50% for 100/85/75?
 2. **Orchestrator handling?** Should they get 100% or 85%?
 3. **Missing tables penalty?** Should finding 0/10 be 0% or 75%?
-
----
-
-**Author:** Claude Code (Sonnet 4.5)
-**Date:** 2025-11-07
-**Status:** Awaiting Approval
