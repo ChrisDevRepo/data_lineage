@@ -82,7 +82,7 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
             </div>
             {/* Confidence badge for Stored Procedures (v2.1.0) */}
             {confidenceBadge && (
-                <div className="absolute -top-1 -right-1 text-sm leading-none">
+                <div key={`badge-${data.id}`} className="absolute -top-1 -right-1 text-sm leading-none">
                     {confidenceBadge}
                 </div>
             )}
