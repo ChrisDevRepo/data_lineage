@@ -98,11 +98,11 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     };
   }, [allData]);
 
-  // Initialize filters from main view selections, or ALL if nothing selected
+  // Initialize filters from main view selections (true sync - no fallback to ALL)
   useEffect(() => {
     if (isOpen && filterOptions.schemas.length > 0) {
-      setSelectedSchemas(initialSelectedSchemas.size > 0 ? new Set(initialSelectedSchemas) : new Set(filterOptions.schemas));
-      setSelectedObjectTypes(initialSelectedTypes.size > 0 ? new Set(initialSelectedTypes) : new Set(filterOptions.objectTypes));
+      setSelectedSchemas(new Set(initialSelectedSchemas));
+      setSelectedObjectTypes(new Set(initialSelectedTypes));
     }
   }, [isOpen, filterOptions.schemas, filterOptions.objectTypes, initialSelectedSchemas, initialSelectedTypes]);
 
