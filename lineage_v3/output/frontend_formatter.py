@@ -53,7 +53,7 @@ class FrontendFormatter:
         self,
         internal_lineage: List[Dict[str, Any]],
         output_path: str = "lineage_output/frontend_lineage.json",
-        include_ddl: bool = True
+        include_ddl: bool = False
     ) -> Dict[str, Any]:
         """
         Generate frontend_lineage.json from internal lineage.
@@ -61,7 +61,7 @@ class FrontendFormatter:
         Args:
             internal_lineage: List of nodes in internal format
             output_path: Path to output JSON file
-            include_ddl: If True, include DDL text for SPs and Views (default: True)
+            include_ddl: If True, include DDL text for SPs and Views (default: False for performance)
 
         Returns:
             Statistics about generation

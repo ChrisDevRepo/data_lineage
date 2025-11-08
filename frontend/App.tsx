@@ -593,6 +593,9 @@ function DataLineageVisualizer() {
     // Filter to traced nodes when Apply is clicked
     setIsTraceFilterApplied(true);
 
+    // Immediately close trace panel and show banner
+    setIsTraceModeActive(false);
+
     // Highlight the start node
     setHighlightedNodes(new Set([config.startNodeId]));
 
