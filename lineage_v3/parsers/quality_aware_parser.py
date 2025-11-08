@@ -444,10 +444,12 @@ class QualityAwareParser:
 
         This is the BASELINE - what we expect to find.
 
-        Enhanced filtering (2025-10-26):
-        - Excludes CTEs (WITH ... AS)
-        - Excludes temp tables (#table)
-        - Excludes table variables (@table TABLE)
+        CRITICAL (2025-11-08): Smoke test counts BUSINESS LOGIC only
+        - Runs on RAW DDL (no pre-filtering to detect aggressive cleaning)
+        - Counts DML only: INSERT, UPDATE, DELETE, MERGE (data transformation)
+        - Excludes DDL: TRUNCATE, CREATE, DROP, ALTER (housekeeping)
+        - Excludes temp objects: CTEs, #temp tables, @table variables
+        - Rationale: Align baseline with dataflow mode expectations
         """
         sources = set()
         targets = set()
@@ -459,6 +461,19 @@ class QualityAwareParser:
         # STEP 1: Identify non-persistent objects to exclude
         non_persistent = self._identify_non_persistent_objects(ddl)
         logger.debug(f"Found {len(non_persistent)} non-persistent objects: {non_persistent}")
+
+        # STEP 2: Remove administrative queries before counting (2025-11-08)
+        # These are filtered by cleaning engine, so shouldn't be in baseline count
+        # Pattern: SET/DECLARE @var = (SELECT ... FROM Table) → Remove entire statement
+        # Handles nested parentheses like COUNT(*) correctly
+        # Result: COUNT(*) and other administrative SELECT won't be counted
+        ddl_no_admin = re.sub(
+            r'(?:SET|DECLARE)\s+@\w+.*?(?:;|\n)',
+            '\n',
+            ddl,
+            flags=re.IGNORECASE | re.DOTALL
+        )
+        logger.debug("Removed administrative SET/DECLARE queries from smoke test count")
 
         # SOURCE patterns (tables we READ FROM)
         # Pattern explanation:
@@ -476,7 +491,8 @@ class QualityAwareParser:
         ]
 
         for pattern in source_patterns:
-            matches = re.findall(pattern, ddl, re.IGNORECASE)
+            # Run patterns on DDL with admin queries removed
+            matches = re.findall(pattern, ddl_no_admin, re.IGNORECASE)
             for schema, table in matches:
                 # Existing exclusions (system schemas)
                 if self._is_excluded(schema, table):
@@ -489,13 +505,18 @@ class QualityAwareParser:
                 sources.add(f"{schema}.{table}")
 
         # TARGET patterns (tables we WRITE TO)
-        # These patterns identify DML operations that modify data
+        # CRITICAL (2025-11-08): Smoke test counts ONLY DML operations (data transformation)
+        # - Counts: INSERT, UPDATE, DELETE, MERGE (actual data changes)
+        # - Excludes: TRUNCATE, CREATE, DROP, ALTER (DDL housekeeping)
+        # - Rationale: Align baseline with dataflow mode (business logic only)
         # Pattern explanation: Same as SOURCE patterns above
         target_patterns = [
             r'\bINSERT\s+(?:INTO\s+)?\[?(\w+)\]?\.\[?(\w+)\]?',  # INSERT [INTO] [schema].[table]
             r'\bUPDATE\s+\[?(\w+)\]?\.\[?(\w+)\]?\s+SET',        # UPDATE [schema].[table] SET
             r'\bMERGE\s+(?:INTO\s+)?\[?(\w+)\]?\.\[?(\w+)\]?',   # MERGE [INTO] [schema].[table]
-            r'\bTRUNCATE\s+TABLE\s+\[?(\w+)\]?\.\[?(\w+)\]?',    # TRUNCATE TABLE [schema].[table]
+            r'\bDELETE\s+(?:FROM\s+)?\[?(\w+)\]?\.\[?(\w+)\]?',  # DELETE [FROM] [schema].[table]
+            # TRUNCATE excluded - DDL housekeeping, not data transformation
+            # CREATE/DROP/ALTER excluded - DDL, not counted by smoke test
         ]
 
         for pattern in target_patterns:
