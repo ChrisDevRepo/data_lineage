@@ -350,10 +350,20 @@ The trace feature should work as **an additional filter layer** (not a separate 
 - User should be able to change any filter while trace controls are open
 - Changing toolbar filters should update the graph immediately (combined with trace if Apply was clicked)
 
-**Suspected Root Cause:**
-- Check `Toolbar.tsx` for disabled props based on `isTraceModeActive`
-- Check if event handlers are blocked when trace is active
-- Check if there's CSS preventing interaction (pointer-events, z-index issues)
+**Root Cause (Confirmed):**
+- `Toolbar.tsx` had `disabled={isTraceModeActive}` on 8 controls
+- Search input and button (lines 148, 151)
+- Exclude input and Hide button (lines 182, 209)
+- Schema filter button (line 223)
+- Type filter button (line 305)
+- Hide Unrelated button (line 373)
+- Reset View button (line 394)
+
+**Status:** 🟢 RESOLVED (2025-11-08)
+- Fixed in commit `83e41a8`: Removed ALL `disabled={isTraceModeActive}` attributes
+- Toolbar now remains fully functional during trace
+- Created comprehensive Playwright test suite (4 tests)
+- **Pending user testing/approval**
 
 ---
 
