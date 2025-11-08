@@ -347,6 +347,17 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     setShowTypeFilter(false);
   };
 
+  // Handle clear button - clear search and results
+  const handleClear = () => {
+    setSearchQuery('');
+    setResults([]);
+    setSelectedResult(null);
+    setDdlText(null);
+    setError(null);
+    setIsSearching(false);
+    setHasSearched(false);
+  };
+
   // Handle editor mount
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editorRef.current = editor;
@@ -356,44 +367,6 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
       editor.getAction('actions.find').run();
     });
   };
-
-  // Trigger Monaco search when DDL loads
-  useEffect(() => {
-    if (editorRef.current && ddlText && searchQuery.trim() && !isLoadingDdl) {
-      // Small delay to ensure editor is fully rendered
-      const timer = setTimeout(() => {
-        try {
-          const editor = editorRef.current;
-
-          // Clean search query for Monaco (remove boolean operators, quotes, wildcards)
-          const cleanQuery = searchQuery
-            .replace(/\b(AND|OR|NOT)\b/gi, ' ')
-            .replace(/["'*]/g, '')
-            .trim()
-            .split(/\s+/)
-            .filter(term => term.length > 2)
-            .join(' ');
-
-          if (cleanQuery) {
-            // Trigger the find action
-            editor.trigger('search', 'actions.find', null);
-
-            // Set the search string in the find widget
-            const findController = editor.getContribution('editor.contrib.findController');
-            if (findController) {
-              findController.getState().change({ searchString: cleanQuery }, false);
-              // Find and select first match
-              editor.trigger('search', 'editor.action.nextMatchFindAction', null);
-            }
-          }
-        } catch (error) {
-          console.error('[DetailSearchModal] Error triggering Monaco search:', error);
-        }
-      }, 100);
-
-      return () => clearTimeout(timer);
-    }
-  }, [ddlText, searchQuery, isLoadingDdl]);
 
   // Auto-load DDL when initialNodeId is provided (switching from SQL view)
   useEffect(() => {
@@ -567,8 +540,21 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                 }
               }}
               autoFocus
-              className="w-full h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors"
+              className="w-full h-9 px-3 pr-20 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 transition-colors"
             />
+            {/* Clear button */}
+            {(searchQuery || results.length > 0 || ddlText) && (
+              <button
+                onClick={handleClear}
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-3 flex items-center gap-1.5 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded text-xs font-medium text-gray-700 transition-colors"
+                title="Clear search and results"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Clear
+              </button>
+            )}
           </div>
 
           {/* Schema filter - Multi-select */}
