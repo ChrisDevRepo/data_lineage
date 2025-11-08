@@ -283,22 +283,23 @@ class QualityAwareParser:
         # Fetch DDL
         ddl = self._fetch_ddl(object_id)
         if not ddl:
-            # Generate failure breakdown for missing DDL
-            _, failure_breakdown = ConfidenceCalculator.calculate_multifactor(
-                parse_success=False,
-                source_match=0.0,
-                target_match=0.0,
-                catalog_validation_rate=0.0
+            # Generate failure breakdown for missing DDL (v2.1.0)
+            result = ConfidenceCalculator.calculate_simple(
+                parse_succeeded=False,
+                expected_tables=0,
+                found_tables=0,
+                is_orchestrator=False,
+                parse_failure_reason='No DDL definition found'
             )
 
             return {
                 'object_id': object_id,
                 'inputs': [],
                 'outputs': [],
-                'confidence': 0.0,
+                'confidence': result['confidence'],  # 0 for missing DDL
                 'source': 'parser',
                 'parse_error': 'No DDL definition found',
-                'confidence_breakdown': failure_breakdown
+                'confidence_breakdown': result['breakdown']
             }
 
         try:
@@ -328,66 +329,56 @@ class QualityAwareParser:
             parser_sources_with_hints = parser_sources_valid | hint_inputs
             parser_targets_with_hints = parser_targets_valid | hint_outputs
 
-            # STEP 3: Calculate catalog validation rate
+            # STEP 3: Calculate catalog validation rate (for diagnostics)
             # Get all objects from catalog for validation
             all_extracted = parser_sources_with_hints | parser_targets_with_hints
             all_catalog = self._get_catalog_objects()
-            catalog_validation_rate = ConfidenceCalculator.calculate_catalog_validation_rate(
-                all_extracted, all_catalog
-            )
+            if all_extracted:
+                valid_count = len(all_extracted & all_catalog)
+                catalog_validation_rate = valid_count / len(all_extracted)
+            else:
+                catalog_validation_rate = 1.0  # No objects to validate = 100% valid
 
-            # STEP 4: Compare counts and calculate quality metrics
-            # Use parser results WITH hints for quality calculation
-            quality = self._calculate_quality(
-                len(regex_sources_valid),
-                len(regex_targets_valid),
-                len(parser_sources_with_hints),
-                len(parser_targets_with_hints)
-            )
-
-            # STEP 5: Calculate multi-factor confidence with breakdown (v2.0.0)
-            # Pass counts for orchestrator SP handling
-            # Include hint information and catalog validation
+            # STEP 4: Determine if hints were used
             has_hints = bool(hint_inputs or hint_outputs)
-            parse_success = True  # If we got here, parsing succeeded
-            uat_validated = False  # TODO: Check against UAT feedback reports
 
-            confidence, confidence_breakdown = self._determine_confidence(
-                quality,
-                regex_sources_count=len(regex_sources_valid),
-                regex_targets_count=len(regex_targets_valid),
-                sp_calls_count=len(regex_sp_calls_valid),
-                has_hints=has_hints,
-                catalog_validation_rate=catalog_validation_rate,
-                parse_success=parse_success,
-                uat_validated=uat_validated
-            )
-
-            # STEP 6: Resolve to object_ids (use results WITH hints)
+            # STEP 5: Resolve to object_ids (use results WITH hints)
             input_ids = self._resolve_table_names(parser_sources_with_hints)
             output_ids = self._resolve_table_names(parser_targets_with_hints)
 
-            # STEP 6b: Add SP-to-SP lineage (v4.0.1)
+            # STEP 5b: Add SP-to-SP lineage (v4.0.1)
             # Stored procedures are OUTPUTS (we call/execute them)
             # When SP_A executes SP_B: SP_A → SP_B (SP_B is a target/output)
             sp_ids = self._resolve_sp_names(regex_sp_calls_valid)
             output_ids.extend(sp_ids)
 
-            # STEP 7: Detect parse failure reasons (v4.2.0)
-            # Calculate expected vs found counts for smoke test comparison
+            # STEP 6: Calculate expected vs found counts for confidence calculation (v2.1.0)
             expected_count = len(regex_sources_valid) + len(regex_targets_valid)
             found_count = len(input_ids) + len(output_ids) - len(sp_ids)  # Exclude SP calls from count
 
-            # Generate failure reason if confidence is low
+            # Detect orchestrator SPs (only calls other SPs, no table access)
+            is_orchestrator = (expected_count == 0 and len(regex_sp_calls_valid) > 0)
+
+            # STEP 7: Calculate simplified confidence (v2.1.0)
+            parse_success = True  # If we got here, parsing succeeded
+            confidence, confidence_breakdown = self._determine_confidence(
+                parse_success=parse_success,
+                expected_count=expected_count,
+                found_count=found_count,
+                is_orchestrator=is_orchestrator,
+                parse_failure_reason=None  # No failure, parsing succeeded
+            )
+
+            # Generate failure reason if confidence is low (for diagnostics)
             parse_failure_reason = None
-            if confidence < 0.65:
+            if confidence < 75:  # v2.1.0: confidence < 75 means poor quality
                 parse_failure_reason = self._detect_parse_failure_reason(
                     ddl=ddl,
                     parse_error=None,
                     expected_count=expected_count,
                     found_count=found_count
                 )
-                logger.warning(f"Low confidence ({confidence:.2f}) for object_id {object_id}: {parse_failure_reason}")
+                logger.warning(f"Low confidence ({confidence}) for object_id {object_id}: {parse_failure_reason}")
 
             return {
                 'object_id': object_id,
@@ -409,27 +400,13 @@ class QualityAwareParser:
                     'hint_outputs': len(hint_outputs),
                     'final_sources': len(parser_sources_with_hints),
                     'final_targets': len(parser_targets_with_hints),
-                    'catalog_validation_rate': catalog_validation_rate,
-                    'source_match': quality['source_match'],
-                    'target_match': quality['target_match'],
-                    'overall_match': quality['overall_match'],
-                    'needs_improvement': quality['needs_improvement']  # Quality flag for review
+                    'catalog_validation_rate': catalog_validation_rate
                 },
-                'confidence_breakdown': confidence_breakdown  # Multi-factor breakdown (v2.0.0)
+                'confidence_breakdown': confidence_breakdown  # Simplified breakdown (v2.1.0)
             }
 
         except Exception as e:
             logger.error(f"Failed to parse object_id {object_id}: {e}")
-
-            # Generate failure breakdown
-            _, failure_breakdown = ConfidenceCalculator.calculate_multifactor(
-                parse_success=False,
-                source_match=0.0,
-                target_match=0.0,
-                catalog_validation_rate=0.0,
-                has_comment_hints=False,
-                uat_validated=False
-            )
 
             # Detect failure reason (v4.2.0)
             parse_failure_reason = self._detect_parse_failure_reason(
@@ -439,17 +416,26 @@ class QualityAwareParser:
                 found_count=0
             )
 
+            # Generate failure breakdown (v2.1.0)
+            result = ConfidenceCalculator.calculate_simple(
+                parse_succeeded=False,
+                expected_tables=0,
+                found_tables=0,
+                is_orchestrator=False,
+                parse_failure_reason=parse_failure_reason
+            )
+
             return {
                 'object_id': object_id,
                 'inputs': [],
                 'outputs': [],
-                'confidence': 0.0,
+                'confidence': result['confidence'],  # 0 for parse failures
                 'source': 'parser',
                 'parse_error': str(e),
                 'parse_failure_reason': parse_failure_reason,  # v4.2.0: Actionable guidance
                 'expected_count': 0,  # v4.2.0
                 'found_count': 0,     # v4.2.0
-                'confidence_breakdown': failure_breakdown
+                'confidence_breakdown': result['breakdown']
             }
 
     def _regex_scan(self, ddl: str) -> Tuple[Set[str], Set[str]]:
@@ -662,58 +648,52 @@ class QualityAwareParser:
 
     def _determine_confidence(
         self,
-        quality: Dict[str, Any],
-        regex_sources_count: int = 0,
-        regex_targets_count: int = 0,
-        sp_calls_count: int = 0,
-        has_hints: bool = False,
-        catalog_validation_rate: float = 1.0,
-        parse_success: bool = True,
-        uat_validated: bool = False
-    ) -> Tuple[float, Dict[str, Any]]:
+        parse_success: bool,
+        expected_count: int,
+        found_count: int,
+        is_orchestrator: bool = False,
+        parse_failure_reason: Optional[str] = None
+    ) -> Tuple[int, Dict[str, Any]]:
         """
-        Determine confidence score using multi-factor model with breakdown.
+        Determine confidence score using simplified model (v2.1.0).
 
-        Uses unified ConfidenceCalculator.calculate_multifactor() for consistency
-        across the application (v2.0.0).
+        Uses unified ConfidenceCalculator.calculate_simple() for consistency
+        across the application.
 
-        Multi-Factor Model:
-        - Parse Success (30%): Did parsing complete without errors?
-        - Method Agreement (25%): Do regex and SQLGlot agree?
-        - Catalog Validation (20%): Do extracted objects exist in catalog?
-        - Comment Hints (10%): Did developer provide hints?
-        - UAT Validation (15%): Has user verified this SP?
+        Simplified 4-value Model:
+        - Parse failed → 0%
+        - Orchestrator (only EXEC, no tables) → 100%
+        - Completeness ≥90% → 100%
+        - Completeness 70-89% → 85%
+        - Completeness 50-69% → 75%
+        - Completeness <50% → 0%
 
         Args:
-            quality: Quality metrics from _calculate_quality()
-            regex_sources_count: Number of source tables found by regex
-            regex_targets_count: Number of target tables found by regex
-            sp_calls_count: Number of SP calls found (for orchestrator SP detection)
-            has_hints: Whether comment hints were found (v4.2.0)
-            catalog_validation_rate: % of extracted objects found in catalog (0.0-1.0)
             parse_success: Whether parsing completed without errors
-            uat_validated: Whether user has verified this SP
+            expected_count: Number of tables expected (from regex baseline)
+            found_count: Number of tables actually found by parser
+            is_orchestrator: Whether SP only calls other SPs (no table access)
+            parse_failure_reason: Optional reason for parse failure
 
         Returns:
             Tuple of (confidence_score, breakdown_dict)
+                confidence_score: 0 | 75 | 85 | 100
+                breakdown_dict: {parse_succeeded, expected_tables, found_tables,
+                                completeness_pct, explanation, to_improve}
         """
-        source_match = quality['source_match']
-        target_match = quality['target_match']
-
-        # Use unified multi-factor confidence calculator (v2.0.0)
-        confidence, breakdown = ConfidenceCalculator.calculate_multifactor(
-            parse_success=parse_success,
-            source_match=source_match,
-            target_match=target_match,
-            catalog_validation_rate=catalog_validation_rate,
-            has_comment_hints=has_hints,
-            uat_validated=uat_validated,
-            regex_sources_count=regex_sources_count,
-            regex_targets_count=regex_targets_count,
-            sp_calls_count=sp_calls_count
+        # Use unified simplified confidence calculator (v2.1.0)
+        result = ConfidenceCalculator.calculate_simple(
+            parse_succeeded=parse_success,
+            expected_tables=expected_count,
+            found_tables=found_count,
+            is_orchestrator=is_orchestrator,
+            parse_failure_reason=parse_failure_reason
         )
 
-        logger.debug(f"Multi-factor confidence: {confidence} (total_score: {breakdown['total_score']})")
+        confidence = result['confidence']
+        breakdown = result['breakdown']
+
+        logger.debug(f"Simplified confidence: {confidence} (completeness: {breakdown.get('completeness_pct', 0):.1f}%)")
         return confidence, breakdown
 
     def _is_excluded(self, schema: str, table: str) -> bool:

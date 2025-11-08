@@ -191,6 +191,46 @@ class DuckDBWorkspace:
         except Exception as e:
             logger.warning(f"Could not check/add confidence_breakdown column: {e}")
 
+        # Migration: Add parse failure fields if they don't exist (v2.1.0 / BUG-002)
+        try:
+            # Re-fetch columns to check for new fields
+            columns = self.connection.execute("""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'lineage_metadata'
+            """).fetchall()
+
+            column_names = [col[0] for col in columns]
+
+            # Add parse_failure_reason column
+            if 'parse_failure_reason' not in column_names:
+                logger.info("Migrating lineage_metadata: adding parse_failure_reason column...")
+                self.connection.execute("""
+                    ALTER TABLE lineage_metadata
+                    ADD COLUMN parse_failure_reason VARCHAR
+                """)
+                logger.info("✓ Migration complete: parse_failure_reason column added")
+
+            # Add expected_count column
+            if 'expected_count' not in column_names:
+                logger.info("Migrating lineage_metadata: adding expected_count column...")
+                self.connection.execute("""
+                    ALTER TABLE lineage_metadata
+                    ADD COLUMN expected_count INTEGER
+                """)
+                logger.info("✓ Migration complete: expected_count column added")
+
+            # Add found_count column
+            if 'found_count' not in column_names:
+                logger.info("Migrating lineage_metadata: adding found_count column...")
+                self.connection.execute("""
+                    ALTER TABLE lineage_metadata
+                    ADD COLUMN found_count INTEGER
+                """)
+                logger.info("✓ Migration complete: found_count column added")
+        except Exception as e:
+            logger.warning(f"Could not check/add parse failure fields: {e}")
+
         # Create lineage_results table
         self.connection.execute(self.SCHEMA_LINEAGE_RESULTS)
 
@@ -621,7 +661,10 @@ class DuckDBWorkspace:
         confidence: float,
         inputs: List[int],
         outputs: List[int],
-        confidence_breakdown: Dict[str, Any] = None
+        confidence_breakdown: Dict[str, Any] = None,
+        parse_failure_reason: str = None,
+        expected_count: int = None,
+        found_count: int = None
     ):
         """
         Update lineage_metadata for an object using UNION merge strategy.
@@ -637,6 +680,9 @@ class DuckDBWorkspace:
             inputs: List of input object_ids
             outputs: List of output object_ids
             confidence_breakdown: Multi-factor confidence breakdown (v2.0.0)
+            parse_failure_reason: Reason for parse failure (v2.1.0 / BUG-002)
+            expected_count: Expected number of tables (v2.1.0 / BUG-002)
+            found_count: Number of tables actually found (v2.1.0 / BUG-002)
         """
         if not self.connection:
             raise RuntimeError("Not connected to DuckDB workspace")
@@ -704,8 +750,11 @@ class DuckDBWorkspace:
                 confidence,
                 inputs,
                 outputs,
-                confidence_breakdown
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                confidence_breakdown,
+                parse_failure_reason,
+                expected_count,
+                found_count
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         self.connection.execute(query, [
@@ -716,7 +765,10 @@ class DuckDBWorkspace:
             final_confidence,
             inputs_json,
             outputs_json,
-            breakdown_json
+            breakdown_json,
+            parse_failure_reason,
+            expected_count,
+            found_count
         ])
 
     def clear_orphaned_metadata(self):
@@ -878,21 +930,37 @@ class DuckDBWorkspace:
             """)
 
         # Part 3: Fallback for tables without column metadata (ensures ALL tables are searchable)
-        view_parts.append("""
-            SELECT
-                o.object_id,
-                o.schema_name,
-                o.object_name,
-                o.object_type,
-                'CREATE TABLE [' || o.schema_name || '].[' || o.object_name || '] (' || chr(10) ||
-                '    /* Column information not available - table_columns.parquet not provided */' || chr(10) ||
-                ');' as ddl_text
-            FROM objects o
-            WHERE o.object_type = 'Table'
-            AND NOT EXISTS (
-                SELECT 1 FROM table_columns tc WHERE tc.correct_object_id = o.object_id
-            )
-        """)
+        if table_columns_exists:
+            # Only show tables NOT in table_columns
+            view_parts.append("""
+                SELECT
+                    o.object_id,
+                    o.schema_name,
+                    o.object_name,
+                    o.object_type,
+                    'CREATE TABLE [' || o.schema_name || '].[' || o.object_name || '] (' || chr(10) ||
+                    '    /* Column information not available - table_columns.parquet not provided */' || chr(10) ||
+                    ');' as ddl_text
+                FROM objects o
+                WHERE o.object_type = 'Table'
+                AND NOT EXISTS (
+                    SELECT 1 FROM table_columns tc WHERE tc.correct_object_id = o.object_id
+                )
+            """)
+        else:
+            # Show ALL tables with fallback DDL (table_columns.parquet not provided)
+            view_parts.append("""
+                SELECT
+                    o.object_id,
+                    o.schema_name,
+                    o.object_name,
+                    o.object_type,
+                    'CREATE TABLE [' || o.schema_name || '].[' || o.object_name || '] (' || chr(10) ||
+                    '    /* Column information not available - table_columns.parquet not provided */' || chr(10) ||
+                    ');' as ddl_text
+                FROM objects o
+                WHERE o.object_type = 'Table'
+            """)
 
         # Create view with UNION ALL for all parts
         view_sql = "CREATE OR REPLACE VIEW unified_ddl AS " + " UNION ALL ".join(view_parts)

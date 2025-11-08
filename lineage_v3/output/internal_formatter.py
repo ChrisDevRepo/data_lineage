@@ -134,7 +134,10 @@ class InternalFormatter:
                 confidence,
                 inputs,
                 outputs,
-                confidence_breakdown
+                confidence_breakdown,
+                parse_failure_reason,
+                expected_count,
+                found_count
             FROM lineage_metadata
             ORDER BY object_id
             """
@@ -148,13 +151,19 @@ class InternalFormatter:
                 inputs = json.loads(row[3]) if row[3] else []
                 outputs = json.loads(row[4]) if row[4] else []
                 breakdown = json.loads(row[5]) if row[5] else None
+                parse_failure_reason = row[6]  # v2.1.0 / BUG-002
+                expected_count = row[7]  # v2.1.0 / BUG-002
+                found_count = row[8]  # v2.1.0 / BUG-002
 
                 deps[row[0]] = {
                     'primary_source': row[1] or 'unknown',
                     'confidence': row[2] or 0.0,
                     'inputs': inputs,
                     'outputs': outputs,
-                    'confidence_breakdown': breakdown  # v2.0.0
+                    'confidence_breakdown': breakdown,  # v2.0.0
+                    'parse_failure_reason': parse_failure_reason,  # v2.1.0 / BUG-002
+                    'expected_count': expected_count,  # v2.1.0 / BUG-002
+                    'found_count': found_count  # v2.1.0 / BUG-002
                 }
 
             logger.info(f"Fetched dependencies for {len(deps)} objects from lineage_metadata")
@@ -220,7 +229,10 @@ class InternalFormatter:
                 'provenance': {
                     'primary_source': dep_meta['primary_source'],
                     'confidence': float(dep_meta['confidence']),
-                    'confidence_breakdown': dep_meta.get('confidence_breakdown')  # v2.0.0
+                    'confidence_breakdown': dep_meta.get('confidence_breakdown'),  # v2.0.0
+                    'parse_failure_reason': dep_meta.get('parse_failure_reason'),  # v2.1.0 / BUG-002
+                    'expected_count': dep_meta.get('expected_count'),  # v2.1.0 / BUG-002
+                    'found_count': dep_meta.get('found_count')  # v2.1.0 / BUG-002
                 }
             }
 

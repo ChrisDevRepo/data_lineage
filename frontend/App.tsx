@@ -352,8 +352,6 @@ function DataLineageVisualizer() {
       setHighlightedNodes(traceExitNodes);
       // Mark that we're in trace exit mode (showing trace results in detail view)
       setIsInTraceExitMode(true);
-      // Automatically lock the trace results
-      setIsTraceLocked(true);
     }
   }, [isTraceModeActive, setHighlightedNodes, isInTraceExitMode, traceExitNodes]);
 
@@ -592,6 +590,9 @@ function DataLineageVisualizer() {
 
     // Filter to traced nodes when Apply is clicked
     setIsTraceFilterApplied(true);
+
+    // Immediately close trace panel and show banner
+    setIsTraceModeActive(false);
 
     // Highlight the start node
     setHighlightedNodes(new Set([config.startNodeId]));

@@ -145,10 +145,9 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             placeholder="Search objects..."
                             value={searchTerm}
                             onChange={handleSearchInputChange}
-                            disabled={isTraceModeActive}
                             className="text-sm h-9 w-64 pl-3 pr-9 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
                         />
-                        <button type="submit" disabled={isTraceModeActive} className="absolute right-0 top-0 h-9 w-9 flex items-center justify-center text-gray-400 hover:text-primary-600 disabled:opacity-50 transition-colors" title="Search">
+                        <button type="submit" className="absolute right-0 top-0 h-9 w-9 flex items-center justify-center text-gray-400 hover:text-primary-600 disabled:opacity-50 transition-colors" title="Search">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" /></svg>
                         </button>
                     </form>
@@ -179,7 +178,6 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             placeholder="Exclude terms..."
                             value={excludeTerm}
                             onChange={handleExcludeInputChange}
-                            disabled={isTraceModeActive}
                             className="text-sm h-9 w-56 pl-3 pr-8 border rounded-md bg-white border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600 disabled:opacity-50 transition-colors"
                             title="Enter terms to exclude (comma-separated). Use * for wildcards."
                             onKeyDown={(e) => {
@@ -206,7 +204,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                     </div>
                     <Button
                         onClick={applyExcludeTerms}
-                        disabled={isTraceModeActive || !excludeTerm.trim()}
+                        disabled={!excludeTerm.trim()}
                         variant="primary"
                         className="h-9 px-3 text-sm whitespace-nowrap"
                         title="Hide objects containing these terms"
@@ -220,7 +218,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
 
                 {/* Filter Group */}
                 <div className="relative" ref={schemaFilterRef}>
-                    <Button onClick={() => setIsSchemaFilterOpen(p => !p)} disabled={isTraceModeActive} variant="icon" title={`Schemas (${selectedSchemas.size}/${schemas.length})`}>
+                    <Button onClick={() => setIsSchemaFilterOpen(p => !p)} variant="icon" title={`Schemas (${selectedSchemas.size}/${schemas.length})`}>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
                         </svg>
@@ -302,7 +300,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
 
                 {dataModelTypes.length > 0 && (
                     <div className="relative" ref={typeFilterRef}>
-                        <Button onClick={() => setIsTypeFilterOpen(p => !p)} disabled={isTraceModeActive} variant="icon" title={`Types (${selectedTypes.size}/${dataModelTypes.length})`}>
+                        <Button onClick={() => setIsTypeFilterOpen(p => !p)} variant="icon" title={`Types (${selectedTypes.size}/${dataModelTypes.length})`}>
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
@@ -370,7 +368,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                 <Button onClick={() => {
                     console.log('[Toolbar] Hide Unrelated clicked. Current value:', hideUnrelated, 'New value:', !hideUnrelated);
                     setHideUnrelated(!hideUnrelated);
-                }} disabled={isTraceModeActive} variant="icon" className={hideUnrelated ? 'bg-blue-50 text-blue-600' : ''} title={hideUnrelated ? 'Show All Nodes' : 'Hide Unrelated Nodes'}>
+                }} variant="icon" className={hideUnrelated ? 'bg-blue-50 text-blue-600' : ''} title={hideUnrelated ? 'Show All Nodes' : 'Hide Unrelated Nodes'}>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
                     </svg>
@@ -391,7 +389,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                 {/* Divider */}
                 <div className="h-6 w-px bg-gray-300 mx-1"></div>
 
-                <Button onClick={onResetView} disabled={isTraceModeActive} variant="icon" title="Reset View">
+                <Button onClick={onResetView} variant="icon" title="Reset View">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
                     </svg>

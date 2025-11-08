@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { CONSTANTS } from '../constants';
 import { DataNode } from '../types';
@@ -53,11 +53,39 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
         nodeTitle += `\n\n💡 Click to view SQL definition`;
     }
 
+    // Get confidence badge for Stored Procedures (v2.1.0 simplified model)
+    const confidenceBadge = useMemo(() => {
+        if (data.object_type !== 'Stored Procedure') return null;
+
+        const confidence = data.confidence || 0;
+
+        // Support both formats: discrete (0, 75, 85, 100) and decimal (0.0-1.0)
+        const conf = confidence > 1 ? confidence : confidence * 100;
+
+        if (conf >= 90) {
+            return <span className="confidence-badge" title="Perfect (100%)">✅</span>;
+        } else if (conf >= 80) {
+            return <span className="confidence-badge" title="Good (85%)">🟢</span>;
+        } else if (conf >= 70) {
+            return <span className="confidence-badge" title="Acceptable (75%)">⚠️</span>;
+        } else {
+            return <span className="confidence-badge" title="Failed (0%)">❌</span>;
+        }
+    }, [data.object_type, data.confidence]);
+
     return (
-        <div className={nodeClasses} title={nodeTitle} style={nodeStyle}>
-            <Handle type="target" position={isHorizontal ? Position.Left : Position.Top} className="!bg-gray-500" />
-            <div className="truncate px-2">{data.name}</div>
-            <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} className="!bg-gray-500" />
+        <div className="relative">
+            <div className={nodeClasses} title={nodeTitle} style={nodeStyle}>
+                <Handle type="target" position={isHorizontal ? Position.Left : Position.Top} className="!bg-gray-500" />
+                <div className="truncate px-2">{data.name}</div>
+                <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} className="!bg-gray-500" />
+            </div>
+            {/* Confidence badge for Stored Procedures (v2.1.0) */}
+            {confidenceBadge && (
+                <div key={`badge-${data.id}`} className="absolute -top-1 -right-1 text-sm leading-none">
+                    {confidenceBadge}
+                </div>
+            )}
         </div>
     );
 });

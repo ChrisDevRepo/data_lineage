@@ -53,7 +53,7 @@ class FrontendFormatter:
         self,
         internal_lineage: List[Dict[str, Any]],
         output_path: str = "lineage_output/frontend_lineage.json",
-        include_ddl: bool = True
+        include_ddl: bool = False
     ) -> Dict[str, Any]:
         """
         Generate frontend_lineage.json from internal lineage.
@@ -61,7 +61,7 @@ class FrontendFormatter:
         Args:
             internal_lineage: List of nodes in internal format
             output_path: Path to output JSON file
-            include_ddl: If True, include DDL text for SPs and Views (default: True)
+            include_ddl: If True, include DDL text for SPs and Views (default: False for performance)
 
         Returns:
             Statistics about generation
@@ -210,15 +210,30 @@ class FrontendFormatter:
         # Only classify tables and views
         if object_type not in ["Table", "View"]:
             return "Other"
-        
-        # Check for dimension tables (starts with "Dim")
-        if object_name.startswith("Dim"):
+
+        # Normalize name for matching (check patterns)
+        name_lower = object_name.lower()
+
+        # Check for dimension patterns:
+        # - Tables: Dim*, DIM*
+        # - Views: vw_Dim*, v_Dim*, vwDim*, vDim*
+        if (object_name.startswith("Dim") or
+            name_lower.startswith("vw_dim") or
+            name_lower.startswith("v_dim") or
+            name_lower.startswith("vwdim") or
+            name_lower.startswith("vdim")):
             return "Dimension"
-        
-        # Check for fact tables (starts with "Fact")
-        if object_name.startswith("Fact"):
+
+        # Check for fact patterns:
+        # - Tables: Fact*, FACT*
+        # - Views: vw_Fact*, v_Fact*, vwFact*, vFact*
+        if (object_name.startswith("Fact") or
+            name_lower.startswith("vw_fact") or
+            name_lower.startswith("v_fact") or
+            name_lower.startswith("vwfact") or
+            name_lower.startswith("vfact")):
             return "Fact"
-        
+
         # Default to Other for staging tables, junction tables, etc.
         return "Other"
 
@@ -256,42 +271,41 @@ class FrontendFormatter:
         """
         parts = []
 
-        # Part 1: Confidence level indicator
-        if confidence >= 0.85:
-            parts.append(f"✅ High Confidence: {confidence:.2f}")
-        elif confidence >= 0.65:
-            parts.append(f"⚠️ Medium Confidence: {confidence:.2f}")
-        elif confidence > 0:
-            parts.append(f"⚠️ Low Confidence: {confidence:.2f}")
-        else:
-            parts.append(f"❌ Parse Failed: {confidence:.2f}")
+        # Start with actionable message (warnings/failures first)
 
-        # Part 2: Parse failure reason (if available and confidence < 0.65)
-        if confidence < 0.65 and parse_failure_reason:
+        # Parse failure reason (most critical - show first)
+        if confidence == 0 and parse_failure_reason:
             # Truncate very long reasons for readability
-            if len(parse_failure_reason) > 200:
-                reason_short = parse_failure_reason[:197] + "..."
+            if len(parse_failure_reason) > 80:
+                reason_short = parse_failure_reason[:77] + "..."
             else:
                 reason_short = parse_failure_reason
-            parts.append(reason_short)
+            parts.append(f"❌ {reason_short}")
 
-        # Part 3: Hint usage indicator (if applicable)
-        if source == 'parser_with_hints':
-            hint_inputs = 0
-            hint_outputs = 0
-            if confidence_breakdown:
-                hint_factor = confidence_breakdown.get('comment_hints', {})
-                # Extract hint counts from breakdown if available
-                if hint_factor.get('score', 0) > 0:
-                    parts.append("Manual hints used")
-
-        # Part 4: Missing dependencies warning (if significant)
-        if expected_count > 0 and found_count >= 0:
+        # Missing dependencies warning
+        elif expected_count is not None and found_count is not None and expected_count > 0 and found_count >= 0:
             missing = expected_count - found_count
             if missing > 2 and confidence < 0.85:
-                parts.append(f"⚠️ {missing} tables may be missing")
+                parts.append(f"⚠️ {missing} tables may be missing - add @LINEAGE hints")
 
-        return " | ".join(parts)
+        # Low confidence warning (no specific reason)
+        elif confidence < 0.75:
+            parts.append(f"⚠️ Low confidence - review parsing")
+
+        # Good confidence (no action needed)
+        else:
+            parts.append(f"✅ Good quality")
+
+        # Hint usage indicator (if applicable)
+        if source == 'parser_with_hints' and confidence_breakdown:
+            hint_factor = confidence_breakdown.get('comment_hints', {})
+            if hint_factor.get('score', 0) > 0:
+                parts.append("with hints")
+
+        # End with confidence score in brackets
+        parts.append(f"(score {confidence:.2f})")
+
+        return " ".join(parts)
 
     def _get_ddl_for_object(self, object_id: int) -> str | None:
         """
