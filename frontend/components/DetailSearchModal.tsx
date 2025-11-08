@@ -64,9 +64,9 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   const [topPanelHeight, setTopPanelHeight] = useState(25);
   const [isResizing, setIsResizing] = useState(false);
 
-  // Filter state - Initialize from main menu filters
-  const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(initialSelectedSchemas);
-  const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(initialSelectedTypes);
+  // Filter state - Independent from main menu (default: all selected)
+  const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
+  const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(new Set());
   const [showSearchHelp, setShowSearchHelp] = useState(false);
   const [showSchemaFilter, setShowSchemaFilter] = useState(false);
   const [showTypeFilter, setShowTypeFilter] = useState(false);
@@ -100,13 +100,14 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     };
   }, [allData]);
 
-  // Reset filters when modal opens with new initial values from main menu
+  // Initialize filters to ALL when modal opens (independent from main menu)
   useEffect(() => {
-    if (isOpen) {
-      setSelectedSchemas(new Set(initialSelectedSchemas));
-      setSelectedObjectTypes(new Set(initialSelectedTypes));
+    if (isOpen && filterOptions.schemas.length > 0) {
+      // Select all schemas and object types by default
+      setSelectedSchemas(new Set(filterOptions.schemas));
+      setSelectedObjectTypes(new Set(filterOptions.objectTypes));
     }
-  }, [isOpen, initialSelectedSchemas, initialSelectedTypes]);
+  }, [isOpen, filterOptions.schemas, filterOptions.objectTypes]);
 
   // Handle resize mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -625,9 +626,9 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                 if (!showTypeFilter) setShowSchemaFilter(false); // Close other dropdown
               }}
               className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 cursor-pointer whitespace-nowrap ${selectedObjectTypes.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
-              title={`Types (${selectedObjectTypes.size > 0 ? selectedObjectTypes.size : 'All'})`}
+              title={`Object Types (${selectedObjectTypes.size > 0 ? selectedObjectTypes.size : 'All'})`}
             >
-              Types ({selectedObjectTypes.size > 0 ? selectedObjectTypes.size : filterOptions.objectTypes.length})
+              Object Types ({selectedObjectTypes.size > 0 ? selectedObjectTypes.size : filterOptions.objectTypes.length})
             </button>
             {showTypeFilter && (
               <div className="absolute top-full mt-2 w-64 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-60 overflow-hidden flex flex-col">
@@ -712,20 +713,20 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
               <div className="font-medium mb-2 text-primary-600">
                 Advanced Search Syntax:
               </div>
-              <div className="grid grid-cols-[auto_1fr] gap-y-2 gap-x-4">
-                <code className="text-orange-600 bg-white px-1.5 py-0.5 rounded">customer AND order</code>
+              <div className="grid grid-cols-[minmax(180px,auto)_1fr] gap-y-2 gap-x-6">
+                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer AND order</code>
                 <span>Both words must appear</span>
 
-                <code className="text-orange-600 bg-white px-1.5 py-0.5 rounded">customer OR client</code>
+                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer OR client</code>
                 <span>Either word can appear</span>
 
-                <code className="text-orange-600 bg-white px-1.5 py-0.5 rounded">customer NOT temp</code>
+                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer NOT temp</code>
                 <span>Exclude results with "temp"</span>
 
-                <code className="text-orange-600 bg-white px-1.5 py-0.5 rounded">"SELECT * FROM"</code>
+                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">"SELECT * FROM"</code>
                 <span>Exact phrase search</span>
 
-                <code className="text-orange-600 bg-white px-1.5 py-0.5 rounded">cust*</code>
+                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">cust*</code>
                 <span>Wildcard (matches customer, customers, etc.)</span>
               </div>
             </div>
