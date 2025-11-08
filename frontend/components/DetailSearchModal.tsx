@@ -550,7 +550,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                   setShowSchemaFilter(!showSchemaFilter);
                   if (!showSchemaFilter) setShowTypeFilter(false);
                 }}
-                className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap ${selectedSchemas.size < filterOptions.schemas.length && selectedSchemas.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
+                className={`h-9 px-3 w-40 bg-white border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap ${selectedSchemas.size < filterOptions.schemas.length && selectedSchemas.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
                 title="Filter by schema"
               >
                 Schemas ({selectedSchemas.size}/{filterOptions.schemas.length})
@@ -597,10 +597,10 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                   setShowTypeFilter(!showTypeFilter);
                   if (!showTypeFilter) setShowSchemaFilter(false);
                 }}
-                className={`h-9 px-3 bg-white border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap ${selectedObjectTypes.size < filterOptions.objectTypes.length && selectedObjectTypes.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
+                className={`h-9 px-3 w-40 bg-white border border-gray-300 rounded-md text-sm transition-colors whitespace-nowrap ${selectedObjectTypes.size < filterOptions.objectTypes.length && selectedObjectTypes.size > 0 ? 'bg-blue-50 border-blue-400' : ''}`}
                 title="Filter by object type"
               >
-                Types ({selectedObjectTypes.size}/{filterOptions.objectTypes.length})
+                Object Types ({selectedObjectTypes.size}/{filterOptions.objectTypes.length})
               </button>
               {showTypeFilter && (
                 <div className="absolute top-full mt-2 right-0 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-30 max-h-[600px] overflow-hidden flex flex-col">
@@ -670,23 +670,14 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
           <div className="px-4 py-3 bg-blue-50 border-b border-blue-200">
             <div className="p-3 bg-white border border-blue-300 rounded text-xs text-gray-700 leading-relaxed">
               <div className="font-medium mb-2 text-primary-600">
-                Advanced Search Syntax:
+                Search Tips:
               </div>
-              <div className="grid grid-cols-[minmax(180px,auto)_1fr] gap-y-2 gap-x-6">
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer OR client</code>
-                <span>Either word (broadens search)</span>
-
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer AND order</code>
-                <span>Both words required (narrows search)</span>
-
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer NOT temp</code>
-                <span>Exclude "temp" results</span>
-
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">"SELECT * FROM"</code>
-                <span>Exact phrase match</span>
-
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">cust*</code>
-                <span>Wildcard (customer, customers, etc.)</span>
+              <div className="space-y-2">
+                <div><strong>Simple search:</strong> Just type any text to search object names, descriptions, and DDL content</div>
+                <div><strong>Multiple words:</strong> All words must appear somewhere in the result (e.g., "customer order" finds objects containing both words)</div>
+                <div><strong>Case insensitive:</strong> Search is not case-sensitive</div>
+                <div><strong>Use filters:</strong> Narrow results by Schema and Object Type above</div>
+                <div><strong>DDL search:</strong> Click a result to view full DDL, then use Ctrl+F for precise searching within the code</div>
               </div>
             </div>
           </div>
