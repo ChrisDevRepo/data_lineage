@@ -1,0 +1,69 @@
+# Hidden directories and OS files
+.*/
+.DS_Store
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables (NEVER commit credentials!)
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# EXCEPTION: These should be committed (not in gitignore):
+# .env.template        - Template with documentation
+# .env.development     - Frontend development config (no secrets)
+# .env.production      - Frontend production config (no secrets)
+
+# DuckDB workspace files
+*.duckdb
+*.duckdb.wal
+lineage_workspace.*
+
+# Parquet snapshots (may contain sensitive data)
+parquet_snapshots/*.parquet
+
+# Lineage output (generated files should not be tracked)
+lineage_output/*.json
+
+# Testing results (query log validation)
+testing/query_log_validation/results/*.json
+testing/query_log_validation/results/*.md
+# API persistent data
+api/data/
+data/
+
+# Log files (should never be committed)
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Temporary scripts and testing (keep root clean)
+temp/
