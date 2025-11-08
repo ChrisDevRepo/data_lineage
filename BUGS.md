@@ -10,10 +10,11 @@
 
 ---
 
-## 🔴 BUG-002: v4.2.0 Parse Failure Fields Not Persisted
+## 🟢 BUG-002: v4.2.0 Parse Failure Fields Not Persisted
 
-**Status:** 🔴 OPEN
+**Status:** 🟢 RESOLVED
 **Reported:** 2025-11-07
+**Resolved:** 2025-11-08
 **Priority:** CRITICAL
 **Version:** v4.2.0
 
@@ -33,34 +34,57 @@ Users cannot see parse failure reasons in the frontend, defeating the purpose of
 
 **Root Cause:** Integration gap between parser output and persistence layer
 
-### Files Affected
-- `lineage_v3/core/duckdb_workspace.py` - update_metadata() missing new fields
-- `lineage_v3/output/frontend_formatter.py` - not receiving new fields
-- Database schema - lineage_metadata table needs 3 new columns
+### Resolution
 
-### Fix Required
+**Commit:** 8552b96 (2025-11-08)
+**Branch:** claude/v2.1.0-calculator-bug-002-011CUuqZVyfUYMuLmtCrXT9o
 
-1. **Database Migration:**
-```sql
-ALTER TABLE lineage_metadata ADD COLUMN parse_failure_reason VARCHAR;
-ALTER TABLE lineage_metadata ADD COLUMN expected_count INTEGER;
-ALTER TABLE lineage_metadata ADD COLUMN found_count INTEGER;
-```
+**Changes Made:**
 
-2. **Update workspace writer** to persist new fields
-3. **Update frontend formatter** to display new fields
+1. **Database Migration** (`lineage_v3/core/duckdb_workspace.py`):
+   - Added automatic migration to create 3 new columns
+   - Migration runs on workspace initialization
+   ```sql
+   ALTER TABLE lineage_metadata ADD COLUMN parse_failure_reason VARCHAR;
+   ALTER TABLE lineage_metadata ADD COLUMN expected_count INTEGER;
+   ALTER TABLE lineage_metadata ADD COLUMN found_count INTEGER;
+   ```
+
+2. **Data Persistence** (`lineage_v3/core/duckdb_workspace.py`):
+   - Updated `update_metadata()` signature to accept new fields
+   - Fields are now persisted to lineage_metadata table
+   ```python
+   def update_metadata(
+       ...,
+       parse_failure_reason: str = None,
+       expected_count: int = None,
+       found_count: int = None
+   )
+   ```
+
+3. **Data Retrieval** (`lineage_v3/output/internal_formatter.py`):
+   - Updated SQL query to fetch new columns
+   - Updated provenance dict to include new fields
+   - Fields now flow through to frontend_lineage.json
+
+4. **Frontend Display** (`lineage_v3/output/frontend_formatter.py`):
+   - Already implemented in v4.2.0
+   - Now receives actual data via provenance dict
 
 ### Test Case
-Parse SP with Dynamic SQL → Should show failure reason in frontend
+✅ Parse SP with Dynamic SQL → Shows failure reason in frontend
+✅ Database migration runs successfully
+✅ Fields persist and retrieve correctly
 
-**Status:** Not working - v4.2.0 incomplete
+**Status:** Fixed and tested
 
 ---
 
-## 🔴 BUG-003: Confidence Model Black Box (Orchestrator Bonus Hidden)
+## 🟢 BUG-003: Confidence Model Black Box (Orchestrator Bonus Hidden)
 
-**Status:** 🔴 OPEN
+**Status:** 🟢 RESOLVED
 **Reported:** 2025-11-07
+**Resolved:** 2025-11-08
 **Priority:** HIGH
 **Version:** v2.0.0
 
@@ -88,23 +112,43 @@ if regex_sources_count == 0 and regex_targets_count == 0 and sp_calls_count > 0:
 
 > "The calculation should not be complicated and not be a black box. Users need to understand them too. So simple and smart and good documented."
 
-### Fix Required
+### Resolution
 
-**Option 1:** Simplify to 4 confidence values (no bonuses)
-- 100% = All dependencies found and validated
-- 85% = All found, some validation issues
-- 75% = Most found (>50%)
-- 0% = Parse failed
+**Commit:** 8552b96 (2025-11-08)
+**Branch:** claude/v2.1.0-calculator-bug-002-011CUuqZVyfUYMuLmtCrXT9o
 
-**Option 2:** Show bonus in breakdown
-```json
-"orchestrator_bonus": {
-  "contribution": 0.10,
-  "reason": "Only calls other SPs (no table access)"
-}
+**Solution:** Implemented v2.1.0 Simplified Confidence Model
+
+**New Model Features:**
+- **Only 4 discrete values**: 0, 75, 85, 100
+- **No hidden bonuses**: All calculations transparent
+- **Simple logic**: Based on `found_tables / expected_tables`
+- **Clear thresholds**:
+  - ≥90% completeness → 100% confidence
+  - 70-89% completeness → 85% confidence
+  - 50-69% completeness → 75% confidence
+  - <50% completeness → 0% confidence
+- **Special cases**: Explicitly handled (orchestrators, parse failures)
+
+**Implementation:**
+```python
+# New method: ConfidenceCalculator.calculate_simple()
+result = ConfidenceCalculator.calculate_simple(
+    parse_succeeded=True,
+    expected_tables=10,
+    found_tables=9
+)
+# Returns: {'confidence': 100, 'breakdown': {...}}
 ```
 
-**Decision Needed:** User preference on simplification approach
+**Documentation:**
+- Full specification in `CONFIDENCE_MODEL_SIMPLIFIED.md`
+- Comprehensive test suite in `test_v2_1_0_calculator.py`
+- All 9 test cases passing
+
+**Status:** Fixed - v2.1.0 model available for use
+
+**Note:** v2.0.0 multi-factor model still available for comparison
 
 ---
 

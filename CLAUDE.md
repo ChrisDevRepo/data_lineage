@@ -9,7 +9,7 @@
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **System:** Python 3.12.3, Node.js, WSL2
 - **Parser:** v4.2.0 | 97.0% SP confidence | 95.5% overall
-- **Confidence:** v2.0.0 (Multi-Factor) with detailed breakdown
+- **Confidence:** v2.1.0 (Simplified 4-value) | v2.0.0 (Multi-Factor) available
 - **Frontend:** v2.9.2 | **API:** v4.0.3
 
 ## Quick Start
@@ -106,7 +106,7 @@ LOG_LEVEL=INFO                                 # DEBUG | INFO | WARNING | ERROR
 - **Strategy:** Regex → SQLGlot → Rule Engine
 - **Performance:** 729/763 objects (95.5%), 196/202 SPs (97.0%)
 - **Features:** Comment hints (@LINEAGE_INPUTS/@LINEAGE_OUTPUTS), dataflow mode, global target exclusion, incremental parsing
-- **Confidence:** Multi-factor model v2.0.0 with detailed breakdown (5 weighted factors)
+- **Confidence:** v2.1.0 simplified model (4 values: 0, 75, 85, 100) | v2.0.0 multi-factor available
 
 ### Parser Development (MANDATORY)
 
@@ -155,7 +155,48 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 - Re-parses only modified/new + low confidence objects (<0.85)
 - 50-90% faster than full refresh
 
-### Confidence Model (v2.0.0 - Multi-Factor)
+### Confidence Model (v2.1.0 - Simplified)
+
+**Default model:** Simple, transparent, 4-value confidence
+
+**Only 4 discrete values:** 0, 75, 85, 100
+- **100%**: ≥90% completeness (found/expected tables)
+- **85%**: 70-89% completeness
+- **75%**: 50-69% completeness
+- **0%**: <50% completeness OR parse failed
+
+**Simple logic:**
+```python
+completeness = (found_tables / expected_tables) * 100
+```
+
+**Special cases:**
+- Orchestrators (only EXEC, no tables) → 100%
+- Parse failures → 0%
+
+**Transparent breakdown:**
+```json
+{
+  "confidence": 85,
+  "breakdown": {
+    "parse_succeeded": true,
+    "expected_tables": 10,
+    "found_tables": 7,
+    "completeness_pct": 70.0,
+    "explanation": "Found 7/10 tables (70%) - Good, most found",
+    "to_improve": "Add @LINEAGE hints for 3 missing tables"
+  }
+}
+```
+
+**Single Source of Truth:** `ConfidenceCalculator.calculate_simple()`
+
+---
+
+### Confidence Model (v2.0.0 - Multi-Factor) [Legacy]
+
+**Alternative model:** Complex multi-factor calculation (available for comparison)
+
 **5 Weighted Factors (sum to 1.0):**
 - **Parse Success (30%)**: Did parsing complete without errors?
 - **Method Agreement (25%)**: Do regex and SQLGlot agree?
@@ -163,28 +204,7 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 - **Comment Hints (10%)**: Did developer provide @LINEAGE hints?
 - **UAT Validation (15%)**: Has user verified this SP?
 
-**Confidence Levels:**
-- **High (0.85)**: total_score ≥ 0.80
-- **Medium (0.75)**: total_score ≥ 0.65
-- **Low (0.50)**: total_score > 0
-- **Failed (0.0)**: total_score = 0
-
-**Every parsed object includes detailed breakdown:**
-```json
-{
-  "parse_success": {"score": 1.0, "weight": 0.30, "contribution": 0.30},
-  "method_agreement": {"score": 0.95, "weight": 0.25, "contribution": 0.2375},
-  "catalog_validation": {"score": 1.0, "weight": 0.20, "contribution": 0.20},
-  "comment_hints": {"score": 0.0, "weight": 0.10, "contribution": 0.0},
-  "uat_validation": {"score": 0.0, "weight": 0.15, "contribution": 0.0},
-  "total_score": 0.7375,
-  "bucketed_confidence": 0.75,
-  "label": "Medium",
-  "color": "yellow"
-}
-```
-
-**Single Source of Truth:** `ConfidenceCalculator.calculate_multifactor()`
+**Source of Truth:** `ConfidenceCalculator.calculate_multifactor()`
 
 ### Parquet File Detection
 - Auto-detects schema
@@ -208,6 +228,7 @@ See [.claude/commands/](/.claude/commands/) for detailed docs.
 
 **Parser & Technical:**
 - [lineage_specs.md](lineage_specs.md) - Parser specification
+- [CONFIDENCE_MODEL_SIMPLIFIED.md](CONFIDENCE_MODEL_SIMPLIFIED.md) - v2.1.0 confidence model spec
 - [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing guide
 - [docs/COMMENT_HINTS_DEVELOPER_GUIDE.md](docs/COMMENT_HINTS_DEVELOPER_GUIDE.md) - Using @LINEAGE hints
 - [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
