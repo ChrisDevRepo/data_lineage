@@ -106,16 +106,39 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
       console.log('[DetailSearchModal] Initializing filters:', {
         initialSelectedSchemas: Array.from(initialSelectedSchemas),
         initialSelectedTypes: Array.from(initialSelectedTypes),
-        filterOptions
+        filterOptions,
+        allDataLength: allData.length
       });
-      setSelectedSchemas(new Set(initialSelectedSchemas));
-      setSelectedObjectTypes(new Set(initialSelectedTypes));
+
+      // Create new Sets with values from parent
+      const newSelectedSchemas = new Set(Array.from(initialSelectedSchemas));
+      const newSelectedTypes = new Set(Array.from(initialSelectedTypes));
+
+      console.log('[DetailSearchModal] After initialization:', {
+        newSelectedSchemas: Array.from(newSelectedSchemas),
+        newSelectedTypes: Array.from(newSelectedTypes)
+      });
+
+      setSelectedSchemas(newSelectedSchemas);
+      setSelectedObjectTypes(newSelectedTypes);
       hasInitializedFilters.current = true;
     } else if (!isOpen) {
       // Reset the flag when modal closes so it reinitializes on next open
       hasInitializedFilters.current = false;
     }
-  }, [isOpen, filterOptions.schemas.length, filterOptions.objectTypes.length]);
+  }, [isOpen, filterOptions.schemas.length, filterOptions.objectTypes.length, allData.length]);
+
+  // Debug: Log filter state changes
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[DetailSearchModal] Filter state updated:', {
+        selectedSchemas: Array.from(selectedSchemas),
+        selectedObjectTypes: Array.from(selectedObjectTypes),
+        filterOptionsSchemas: filterOptions.schemas,
+        filterOptionsTypes: filterOptions.objectTypes
+      });
+    }
+  }, [selectedSchemas, selectedObjectTypes, isOpen]);
 
   // Handle resize mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -624,6 +647,15 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
             <div className="relative" ref={typeFilterRef}>
               <button
                 onClick={() => {
+                  console.log('[DetailSearchModal] Type filter button clicked:', {
+                    currentShowState: showTypeFilter,
+                    selectedObjectTypes: Array.from(selectedObjectTypes),
+                    filterOptionsTypes: filterOptions.objectTypes,
+                    checkboxStates: filterOptions.objectTypes.map(type => ({
+                      type,
+                      checked: selectedObjectTypes.has(type)
+                    }))
+                  });
                   setShowTypeFilter(!showTypeFilter);
                   if (!showTypeFilter) setShowSchemaFilter(false);
                 }}
