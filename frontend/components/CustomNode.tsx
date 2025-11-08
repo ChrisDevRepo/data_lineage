@@ -54,6 +54,8 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
     }
 
     // Get confidence badge for Stored Procedures (v2.1.0 simplified model)
+    // CRITICAL: v2.1.0 only produces 4 discrete values: 0, 75, 85, 100
+    // Thresholds must match frontend_formatter.py description logic exactly
     const confidenceBadge = useMemo(() => {
         if (data.object_type !== 'Stored Procedure') return null;
 
@@ -62,14 +64,15 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
         // Support both formats: discrete (0, 75, 85, 100) and decimal (0.0-1.0)
         const conf = confidence > 1 ? confidence : confidence * 100;
 
+        // Use same thresholds as description (frontend_formatter.py)
         if (conf >= 90) {
-            return <span className="confidence-badge" title="Perfect (100%)">✅</span>;
+            return <span className="confidence-badge" title="✅ Perfect (100%)">✅</span>;
         } else if (conf >= 80) {
-            return <span className="confidence-badge" title="Good (85%)">🟢</span>;
+            return <span className="confidence-badge" title="🟢 Good (85%)">🟢</span>;
         } else if (conf >= 70) {
-            return <span className="confidence-badge" title="Acceptable (75%)">⚠️</span>;
+            return <span className="confidence-badge" title="⚠️ Acceptable (75%)">⚠️</span>;
         } else {
-            return <span className="confidence-badge" title="Failed (0%)">❌</span>;
+            return <span className="confidence-badge" title="❌ Failed (0%)">❌</span>;
         }
     }, [data.object_type, data.confidence]);
 
