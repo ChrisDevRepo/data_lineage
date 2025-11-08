@@ -673,20 +673,20 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                 Advanced Search Syntax:
               </div>
               <div className="grid grid-cols-[minmax(180px,auto)_1fr] gap-y-2 gap-x-6">
-                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer AND order</code>
-                <span>Both words must appear</span>
-
                 <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer OR client</code>
-                <span>Either word can appear</span>
+                <span>Either word (broadens search)</span>
+
+                <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer AND order</code>
+                <span>Both words required (narrows search)</span>
 
                 <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">customer NOT temp</code>
-                <span>Exclude results with "temp"</span>
+                <span>Exclude "temp" results</span>
 
                 <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">"SELECT * FROM"</code>
-                <span>Exact phrase search</span>
+                <span>Exact phrase match</span>
 
                 <code className="text-orange-600 bg-gray-50 px-2 py-1 rounded border border-gray-200">cust*</code>
-                <span>Wildcard (matches customer, customers, etc.)</span>
+                <span>Wildcard (customer, customers, etc.)</span>
               </div>
             </div>
           </div>
