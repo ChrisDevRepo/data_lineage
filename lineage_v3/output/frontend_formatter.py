@@ -271,42 +271,41 @@ class FrontendFormatter:
         """
         parts = []
 
-        # Part 1: Confidence level indicator
-        if confidence >= 0.85:
-            parts.append(f"✅ High Confidence: {confidence:.2f}")
-        elif confidence >= 0.65:
-            parts.append(f"⚠️ Medium Confidence: {confidence:.2f}")
-        elif confidence > 0:
-            parts.append(f"⚠️ Low Confidence: {confidence:.2f}")
-        else:
-            parts.append(f"❌ Parse Failed: {confidence:.2f}")
+        # Start with actionable message (warnings/failures first)
 
-        # Part 2: Parse failure reason (if available and confidence < 0.65)
-        if confidence < 0.65 and parse_failure_reason:
+        # Parse failure reason (most critical - show first)
+        if confidence == 0 and parse_failure_reason:
             # Truncate very long reasons for readability
-            if len(parse_failure_reason) > 200:
-                reason_short = parse_failure_reason[:197] + "..."
+            if len(parse_failure_reason) > 80:
+                reason_short = parse_failure_reason[:77] + "..."
             else:
                 reason_short = parse_failure_reason
-            parts.append(reason_short)
+            parts.append(f"❌ {reason_short}")
 
-        # Part 3: Hint usage indicator (if applicable)
-        if source == 'parser_with_hints':
-            hint_inputs = 0
-            hint_outputs = 0
-            if confidence_breakdown:
-                hint_factor = confidence_breakdown.get('comment_hints', {})
-                # Extract hint counts from breakdown if available
-                if hint_factor.get('score', 0) > 0:
-                    parts.append("Manual hints used")
-
-        # Part 4: Missing dependencies warning (if significant)
-        if expected_count is not None and found_count is not None and expected_count > 0 and found_count >= 0:
+        # Missing dependencies warning
+        elif expected_count is not None and found_count is not None and expected_count > 0 and found_count >= 0:
             missing = expected_count - found_count
             if missing > 2 and confidence < 0.85:
-                parts.append(f"⚠️ {missing} tables may be missing")
+                parts.append(f"⚠️ {missing} tables may be missing - add @LINEAGE hints")
 
-        return " | ".join(parts)
+        # Low confidence warning (no specific reason)
+        elif confidence < 0.75:
+            parts.append(f"⚠️ Low confidence - review parsing")
+
+        # Good confidence (no action needed)
+        else:
+            parts.append(f"✅ Good quality")
+
+        # Hint usage indicator (if applicable)
+        if source == 'parser_with_hints' and confidence_breakdown:
+            hint_factor = confidence_breakdown.get('comment_hints', {})
+            if hint_factor.get('score', 0) > 0:
+                parts.append("with hints")
+
+        # End with confidence score in brackets
+        parts.append(f"(score {confidence:.2f})")
+
+        return " ".join(parts)
 
     def _get_ddl_for_object(self, object_id: int) -> str | None:
         """
