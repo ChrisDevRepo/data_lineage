@@ -673,11 +673,11 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
                 Search Tips:
               </div>
               <div className="space-y-2">
-                <div><strong>Simple search:</strong> Just type any text to search object names, descriptions, and DDL content</div>
-                <div><strong>Multiple words:</strong> All words must appear somewhere in the result (e.g., "customer order" finds objects containing both words)</div>
+                <div><strong>Text matching:</strong> Search finds your text anywhere in object names, descriptions, or DDL content</div>
+                <div><strong>Exact match:</strong> Searches for the exact text you type (e.g., "dim customer" finds objects containing "dim customer")</div>
                 <div><strong>Case insensitive:</strong> Search is not case-sensitive</div>
-                <div><strong>Use filters:</strong> Narrow results by Schema and Object Type above</div>
-                <div><strong>DDL search:</strong> Click a result to view full DDL, then use Ctrl+F for precise searching within the code</div>
+                <div><strong>Use filters:</strong> Narrow results by Schema and Object Type for better precision</div>
+                <div><strong>Precise search:</strong> Click a result to view full DDL, then use Ctrl+F for exact pattern matching</div>
               </div>
             </div>
           </div>
