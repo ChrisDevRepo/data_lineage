@@ -514,15 +514,16 @@ The Detail Search modal should provide a **manual, serial search process** for f
 - Monaco editor should **not respond** to keystrokes from search input
 - Clear focus management between search input and code viewer
 
-**Suspected Root Cause:**
-- Monaco editor may be capturing global keyboard events
-- Search input may not be properly preventing event propagation
-- Focus may be jumping between input and editor
+**Root Cause (Confirmed):**
+- Monaco editor was capturing global keyboard events
+- Missing `domReadOnly: true` in editor configuration
+- Editor responded to ALL keyboard input, not just when focused
 
-**Investigation Needed:**
-- Check event handlers on search input (onKeyDown, onKeyPress, onChange)
-- Check if Monaco editor has autofocus or global keyboard capture enabled
-- Check CSS/DOM hierarchy for focus management issues
+**Status:** 🟢 RESOLVED (2025-11-08)
+- Fixed in commit `d45b806`: Added `domReadOnly: true` to MONACO_EDITOR_OPTIONS
+- This prevents editor from capturing keyboard events outside its DOM element
+- Created comprehensive Playwright test suite (5 tests)
+- **Pending user testing/approval**
 
 ---
 
@@ -564,4 +565,4 @@ The Detail Search modal should provide a **manual, serial search process** for f
 
 ---
 
-**Last Updated:** 2025-11-07
+**Last Updated:** 2025-11-08
