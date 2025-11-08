@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { CONSTANTS } from '../constants';
 import { DataNode } from '../types';
@@ -53,8 +53,8 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
         nodeTitle += `\n\n💡 Click to view SQL definition`;
     }
 
-    // Get confidence badge for Stored Procedures
-    const confidenceBadge = (() => {
+    // Get confidence badge for Stored Procedures (v2.1.0 simplified model)
+    const confidenceBadge = useMemo(() => {
         if (data.object_type !== 'Stored Procedure') return null;
 
         const confidence = data.confidence || 0;
@@ -71,7 +71,7 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
         } else {
             return <span className="confidence-badge" title="Failed (0%)">❌</span>;
         }
-    })();
+    }, [data.object_type, data.confidence]);
 
     return (
         <div className="relative">
