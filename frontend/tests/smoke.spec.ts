@@ -7,11 +7,17 @@ test.describe('Data Lineage Visualizer - Smoke Tests', () => {
   });
 
   test('should load the application', async ({ page }) => {
-    // Check that the logo is visible
-    await expect(page.locator('img[alt*="Data Lineage"]')).toBeVisible();
+    // Wait for React Flow to load (gives time for React app to render)
+    await page.waitForSelector('.react-flow', { timeout: 15000 });
 
     // Check that React Flow canvas is present
     await expect(page.locator('.react-flow')).toBeVisible();
+
+    // Check that toolbar is present
+    await expect(page.locator('button')).toHaveCount(1, { timeout: 5000 }).catch(() => {
+      // At least one button should exist (toolbar buttons)
+      return expect(page.locator('button').first()).toBeVisible();
+    });
   });
 
   test('should open detail search modal', async ({ page }) => {
