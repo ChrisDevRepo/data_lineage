@@ -271,20 +271,17 @@ class FrontendFormatter:
         """
         parts = []
 
-        # CRITICAL: Use same thresholds as CustomNode.tsx badge (v2.1.0 model)
-        # - ≥90% (100): ✅ Perfect
-        # - ≥80% (85): 🟢 Good
+        # CRITICAL: Use same thresholds as confidenceUtils.ts (v2.1.0 simplified - 3 categories)
+        # - ≥80% (85-100): ✅ Good
         # - ≥70% (75): ⚠️ Acceptable
         # - <70% (0): ❌ Failed
 
         # Support both formats: discrete (0, 75, 85, 100) and decimal (0.0-1.0)
         conf_pct = confidence * 100 if confidence <= 1 else confidence
 
-        # Map confidence to icon (matches CustomNode.tsx exactly)
-        if conf_pct >= 90:
-            icon = "✅ Perfect"
-        elif conf_pct >= 80:
-            icon = "🟢 Good"
+        # Map confidence to icon (matches confidenceUtils.ts exactly)
+        if conf_pct >= 80:
+            icon = "✅ Good"
         elif conf_pct >= 70:
             icon = "⚠️ Acceptable"
         else:
@@ -301,10 +298,10 @@ class FrontendFormatter:
                 reason_short = parse_failure_reason
             parts.append(f"| {reason_short}")
 
-        # Add missing dependencies warning (for 75% and 85%)
+        # Add missing dependencies warning (for 75% only - 85%/100% are "Good")
         elif expected_count is not None and found_count is not None and expected_count > 0 and found_count >= 0:
             missing = expected_count - found_count
-            if missing > 2 and conf_pct < 90:
+            if missing > 2 and conf_pct < 80:
                 parts.append(f"| {missing} tables may be missing - add @LINEAGE hints")
 
         # Hint usage indicator (if applicable)
