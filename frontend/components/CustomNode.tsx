@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { CONSTANTS } from '../constants';
 import { DataNode } from '../types';
+import { getConfidenceLevel } from '../src/utils/confidenceUtils';
 
 type CustomNodeData = DataNode & {
     isHighlighted: boolean;
@@ -54,23 +55,18 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
     }
 
     // Get confidence badge for Stored Procedures (v2.1.0 simplified model)
+    // Uses shared confidenceUtils.ts for single source of truth
     const confidenceBadge = useMemo(() => {
         if (data.object_type !== 'Stored Procedure') return null;
 
         const confidence = data.confidence || 0;
+        const level = getConfidenceLevel(confidence);
 
-        // Support both formats: discrete (0, 75, 85, 100) and decimal (0.0-1.0)
-        const conf = confidence > 1 ? confidence : confidence * 100;
-
-        if (conf >= 90) {
-            return <span className="confidence-badge" title="Perfect (100%)">✅</span>;
-        } else if (conf >= 80) {
-            return <span className="confidence-badge" title="Good (85%)">🟢</span>;
-        } else if (conf >= 70) {
-            return <span className="confidence-badge" title="Acceptable (75%)">⚠️</span>;
-        } else {
-            return <span className="confidence-badge" title="Failed (0%)">❌</span>;
-        }
+        return (
+            <span className="confidence-badge" title={level.title}>
+                {level.icon}
+            </span>
+        );
     }, [data.object_type, data.confidence]);
 
     return (

@@ -212,14 +212,19 @@ class SQLCleaningRules:
 
         Becomes:
             (removed)
+
+        CRITICAL FIX (2025-11-08): Changed pattern from [^;]*;? to .*?(?:;|\n|$)
+        Previous pattern was TOO GREEDY - if no semicolon, it would eat entire SQL!
+        Example: "DECLARE @x INT\nINSERT INTO Table" → matched entire string
+        New pattern stops at first semicolon, newline, or end of string.
         """
         return RegexRule(
             name="RemoveDECLARE",
             category=RuleCategory.VARIABLE_DECLARATION,
             description="Remove DECLARE variable declarations",
-            pattern=r'DECLARE\s+@\w+[^;]*;?',
+            pattern=r'DECLARE\s+@\w+.*?(?:;|\n|$)',
             replacement='',
-            flags=re.IGNORECASE,
+            flags=re.IGNORECASE | re.DOTALL,
             priority=20,
             examples_before=["DECLARE @var VARCHAR(100);\nSELECT 1"],
             examples_after=["\nSELECT 1"]
@@ -239,14 +244,17 @@ class SQLCleaningRules:
 
         Becomes:
             (removed)
+
+        CRITICAL FIX (2025-11-08): Changed pattern from =[^;]*;? to =.*?(?:;|\n|$)
+        Same greedy pattern issue as DECLARE - stops at semicolon/newline/end.
         """
         return RegexRule(
             name="RemoveSET",
             category=RuleCategory.VARIABLE_DECLARATION,
             description="Remove SET variable assignments",
-            pattern=r'SET\s+@\w+\s*=[^;]*;?',
+            pattern=r'SET\s+@\w+\s*=.*?(?:;|\n|$)',
             replacement='',
-            flags=re.IGNORECASE,
+            flags=re.IGNORECASE | re.DOTALL,
             priority=21,
             examples_before=["SET @var = 'test';\nSELECT 1"],
             examples_after=["\nSELECT 1"]
