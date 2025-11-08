@@ -271,30 +271,38 @@ class FrontendFormatter:
         """
         parts = []
 
-        # Start with actionable message (warnings/failures first)
+        # CRITICAL: Use same thresholds as confidenceUtils.ts (v2.1.0 simplified - 3 categories)
+        # - ≥80% (85-100): ✅ Good
+        # - ≥70% (75): ⚠️ Acceptable
+        # - <70% (0): ❌ Failed
 
-        # Parse failure reason (most critical - show first)
-        if confidence == 0 and parse_failure_reason:
+        # Support both formats: discrete (0, 75, 85, 100) and decimal (0.0-1.0)
+        conf_pct = confidence * 100 if confidence <= 1 else confidence
+
+        # Map confidence to icon (matches confidenceUtils.ts exactly)
+        if conf_pct >= 80:
+            icon = "✅ Good"
+        elif conf_pct >= 70:
+            icon = "⚠️ Acceptable"
+        else:
+            icon = "❌ Failed"
+
+        parts.append(icon)
+
+        # Add parse failure reason if present
+        if conf_pct == 0 and parse_failure_reason:
             # Truncate very long reasons for readability
             if len(parse_failure_reason) > 80:
                 reason_short = parse_failure_reason[:77] + "..."
             else:
                 reason_short = parse_failure_reason
-            parts.append(f"❌ {reason_short}")
+            parts.append(f"| {reason_short}")
 
-        # Missing dependencies warning
+        # Add missing dependencies warning (for 75% only - 85%/100% are "Good")
         elif expected_count is not None and found_count is not None and expected_count > 0 and found_count >= 0:
             missing = expected_count - found_count
-            if missing > 2 and confidence < 0.85:
-                parts.append(f"⚠️ {missing} tables may be missing - add @LINEAGE hints")
-
-        # Low confidence warning (no specific reason)
-        elif confidence < 0.75:
-            parts.append(f"⚠️ Low confidence - review parsing")
-
-        # Good confidence (no action needed)
-        else:
-            parts.append(f"✅ Good quality")
+            if missing > 2 and conf_pct < 80:
+                parts.append(f"| {missing} tables may be missing - add @LINEAGE hints")
 
         # Hint usage indicator (if applicable)
         if source == 'parser_with_hints' and confidence_breakdown:
