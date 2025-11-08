@@ -286,7 +286,7 @@ class FrontendFormatter:
                     parts.append("Manual hints used")
 
         # Part 4: Missing dependencies warning (if significant)
-        if expected_count > 0 and found_count >= 0:
+        if expected_count is not None and found_count is not None and expected_count > 0 and found_count >= 0:
             missing = expected_count - found_count
             if missing > 2 and confidence < 0.85:
                 parts.append(f"⚠️ {missing} tables may be missing")

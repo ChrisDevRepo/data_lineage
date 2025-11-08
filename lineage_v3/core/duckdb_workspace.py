@@ -930,21 +930,37 @@ class DuckDBWorkspace:
             """)
 
         # Part 3: Fallback for tables without column metadata (ensures ALL tables are searchable)
-        view_parts.append("""
-            SELECT
-                o.object_id,
-                o.schema_name,
-                o.object_name,
-                o.object_type,
-                'CREATE TABLE [' || o.schema_name || '].[' || o.object_name || '] (' || chr(10) ||
-                '    /* Column information not available - table_columns.parquet not provided */' || chr(10) ||
-                ');' as ddl_text
-            FROM objects o
-            WHERE o.object_type = 'Table'
-            AND NOT EXISTS (
-                SELECT 1 FROM table_columns tc WHERE tc.correct_object_id = o.object_id
-            )
-        """)
+        if table_columns_exists:
+            # Only show tables NOT in table_columns
+            view_parts.append("""
+                SELECT
+                    o.object_id,
+                    o.schema_name,
+                    o.object_name,
+                    o.object_type,
+                    'CREATE TABLE [' || o.schema_name || '].[' || o.object_name || '] (' || chr(10) ||
+                    '    /* Column information not available - table_columns.parquet not provided */' || chr(10) ||
+                    ');' as ddl_text
+                FROM objects o
+                WHERE o.object_type = 'Table'
+                AND NOT EXISTS (
+                    SELECT 1 FROM table_columns tc WHERE tc.correct_object_id = o.object_id
+                )
+            """)
+        else:
+            # Show ALL tables with fallback DDL (table_columns.parquet not provided)
+            view_parts.append("""
+                SELECT
+                    o.object_id,
+                    o.schema_name,
+                    o.object_name,
+                    o.object_type,
+                    'CREATE TABLE [' || o.schema_name || '].[' || o.object_name || '] (' || chr(10) ||
+                    '    /* Column information not available - table_columns.parquet not provided */' || chr(10) ||
+                    ');' as ddl_text
+                FROM objects o
+                WHERE o.object_type = 'Table'
+            """)
 
         # Create view with UNION ALL for all parts
         view_sql = "CREATE OR REPLACE VIEW unified_ddl AS " + " UNION ALL ".join(view_parts)
