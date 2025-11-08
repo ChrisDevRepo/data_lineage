@@ -373,6 +373,22 @@ class QualityAwareParser:
             sp_ids = self._resolve_sp_names(regex_sp_calls_valid)
             output_ids.extend(sp_ids)
 
+            # STEP 7: Detect parse failure reasons (v4.2.0)
+            # Calculate expected vs found counts for smoke test comparison
+            expected_count = len(regex_sources_valid) + len(regex_targets_valid)
+            found_count = len(input_ids) + len(output_ids) - len(sp_ids)  # Exclude SP calls from count
+
+            # Generate failure reason if confidence is low
+            parse_failure_reason = None
+            if confidence < 0.65:
+                parse_failure_reason = self._detect_parse_failure_reason(
+                    ddl=ddl,
+                    parse_error=None,
+                    expected_count=expected_count,
+                    found_count=found_count
+                )
+                logger.warning(f"Low confidence ({confidence:.2f}) for object_id {object_id}: {parse_failure_reason}")
+
             return {
                 'object_id': object_id,
                 'inputs': input_ids,
@@ -380,6 +396,9 @@ class QualityAwareParser:
                 'confidence': confidence,
                 'source': 'parser_with_hints' if has_hints else 'parser',
                 'parse_error': None,
+                'parse_failure_reason': parse_failure_reason,  # v4.2.0: Actionable guidance
+                'expected_count': expected_count,  # v4.2.0: From smoke test
+                'found_count': found_count,        # v4.2.0: Actual extracted
                 'quality_check': {
                     'regex_sources': len(regex_sources_valid),
                     'regex_targets': len(regex_targets_valid),
@@ -412,6 +431,14 @@ class QualityAwareParser:
                 uat_validated=False
             )
 
+            # Detect failure reason (v4.2.0)
+            parse_failure_reason = self._detect_parse_failure_reason(
+                ddl=ddl,
+                parse_error=str(e),
+                expected_count=0,
+                found_count=0
+            )
+
             return {
                 'object_id': object_id,
                 'inputs': [],
@@ -419,6 +446,9 @@ class QualityAwareParser:
                 'confidence': 0.0,
                 'source': 'parser',
                 'parse_error': str(e),
+                'parse_failure_reason': parse_failure_reason,  # v4.2.0: Actionable guidance
+                'expected_count': 0,  # v4.2.0
+                'found_count': 0,     # v4.2.0
                 'confidence_breakdown': failure_breakdown
             }
 
@@ -1220,6 +1250,91 @@ class QualityAwareParser:
                 object_ids.append(results[0][0])
 
         return object_ids
+
+    def _detect_parse_failure_reason(self, ddl: str, parse_error: Optional[str] = None, expected_count: int = 0, found_count: int = 0) -> str:
+        """
+        Detect WHY parsing failed and provide actionable feedback for users.
+
+        This method analyzes the DDL to identify specific T-SQL patterns that
+        prevent successful parsing and provides clear guidance on how to resolve them.
+
+        Args:
+            ddl: The stored procedure DDL text
+            parse_error: Optional SQLGlot parse error message
+            expected_count: Expected number of tables from smoke test (DDL text analysis)
+            found_count: Actual number of tables extracted by parser
+
+        Returns:
+            Human-readable string explaining failure reason and recommended action
+
+        Example output:
+            "Dynamic SQL: sp_executesql @variable - table names unknown at parse time |
+             Expected 8 tables, found 1 (7 missing) → Add @LINEAGE_INPUTS/@LINEAGE_OUTPUTS hints"
+
+        Version: 4.2.0 (2025-11-07)
+        """
+        reasons = []
+
+        # Pattern 1: Dynamic SQL with EXEC(@variable)
+        if re.search(r'EXEC\s*\(\s*@\w+\s*\)', ddl, re.IGNORECASE):
+            reasons.append("Dynamic SQL: EXEC(@variable) - table names unknown at parse time")
+
+        # Pattern 2: Dynamic SQL with sp_executesql
+        if re.search(r'sp_executesql\s+@\w+', ddl, re.IGNORECASE):
+            reasons.append("Dynamic SQL: sp_executesql @variable - table names unknown at parse time")
+
+        # Pattern 3: String concatenation for dynamic SQL
+        if re.search(r'DECLARE\s+@\w+.*?NVARCHAR.*?(?:INSERT|SELECT|UPDATE|DELETE|FROM)', ddl, re.IGNORECASE | re.DOTALL):
+            if not reasons:  # Only add if not already detected via EXEC
+                reasons.append("Dynamic SQL: String concatenation detected")
+
+        # Pattern 4: Deep nesting (5+ BEGIN/END blocks)
+        begin_count = len(re.findall(r'\bBEGIN\b', ddl, re.IGNORECASE))
+        if begin_count >= 5:
+            reasons.append(f"Deep nesting: {begin_count} BEGIN/END blocks (limit: 4)")
+
+        # Pattern 5: WHILE loops
+        if re.search(r'\bWHILE\b', ddl, re.IGNORECASE):
+            reasons.append("WHILE loop: Iterative logic not supported by parser")
+
+        # Pattern 6: CURSOR usage
+        if re.search(r'\bCURSOR\b', ddl, re.IGNORECASE):
+            reasons.append("CURSOR: Row-by-row processing not supported by parser")
+
+        # Pattern 7: Complex CASE WHEN (10+ occurrences)
+        case_count = len(re.findall(r'\bCASE\b', ddl, re.IGNORECASE))
+        if case_count >= 10:
+            reasons.append(f"Complex CASE logic: {case_count} CASE statements (limit: 9)")
+
+        # Pattern 8: Multiple CTEs (10+ WITH clauses)
+        cte_count = len(re.findall(r'\bWITH\s+\w+\s+AS\s*\(', ddl, re.IGNORECASE))
+        if cte_count >= 10:
+            reasons.append(f"Multiple CTEs: {cte_count} WITH clauses (limit: 9)")
+
+        # Fallback: Use SQLGlot error if available
+        if not reasons and parse_error:
+            reasons.append(f"SQLGlot parse error: {parse_error[:100]}")
+
+        # Generic fallback
+        if not reasons:
+            reasons.append("Complex T-SQL patterns")
+
+        # Build description
+        description_parts = []
+
+        # Main reason
+        description_parts.append(" | ".join(reasons))
+
+        # Add expected vs found counts if available
+        if expected_count > 0 and found_count >= 0:
+            missing = expected_count - found_count
+            if missing > 2:
+                description_parts.append(f"Expected {expected_count} tables, found {found_count} ({missing} missing)")
+
+        # Actionable solution
+        description_parts.append("→ Add @LINEAGE_INPUTS/@LINEAGE_OUTPUTS comment hints to document dependencies")
+
+        return " | ".join(description_parts)
 
     def _get_object_info(self, object_id: int) -> Optional[Dict[str, str]]:
         """

@@ -10,6 +10,206 @@
 
 ---
 
+## 🔴 BUG-002: v4.2.0 Parse Failure Fields Not Persisted
+
+**Status:** 🔴 OPEN
+**Reported:** 2025-11-07
+**Priority:** CRITICAL
+**Version:** v4.2.0
+
+### Business Impact
+
+Users cannot see parse failure reasons in the frontend, defeating the purpose of v4.2.0 enhancement. The "Parse Failure Workflow" feature is non-functional.
+
+### Technical Details
+
+**Problem:** Parser generates `parse_failure_reason`, `expected_count`, `found_count` but they're NOT saved to output files or database.
+
+**Missing From:**
+- ❌ lineage_metadata database table (no columns)
+- ❌ lineage.json provenance
+- ❌ frontend_lineage.json nodes
+- ✅ quality_aware_parser.py return value (implemented but lost!)
+
+**Root Cause:** Integration gap between parser output and persistence layer
+
+### Files Affected
+- `lineage_v3/core/duckdb_workspace.py` - update_metadata() missing new fields
+- `lineage_v3/output/frontend_formatter.py` - not receiving new fields
+- Database schema - lineage_metadata table needs 3 new columns
+
+### Fix Required
+
+1. **Database Migration:**
+```sql
+ALTER TABLE lineage_metadata ADD COLUMN parse_failure_reason VARCHAR;
+ALTER TABLE lineage_metadata ADD COLUMN expected_count INTEGER;
+ALTER TABLE lineage_metadata ADD COLUMN found_count INTEGER;
+```
+
+2. **Update workspace writer** to persist new fields
+3. **Update frontend formatter** to display new fields
+
+### Test Case
+Parse SP with Dynamic SQL → Should show failure reason in frontend
+
+**Status:** Not working - v4.2.0 incomplete
+
+---
+
+## 🔴 BUG-003: Confidence Model Black Box (Orchestrator Bonus Hidden)
+
+**Status:** 🔴 OPEN
+**Reported:** 2025-11-07
+**Priority:** HIGH
+**Version:** v2.0.0
+
+### Business Impact
+
+Users see confidence scores they can't understand or calculate themselves. Breakdown shows 0.75 but total is 0.85 → confusion and mistrust.
+
+### Technical Details
+
+**Hidden Orchestrator Bonus:**
+```
+Breakdown shows: 0.30 + 0.25 + 0.20 = 0.75
+But total_score: 0.85 ← Where did +0.10 come from?!
+```
+
+**Root Cause:** Orchestrator bonus (+0.10) applied AFTER breakdown calculation
+
+**Code Location:** `lineage_v3/utils/confidence_calculator.py:414`
+```python
+if regex_sources_count == 0 and regex_targets_count == 0 and sp_calls_count > 0:
+    total_score = max(total_score, 0.85)  # Hidden +0.10!
+```
+
+### User Feedback
+
+> "The calculation should not be complicated and not be a black box. Users need to understand them too. So simple and smart and good documented."
+
+### Fix Required
+
+**Option 1:** Simplify to 4 confidence values (no bonuses)
+- 100% = All dependencies found and validated
+- 85% = All found, some validation issues
+- 75% = Most found (>50%)
+- 0% = Parse failed
+
+**Option 2:** Show bonus in breakdown
+```json
+"orchestrator_bonus": {
+  "contribution": 0.10,
+  "reason": "Only calls other SPs (no table access)"
+}
+```
+
+**Decision Needed:** User preference on simplification approach
+
+---
+
+## 🔴 BUG-004: Poor Smoke Test Results
+
+**Status:** 🔴 OPEN
+**Reported:** 2025-11-07
+**Priority:** MEDIUM
+
+### Test Results
+
+From smoke test on 349 SPs:
+- Perfect matches: 66 (18.9%)
+- Acceptable matches: 148 (42.4%)
+- Significant gaps: 135 (38.7%)
+
+**231 SPs (66%) found 0 tables**
+
+### Analysis
+
+**Not Actually All Failures:**
+1. ~7 Orchestrator SPs (only call other SPs) → 0 is CORRECT
+2. ~10 Dynamic SQL SPs → Need @LINEAGE hints
+3. ~214 Actual parsing issues
+
+### Root Cause
+
+Simple regex smoke test (`FROM/JOIN schema.table`) doesn't match parser sophistication:
+- Doesn't handle CTEs, temp tables, dynamic SQL
+- Doesn't track transitive dependencies through SP calls
+
+### Recommendations
+
+1. Improve smoke test regex
+2. Categorize zero-found SPs (orchestrator vs failure)
+3. Add smoke test results to confidence model
+4. Document expected patterns
+
+---
+
+## 🔴 BUG-006: Smoke Test Subagent Query Bug
+
+**Status:** 🔴 OPEN
+**Reported:** 2025-11-07
+**Priority:** LOW
+
+### Issue
+
+Smoke test subagent reported "Total SPs with lineage metadata: 0" when actual value was 349.
+
+**Root Cause:** Incorrect SQL query in subagent
+```sql
+-- WRONG: Uses string literals with double quotes
+WHERE object_type = "Stored Procedure"  -- ❌ DuckDB error
+
+-- CORRECT: Use single quotes
+WHERE object_type = 'Stored Procedure'  -- ✅
+```
+
+### Impact
+
+- Misleading test results
+- False alarm about missing data
+- Wasted debugging time
+
+### Fix Required
+
+1. Update subagent smoke test query syntax
+2. Add SQL syntax validation
+3. Test with actual database before reporting
+
+**Actual Data:** 349/349 SPs have metadata (100%) ✓
+
+---
+
+## 🔴 BUG-005: FTS Extension Download Fails (Network Dependency)
+
+**Status:** 🟢 RESOLVED (Made Optional)
+**Reported:** 2025-11-07
+**Priority:** LOW
+**Version:** v4.2.0
+
+### Issue
+
+Parser fails when DuckDB FTS extension can't download:
+```
+Failed to download extension "fts" at URL
+"http://extensions.duckdb.org/..."
+```
+
+### Fix Applied
+
+Made FTS optional - warning instead of fatal error:
+```python
+except Exception as e:
+    logger.warning(f"Failed to create FTS index (optional feature): {e}")
+    logger.info("Continuing without FTS index - search functionality will be limited")
+```
+
+**File:** `lineage_v3/core/duckdb_workspace.py:801-803`
+
+**Impact:** Full-text search unavailable in offline/sandboxed environments, but parsing works
+
+---
+
 ## 🔴 BUG-001: Trace Filter Interaction & Toolbar Behavior
 
 **Status:** 🔴 OPEN

@@ -1,0 +1,89 @@
+{
+  "timestamp": "2025-11-07 20:52:58",
+  "tests": [
+    {
+      "name": "Page Load",
+      "status": "PASS",
+      "message": "Page loaded successfully",
+      "screenshot": "/home/user/sandbox/test_screenshots/01-initial-page-load.png"
+    },
+    {
+      "name": "Graph Render",
+      "status": "PASS",
+      "message": "Graph element found: .react-flow",
+      "screenshot": null
+    },
+    {
+      "name": "Node Discovery",
+      "status": "PASS",
+      "message": "Found 39 nodes using selector: .react-flow__node",
+      "screenshot": null
+    },
+    {
+      "name": "Node 1 Interaction",
+      "status": "WARN",
+      "message": "Could not interact: Locator.click: Timeout 5000ms exceeded.\nCall log:\n  - waiting for locator(\".react-flow__node\").first\n    - locator resolved to <div tabindex=\"0\" role=\"button\" data-id=\"node_0\" data-testid=\"rf__node-node_0\" aria-describedby=\"react-flow__node-desc-1\" class=\"react-flow__node react-flow__node-custom nopan selectable\">\u2026</div>\n  - attempting click action\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <rect x=\"0\" y=\"0\" width=\"100%\" height=\"100%\" fill=\"url(#pattern-1undefined)\"></rect> from <svg data-testid=\"rf__background\" class=\"react-flow__background\">\u2026</svg> subtree intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <rect x=\"0\" y=\"0\" width=\"100%\" height=\"100%\" fill=\"url(#pattern-1undefined)\"></rect> from <svg data-testid=\"rf__background\" class=\"react-flow__background\">\u2026</svg> subtree intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    10 \u00d7 waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <rect x=\"0\" y=\"0\" width=\"100%\" height=\"100%\" fill=\"url(#pattern-1undefined)\"></rect> from <svg data-testid=\"rf__background\" class=\"react-flow__background\">\u2026</svg> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n",
+      "screenshot": null
+    },
+    {
+      "name": "Node 2 v4.2.0 Format",
+      "status": "WARN",
+      "message": "Node may not show v4.2.0 format",
+      "screenshot": "/home/user/sandbox/test_screenshots/04-node-2-details.png"
+    },
+    {
+      "name": "Node 3 Interaction",
+      "status": "WARN",
+      "message": "Could not interact: Locator.click: Timeout 5000ms exceeded.\nCall log:\n  - waiting for locator(\".react-flow__node\").nth(2)\n    - locator resolved to <div tabindex=\"0\" role=\"button\" data-id=\"node_2\" data-testid=\"rf__node-node_2\" aria-describedby=\"react-flow__node-desc-1\" class=\"react-flow__node react-flow__node-custom nopan selectable\">\u2026</div>\n  - attempting click action\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <rect x=\"0\" y=\"0\" width=\"100%\" height=\"100%\" fill=\"url(#pattern-1undefined)\"></rect> from <svg data-testid=\"rf__background\" class=\"react-flow__background\">\u2026</svg> subtree intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <rect x=\"0\" y=\"0\" width=\"100%\" height=\"100%\" fill=\"url(#pattern-1undefined)\"></rect> from <svg data-testid=\"rf__background\" class=\"react-flow__background\">\u2026</svg> subtree intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    10 \u00d7 waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <rect x=\"0\" y=\"0\" width=\"100%\" height=\"100%\" fill=\"url(#pattern-1undefined)\"></rect> from <svg data-testid=\"rf__background\" class=\"react-flow__background\">\u2026</svg> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n",
+      "screenshot": null
+    },
+    {
+      "name": "Node 4 v4.2.0 Format",
+      "status": "WARN",
+      "message": "Node may not show v4.2.0 format",
+      "screenshot": "/home/user/sandbox/test_screenshots/04-node-4-details.png"
+    },
+    {
+      "name": "Node 5 v4.2.0 Format",
+      "status": "WARN",
+      "message": "Node may not show v4.2.0 format",
+      "screenshot": "/home/user/sandbox/test_screenshots/04-node-5-details.png"
+    },
+    {
+      "name": "Search Functionality",
+      "status": "PASS",
+      "message": "Search input found and tested",
+      "screenshot": "/home/user/sandbox/test_screenshots/05-search-results.png"
+    },
+    {
+      "name": "Filter Controls",
+      "status": "WARN",
+      "message": "Filter controls not found",
+      "screenshot": null
+    },
+    {
+      "name": "v4.2.0 Confidence Indicators",
+      "status": "WARN",
+      "message": "No confidence indicators found - may need data loaded",
+      "screenshot": null
+    }
+  ],
+  "screenshots": [
+    "/home/user/sandbox/test_screenshots/01-initial-page-load.png",
+    "/home/user/sandbox/test_screenshots/02-graph-view.png",
+    "/home/user/sandbox/test_screenshots/04-node-2-details.png",
+    "/home/user/sandbox/test_screenshots/04-node-2-details.png",
+    "/home/user/sandbox/test_screenshots/04-node-4-details.png",
+    "/home/user/sandbox/test_screenshots/04-node-4-details.png",
+    "/home/user/sandbox/test_screenshots/04-node-5-details.png",
+    "/home/user/sandbox/test_screenshots/04-node-5-details.png",
+    "/home/user/sandbox/test_screenshots/05-search-results.png",
+    "/home/user/sandbox/test_screenshots/07-filter-controls.png",
+    "/home/user/sandbox/test_screenshots/08-confidence-indicators.png"
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "warnings": 7
+  }
+}

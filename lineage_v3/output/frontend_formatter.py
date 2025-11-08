@@ -133,13 +133,24 @@ class FrontendFormatter:
                 if out_id in self.object_id_to_node_id
             ]
             
-            # Get confidence and breakdown for description
+            # Get confidence and enhanced metadata for description (v4.2.0)
             confidence = node['provenance']['confidence']
             confidence_breakdown = node['provenance'].get('confidence_breakdown')  # v2.0.0
+            parse_failure_reason = node['provenance'].get('parse_failure_reason')  # v4.2.0
+            expected_count = node['provenance'].get('expected_count', 0)  # v4.2.0
+            found_count = node['provenance'].get('found_count', 0)  # v4.2.0
+            source = node['provenance'].get('primary_source', 'unknown')
 
             if node['object_type'] == 'Stored Procedure':
-                # Show actual parsed confidence (variable)
-                description = f"Confidence: {confidence:.2f}"
+                # Enhanced description with actionable guidance (v4.2.0)
+                description = self._format_sp_description(
+                    confidence=confidence,
+                    parse_failure_reason=parse_failure_reason,
+                    expected_count=expected_count,
+                    found_count=found_count,
+                    source=source,
+                    confidence_breakdown=confidence_breakdown
+                )
             else:
                 # Tables and Views always show 1.00 (they exist in metadata)
                 description = "Confidence: 1.00"
@@ -210,6 +221,77 @@ class FrontendFormatter:
         
         # Default to Other for staging tables, junction tables, etc.
         return "Other"
+
+    def _format_sp_description(
+        self,
+        confidence: float,
+        parse_failure_reason: str | None,
+        expected_count: int,
+        found_count: int,
+        source: str,
+        confidence_breakdown: Dict[str, Any] | None
+    ) -> str:
+        """
+        Generate enhanced description for stored procedure nodes.
+
+        Provides user-friendly description with actionable guidance for low confidence SPs.
+
+        Args:
+            confidence: Confidence score (0.0 - 1.0)
+            parse_failure_reason: Detailed reason why parsing failed (v4.2.0)
+            expected_count: Expected number of tables from smoke test
+            found_count: Actual number of tables extracted
+            source: Primary source (parser, parser_with_hints, etc.)
+            confidence_breakdown: Multi-factor confidence breakdown
+
+        Returns:
+            Human-readable description string
+
+        Examples:
+            "✅ High Confidence: 0.85"
+            "⚠️ Low Confidence: 0.50 | Dynamic SQL detected → Add @LINEAGE hints"
+            "❌ Parse Failed: 0.00 | WHILE loop - Expected 8 tables, found 0 → Add @LINEAGE hints"
+
+        Version: 4.2.0 (2025-11-07)
+        """
+        parts = []
+
+        # Part 1: Confidence level indicator
+        if confidence >= 0.85:
+            parts.append(f"✅ High Confidence: {confidence:.2f}")
+        elif confidence >= 0.65:
+            parts.append(f"⚠️ Medium Confidence: {confidence:.2f}")
+        elif confidence > 0:
+            parts.append(f"⚠️ Low Confidence: {confidence:.2f}")
+        else:
+            parts.append(f"❌ Parse Failed: {confidence:.2f}")
+
+        # Part 2: Parse failure reason (if available and confidence < 0.65)
+        if confidence < 0.65 and parse_failure_reason:
+            # Truncate very long reasons for readability
+            if len(parse_failure_reason) > 200:
+                reason_short = parse_failure_reason[:197] + "..."
+            else:
+                reason_short = parse_failure_reason
+            parts.append(reason_short)
+
+        # Part 3: Hint usage indicator (if applicable)
+        if source == 'parser_with_hints':
+            hint_inputs = 0
+            hint_outputs = 0
+            if confidence_breakdown:
+                hint_factor = confidence_breakdown.get('comment_hints', {})
+                # Extract hint counts from breakdown if available
+                if hint_factor.get('score', 0) > 0:
+                    parts.append("Manual hints used")
+
+        # Part 4: Missing dependencies warning (if significant)
+        if expected_count > 0 and found_count >= 0:
+            missing = expected_count - found_count
+            if missing > 2 and confidence < 0.85:
+                parts.append(f"⚠️ {missing} tables may be missing")
+
+        return " | ".join(parts)
 
     def _get_ddl_for_object(self, object_id: int) -> str | None:
         """

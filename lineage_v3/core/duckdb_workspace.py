@@ -799,8 +799,8 @@ class DuckDBWorkspace:
             logger.info("FTS index created successfully on unified_ddl_materialized table")
 
         except Exception as e:
-            logger.error(f"Failed to create FTS index: {e}", exc_info=True)
-            raise RuntimeError(f"FTS index creation failed: {e}")
+            logger.warning(f"Failed to create FTS index (optional feature): {e}")
+            logger.info("Continuing without FTS index - search functionality will be limited")
 
     def create_unified_ddl_view(self):
         """
