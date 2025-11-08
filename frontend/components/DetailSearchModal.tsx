@@ -73,6 +73,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   const resizeRef = useRef<{ startY: number; startHeight: number } | null>(null);
   const schemaFilterRef = useRef<HTMLDivElement>(null);
   const typeFilterRef = useRef<HTMLDivElement>(null);
+  const hasInitializedFilters = useRef(false);
 
   // Auto-close dropdowns when clicking outside
   useClickOutside(schemaFilterRef, () => setShowSchemaFilter(false));
@@ -99,12 +100,17 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
   }, [allData]);
 
   // Initialize filters from main view selections (true sync - no fallback to ALL)
+  // Only initialize ONCE when modal opens, then user can modify independently
   useEffect(() => {
-    if (isOpen && filterOptions.schemas.length > 0) {
+    if (isOpen && filterOptions.schemas.length > 0 && !hasInitializedFilters.current) {
       setSelectedSchemas(new Set(initialSelectedSchemas));
       setSelectedObjectTypes(new Set(initialSelectedTypes));
+      hasInitializedFilters.current = true;
+    } else if (!isOpen) {
+      // Reset the flag when modal closes so it reinitializes on next open
+      hasInitializedFilters.current = false;
     }
-  }, [isOpen, filterOptions.schemas, filterOptions.objectTypes, initialSelectedSchemas, initialSelectedTypes]);
+  }, [isOpen, filterOptions.schemas.length, filterOptions.objectTypes.length]);
 
   // Handle resize mouse events
   const handleMouseDown = (e: React.MouseEvent) => {
