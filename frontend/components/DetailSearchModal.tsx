@@ -164,7 +164,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  // Client-side search function (searches in-memory data)
+  // Hybrid search function (uses API for DDL search, client-side for name/description)
   const debouncedSearch = useMemo(
     () => debounce(async (query: string, schemas: Set<string>, objectTypes: Set<string>) => {
       if (!query.trim()) {
@@ -180,59 +180,89 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
         const lowerQuery = query.toLowerCase();
         const searchResults: SearchResult[] = [];
 
-        // Search through all loaded data
-        allData.forEach(node => {
-          // Apply schema and type filters first
-          if (schemas.size > 0 && !schemas.has(node.schema)) return;
-          if (objectTypes.size > 0 && !objectTypes.has(node.object_type)) return;
+        // Check if DDL text is embedded (JSON mode) or needs API (parquet mode)
+        const hasDDLEmbedded = allData.length > 0 && allData[0].ddl_text !== undefined;
 
-          // Calculate match score
-          let score = 0;
-          let snippet = '';
+        if (hasDDLEmbedded) {
+          // CLIENT-SIDE SEARCH (JSON mode with embedded DDL)
+          allData.forEach(node => {
+            // Apply schema and type filters first
+            if (schemas.size > 0 && !schemas.has(node.schema)) return;
+            if (objectTypes.size > 0 && !objectTypes.has(node.object_type)) return;
 
-          // Search in node name (highest priority)
-          const nameLower = node.name.toLowerCase();
-          if (nameLower.includes(lowerQuery)) {
-            score += nameLower.startsWith(lowerQuery) ? 10 : 5;
-            snippet = node.name;
-          }
+            // Calculate match score
+            let score = 0;
+            let snippet = '';
 
-          // Search in description if available
-          if (node.description) {
-            const descLower = node.description.toLowerCase();
-            if (descLower.includes(lowerQuery)) {
-              score += 2;
-              snippet = node.description.substring(0, 150);
+            // Search in node name (highest priority)
+            const nameLower = node.name.toLowerCase();
+            if (nameLower.includes(lowerQuery)) {
+              score += nameLower.startsWith(lowerQuery) ? 10 : 5;
+              snippet = node.name;
             }
-          }
 
-          // Search in DDL text if available
-          if (node.ddl_text) {
-            const ddlLower = node.ddl_text.toLowerCase();
-            if (ddlLower.includes(lowerQuery)) {
-              score += 1;
-              if (!snippet) {
-                // Find the position of the match and extract context
-                const matchIndex = ddlLower.indexOf(lowerQuery);
-                const start = Math.max(0, matchIndex - 50);
-                const end = Math.min(node.ddl_text.length, matchIndex + 100);
-                snippet = '...' + node.ddl_text.substring(start, end) + '...';
+            // Search in description if available
+            if (node.description) {
+              const descLower = node.description.toLowerCase();
+              if (descLower.includes(lowerQuery)) {
+                score += 2;
+                snippet = node.description.substring(0, 150);
               }
             }
+
+            // Search in DDL text if available
+            if (node.ddl_text) {
+              const ddlLower = node.ddl_text.toLowerCase();
+              if (ddlLower.includes(lowerQuery)) {
+                score += 1;
+                if (!snippet) {
+                  // Find the position of the match and extract context
+                  const matchIndex = ddlLower.indexOf(lowerQuery);
+                  const start = Math.max(0, matchIndex - 50);
+                  const end = Math.min(node.ddl_text.length, matchIndex + 100);
+                  snippet = '...' + node.ddl_text.substring(start, end) + '...';
+                }
+              }
+            }
+
+            // Add to results if match found
+            if (score > 0) {
+              searchResults.push({
+                id: node.id,
+                name: node.name,
+                type: node.object_type,
+                schema: node.schema,
+                score: score,
+                snippet: snippet || 'No preview available'
+              });
+            }
+          });
+        } else {
+          // API SEARCH (parquet mode - DDL in DuckDB)
+          const response = await fetch(`${API_BASE_URL}/api/search-ddl?q=${encodeURIComponent(query)}`);
+
+          if (!response.ok) {
+            throw new Error(`Search API failed: ${response.statusText}`);
           }
 
-          // Add to results if match found
-          if (score > 0) {
+          const apiResults = await response.json();
+
+          // Apply filters and convert API results to our format
+          apiResults.forEach((result: any) => {
+            // Apply schema and type filters
+            if (schemas.size > 0 && !schemas.has(result.schema)) return;
+            if (objectTypes.size > 0 && !objectTypes.has(result.type)) return;
+
             searchResults.push({
-              id: node.id,
-              name: node.name,
-              type: node.object_type,
-              schema: node.schema,
-              score: score,
-              snippet: snippet || 'No preview available'
+              id: result.id.toString(),
+              name: result.name,
+              type: result.type,
+              schema: result.schema,
+              score: result.score || 0,
+              snippet: result.snippet || 'No preview available'
             });
-          }
-        });
+          });
+        }
 
         // Sort by score (highest first)
         searchResults.sort((a, b) => b.score - a.score);

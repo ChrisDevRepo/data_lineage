@@ -54,7 +54,7 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
     }
 
     // Get confidence badge for Stored Procedures
-    const getConfidenceBadge = () => {
+    const confidenceBadge = (() => {
         if (data.object_type !== 'Stored Procedure') return null;
 
         const confidence = data.confidence || 0;
@@ -71,7 +71,7 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
         } else {
             return <span className="confidence-badge" title="Failed (0%)">❌</span>;
         }
-    };
+    })();
 
     return (
         <div className="relative">
@@ -81,9 +81,9 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
                 <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} className="!bg-gray-500" />
             </div>
             {/* Confidence badge for Stored Procedures (v2.1.0) */}
-            {getConfidenceBadge() && (
+            {confidenceBadge && (
                 <div className="absolute -top-1 -right-1 text-sm leading-none">
-                    {getConfidenceBadge()}
+                    {confidenceBadge}
                 </div>
             )}
         </div>

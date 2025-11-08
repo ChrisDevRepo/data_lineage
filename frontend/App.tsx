@@ -352,8 +352,6 @@ function DataLineageVisualizer() {
       setHighlightedNodes(traceExitNodes);
       // Mark that we're in trace exit mode (showing trace results in detail view)
       setIsInTraceExitMode(true);
-      // Automatically lock the trace results
-      setIsTraceLocked(true);
     }
   }, [isTraceModeActive, setHighlightedNodes, isInTraceExitMode, traceExitNodes]);
 
