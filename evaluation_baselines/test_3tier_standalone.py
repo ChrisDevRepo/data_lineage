@@ -92,10 +92,10 @@ def parse_with_3tier(ddl):
         sources_t1, targets_t1 = set(), set()
         tables_t1 = 0
 
-    # Tier 2: WARN + 17 rules - ALWAYS TRY (match Phase 1 baseline)
+    # Tier 2: WARN + 7 rules - ALWAYS TRY (simplified)
     try:
-        cleaned_17 = engine_17.apply_all(ddl)
-        parsed_t2 = sqlglot.parse(cleaned_17, dialect='tsql', error_level=ErrorLevel.WARN)
+        cleaned_7 = engine_7.apply_all(ddl)
+        parsed_t2 = sqlglot.parse(cleaned_7, dialect='tsql', error_level=ErrorLevel.WARN)
         sources_t2, targets_t2 = extract_unique_tables(parsed_t2)
         tables_t2 = len(sources_t2) + len(targets_t2)
     except:
@@ -105,7 +105,7 @@ def parse_with_3tier(ddl):
     # Return best result (whichever found more tables)
     # NO catalog validation (match Phase 1 baseline behavior)
     if tables_t2 > tables_t1:
-        return sources_t2, targets_t2, 'tier2_17rules', tables_t2
+        return sources_t2, targets_t2, 'tier2_7rules', tables_t2
     else:
         return sources_t1, targets_t1, 'tier1_warn', tables_t1
 
