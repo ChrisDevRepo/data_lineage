@@ -229,17 +229,28 @@ class SQLCleaningRules:
         """
         def remove_declare_callback(sql: str) -> str:
             # CRITICAL FIX (2025-11-11): Remove ALL DECLARE blocks (simplified)
-            # Previous logic was too complex trying to preserve some DECLAREs
-            # New approach: Remove ALL DECLARE since SQLGlot doesn't support them anyway
-            # Variables will be left as references (@var) which SQLGlot ignores
+            # BUG FIX (2025-11-11): Handle multi-line DECLARE with subqueries
+            # Previous logic only captured first line, leaving FROM clause dangling
+            # New approach: Remove entire DECLARE including multi-line subqueries
 
-            # Remove multi-line comma-separated DECLARE blocks
-            # Pattern: DECLARE @var ... with optional comma-prefixed continuations
-            # Handles: DECLARE @v1 type = val
-            #                ,@v2 type = val
-            #                ,@v3 type = val
+            # Pattern matches DECLARE until:
+            # - A semicolon, OR
+            # - A newline followed by a SQL keyword (DECLARE, SET, INSERT, etc.), OR
+            # - A newline followed by non-indented text (not a continuation)
+            # This handles multi-line declarations with subqueries spanning many lines
+
+            # Match DECLARE @var ... until we hit a terminator
+            # Terminator = semicolon OR newline + SQL keyword OR newline + non-whitespace at column 0
+            pattern = r'DECLARE\s+@\w+\s+[^;]*?(?:;|\n(?=DECLARE|\nSET\s+@|\nINSERT|\nUPDATE|\nDELETE|\nSELECT\s+[^@]|\nIF\s|\nBEGIN|\n[A-Z]))'
+
+            # Simpler fallback: match DECLARE until semicolon or double newline
+            # This handles most cases where DECLARE ends with ; or blank line
+            pattern = r'DECLARE\s+@\w+[^;]*?(?:;|\n\s*\n)'
+
+            sql = re.sub(pattern, '', sql, flags=re.IGNORECASE | re.DOTALL)
+
+            # Also handle comma-separated DECLARE (single line or multi-line)
             multi_line_pattern = r'DECLARE\s+@\w+[^\n]*(?:\n\s*,@\w+[^\n]*)*'
-
             sql = re.sub(multi_line_pattern, '', sql, flags=re.IGNORECASE)
 
             return sql
@@ -285,6 +296,15 @@ class SQLCleaningRules:
         But KEEP SET with scalar SELECT (no FROM clause) - these are calculations
         """
         def remove_set_callback(sql: str) -> str:
+            # BUG FIX (2025-11-11): Also remove session SET statements like SET NOCOUNT ON
+            # Pass 0: Remove session SET statements (NOCOUNT, ANSI_NULLS, etc.)
+            sql = re.sub(
+                r'SET\s+(NOCOUNT|ANSI_NULLS|QUOTED_IDENTIFIER|XACT_ABORT|ANSI_WARNINGS|ARITHABORT)\s+(ON|OFF)\s*(?:;|\n|$)',
+                '',
+                sql,
+                flags=re.IGNORECASE
+            )
+
             # Pass 1: Remove SET with SELECT...FROM (admin queries)
             # Pattern: SET @var = (SELECT ... FROM ...)
             sql = re.sub(
@@ -320,6 +340,39 @@ class SQLCleaningRules:
                 "\nSELECT 1",
                 ";\nSELECT 1"
             ]
+        )
+
+    @staticmethod
+    def remove_select_variable_assignments() -> RegexRule:
+        """
+        Remove SELECT statements that assign to variables (T-SQL specific).
+
+        In T-SQL, SELECT can be used for variable assignments:
+            SELECT @var = value
+            SELECT @var1 = val1, @var2 = val2
+
+        These don't return data, so we remove them. This is different from
+        data retrieval SELECT statements which we want to keep.
+
+        Example:
+            SELECT @MSG = 'End Time:' + CONVERT(VARCHAR(30), GETDATE())
+            INSERT INTO Table1 SELECT * FROM Table2
+
+        Becomes:
+            INSERT INTO Table1 SELECT * FROM Table2
+
+        BUG FIX (2025-11-11): Added to handle logging SELECT assignments
+        """
+        return RegexRule(
+            name="RemoveSELECTAssignment",
+            category=RuleCategory.VARIABLE_DECLARATION,
+            description="Remove SELECT variable assignments",
+            pattern=r'SELECT\s+@\w+\s*=.*?(?=\n(?:INSERT|UPDATE|DELETE|MERGE|SELECT(?!\s+@)|EXEC|$))',
+            replacement='',
+            flags=re.IGNORECASE | re.DOTALL,
+            priority=22,
+            examples_before=["SELECT @msg = 'test'\nINSERT INTO T1 SELECT * FROM T2"],
+            examples_after=["\nINSERT INTO T1 SELECT * FROM T2"]
         )
 
     # ------------------------------------------------------------------------
@@ -536,8 +589,10 @@ class SQLCleaningRules:
 
         def extract_dml(sql: str) -> str:
             # CRITICAL FIX (2025-11-11): Handle nested BEGIN/END with depth counting
+            # BUG FIX (2025-11-11): Skip string literals when searching for BEGIN/END
             # Issue: Pattern (.*)\s+END matches until FIRST END, not matching outer END
-            # Solution: Count BEGIN/END depth to find matching outer END
+            # Issue 2: Depth counter matches 'END' inside string literals like 'End Time:'
+            # Solution: Count BEGIN/END depth, but skip keywords inside string literals
 
             # Look for CREATE PROC...AS BEGIN
             proc_start = re.search(r'CREATE\s+PROC(?:EDURE)?\s+\[?[\w\.\[\]]+\]?.*?AS\s+BEGIN',
@@ -550,32 +605,73 @@ class SQLCleaningRules:
             # Extract everything after "AS BEGIN"
             start_pos = proc_start.end()
 
-            # Now find the matching END using depth counting
+            # Now find the matching END using depth counting, skipping string literals and CASE...END
             depth = 1  # We're inside the outer BEGIN
+            case_depth = 0  # Track CASE...END blocks
             pos = start_pos
             sql_upper = sql.upper()
+            in_string = False
 
             while depth > 0 and pos < len(sql):
-                # Find next BEGIN or END
-                begin_pos = sql_upper.find('BEGIN', pos)
-                end_pos = sql_upper.find('END', pos)
+                char = sql[pos]
 
-                if end_pos == -1:
-                    # No more END, break
-                    break
+                # Track string literal boundaries (single quotes)
+                if char == "'":
+                    # Check if it's escaped (doubled single quote in T-SQL: 'can''t')
+                    if pos + 1 < len(sql) and sql[pos + 1] == "'":
+                        pos += 2  # Skip escaped quote
+                        continue
+                    else:
+                        in_string = not in_string
+                        pos += 1
+                        continue
 
-                if begin_pos != -1 and begin_pos < end_pos:
-                    # Found BEGIN before END
-                    depth += 1
-                    pos = begin_pos + 5
-                else:
-                    # Found END
-                    depth -= 1
-                    if depth == 0:
-                        # Found matching outer END
-                        body = sql[start_pos:end_pos].strip()
-                        return body
-                    pos = end_pos + 3
+                # Only look for keywords when outside string literals
+                if not in_string:
+                    # BUG FIX (2025-11-11): Track CASE...END blocks to avoid matching CASE's END
+                    # Check for CASE keyword
+                    if sql_upper[pos:pos+4] == 'CASE':
+                        # Verify it's a keyword (surrounded by non-word chars)
+                        before_ok = (pos == 0 or not sql[pos-1].isalnum())
+                        after_ok = (pos+4 >= len(sql) or not sql[pos+4].isalnum())
+                        if before_ok and after_ok:
+                            case_depth += 1
+                            pos += 4
+                            continue
+
+                    # Check for BEGIN keyword
+                    if sql_upper[pos:pos+5] == 'BEGIN':
+                        # Verify it's a keyword (surrounded by non-word chars)
+                        before_ok = (pos == 0 or not sql[pos-1].isalnum())
+                        after_ok = (pos+5 >= len(sql) or not sql[pos+5].isalnum())
+                        if before_ok and after_ok:
+                            depth += 1
+                            pos += 5
+                            continue
+
+                    # Check for END keyword
+                    if sql_upper[pos:pos+3] == 'END':
+                        # Verify it's a keyword (surrounded by non-word chars)
+                        before_ok = (pos == 0 or not sql[pos-1].isalnum())
+                        after_ok = (pos+3 >= len(sql) or not sql[pos+3].isalnum())
+                        if before_ok and after_ok:
+                            # Check if this END closes a CASE or a BEGIN
+                            if case_depth > 0:
+                                # This END closes a CASE statement
+                                case_depth -= 1
+                                pos += 3
+                                continue
+                            else:
+                                # This END closes a BEGIN block
+                                depth -= 1
+                                if depth == 0:
+                                    # Found matching outer END
+                                    body = sql[start_pos:pos].strip()
+                                    return body
+                                pos += 3
+                                continue
+
+                pos += 1
 
             # Fallback: couldn't match properly, return everything after AS BEGIN
             return sql[start_pos:].strip()
@@ -821,6 +917,41 @@ class SQLCleaningRules:
             ]
         )
 
+    @staticmethod
+    def remove_empty_if_blocks() -> RegexRule:
+        """
+        Remove empty IF blocks (typically from DROP TABLE removal).
+
+        After removing DROP TABLE statements, we may have empty IF blocks.
+        These are typically conditional drops like:
+            IF object_id(...) is not null
+            BEGIN
+                DROP TABLE ...
+            END
+
+        After DROP is removed, we're left with an empty IF block.
+
+        Example:
+            if object_id(N'tempdb..dummy.Table') is not null
+            begin  end
+
+        Becomes:
+            (removed)
+
+        BUG FIX (2025-11-11): Added to clean up empty IF blocks after DROP removal
+        """
+        return RegexRule(
+            name="RemoveEmptyIF",
+            category=RuleCategory.WRAPPER,
+            description="Remove empty IF blocks",
+            pattern=r'if\s+[^\n]+\s+begin\s+end',
+            replacement='',
+            flags=re.IGNORECASE,
+            priority=41,  # After ExtractIFBlockDML
+            examples_before=["if object_id(N'tempdb..#t') is not null\nbegin  end"],
+            examples_after=[""]
+        )
+
 
 class RuleEngine:
     """
@@ -851,18 +982,20 @@ class RuleEngine:
 
     @staticmethod
     def _load_default_rules() -> List[CleaningRule]:
-        """Load all built-in cleaning rules (15 total - 10 original + 5 new)"""
+        """Load all built-in cleaning rules (17 total - 10 original + 7 new)"""
         return [
             SQLCleaningRules.remove_go_statements(),
             SQLCleaningRules.replace_temp_tables(),              # NEW (Priority 15)
             SQLCleaningRules.remove_declare_statements(),
             SQLCleaningRules.remove_set_statements(),
+            SQLCleaningRules.remove_select_variable_assignments(),  # NEW (Priority 22)
             SQLCleaningRules.remove_if_object_id_checks(),       # NEW (Priority 25)
             SQLCleaningRules.remove_drop_table(),                # NEW (Priority 26)
             SQLCleaningRules.extract_try_content(),
             SQLCleaningRules.remove_raiserror(),
             SQLCleaningRules.flatten_simple_begin_end(),         # NEW (Priority 35)
             SQLCleaningRules.extract_if_block_dml(),             # NEW (Priority 40)
+            SQLCleaningRules.remove_empty_if_blocks(),           # NEW (Priority 41)
             SQLCleaningRules.remove_exec_statements(),
             SQLCleaningRules.remove_transaction_control(),
             SQLCleaningRules.remove_truncate(),
