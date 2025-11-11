@@ -141,7 +141,16 @@ class FrontendFormatter:
             found_count = node['provenance'].get('found_count', 0)  # v4.2.0
             source = node['provenance'].get('primary_source', 'unknown')
 
-            if node['object_type'] == 'Stored Procedure':
+            # Check if this is a phantom object (v4.3.0)
+            is_phantom = node.get('is_phantom', False)
+            phantom_reason = node.get('phantom_reason')
+
+            if is_phantom:
+                # Phantom objects have null confidence and special description
+                description = f"⚠️ Phantom object ({phantom_reason or 'not in catalog'})"
+                confidence = None
+                confidence_breakdown = None
+            elif node['object_type'] == 'Stored Procedure':
                 # Enhanced description with actionable guidance (v4.2.0)
                 description = self._format_sp_description(
                     confidence=confidence,
@@ -171,9 +180,14 @@ class FrontendFormatter:
                 'data_model_type': data_model_type,
                 'inputs': sorted(input_node_ids, key=lambda x: int(x)),
                 'outputs': sorted(output_node_ids, key=lambda x: int(x)),
-                'confidence': confidence,  # v2.0.0 - explicit confidence field
+                'confidence': confidence,  # v2.0.0 - explicit confidence field (null for phantoms)
                 'confidence_breakdown': confidence_breakdown  # v2.0.0 - multi-factor breakdown
             }
+
+            # Add phantom metadata if applicable (v4.3.0)
+            if is_phantom:
+                frontend_node['is_phantom'] = True
+                frontend_node['phantom_reason'] = phantom_reason or 'not_in_catalog'
 
             # Conditionally add DDL text if requested (for JSON mode with embedded DDL)
             # In Parquet mode (include_ddl=False), property is omitted entirely

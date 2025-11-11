@@ -117,6 +117,46 @@ class DuckDBWorkspace:
         )
     """
 
+    # Schema for phantom objects (v4.3.0 - Phantom Objects Feature)
+    SCHEMA_PHANTOM_OBJECTS = """
+        CREATE SEQUENCE IF NOT EXISTS phantom_id_seq START -1 INCREMENT -1;
+
+        CREATE TABLE IF NOT EXISTS phantom_objects (
+            object_id BIGINT PRIMARY KEY DEFAULT nextval('phantom_id_seq'),
+            schema_name VARCHAR NOT NULL,
+            object_name VARCHAR NOT NULL,
+            object_type VARCHAR DEFAULT 'Table',
+            phantom_reason VARCHAR DEFAULT 'not_in_catalog',
+            first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            is_promoted BOOLEAN DEFAULT FALSE,
+            promoted_to_id BIGINT,
+            UNIQUE(schema_name, object_name)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_phantom_objects_schema_name
+            ON phantom_objects(schema_name, object_name);
+        CREATE INDEX IF NOT EXISTS idx_phantom_objects_promoted
+            ON phantom_objects(is_promoted);
+    """
+
+    # Schema for phantom references tracking (v4.3.0)
+    SCHEMA_PHANTOM_REFERENCES = """
+        CREATE TABLE IF NOT EXISTS phantom_references (
+            phantom_id BIGINT NOT NULL,
+            referencing_sp_id BIGINT NOT NULL,
+            dependency_type VARCHAR,
+            first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (phantom_id, referencing_sp_id, dependency_type)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_phantom_refs_phantom
+            ON phantom_references(phantom_id);
+        CREATE INDEX IF NOT EXISTS idx_phantom_refs_sp
+            ON phantom_references(referencing_sp_id);
+    """
+
     def __init__(self, workspace_path: Optional[str] = None, read_only: bool = False):
         """
         Initialize DuckDB workspace.
@@ -236,6 +276,38 @@ class DuckDBWorkspace:
 
         # Create parser_comparison_log table
         self.connection.execute(self.SCHEMA_PARSER_COMPARISON)
+
+        # Create phantom_objects table (v4.3.0)
+        self.connection.execute(self.SCHEMA_PHANTOM_OBJECTS)
+
+        # Create phantom_references table (v4.3.0)
+        self.connection.execute(self.SCHEMA_PHANTOM_REFERENCES)
+
+        # Migration: Add referenced_id column to dependencies table (v4.3.0)
+        try:
+            # Check if dependencies table exists
+            tables = self.connection.execute("SHOW TABLES").fetchall()
+            table_names = [t[0] for t in tables]
+
+            if 'dependencies' in table_names:
+                # Check if referenced_id column exists
+                columns = self.connection.execute("""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_name = 'dependencies'
+                """).fetchall()
+
+                column_names = [col[0] for col in columns]
+
+                if 'referenced_id' not in column_names:
+                    logger.info("Migrating dependencies: adding referenced_id column...")
+                    self.connection.execute("""
+                        ALTER TABLE dependencies
+                        ADD COLUMN referenced_id BIGINT
+                    """)
+                    logger.info("✓ Migration complete: referenced_id column added")
+        except Exception as e:
+            logger.warning(f"Could not check/add referenced_id column to dependencies: {e}")
 
     def load_parquet_from_mappings(
         self,

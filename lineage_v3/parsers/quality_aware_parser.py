@@ -329,6 +329,15 @@ class QualityAwareParser:
             parser_sources_with_hints = parser_sources_valid | hint_inputs
             parser_targets_with_hints = parser_targets_valid | hint_outputs
 
+            # STEP 2c: Detect phantom objects (v4.3.0 - Phantom Objects Feature)
+            # Phantoms are tables NOT in catalog (missing metadata)
+            phantom_sources = self._detect_phantom_tables(parser_sources | hint_inputs)
+            phantom_targets = self._detect_phantom_tables(parser_targets | hint_outputs)
+            all_phantoms = phantom_sources | phantom_targets
+
+            if all_phantoms:
+                logger.info(f"Detected {len(all_phantoms)} phantom objects: {all_phantoms}")
+
             # STEP 3: Calculate catalog validation rate (for diagnostics)
             # Get all objects from catalog for validation
             all_extracted = parser_sources_with_hints | parser_targets_with_hints
@@ -352,9 +361,30 @@ class QualityAwareParser:
             sp_ids = self._resolve_sp_names(regex_sp_calls_valid)
             output_ids.extend(sp_ids)
 
+            # STEP 5c: Handle phantom objects (v4.3.0)
+            # Create/get phantom objects and their negative IDs
+            # Add to inputs/outputs for visualization, but DON'T count in confidence
+            phantom_ids_map = self._create_or_get_phantom_objects(all_phantoms)
+
+            # Add phantom IDs to inputs/outputs
+            phantom_input_ids = [phantom_ids_map[name] for name in phantom_sources if name in phantom_ids_map]
+            phantom_output_ids = [phantom_ids_map[name] for name in phantom_targets if name in phantom_ids_map]
+            input_ids.extend(phantom_input_ids)
+            output_ids.extend(phantom_output_ids)
+
+            # Track phantom references for impact analysis (used during promotion)
+            if phantom_ids_map:
+                dependency_types = {}
+                for name in phantom_sources:
+                    dependency_types[name] = 'input'
+                for name in phantom_targets:
+                    dependency_types[name] = 'output'
+                self._track_phantom_references(object_id, phantom_ids_map, dependency_types)
+
             # STEP 6: Calculate expected vs found counts for confidence calculation (v2.1.0)
+            # IMPORTANT: Phantoms do NOT count in found_count (confidence based on real catalog matches only)
             expected_count = len(regex_sources_valid) + len(regex_targets_valid)
-            found_count = len(input_ids) + len(output_ids) - len(sp_ids)  # Exclude SP calls from count
+            found_count = len(input_ids) + len(output_ids) - len(sp_ids) - len(phantom_input_ids) - len(phantom_output_ids)
 
             # Detect orchestrator SPs (only calls other SPs, no table access)
             is_orchestrator = (expected_count == 0 and len(regex_sp_calls_valid) > 0)
@@ -1140,6 +1170,153 @@ class QualityAwareParser:
                         break
 
         return validated
+
+    def _detect_phantom_tables(self, table_names: Set[str]) -> Set[str]:
+        """
+        Detect phantom tables (not in catalog, but not excluded).
+
+        v4.3.0: Phantom Objects Feature
+        Returns tables that are:
+        - NOT in catalog (real metadata)
+        - NOT dummy.* (temp table placeholders)
+        - NOT sys.* or information_schema.* (system schemas)
+
+        These are likely missing metadata or external references.
+        """
+        catalog = self._get_object_catalog()
+        phantoms = set()
+
+        for name in table_names:
+            # Skip dummy.* temp table placeholders
+            if name.lower().startswith('dummy.'):
+                continue
+
+            # Skip system schemas
+            parts = name.split('.')
+            if len(parts) == 2:
+                schema, table = parts
+                if schema.lower() in self.EXCLUDED_SCHEMAS:
+                    continue
+
+            # If not in catalog (case-insensitive), it's a phantom
+            if name not in catalog:
+                name_lower = name.lower()
+                found = False
+                for catalog_name in catalog:
+                    if catalog_name.lower() == name_lower:
+                        found = True
+                        break
+
+                if not found:
+                    phantoms.add(name)
+
+        return phantoms
+
+    def _create_or_get_phantom_objects(self, phantom_names: Set[str]) -> Dict[str, int]:
+        """
+        Create or get phantom objects in database.
+
+        v4.3.0: Phantom Objects Feature
+        Uses UPSERT logic to avoid duplicates.
+        Returns mapping of table_name -> phantom_id (negative).
+
+        Args:
+            phantom_names: Set of schema.table names
+
+        Returns:
+            Dict mapping "schema.table" -> phantom_id (negative int)
+        """
+        if not phantom_names:
+            return {}
+
+        phantom_map = {}
+
+        for name in phantom_names:
+            parts = name.split('.')
+            if len(parts) != 2:
+                logger.warning(f"Skipping invalid phantom name: {name}")
+                continue
+
+            schema, table = parts
+
+            # Check if phantom already exists
+            check_query = """
+                SELECT object_id
+                FROM phantom_objects
+                WHERE LOWER(schema_name) = LOWER(?)
+                  AND LOWER(object_name) = LOWER(?)
+                  AND is_promoted = FALSE
+            """
+            results = self.workspace.query(check_query, params=[schema, table])
+
+            if results:
+                # Phantom exists, update last_seen
+                phantom_id = results[0][0]
+                update_query = """
+                    UPDATE phantom_objects
+                    SET last_seen = CURRENT_TIMESTAMP
+                    WHERE object_id = ?
+                """
+                self.workspace.query(update_query, params=[phantom_id])
+                phantom_map[name] = phantom_id
+                logger.debug(f"Updated existing phantom: {name} (ID: {phantom_id})")
+            else:
+                # Create new phantom
+                insert_query = """
+                    INSERT INTO phantom_objects (schema_name, object_name, object_type, phantom_reason)
+                    VALUES (?, ?, 'Table', 'not_in_catalog')
+                """
+                self.workspace.query(insert_query, params=[schema, table])
+
+                # Get the auto-generated negative ID
+                get_id_query = """
+                    SELECT object_id
+                    FROM phantom_objects
+                    WHERE LOWER(schema_name) = LOWER(?)
+                      AND LOWER(object_name) = LOWER(?)
+                    ORDER BY first_seen DESC
+                    LIMIT 1
+                """
+                results = self.workspace.query(get_id_query, params=[schema, table])
+                if results:
+                    phantom_id = results[0][0]
+                    phantom_map[name] = phantom_id
+                    logger.info(f"Created phantom: {name} (ID: {phantom_id})")
+                else:
+                    logger.error(f"Failed to get phantom ID for {name}")
+
+        return phantom_map
+
+    def _track_phantom_references(self, sp_id: int, phantom_ids: Dict[str, int], dependency_types: Dict[str, str]):
+        """
+        Track which SPs reference which phantoms.
+
+        v4.3.0: Phantom Objects Feature
+        Used for impact analysis when phantom is promoted.
+
+        Args:
+            sp_id: Stored procedure object_id
+            phantom_ids: Dict mapping table_name -> phantom_id
+            dependency_types: Dict mapping table_name -> 'input' or 'output'
+        """
+        if not phantom_ids:
+            return
+
+        for table_name, phantom_id in phantom_ids.items():
+            dep_type = dependency_types.get(table_name, 'unknown')
+
+            # UPSERT phantom reference
+            upsert_query = """
+                INSERT INTO phantom_references (phantom_id, referencing_sp_id, dependency_type, last_seen)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT (phantom_id, referencing_sp_id, dependency_type)
+                DO UPDATE SET last_seen = CURRENT_TIMESTAMP
+            """
+            try:
+                self.workspace.query(upsert_query, params=[phantom_id, sp_id, dep_type])
+                logger.debug(f"Tracked phantom reference: SP {sp_id} -> Phantom {phantom_id} ({dep_type})")
+            except Exception as e:
+                logger.warning(f"Failed to track phantom reference: {e}")
 
     def _fetch_ddl(self, object_id: int) -> Optional[str]:
         """Fetch DDL from workspace."""
