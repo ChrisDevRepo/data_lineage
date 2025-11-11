@@ -44,7 +44,7 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
         ${data.isHighlighted ? 'border-yellow-400 !border-4 ring-4 ring-yellow-400/50' : ''}
         ${data.isDimmed ? 'opacity-20' : ''}
         ${isClickableForSql ? 'cursor-pointer hover:shadow-xl hover:scale-105' : ''}
-        transition-all duration-300
+        transition-transform duration-200
     `;
 
     const nodeStyle = {

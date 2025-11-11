@@ -39,11 +39,6 @@ cd frontend && lsof -ti:3000 | xargs -r kill && npm run dev
 
 ## Documentation
 
-- **[CHANGELOG.md](./CHANGELOG.md)** - Version history
-- **[docs/FRONTEND_ARCHITECTURE.md](./docs/FRONTEND_ARCHITECTURE.md)** - Architecture deep dive
-- **[docs/LOCAL_DEVELOPMENT.md](./docs/LOCAL_DEVELOPMENT.md)** - Development guide
-- **[docs/DEPLOYMENT_AZURE.md](./docs/DEPLOYMENT_AZURE.md)** - Azure deployment
-- **[docs/UI_STANDARDIZATION_GUIDE.md](./docs/UI_STANDARDIZATION_GUIDE.md)** - UI design system
 - **[docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](./docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md)** - Performance optimizations (NEW)
 
 ## Build & Deploy
@@ -59,7 +54,6 @@ npm run preview
 npm run type-check
 ```
 
-**Azure Static Web Apps deployment:** See [docs/DEPLOYMENT_AZURE.md](./docs/DEPLOYMENT_AZURE.md)
 
 ## Performance
 

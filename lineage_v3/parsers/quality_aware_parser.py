@@ -1443,7 +1443,7 @@ class QualityAwareParser:
                     ORDER BY first_seen DESC
                     LIMIT 1
                 """
-                results = self.workspace.query(get_id_query, params=[schema, table])
+                results = self.workspace.query(get_id_query, params=[schema, obj_name])
                 if results:
                     phantom_id = results[0][0]
                     phantom_map[name] = phantom_id

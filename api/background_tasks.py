@@ -412,8 +412,25 @@ class LineageProcessor:
                                 outputs=result.get('outputs', [])
                             )
                         except Exception as e:
-                            # Continue even if one SP fails
-                            pass
+                            # Log parsing failure and continue with next SP
+                            logger.error(
+                                f"Failed to parse SP {sp_dict['schema_name']}.{sp_dict['object_name']} "
+                                f"(object_id={sp_dict['object_id']}): {e}",
+                                exc_info=True
+                            )
+                            # Store failure in metadata for visibility
+                            try:
+                                db.update_metadata(
+                                    object_id=sp_dict['object_id'],
+                                    modify_date=sp_dict['modify_date'],
+                                    primary_source='parser',
+                                    confidence=0.0,
+                                    inputs=[],
+                                    outputs=[],
+                                    parse_failure_reason=f"Parser error: {str(e)[:200]}"
+                                )
+                            except Exception as meta_error:
+                                logger.error(f"Failed to store error metadata: {meta_error}")
 
                 step_times['parse_sps'] = time.time() - step_start
                 step_start = time.time()

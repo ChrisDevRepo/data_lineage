@@ -219,20 +219,18 @@ Visual regression testing baseline screenshots.
 ## 📚 Related Documentation
 
 **Setup & Configuration:**
-- [docs/guides/SETUP_AND_DEPLOYMENT.md](../docs/guides/SETUP_AND_DEPLOYMENT.md)
+- [docs/guides/SETUP_AND_DEPLOYMENT.md](../docs/SETUP.md)
 
 **Parser Documentation:**
-- [docs/reference/PARSER_SPECIFICATION.md](../docs/reference/PARSER_SPECIFICATION.md) - Complete parser spec
-- [docs/reference/PARSER_EVOLUTION_LOG.md](../docs/reference/PARSER_EVOLUTION_LOG.md) - Version history
-- [docs/guides/PARSING_USER_GUIDE.md](../docs/guides/PARSING_USER_GUIDE.md) - Usage guide
+- [docs/reference/PARSER_SPECIFICATION.md](../docs/REFERENCE.md) - Complete parser spec
+- [docs/reference/PARSER_EVOLUTION_LOG.md](../docs/REFERENCE.md) - Version history
+- [docs/guides/PARSING_USER_GUIDE.md](../docs/USAGE.md) - Usage guide
 
 **Evaluation:**
-- [docs/reference/SUB_DL_OPTIMIZE_PARSING_SPEC.md](../docs/reference/SUB_DL_OPTIMIZE_PARSING_SPEC.md)
 - [tests/baselines/parser/README.md](baselines/parser/README.md)
 
 **Active Development:**
 - [docs/development/sql_cleaning_engine/](../docs/development/sql_cleaning_engine/) - SQL pre-processing
-- [docs/development/PARSING_REVIEW_STATUS.md](../docs/development/PARSING_REVIEW_STATUS.md) - Status tracking
 
 ---
 

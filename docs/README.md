@@ -21,13 +21,13 @@
 **User-facing documentation for setup, configuration, and usage**
 
 ### Getting Started
-- **[SETUP_AND_DEPLOYMENT.md](guides/SETUP_AND_DEPLOYMENT.md)** - Installation and deployment guide
-- **[CONFIGURATION_GUIDE.md](guides/CONFIGURATION_GUIDE.md)** - Complete configuration reference
-- **[MAINTENANCE_GUIDE.md](guides/MAINTENANCE_GUIDE.md)** - Operations and troubleshooting
+- **[SETUP_AND_DEPLOYMENT.md](SETUP.md)** - Installation and deployment guide
+- **[CONFIGURATION_GUIDE.md](SETUP.md)** - Complete configuration reference
+- **[MAINTENANCE_GUIDE.md](USAGE.md)** - Operations and troubleshooting
 
 ### Usage
-- **[PARSING_USER_GUIDE.md](guides/PARSING_USER_GUIDE.md)** - SQL parsing guide with examples
-- **[COMMENT_HINTS_DEVELOPER_GUIDE.md](guides/COMMENT_HINTS_DEVELOPER_GUIDE.md)** - Using @LINEAGE hints in SQL
+- **[PARSING_USER_GUIDE.md](USAGE.md)** - SQL parsing guide with examples
+- **[COMMENT_HINTS_DEVELOPER_GUIDE.md](USAGE.md)** - Using @LINEAGE hints in SQL
 
 ---
 
@@ -35,10 +35,9 @@
 
 **Technical specifications and reference documentation**
 
-- **[SYSTEM_OVERVIEW.md](reference/SYSTEM_OVERVIEW.md)** - Architecture and components
-- **[PARSER_EVOLUTION_LOG.md](reference/PARSER_EVOLUTION_LOG.md)** - Parser version history and changes
-- **[DUCKDB_SCHEMA.md](reference/DUCKDB_SCHEMA.md)** - Database schema documentation
-- **[SUB_DL_OPTIMIZE_PARSING_SPEC.md](reference/SUB_DL_OPTIMIZE_PARSING_SPEC.md)** - Parser evaluation framework
+- **[SYSTEM_OVERVIEW.md](documentation-mode/01_CURRENT_SYSTEM_ARCHITECTURE.md)** - Architecture and components
+- **[PARSER_EVOLUTION_LOG.md](REFERENCE.md)** - Parser version history and changes
+- **[DUCKDB_SCHEMA.md](REFERENCE.md)** - Database schema documentation
 
 ---
 
@@ -52,10 +51,6 @@
 Rule-based SQL pre-processing engine that increases SQLGlot success rate from ~5% to ~70-80% on complex T-SQL.
 
 **Documents:**
-- **[sql_cleaning_engine/README.md](development/sql_cleaning_engine/README.md)** - Project overview
-- **[SQL_CLEANING_ENGINE_SUMMARY.md](development/sql_cleaning_engine/SQL_CLEANING_ENGINE_SUMMARY.md)** - Executive summary (8.9 KB)
-- **[SQL_CLEANING_ENGINE_DOCUMENTATION.md](development/sql_cleaning_engine/SQL_CLEANING_ENGINE_DOCUMENTATION.md)** - Technical reference (12 KB)
-- **[SQL_CLEANING_ENGINE_ACTION_PLAN.md](development/sql_cleaning_engine/SQL_CLEANING_ENGINE_ACTION_PLAN.md)** - 9-phase implementation plan (37 KB)
 
 **Key Achievement:** 100% SQLGlot success on test SP (was 0%)
 
@@ -91,7 +86,6 @@ Rule-based SQL pre-processing engine that increases SQLGlot success rate from ~5
 - AI disambiguator work
 - Parser bug fixes
 
-**See [archive/README.md](archive/README.md) for complete archive index**
 
 ---
 
@@ -153,38 +147,38 @@ Archive documents when:
 
 | Task | Start Here |
 |------|------------|
-| **Install the system** | [guides/SETUP_AND_DEPLOYMENT.md](guides/SETUP_AND_DEPLOYMENT.md) |
-| **Configure settings** | [guides/CONFIGURATION_GUIDE.md](guides/CONFIGURATION_GUIDE.md) |
-| **Understand architecture** | [reference/SYSTEM_OVERVIEW.md](reference/SYSTEM_OVERVIEW.md) |
-| **Fix parsing issues** | [guides/PARSING_USER_GUIDE.md](guides/PARSING_USER_GUIDE.md) |
-| **Add @LINEAGE hints** | [guides/COMMENT_HINTS_DEVELOPER_GUIDE.md](guides/COMMENT_HINTS_DEVELOPER_GUIDE.md) |
-| **Troubleshoot errors** | [guides/MAINTENANCE_GUIDE.md](guides/MAINTENANCE_GUIDE.md) |
-| **Check parser versions** | [reference/PARSER_EVOLUTION_LOG.md](reference/PARSER_EVOLUTION_LOG.md) |
-| **Query DuckDB directly** | [reference/DUCKDB_SCHEMA.md](reference/DUCKDB_SCHEMA.md) |
+| **Install the system** | [guides/SETUP_AND_DEPLOYMENT.md](SETUP.md) |
+| **Configure settings** | [guides/CONFIGURATION_GUIDE.md](SETUP.md) |
+| **Understand architecture** | [reference/SYSTEM_OVERVIEW.md](documentation-mode/01_CURRENT_SYSTEM_ARCHITECTURE.md) |
+| **Fix parsing issues** | [guides/PARSING_USER_GUIDE.md](USAGE.md) |
+| **Add @LINEAGE hints** | [guides/COMMENT_HINTS_DEVELOPER_GUIDE.md](USAGE.md) |
+| **Troubleshoot errors** | [guides/MAINTENANCE_GUIDE.md](USAGE.md) |
+| **Check parser versions** | [reference/PARSER_EVOLUTION_LOG.md](REFERENCE.md) |
+| **Query DuckDB directly** | [reference/DUCKDB_SCHEMA.md](REFERENCE.md) |
 | **Work on SQL Cleaning Engine** | [development/sql_cleaning_engine/](development/sql_cleaning_engine/) |
 
 ### By Role
 
 **End Users:**
-- Start: [guides/SETUP_AND_DEPLOYMENT.md](guides/SETUP_AND_DEPLOYMENT.md)
-- Configuration: [guides/CONFIGURATION_GUIDE.md](guides/CONFIGURATION_GUIDE.md)
-- Usage: [guides/PARSING_USER_GUIDE.md](guides/PARSING_USER_GUIDE.md)
+- Start: [guides/SETUP_AND_DEPLOYMENT.md](SETUP.md)
+- Configuration: [guides/CONFIGURATION_GUIDE.md](SETUP.md)
+- Usage: [guides/PARSING_USER_GUIDE.md](USAGE.md)
 
 **Developers:**
-- Architecture: [reference/SYSTEM_OVERVIEW.md](reference/SYSTEM_OVERVIEW.md)
-- Parser: [guides/PARSING_USER_GUIDE.md](guides/PARSING_USER_GUIDE.md)
-- Comment Hints: [guides/COMMENT_HINTS_DEVELOPER_GUIDE.md](guides/COMMENT_HINTS_DEVELOPER_GUIDE.md)
-- Database: [reference/DUCKDB_SCHEMA.md](reference/DUCKDB_SCHEMA.md)
+- Architecture: [reference/SYSTEM_OVERVIEW.md](documentation-mode/01_CURRENT_SYSTEM_ARCHITECTURE.md)
+- Parser: [guides/PARSING_USER_GUIDE.md](USAGE.md)
+- Comment Hints: [guides/COMMENT_HINTS_DEVELOPER_GUIDE.md](USAGE.md)
+- Database: [reference/DUCKDB_SCHEMA.md](REFERENCE.md)
 
 **DevOps:**
-- Deployment: [guides/SETUP_AND_DEPLOYMENT.md](guides/SETUP_AND_DEPLOYMENT.md)
-- Maintenance: [guides/MAINTENANCE_GUIDE.md](guides/MAINTENANCE_GUIDE.md)
-- Configuration: [guides/CONFIGURATION_GUIDE.md](guides/CONFIGURATION_GUIDE.md)
+- Deployment: [guides/SETUP_AND_DEPLOYMENT.md](SETUP.md)
+- Maintenance: [guides/MAINTENANCE_GUIDE.md](USAGE.md)
+- Configuration: [guides/CONFIGURATION_GUIDE.md](SETUP.md)
 
 **Architects:**
-- System Design: [reference/SYSTEM_OVERVIEW.md](reference/SYSTEM_OVERVIEW.md)
-- Database Schema: [reference/DUCKDB_SCHEMA.md](reference/DUCKDB_SCHEMA.md)
-- Parser Architecture: [reference/PARSER_EVOLUTION_LOG.md](reference/PARSER_EVOLUTION_LOG.md)
+- System Design: [reference/SYSTEM_OVERVIEW.md](documentation-mode/01_CURRENT_SYSTEM_ARCHITECTURE.md)
+- Database Schema: [reference/DUCKDB_SCHEMA.md](REFERENCE.md)
+- Parser Architecture: [reference/PARSER_EVOLUTION_LOG.md](REFERENCE.md)
 
 ---
 
