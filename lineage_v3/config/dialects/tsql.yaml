@@ -1,0 +1,186 @@
+# =============================================================================
+# T-SQL Dialect Configuration
+# =============================================================================
+# Microsoft SQL Server, Azure SQL Database, Azure Synapse Analytics
+#
+# This file defines dialect-specific behavior for metadata extraction,
+# query log analysis, and SQL parsing configuration.
+# =============================================================================
+
+dialect: tsql
+display_name: "Microsoft SQL Server / Azure Synapse"
+sqlglot_dialect: tsql
+
+# -----------------------------------------------------------------------------
+# Metadata Extraction Configuration
+# -----------------------------------------------------------------------------
+metadata:
+  source: dmv  # dmv | information_schema | system_tables
+
+  # Query to extract database objects (stored procs, views, functions)
+  # Returns: database_object_id, schema_name, object_name, object_type, created_at, modified_at
+  objects_query: |
+    SELECT
+      o.object_id as database_object_id,
+      SCHEMA_NAME(o.schema_id) as schema_name,
+      o.name as object_name,
+      o.type_desc as object_type,
+      o.create_date as created_at,
+      o.modify_date as modified_at
+    FROM sys.objects o
+    WHERE o.type IN ('P', 'V', 'FN', 'IF', 'TF')
+      AND o.is_ms_shipped = 0
+
+  # Query to extract object definitions (SQL source code)
+  # Returns: database_object_id, sql_code
+  definitions_query: |
+    SELECT
+      sm.object_id as database_object_id,
+      sm.definition as sql_code
+    FROM sys.sql_modules sm
+
+  # Expected schema for objects DataFrame
+  objects_schema:
+    - name: database_object_id
+      type: int64
+      required: true
+    - name: schema_name
+      type: string
+      required: true
+    - name: object_name
+      type: string
+      required: true
+    - name: object_type
+      type: string
+      required: true
+    - name: created_at
+      type: datetime64
+      required: false
+    - name: modified_at
+      type: datetime64
+      required: false
+
+  # Expected schema for definitions DataFrame
+  definitions_schema:
+    - name: database_object_id
+      type: int64
+      required: true
+    - name: sql_code
+      type: string
+      required: true
+
+# -----------------------------------------------------------------------------
+# Query Log Analysis Configuration
+# -----------------------------------------------------------------------------
+# Query logs are used to detect dynamic SQL patterns and identify tables
+# referenced at runtime that may not appear in static stored procedure code.
+# -----------------------------------------------------------------------------
+query_logs:
+  enabled: true
+  source: dmv  # dmv | parquet | csv | disabled
+
+  # Query to extract query execution logs from DMVs
+  # Only used when source=dmv
+  extraction_query: |
+    SELECT
+      dest.text AS query_text,
+      deqs.execution_count,
+      deqs.last_execution_time,
+      deqs.total_worker_time / 1000000.0 AS total_cpu_seconds,
+      OBJECT_NAME(dest.objectid, dest.dbid) AS object_name
+    FROM sys.dm_exec_query_stats AS deqs
+    CROSS APPLY sys.dm_exec_sql_text(deqs.sql_handle) AS dest
+    WHERE dest.text IS NOT NULL
+      AND deqs.last_execution_time >= DATEADD(day, -7, GETDATE())
+      AND dest.objectid IS NOT NULL
+    ORDER BY deqs.execution_count DESC
+
+  # When source=parquet, use this file path (relative to project root)
+  parquet_path: "parquet_snapshots/query_logs.parquet"
+
+  # Expected schema for query logs
+  schema:
+    - name: query_text
+      type: string
+      required: true
+      description: "Full SQL query text"
+    - name: execution_count
+      type: int64
+      required: true
+      description: "Number of times query was executed"
+    - name: last_execution_time
+      type: datetime64
+      required: false
+      description: "Last execution timestamp"
+    - name: total_cpu_seconds
+      type: float64
+      required: false
+      description: "Total CPU time in seconds"
+    - name: object_name
+      type: string
+      required: false
+      description: "Stored procedure name if available"
+
+  # Regex patterns indicating dynamic SQL (for lineage analysis)
+  # These patterns help identify queries that construct SQL dynamically
+  dynamic_query_patterns:
+    - pattern: '@\w+'
+      description: "T-SQL parameter usage"
+      examples:
+        - "SELECT * FROM @table_name"
+        - "EXEC sp_executesql @sql"
+
+    - pattern: 'EXEC(?:UTE)?\s+sp_executesql'
+      description: "Dynamic SQL execution"
+      examples:
+        - "EXEC sp_executesql @sql"
+        - "EXECUTE sp_executesql @stmt, @params"
+
+    - pattern: 'EXECUTE\s*\('
+      description: "EXECUTE() dynamic SQL function"
+      examples:
+        - "EXECUTE('SELECT * FROM ' + @table)"
+
+    - pattern: '\$\{[^}]+\}'
+      description: "Template variable interpolation"
+      examples:
+        - "SELECT * FROM ${schema}.${table}"
+
+# -----------------------------------------------------------------------------
+# SQL Parsing Configuration
+# -----------------------------------------------------------------------------
+parsing:
+  # Case sensitivity for identifiers
+  case_sensitive: false
+
+  # Identifier quoting style
+  identifier_quote_start: "["
+  identifier_quote_end: "]"
+
+  # String literal quote
+  string_quote: "'"
+
+  # Statement terminator
+  statement_terminator: ";"
+
+  # Batch separator (T-SQL specific)
+  batch_separator: "GO"
+
+  # Comment styles
+  line_comment: "--"
+  block_comment_start: "/*"
+  block_comment_end: "*/"
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  version: "1.0.0"
+  created: "2025-11-11"
+  updated: "2025-11-11"
+  notes: |
+    T-SQL is the default dialect. This configuration supports:
+    - SQL Server 2016+
+    - Azure SQL Database
+    - Azure Synapse Analytics (formerly SQL Data Warehouse)

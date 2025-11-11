@@ -1,0 +1,174 @@
+# =============================================================================
+# PostgreSQL Dialect Configuration
+# =============================================================================
+# PostgreSQL database (including data warehouse deployments)
+#
+# This file defines dialect-specific behavior for metadata extraction,
+# query log analysis, and SQL parsing configuration.
+# =============================================================================
+
+dialect: postgres
+display_name: "PostgreSQL"
+sqlglot_dialect: postgres
+
+# -----------------------------------------------------------------------------
+# Metadata Extraction Configuration
+# -----------------------------------------------------------------------------
+metadata:
+  source: information_schema
+
+  # Query to extract database objects (functions, procedures)
+  # Note: PostgreSQL doesn't track creation/modification dates in pg_catalog
+  objects_query: |
+    SELECT
+      p.oid as database_object_id,
+      n.nspname as schema_name,
+      p.proname as object_name,
+      CASE
+        WHEN p.prokind = 'f' THEN 'FUNCTION'
+        WHEN p.prokind = 'p' THEN 'PROCEDURE'
+        WHEN p.prokind = 'a' THEN 'AGGREGATE'
+        WHEN p.prokind = 'w' THEN 'WINDOW'
+        ELSE 'FUNCTION'
+      END as object_type,
+      NULL::timestamp as created_at,
+      NULL::timestamp as modified_at
+    FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+      AND n.nspname NOT LIKE 'pg_temp_%'
+
+  # Query to extract object definitions
+  definitions_query: |
+    SELECT
+      p.oid as database_object_id,
+      pg_get_functiondef(p.oid) as sql_code
+    FROM pg_proc p
+    JOIN pg_namespace n ON p.pronamespace = n.oid
+    WHERE n.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast')
+
+  objects_schema:
+    - name: database_object_id
+      type: int64
+      required: true
+    - name: schema_name
+      type: string
+      required: true
+    - name: object_name
+      type: string
+      required: true
+    - name: object_type
+      type: string
+      required: true
+    - name: created_at
+      type: datetime64
+      required: false
+    - name: modified_at
+      type: datetime64
+      required: false
+
+  definitions_schema:
+    - name: database_object_id
+      type: int64
+      required: true
+    - name: sql_code
+      type: string
+      required: true
+
+# -----------------------------------------------------------------------------
+# Query Log Analysis Configuration
+# -----------------------------------------------------------------------------
+# Requires pg_stat_statements extension:
+#   CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+# -----------------------------------------------------------------------------
+query_logs:
+  enabled: true
+  source: database_view  # Requires pg_stat_statements extension
+
+  extraction_query: |
+    SELECT
+      query AS query_text,
+      calls AS execution_count,
+      last_exec AS last_execution_time,
+      total_exec_time / 1000.0 AS total_cpu_seconds,
+      NULL::text AS object_name
+    FROM pg_stat_statements
+    WHERE query IS NOT NULL
+      AND last_exec >= NOW() - INTERVAL '7 days'
+      AND calls > 1
+    ORDER BY calls DESC
+    LIMIT 10000
+
+  parquet_path: "parquet_snapshots/query_logs.parquet"
+
+  schema:
+    - name: query_text
+      type: string
+      required: true
+    - name: execution_count
+      type: int64
+      required: true
+    - name: last_execution_time
+      type: datetime64
+      required: false
+    - name: total_cpu_seconds
+      type: float64
+      required: false
+    - name: object_name
+      type: string
+      required: false
+
+  # PostgreSQL dynamic SQL patterns
+  dynamic_query_patterns:
+    - pattern: '\$\d+'
+      description: "Positional parameters"
+      examples:
+        - "SELECT * FROM table WHERE id = $1"
+
+    - pattern: 'EXECUTE\s+.*USING'
+      description: "Dynamic SQL with parameters"
+      examples:
+        - "EXECUTE 'SELECT * FROM ' || table_name USING param1"
+
+    - pattern: 'format\s*\('
+      description: "String formatting function"
+      examples:
+        - "format('SELECT * FROM %I', table_name)"
+
+    - pattern: '\|\|'
+      description: "String concatenation (potential SQL injection risk)"
+      examples:
+        - "'SELECT * FROM ' || table_name"
+
+# -----------------------------------------------------------------------------
+# SQL Parsing Configuration
+# -----------------------------------------------------------------------------
+parsing:
+  case_sensitive: true  # PostgreSQL is case-sensitive by default
+
+  identifier_quote_start: "\""
+  identifier_quote_end: "\""
+
+  string_quote: "'"
+
+  statement_terminator: ";"
+
+  batch_separator: null  # PostgreSQL doesn't have batch separators
+
+  line_comment: "--"
+  block_comment_start: "/*"
+  block_comment_end: "*/"
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  version: "1.0.0"
+  created: "2025-11-11"
+  updated: "2025-11-11"
+  notes: |
+    PostgreSQL configuration supports:
+    - PostgreSQL 12+
+    - Amazon Redshift (Postgres-compatible, but use redshift.yaml for full support)
+    - Query log analysis requires pg_stat_statements extension
