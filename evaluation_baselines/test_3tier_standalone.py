@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Test 3-Tier Parser Implementation (Standalone)
-===============================================
+Test Production Baseline v5.1 (Standalone)
+==========================================
 
 Validates:
-1. 3-tier fallback logic works correctly
-2. Table extraction >= 743 (Phase 1 baseline)
-3. Expected ~745 tables (Option B projection)
-4. 3-tier distribution matches expectations
+1. 2-tier best-effort logic works correctly
+2. Table extraction = 743 (Phase 1 baseline)
+3. Tier distribution: ~86.5% Tier 1, ~13.5% Tier 2
+4. Uses 17-rule engine for production accuracy
 """
 
 import duckdb
@@ -40,7 +40,7 @@ defs_for_merge = defs_df[['object_id', 'definition']]
 merged = defs_for_merge.merge(objs_df[['object_id', 'object_type', 'schema_name', 'object_name']], on='object_id')
 sps = merged[merged['object_type'] == 'Stored Procedure']
 
-print(f"Testing 3-Tier Parser on {len(sps)} stored procedures...")
+print(f"Testing Production Baseline v5.1 (2-tier, 17 rules) on {len(sps)} stored procedures...")
 print("=" * 80)
 
 # Create catalog set for validation
@@ -75,12 +75,11 @@ def extract_unique_tables(parsed_statements):
 
 def parse_with_3tier(ddl):
     """
-    3-tier parsing approach (adjusted to match Phase 1 baseline behavior)
+    2-tier parsing approach (Production Baseline v5.1 - 17 rules)
 
     - Tier 1: WARN-only (always try)
-    - Tier 2: WARN + 7 rules (always try for best-effort)
-    - Tier 3: WARN + 17 rules (only if Tiers 1 & 2 both found 0 tables)
-    - Return best result
+    - Tier 2: WARN + 17 rules (always try for best-effort)
+    - Return whichever finds more tables
     """
 
     # Tier 1: WARN-only (no cleaning) - ALWAYS TRY
@@ -92,10 +91,10 @@ def parse_with_3tier(ddl):
         sources_t1, targets_t1 = set(), set()
         tables_t1 = 0
 
-    # Tier 2: WARN + 7 rules - ALWAYS TRY (simplified)
+    # Tier 2: WARN + 17 rules - ALWAYS TRY (production baseline)
     try:
-        cleaned_7 = engine_7.apply_all(ddl)
-        parsed_t2 = sqlglot.parse(cleaned_7, dialect='tsql', error_level=ErrorLevel.WARN)
+        cleaned_17 = engine_17.apply_all(ddl)
+        parsed_t2 = sqlglot.parse(cleaned_17, dialect='tsql', error_level=ErrorLevel.WARN)
         sources_t2, targets_t2 = extract_unique_tables(parsed_t2)
         tables_t2 = len(sources_t2) + len(targets_t2)
     except:
@@ -105,7 +104,7 @@ def parse_with_3tier(ddl):
     # Return best result (whichever found more tables)
     # NO catalog validation (match Phase 1 baseline behavior)
     if tables_t2 > tables_t1:
-        return sources_t2, targets_t2, 'tier2_7rules', tables_t2
+        return sources_t2, targets_t2, 'tier2_17rules', tables_t2
     else:
         return sources_t1, targets_t1, 'tier1_warn', tables_t1
 
@@ -152,8 +151,7 @@ for method, count in method_counts.items():
 # Expected vs actual
 print(f"\nExpected Distribution:")
 print(f"  Tier 1 (WARN-only): 86.5% → Actual: {method_counts.get('tier1_warn', 0) / len(results_df) * 100:.1f}%")
-print(f"  Tier 2 (7 rules): 13.0% → Actual: {method_counts.get('tier2_7rules', 0) / len(results_df) * 100:.1f}%")
-print(f"  Tier 3 (17 rules): 0.5% → Actual: {method_counts.get('tier3_17rules', 0) / len(results_df) * 100:.1f}%")
+print(f"  Tier 2 (17 rules): 13.5% → Actual: {method_counts.get('tier2_17rules', 0) / len(results_df) * 100:.1f}%")
 
 # Top SPs by table count
 print(f"\nTop 10 SPs by Table Count:")
@@ -163,9 +161,9 @@ for _, row in results_df.nlargest(10, 'tables').iterrows():
     print(f"{row['sp_name']:<60} {row['tables']:<10} {row['parse_method']:<15}")
 
 # Tier 2 usage
-tier2_sps = results_df[results_df['parse_method'] == 'tier2_7rules']
+tier2_sps = results_df[results_df['parse_method'] == 'tier2_17rules']
 if len(tier2_sps) > 0:
-    print(f"\nTier 2 (7 rules) Usage Analysis:")
+    print(f"\nTier 2 (17 rules) Usage Analysis:")
     print(f"  Total: {len(tier2_sps)} SPs ({len(tier2_sps)/len(results_df)*100:.1f}%)")
     print(f"  Avg Tables: {tier2_sps['tables'].mean():.1f}")
     print(f"  Total Tables: {tier2_sps['tables'].sum()}")
@@ -195,25 +193,21 @@ print("COMPARISON TO BASELINES")
 print("=" * 80)
 
 tier1_pct = method_counts.get('tier1_warn', 0) / len(results_df) * 100
-tier2_pct = method_counts.get('tier2_7rules', 0) / len(results_df) * 100
-tier3_pct = method_counts.get('tier3_17rules', 0) / len(results_df) * 100
+tier2_pct = method_counts.get('tier2_17rules', 0) / len(results_df) * 100
 
 print(f"""
 Phase 1 Baseline (SimplifiedParser v5.0 - 2-tier):
   Total Tables: 743
 
-Option B Projection (3-tier):
-  Total Tables: ~745 (expected)
+Production Baseline v5.1 (2-tier with 17 rules):
+  Total Tables: 743 (expected)
 
-3-Tier Parser v5.1 (Actual):
+Current Test Run (Actual):
   Total Tables: {total_tables}
-  Method: Tier 1 ({method_counts.get('tier1_warn', 0)} SPs) + Tier 2 ({method_counts.get('tier2_7rules', 0)} SPs) + Tier 3 ({method_counts.get('tier3_17rules', 0)} SPs)
+  Method: Tier 1 ({method_counts.get('tier1_warn', 0)} SPs) + Tier 2 ({method_counts.get('tier2_17rules', 0)} SPs)
 
 Comparison to Phase 1 Baseline:
   Total Tables: {total_tables - 743:+d} ({(total_tables - 743)/743*100:+.1f}%)
-
-Comparison to Option B Projection:
-  Total Tables: {total_tables - 745:+d} ({(total_tables - 745)/745*100:+.1f}%)
 """)
 
 if total_tables >= 743:
@@ -222,11 +216,11 @@ else:
     print(f"⚠️  WARNING: Total tables below baseline by {743 - total_tables}")
 
 # Check tier distribution
-if 80 <= tier1_pct <= 90 and 10 <= tier2_pct <= 20 and tier3_pct < 5:
+if 80 <= tier1_pct <= 90 and 10 <= tier2_pct <= 20:
     print("✅ PASS: Tier distribution matches expectations")
 else:
     print(f"⚠️  WARNING: Tier distribution differs from expectations")
-    print(f"   T1={tier1_pct:.1f}% (expected 86.5%), T2={tier2_pct:.1f}% (expected 13%), T3={tier3_pct:.1f}% (expected <1%)")
+    print(f"   T1={tier1_pct:.1f}% (expected 86.5%), T2={tier2_pct:.1f}% (expected 13.5%)")
 
 # Save results
 results_df.to_json('evaluation_baselines/3tier_standalone_results.json', orient='records', indent=2)
@@ -239,23 +233,22 @@ print("=" * 80)
 all_pass = (
     total_tables >= 743 and
     80 <= tier1_pct <= 90 and
-    10 <= tier2_pct <= 20 and
-    tier3_pct < 5
+    10 <= tier2_pct <= 20
 )
 
 if all_pass:
     print("\n✅ ALL TESTS PASSED")
     print("   - Zero regressions (tables >= baseline)")
     print("   - Tier distribution matches expectations")
-    print("   - 3-tier smart fallback working correctly")
-    print(f"\n   Average rules per SP: ~{(0*method_counts.get('tier1_warn',0) + 7*method_counts.get('tier2_7rules',0) + 17*method_counts.get('tier3_17rules',0))/len(results_df):.1f}")
+    print("   - 2-tier best-effort parsing working correctly")
+    print(f"\n   Average rules per SP: ~{(0*method_counts.get('tier1_warn',0) + 17*method_counts.get('tier2_17rules',0))/len(results_df):.1f}")
     print("\n   Ready for production deployment!")
 else:
     print("\n⚠️  SOME TESTS FAILED")
     if total_tables < 743:
         print(f"   - Tables: {total_tables} (expected >= 743)")
-    if not (80 <= tier1_pct <= 90 and 10 <= tier2_pct <= 20 and tier3_pct < 5):
-        print(f"   - Tier distribution: T1={tier1_pct:.1f}% T2={tier2_pct:.1f}% T3={tier3_pct:.1f}%")
+    if not (80 <= tier1_pct <= 90 and 10 <= tier2_pct <= 20):
+        print(f"   - Tier distribution: T1={tier1_pct:.1f}% T2={tier2_pct:.1f}%")
     print("\n   Review failures before deployment")
 
 print("\n" + "=" * 80)
