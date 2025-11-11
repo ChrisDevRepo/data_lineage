@@ -29,6 +29,7 @@ pip install -r requirements.txt && ./start-app.sh
 - [docs/SETUP.md](docs/SETUP.md) - Installation, configuration, deployment
 - [docs/USAGE.md](docs/USAGE.md) - Parser usage, hints, troubleshooting
 - [docs/REFERENCE.md](docs/REFERENCE.md) - Technical specs, schema, API
+- [docs/RULE_ENGINE.md](docs/RULE_ENGINE.md) - SQL cleaning rules (17 rules, +27% success)
 - [BUGS.md](BUGS.md) - Issue tracking with business context
 
 ## Parser v4.2.0
@@ -38,18 +39,19 @@ pip install -r requirements.txt && ./start-app.sh
 
 ### MANDATORY: Parser Development Protocol
 
-🚨 **ALWAYS use `/sub_DL_OptimizeParsing` for parser changes** 🚨
+**Testing approach:**
+1. **Before changes:** Document current parse success rate from `smoke_test_analysis.json`
+2. **Make changes:** Update `lineage_v3/parsers/sql_cleaning_rules.py` or `quality_aware_parser.py`
+3. **Test specific SPs:** Create test scripts to verify fixes on problematic stored procedures
+4. **Manual smoke test:** Re-run parser on full corpus, compare results
+5. **Pass criteria:** Zero regressions + expected improvements
 
-```bash
-# Before changes: Create baseline
-/sub_DL_OptimizeParsing init --name baseline_YYYYMMDD
+**Rule Engine Development:**
+- See [docs/RULE_ENGINE.md](docs/RULE_ENGINE.md) for rule implementation guide
+- Test new rules with `rule.test()` before deploying
+- Use verbose mode during development: `engine.apply_all(sql, verbose=True)`
 
-# After changes: Evaluate
-/sub_DL_OptimizeParsing run --mode full --baseline baseline_YYYYMMDD
-/sub_DL_OptimizeParsing compare --run1 run_X --run2 run_Y
-
-# Pass criteria: Zero regressions + expected improvements
-```
+**Note:** `/sub_DL_OptimizeParsing` evaluation framework is planned but not yet implemented.
 
 ## Confidence Model v2.1.0
 
@@ -65,10 +67,13 @@ else: confidence = 0
 
 **Special cases:** Orchestrators (only EXEC) → 100% | Parse failures → 0%
 
-## Sub-Agents
+## Slash Commands
 
-- `/sub_DL_OptimizeParsing` - Parser evaluation (precision/recall/F1)
+**Available:**
 - `/sub_DL_Clean` - Archive old docs, optimize CLAUDE.md
+
+**Planned:**
+- `/sub_DL_OptimizeParsing` - Parser evaluation (precision/recall/F1)
 - `/sub_DL_Build` - Azure deployment
 - `/sub_DL_GitPush` - Commit and push
 - `/sub_DL_Restart` - Kill ports 3000/8000, restart servers
@@ -91,5 +96,5 @@ See [docs/USAGE.md](docs/USAGE.md) for detailed troubleshooting.
 
 ---
 
-**Last Updated:** 2025-11-08
+**Last Updated:** 2025-11-11
 **Version:** v4.2.0

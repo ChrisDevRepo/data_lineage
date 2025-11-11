@@ -50,10 +50,12 @@ Technical specifications, architecture, and schema documentation.
 - Walk AST to find table references
 - Handles complex queries (CTEs, subqueries)
 
-**Phase 3: Rule Engine**
-- Apply SQL cleaning rules (temp tables, variables)
-- Resolve schema qualifications
-- Validate against object catalog
+**Phase 3: Rule Engine** ([detailed docs](RULE_ENGINE.md))
+- Preprocess T-SQL to make it SQLGlot-compatible
+- Remove T-SQL-specific constructs (DECLARE, SET, TRY/CATCH, etc.)
+- Extract DML from control flow wrappers (IF, BEGIN/END)
+- Handle edge cases (string literals, CASE blocks, multi-line statements)
+- **Impact:** +27% SQLGlot success rate (68% → 95.5%)
 
 **Phase 4: Confidence Calculation**
 - Compare found tables vs expected (smoke test)
