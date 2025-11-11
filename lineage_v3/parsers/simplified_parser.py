@@ -30,6 +30,7 @@ import re
 from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
 from lineage_v3.parsers.sql_cleaning_rules import RuleEngine
 from lineage_v3.parsers.simplified_rule_engine import SimplifiedRuleEngine
+from lineage_v3.parsers.comment_hints_parser import CommentHintsParser
 
 logger = logging.getLogger(__name__)
 
@@ -49,13 +50,14 @@ class SimplifiedParser:
     # Excluded schemas (system, temp)
     EXCLUDED_SCHEMAS = {'sys', 'information_schema', 'tempdb'}
 
-    def __init__(self, workspace: DuckDBWorkspace, enable_sql_cleaning: bool = True):
+    def __init__(self, workspace: DuckDBWorkspace, enable_sql_cleaning: bool = True, enable_manual_overrides: bool = True):
         """
         Initialize 3-tier parser.
 
         Args:
             workspace: DuckDB workspace for catalog access
             enable_sql_cleaning: Enable SQL Cleaning Engine (default: True)
+            enable_manual_overrides: Enable @LINEAGE_INPUTS/@LINEAGE_OUTPUTS hints (default: True)
         """
         self.workspace = workspace
         self._object_catalog = None
@@ -66,6 +68,12 @@ class SimplifiedParser:
             self.engine_7 = SimplifiedRuleEngine()  # Tier 2: 7 simplified rules
             self.engine_17 = RuleEngine()  # Tier 3: 17 original rules
             logger.info("3-Tier SQL Cleaning enabled: Tier 1 (0 rules) → Tier 2 (7 rules) → Tier 3 (17 rules)")
+
+        # Manual override support (comment hints)
+        self.enable_manual_overrides = enable_manual_overrides
+        if self.enable_manual_overrides:
+            self.hints_parser = CommentHintsParser(workspace)
+            logger.info("Manual override support enabled: @LINEAGE_INPUTS, @LINEAGE_OUTPUTS")
 
     def parse_object(self, object_id: int) -> Dict[str, Any]:
         """
@@ -104,6 +112,17 @@ class SimplifiedParser:
             }
 
         try:
+            # Check for manual overrides first (@LINEAGE_INPUTS/@LINEAGE_OUTPUTS)
+            manual_inputs, manual_outputs = set(), set()
+            has_manual_hints = False
+
+            if self.enable_manual_overrides:
+                manual_inputs, manual_outputs = self.hints_parser.extract_hints(ddl, validate=True)
+                has_manual_hints = len(manual_inputs) > 0 or len(manual_outputs) > 0
+
+                if has_manual_hints:
+                    logger.info(f"Manual overrides detected: {len(manual_inputs)} inputs, {len(manual_outputs)} outputs")
+
             # Parse with 3-tier approach
             sources, targets, sp_calls, parse_method, quality = self._parse_with_3_tier_approach(ddl)
 
@@ -111,6 +130,15 @@ class SimplifiedParser:
             sources_valid = self._validate_against_catalog(sources)
             targets_valid = self._validate_against_catalog(targets)
             sp_calls_valid = self._validate_sp_calls(sp_calls)
+
+            # Apply manual overrides if present (they take precedence)
+            if has_manual_hints:
+                if manual_inputs:
+                    sources_valid = manual_inputs  # Override parsed inputs
+                if manual_outputs:
+                    targets_valid = manual_outputs  # Override parsed outputs
+                parse_method = f"{parse_method}_manual_override"
+                logger.debug(f"Applied manual overrides for object_id {object_id}")
 
             # Resolve to object_ids
             input_ids = self._resolve_table_names(sources_valid)
@@ -122,18 +150,23 @@ class SimplifiedParser:
 
             # Calculate SQLGlot-based confidence
             is_orchestrator = (len(sources_valid) == 0 and len(targets_valid) == 0 and len(sp_calls_valid) > 0)
-            confidence = self._calculate_sqlglot_confidence(
-                quality_metadata=quality,
-                tables_found=len(sources_valid) + len(targets_valid),
-                is_orchestrator=is_orchestrator
-            )
+
+            # If manual overrides used, set confidence to 100
+            if has_manual_hints:
+                confidence = 100
+            else:
+                confidence = self._calculate_sqlglot_confidence(
+                    quality_metadata=quality,
+                    tables_found=len(sources_valid) + len(targets_valid),
+                    is_orchestrator=is_orchestrator
+                )
 
             return {
                 'object_id': object_id,
                 'inputs': input_ids,
                 'outputs': output_ids,
                 'confidence': confidence,
-                'source': 'parser',
+                'source': 'parser' if not has_manual_hints else 'manual_override',
                 'parse_method': parse_method,
                 'parse_error': None,
                 'quality_metadata': quality
