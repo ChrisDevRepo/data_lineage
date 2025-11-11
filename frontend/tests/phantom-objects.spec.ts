@@ -13,7 +13,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Phantom Objects Visualization', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to lineage graph page
-    await page.goto('http://localhost:3000/lineage');
+    await page.goto('http://localhost:3000');
 
     // Wait for graph to load
     await page.waitForSelector('[data-testid="lineage-graph"]', { timeout: 10000 });
@@ -97,7 +97,7 @@ test.describe('Phantom Objects Visualization', () => {
 
 test.describe('Node Symbol Icons', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3000/lineage');
+    await page.goto('http://localhost:3000');
     await page.waitForSelector('[data-testid="lineage-graph"]');
   });
 
@@ -138,7 +138,7 @@ test.describe('Node Symbol Icons', () => {
 
 test.describe('Legend Display', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3000/lineage');
+    await page.goto('http://localhost:3000');
     await page.waitForSelector('[data-testid="lineage-graph"]');
   });
 
@@ -169,7 +169,7 @@ test.describe('Legend Display', () => {
 
 test.describe('Data Loading', () => {
   test('should load nodes with node_symbol field', async ({ page }) => {
-    await page.goto('http://localhost:3000/lineage');
+    await page.goto('http://localhost:3000');
 
     // Wait for data to load
     await page.waitForLoadState('networkidle');
@@ -180,7 +180,7 @@ test.describe('Data Loading', () => {
   });
 
   test('should load phantom nodes with is_phantom flag', async ({ page }) => {
-    await page.goto('http://localhost:3000/lineage');
+    await page.goto('http://localhost:3000');
     await page.waitForLoadState('networkidle');
 
     // Check for phantom flag
@@ -192,7 +192,7 @@ test.describe('Data Loading', () => {
   });
 
   test('should handle negative IDs correctly', async ({ page }) => {
-    await page.goto('http://localhost:3000/lineage');
+    await page.goto('http://localhost:3000');
     await page.waitForLoadState('networkidle');
 
     // Find nodes with negative IDs
@@ -212,7 +212,7 @@ test.describe('Data Loading', () => {
 
 test.describe('Interaction Tests', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('http://localhost:3000/lineage');
+    await page.goto('http://localhost:3000');
     await page.waitForSelector('[data-testid="lineage-graph"]');
   });
 
@@ -249,7 +249,7 @@ test.describe('Interaction Tests', () => {
 
 test.describe('Accessibility', () => {
   test('should have aria labels for phantom nodes', async ({ page }) => {
-    await page.goto('http://localhost:3000/lineage');
+    await page.goto('http://localhost:3000');
     await page.waitForSelector('[data-testid="lineage-graph"]');
 
     const phantomNode = page.locator('[data-node-id^="-"]').first();
@@ -262,7 +262,7 @@ test.describe('Accessibility', () => {
   });
 
   test('should be keyboard navigable', async ({ page }) => {
-    await page.goto('http://localhost:3000/lineage');
+    await page.goto('http://localhost:3000');
     await page.waitForSelector('[data-testid="lineage-graph"]');
 
     // Tab to first node
