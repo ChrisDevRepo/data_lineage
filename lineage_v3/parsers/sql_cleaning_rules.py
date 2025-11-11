@@ -228,24 +228,19 @@ class SQLCleaningRules:
         This preserves DECLARE with scalar SELECT functions
         """
         def remove_declare_callback(sql: str) -> str:
-            # Pass 1: Remove DECLARE with SELECT...FROM (admin queries)
-            # Pattern: DECLARE @var type = (SELECT ... FROM ...)
-            sql = re.sub(
-                r'DECLARE\s+@\w+\s+\w+(?:\([^\)]*\))?\s*=\s*\([^()]*SELECT[^()]*FROM[^()]*\)',
-                '',
-                sql,
-                flags=re.IGNORECASE | re.DOTALL
-            )
+            # CRITICAL FIX (2025-11-11): Remove ALL DECLARE blocks (simplified)
+            # Previous logic was too complex trying to preserve some DECLAREs
+            # New approach: Remove ALL DECLARE since SQLGlot doesn't support them anyway
+            # Variables will be left as references (@var) which SQLGlot ignores
 
-            # Pass 2: Remove simple DECLARE without SELECT (pure declarations)
-            # Pattern: DECLARE @var type = value (no SELECT keyword)
-            # But do NOT match if line contains SELECT (preserves scalar SELECTs)
-            sql = re.sub(
-                r'DECLARE\s+@\w+(?!\s*\w*\s*=\s*\([^()]*SELECT).*?(?:;|\n|$)',
-                '',
-                sql,
-                flags=re.IGNORECASE | re.DOTALL
-            )
+            # Remove multi-line comma-separated DECLARE blocks
+            # Pattern: DECLARE @var ... with optional comma-prefixed continuations
+            # Handles: DECLARE @v1 type = val
+            #                ,@v2 type = val
+            #                ,@v3 type = val
+            multi_line_pattern = r'DECLARE\s+@\w+[^\n]*(?:\n\s*,@\w+[^\n]*)*'
+
+            sql = re.sub(multi_line_pattern, '', sql, flags=re.IGNORECASE)
 
             return sql
 
@@ -540,30 +535,50 @@ class SQLCleaningRules:
         """
 
         def extract_dml(sql: str) -> str:
-            # CRITICAL FIX (2025-11-11): Remove CREATE PROC wrapper while preserving all DML
-            # Issue: SPs with multiple DML blocks were either losing statements OR keeping wrapper
-            # Solution: Always remove wrapper (CREATE PROC...AS BEGIN...END), keep entire body
+            # CRITICAL FIX (2025-11-11): Handle nested BEGIN/END with depth counting
+            # Issue: Pattern (.*)\s+END matches until FIRST END, not matching outer END
+            # Solution: Count BEGIN/END depth to find matching outer END
 
-            # Step 1: Remove CREATE PROC header and extract body
-            # Pattern: CREATE PROC [schema].[name] ... AS BEGIN <body> END
-            proc_pattern = r'CREATE\s+PROC(?:EDURE)?\s+\[?[\w\.\[\]]+\]?.*?AS\s+BEGIN\s+(.*)\s+END'
-            match = re.search(proc_pattern, sql, flags=re.IGNORECASE | re.DOTALL)
+            # Look for CREATE PROC...AS BEGIN
+            proc_start = re.search(r'CREATE\s+PROC(?:EDURE)?\s+\[?[\w\.\[\]]+\]?.*?AS\s+BEGIN',
+                                   sql, flags=re.IGNORECASE | re.DOTALL)
 
-            if match:
-                # Extract body (everything between AS BEGIN and END)
-                body = match.group(1).strip()
-                return body
+            if not proc_start:
+                # No CREATE PROC wrapper, return as-is
+                return sql
 
-            # Step 2: Fallback - try to find body without exact pattern match
-            # Look for BEGIN/END block and extract content
-            begin_end_pattern = r'BEGIN\s+(.*?)\s+END'
-            matches = re.findall(begin_end_pattern, sql, flags=re.IGNORECASE | re.DOTALL)
-            if matches:
-                # Return the longest BEGIN/END block (likely the main body)
-                return max(matches, key=len).strip()
+            # Extract everything after "AS BEGIN"
+            start_pos = proc_start.end()
 
-            # Step 3: If no wrapper found, return cleaned original (already processed)
-            return sql
+            # Now find the matching END using depth counting
+            depth = 1  # We're inside the outer BEGIN
+            pos = start_pos
+            sql_upper = sql.upper()
+
+            while depth > 0 and pos < len(sql):
+                # Find next BEGIN or END
+                begin_pos = sql_upper.find('BEGIN', pos)
+                end_pos = sql_upper.find('END', pos)
+
+                if end_pos == -1:
+                    # No more END, break
+                    break
+
+                if begin_pos != -1 and begin_pos < end_pos:
+                    # Found BEGIN before END
+                    depth += 1
+                    pos = begin_pos + 5
+                else:
+                    # Found END
+                    depth -= 1
+                    if depth == 0:
+                        # Found matching outer END
+                        body = sql[start_pos:end_pos].strip()
+                        return body
+                    pos = end_pos + 3
+
+            # Fallback: couldn't match properly, return everything after AS BEGIN
+            return sql[start_pos:].strip()
 
         return CallbackRule(
             name="ExtractCoreDML",
