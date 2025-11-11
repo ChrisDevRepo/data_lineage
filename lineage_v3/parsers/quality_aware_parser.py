@@ -130,7 +130,20 @@ class QualityAwareParser:
     THRESHOLD_FAIR = 0.25     # ±25% difference
 
     # System schemas to exclude
-    EXCLUDED_SCHEMAS = {'sys', 'INFORMATION_SCHEMA', 'tempdb'}
+    EXCLUDED_SCHEMAS = {'sys', 'INFORMATION_SCHEMA', 'tempdb', 'dummy'}
+
+    # Patterns for dbo schema objects to exclude (CTEs, temp tables, etc.)
+    EXCLUDED_DBO_PATTERNS = [
+        'cte',  # Common CTE names
+        'cte_',
+        'cte1', 'cte2', 'cte3',
+        'ParsedData',  # Temp parsing tables
+        'PartitionedCompany',
+        'PartitionedCompanyKoncern',
+        't',  # Single letter temp variables
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+        'n', 'o', 'p', 'q', 'r', 's', 'u', 'v', 'w', 'x', 'y', 'z',
+    ]
 
     # T-SQL control flow patterns to remove during preprocessing
     # These patterns confuse the SQL parser and are not relevant for lineage extraction
@@ -1264,6 +1277,20 @@ class QualityAwareParser:
                 schema, table = parts
                 if schema.lower() in self.EXCLUDED_SCHEMAS:
                     continue
+
+                # Skip dbo schema CTEs and temp objects (v4.3.0)
+                if schema.lower() == 'dbo':
+                    table_lower = table.lower()
+                    # Check if table name matches any exclusion pattern
+                    if any(table_lower.startswith(pattern.lower()) or table_lower == pattern.lower()
+                           for pattern in self.EXCLUDED_DBO_PATTERNS):
+                        logger.debug(f"Excluding dbo temp object: {name}")
+                        continue
+
+                    # Also exclude objects starting with # or @
+                    if table.startswith('#') or table.startswith('@'):
+                        logger.debug(f"Excluding temp table/variable: {name}")
+                        continue
 
             # If not in catalog (case-insensitive), it's a phantom
             if name not in catalog:

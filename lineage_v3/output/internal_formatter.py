@@ -291,6 +291,11 @@ class InternalFormatter:
                 }
             }
 
+            # Preserve phantom metadata (v4.3.0)
+            if obj.get('is_phantom'):
+                node['is_phantom'] = True
+                node['phantom_reason'] = obj.get('phantom_reason', 'not_in_catalog')
+
             nodes.append(node)
             object_map[object_id] = node
         
