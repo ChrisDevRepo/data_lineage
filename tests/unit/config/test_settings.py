@@ -21,13 +21,13 @@ class TestSettingsDialectConfiguration:
 
     def test_dialect_property_returns_enum(self):
         """Test dialect property returns SQLDialect enum"""
-        settings = Settings(sql_dialect="mysql")
+        settings = Settings(sql_dialect="postgres")
         assert isinstance(settings.dialect, SQLDialect)
-        assert settings.dialect == SQLDialect.MYSQL
+        assert settings.dialect == SQLDialect.POSTGRES
 
     def test_valid_dialects_accepted(self):
         """Test all valid dialects are accepted"""
-        valid_dialects = ["tsql", "fabric", "mysql", "postgres", "oracle", "snowflake", "redshift", "bigquery"]
+        valid_dialects = ["tsql", "fabric", "postgres", "oracle", "snowflake", "redshift", "bigquery"]
 
         for dialect_str in valid_dialects:
             settings = Settings(sql_dialect=dialect_str)
@@ -42,9 +42,9 @@ class TestSettingsDialectConfiguration:
         assert settings.dialect == SQLDialect.TSQL
 
         # Mixed case
-        settings = Settings(sql_dialect="MySQL")
-        assert settings.sql_dialect == "mysql"
-        assert settings.dialect == SQLDialect.MYSQL
+        settings = Settings(sql_dialect="Postgres")
+        assert settings.sql_dialect == "postgres"
+        assert settings.dialect == SQLDialect.POSTGRES
 
     def test_invalid_dialect_raises_error(self):
         """Test invalid dialect raises validation error"""
@@ -67,11 +67,11 @@ class TestSettingsDialectConfiguration:
 
     def test_dialect_env_case_insensitive(self, monkeypatch):
         """Test env variable is case-insensitive"""
-        monkeypatch.setenv("SQL_DIALECT", "MYSQL")
+        monkeypatch.setenv("SQL_DIALECT", "FABRIC")
         settings = Settings()
 
-        assert settings.sql_dialect == "mysql"
-        assert settings.dialect == SQLDialect.MYSQL
+        assert settings.sql_dialect == "fabric"
+        assert settings.dialect == SQLDialect.FABRIC
 
 
 class TestSettingsBackwardCompatibility:

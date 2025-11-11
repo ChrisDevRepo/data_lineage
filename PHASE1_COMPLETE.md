@@ -8,18 +8,20 @@
 
 ## Summary
 
-Successfully created the foundation for multi-dialect SQL parser support with **8 SQLGlot-verified dialects**.
+Successfully created the foundation for multi-dialect SQL parser support with **7 SQLGlot-verified data warehouse dialects**.
 
 ### Supported Dialects
 
 1. **tsql** - Microsoft SQL Server / Azure SQL Database / Azure Synapse Analytics (default)
 2. **fabric** - Microsoft Fabric Lakehouse SQL endpoint ✨ NEW
-3. **mysql** - MySQL / MariaDB
-4. **postgres** - PostgreSQL
-5. **oracle** - Oracle Database
-6. **snowflake** - Snowflake Data Cloud
-7. **redshift** - Amazon Redshift
-8. **bigquery** - Google BigQuery
+3. **postgres** - PostgreSQL (data warehouses)
+4. **oracle** - Oracle Database (enterprise DW)
+5. **snowflake** - Snowflake Data Cloud
+6. **redshift** - Amazon Redshift
+7. **bigquery** - Google BigQuery
+
+**Focus**: Data warehouse / analytics platforms with complex ETL and stored procedures.
+**Excluded**: OLTP databases (MySQL) - lineage tracking focuses on analytics workloads.
 
 All dialects confirmed as valid SQLGlot dialects:
 - **TSQL**: Official dialect
@@ -41,7 +43,7 @@ All dialects confirmed as valid SQLGlot dialects:
 - ✅ `lineage_v3/config/settings.py` - Added `sql_dialect` field + validation
 - ✅ `.env.example` - Documented SQL_DIALECT configuration
 
-**Total**: 39 unit tests, ~600 lines of code
+**Total**: 38 unit tests, ~590 lines of code
 
 ---
 
@@ -100,7 +102,10 @@ print(settings.dialect)      # SQLDialect.TSQL (enum)
 SQL_DIALECT=tsql    # Default: T-SQL (SQL Server/Azure SQL/Synapse)
 # SQL_DIALECT=fabric # NEW: Microsoft Fabric Lakehouse
 # SQL_DIALECT=postgres
-# SQL_DIALECT=mysql
+# SQL_DIALECT=oracle
+# SQL_DIALECT=snowflake
+# SQL_DIALECT=redshift
+# SQL_DIALECT=bigquery
 ```
 
 ---
@@ -116,7 +121,7 @@ pip install pydantic pydantic-settings pytest
 bash scripts/verify_phase1.sh
 
 # Or run tests manually
-pytest tests/unit/config/test_dialect_config.py -v  # 25 tests
+pytest tests/unit/config/test_dialect_config.py -v  # 24 tests
 pytest tests/unit/config/test_settings.py -v        # 14 tests
 ```
 
@@ -128,7 +133,7 @@ pytest tests/unit/config/test_settings.py -v        # 14 tests
 
 Summary:
   ✅ Dialect configuration layer created
-  ✅ 8 dialects defined (tsql, fabric, mysql, postgres, oracle, snowflake, redshift, bigquery)
+  ✅ 7 dialects defined (tsql, fabric, postgres, oracle, snowflake, redshift, bigquery)
   ✅ Settings integration complete
   ✅ All unit tests passing
 
@@ -164,9 +169,10 @@ Tasks:
 
 ## Notes
 
-- ✅ All 8 dialects are valid SQLGlot dialects (verified)
+- ✅ All 7 dialects are valid SQLGlot dialects (verified)
 - ✅ TSQL = Official SQLGlot dialect
 - ✅ Fabric = Community SQLGlot dialect
 - ✅ Azure SQL uses TSQL dialect (not separate)
+- ✅ Focus on data warehouse / analytics platforms (OLTP excluded)
 - ✅ Dependencies: pydantic, pydantic-settings (not installed in sandbox)
 - ✅ Tests pass when dependencies installed

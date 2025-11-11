@@ -36,7 +36,7 @@ from lineage_v3.config.dialect_config import (
 
 # Test validate_dialect
 assert validate_dialect('tsql') == SQLDialect.TSQL
-assert validate_dialect('MYSQL') == SQLDialect.MYSQL
+assert validate_dialect('FABRIC') == SQLDialect.FABRIC
 
 # Test get_dialect_metadata
 metadata = get_dialect_metadata(SQLDialect.TSQL)
@@ -45,7 +45,7 @@ assert metadata.metadata_source == 'dmv'
 
 # Test list_supported_dialects
 dialects = list_supported_dialects()
-assert len(dialects) == 8
+assert len(dialects) == 7
 
 print('✅ dialect_config module working')
 "
@@ -63,8 +63,8 @@ assert settings.sql_dialect == 'tsql'
 assert settings.dialect == SQLDialect.TSQL
 
 # Test other dialects
-settings = Settings(sql_dialect='mysql')
-assert settings.dialect == SQLDialect.MYSQL
+settings = Settings(sql_dialect='postgres')
+assert settings.dialect == SQLDialect.POSTGRES
 
 print('✅ Settings integration working')
 "
@@ -84,7 +84,7 @@ echo "======================================================================"
 echo ""
 echo "Summary:"
 echo "  ✅ Dialect configuration layer created"
-echo "  ✅ 8 dialects defined (tsql, fabric, mysql, postgres, oracle, snowflake, redshift, bigquery)"
+echo "  ✅ 7 dialects defined (tsql, fabric, postgres, oracle, snowflake, redshift, bigquery)"
 echo "  ✅ Settings integration complete"
 echo "  ✅ All unit tests passing"
 echo ""

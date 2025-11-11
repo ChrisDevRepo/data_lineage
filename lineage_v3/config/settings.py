@@ -125,7 +125,7 @@ class Settings(BaseSettings):
     # SQL Dialect Configuration (v2.1.0 - Multi-dialect support)
     sql_dialect: str = Field(
         default="tsql",
-        description="SQL dialect for parser and metadata extraction (tsql, mysql, postgres, oracle, snowflake, redshift, bigquery)"
+        description="SQL dialect for parser and metadata extraction (tsql, fabric, postgres, oracle, snowflake, redshift, bigquery)"
     )
 
     @field_validator('sql_dialect')

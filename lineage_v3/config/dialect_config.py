@@ -1,16 +1,16 @@
 """
 Dialect configuration for multi-database support.
 
-Supported dialects (based on 2025 enterprise market share):
+Supported dialects (data warehouse / analytics platforms):
 - tsql: Microsoft SQL Server / Azure Synapse (default)
-- mysql: MySQL / MariaDB
+- fabric: Microsoft Fabric
 - postgres: PostgreSQL
 - oracle: Oracle Database
 - snowflake: Snowflake Data Cloud
 - redshift: Amazon Redshift
 - bigquery: Google BigQuery
 
-Version: 1.0.0
+Version: 1.0.1
 Date: 2025-11-11
 """
 
@@ -21,21 +21,21 @@ from typing import Dict
 
 class SQLDialect(str, Enum):
     """
-    Supported SQL dialects.
+    Supported SQL dialects for data warehouse / analytics platforms.
 
-    Based on enterprise market share and stored procedure support:
-    - TSQL: 27.68% market share (SQL Server/Synapse/Azure SQL)
-    - FABRIC: Microsoft Fabric (Lakehouse SQL)
-    - MYSQL: 40.19% relational market share
-    - POSTGRES: 17.38% market share
-    - ORACLE: 9.62% market share (enterprise leader)
-    - SNOWFLAKE: Fastest growing data warehouse
-    - REDSHIFT: AWS data warehouse
-    - BIGQUERY: GCP data warehouse
+    Focus on databases with complex ETL and data lineage requirements:
+    - TSQL: SQL Server, Azure SQL, Synapse Analytics (default)
+    - FABRIC: Microsoft Fabric Lakehouse SQL
+    - POSTGRES: PostgreSQL (data warehouses)
+    - ORACLE: Oracle Database (enterprise data warehouse)
+    - SNOWFLAKE: Snowflake Data Cloud
+    - REDSHIFT: Amazon Redshift (Postgres-based)
+    - BIGQUERY: Google BigQuery
+
+    Note: OLTP databases (MySQL, etc.) excluded - lineage focus is analytics/DW.
     """
     TSQL = "tsql"           # SQL Server, Azure SQL, Synapse Analytics
     FABRIC = "fabric"       # Microsoft Fabric
-    MYSQL = "mysql"
     POSTGRES = "postgres"
     ORACLE = "oracle"
     SNOWFLAKE = "snowflake"
@@ -71,15 +71,6 @@ DIALECT_METADATA: Dict[SQLDialect, DialectMetadata] = {
         display_name="Microsoft Fabric",
         description="Microsoft Fabric Lakehouse SQL endpoint",
         metadata_source="information_schema",  # Fabric uses INFORMATION_SCHEMA
-        supports_stored_procedures=True,
-        supports_views=True,
-        supports_functions=True
-    ),
-    SQLDialect.MYSQL: DialectMetadata(
-        dialect=SQLDialect.MYSQL,
-        display_name="MySQL / MariaDB",
-        description="MySQL and MariaDB databases",
-        metadata_source="information_schema",  # INFORMATION_SCHEMA.TABLES, ROUTINES
         supports_stored_procedures=True,
         supports_views=True,
         supports_functions=True
@@ -155,7 +146,7 @@ def validate_dialect(dialect_str: str) -> SQLDialect:
     Validate and return dialect enum from string.
 
     Args:
-        dialect_str: Dialect string (e.g., 'tsql', 'mysql', 'TSQL')
+        dialect_str: Dialect string (e.g., 'tsql', 'postgres', 'TSQL')
 
     Returns:
         SQLDialect enum
@@ -167,11 +158,11 @@ def validate_dialect(dialect_str: str) -> SQLDialect:
         >>> validate_dialect('tsql')
         <SQLDialect.TSQL: 'tsql'>
 
-        >>> validate_dialect('MYSQL')
-        <SQLDialect.MYSQL: 'mysql'>
+        >>> validate_dialect('POSTGRES')
+        <SQLDialect.POSTGRES: 'postgres'>
 
         >>> validate_dialect('invalid')
-        ValueError: Unsupported SQL dialect: 'invalid'. Supported: tsql, mysql, postgres, oracle, snowflake, redshift, bigquery
+        ValueError: Unsupported SQL dialect: 'invalid'. Supported: tsql, fabric, postgres, oracle, snowflake, redshift, bigquery
     """
     try:
         return SQLDialect(dialect_str.lower())

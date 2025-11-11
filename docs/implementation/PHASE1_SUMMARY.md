@@ -19,11 +19,11 @@ Phase 1 establishes the foundation for multi-dialect SQL parser support by creat
 **File**: `lineage_v3/config/dialect_config.py`
 
 **Features**:
-- `SQLDialect` enum with 7 supported dialects:
+- `SQLDialect` enum with 7 supported dialects (data warehouse / analytics focus):
   - `TSQL` - Microsoft SQL Server / Azure Synapse (default)
-  - `MYSQL` - MySQL / MariaDB
-  - `POSTGRES` - PostgreSQL
-  - `ORACLE` - Oracle Database
+  - `FABRIC` - Microsoft Fabric Lakehouse SQL
+  - `POSTGRES` - PostgreSQL (data warehouses)
+  - `ORACLE` - Oracle Database (enterprise DW)
   - `SNOWFLAKE` - Snowflake Data Cloud
   - `REDSHIFT` - Amazon Redshift
   - `BIGQUERY` - Google BigQuery
@@ -45,7 +45,7 @@ from lineage_v3.config.dialect_config import validate_dialect, SQLDialect
 
 # Validate dialect string (case-insensitive)
 dialect = validate_dialect('tsql')  # Returns SQLDialect.TSQL
-dialect = validate_dialect('MYSQL')  # Returns SQLDialect.MYSQL
+dialect = validate_dialect('FABRIC')  # Returns SQLDialect.FABRIC
 
 # Invalid dialect raises ValueError
 dialect = validate_dialect('invalid')  # ValueError: Unsupported SQL dialect
@@ -85,7 +85,7 @@ print(custom.dialect)  # SQLDialect.POSTGRES
 **Added**:
 ```bash
 # SQL Dialect Configuration (v4.3.0 - Multi-Dialect Support)
-# Supported values: tsql, mysql, postgres, oracle, snowflake, redshift, bigquery
+# Supported values: tsql, fabric, postgres, oracle, snowflake, redshift, bigquery
 # Default: tsql (Microsoft SQL Server / Azure Synapse)
 SQL_DIALECT=tsql
 ```
@@ -177,15 +177,19 @@ bash scripts/verify_phase1.sh
 
 ### Why 7 Dialects?
 
-**Decision**: Support 7 dialects (not all 31 SQLGlot dialects)
+**Decision**: Support 7 data warehouse / analytics dialects (not all 31 SQLGlot dialects)
 
 **Rationale**:
-- ✅ Based on 2025 enterprise market share data
+- ✅ Focus on data warehouses with complex ETL and lineage needs
 - ✅ All have stored procedure support
 - ✅ All have well-documented system catalogs
-- ✅ Covers ~95% of enterprise use cases
+- ✅ Covers ~95% of enterprise analytics use cases
 
-**Not Included**: SQLite (no stored procedures), DB2 (declining), Spark (processing engine)
+**Not Included**:
+- MySQL (OLTP-focused, not analytics)
+- SQLite (no stored procedures)
+- DB2 (declining market share)
+- Spark (processing engine, not database)
 
 ---
 
@@ -247,7 +251,7 @@ bash scripts/verify_phase1.sh
 
 ## Verification Checklist
 
-- [x] Dialect enum created with 7 values
+- [x] Dialect enum created with 7 values (data warehouse focus)
 - [x] Validation function handles case-insensitive input
 - [x] Invalid dialects raise clear ValueError
 - [x] Metadata registry complete for all dialects
@@ -257,6 +261,7 @@ bash scripts/verify_phase1.sh
 - [x] Verification script created
 - [x] Backward compatibility preserved
 - [x] No dependencies on unimplemented components
+- [x] MySQL removed (OLTP not DW focus)
 
 ---
 

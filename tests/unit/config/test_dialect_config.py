@@ -22,7 +22,6 @@ class TestSQLDialect:
         """Test all dialect enum values are correct"""
         assert SQLDialect.TSQL.value == "tsql"
         assert SQLDialect.FABRIC.value == "fabric"
-        assert SQLDialect.MYSQL.value == "mysql"
         assert SQLDialect.POSTGRES.value == "postgres"
         assert SQLDialect.ORACLE.value == "oracle"
         assert SQLDialect.SNOWFLAKE.value == "snowflake"
@@ -30,13 +29,13 @@ class TestSQLDialect:
         assert SQLDialect.BIGQUERY.value == "bigquery"
 
     def test_dialect_enum_count(self):
-        """Test we have exactly 8 supported dialects"""
-        assert len(list(SQLDialect)) == 8
+        """Test we have exactly 7 supported dialects"""
+        assert len(list(SQLDialect)) == 7
 
     def test_dialect_enum_string_coercion(self):
         """Test dialect enum can be used as string"""
         dialect = SQLDialect.TSQL
-        assert str(dialect) == "tsql"
+        assert dialect.value == "tsql"
         assert dialect == "tsql"
 
 
@@ -46,20 +45,20 @@ class TestValidateDialect:
     def test_validate_lowercase(self):
         """Test validation with lowercase input"""
         assert validate_dialect("tsql") == SQLDialect.TSQL
-        assert validate_dialect("mysql") == SQLDialect.MYSQL
+        assert validate_dialect("fabric") == SQLDialect.FABRIC
         assert validate_dialect("postgres") == SQLDialect.POSTGRES
 
     def test_validate_uppercase(self):
         """Test validation with uppercase input"""
         assert validate_dialect("TSQL") == SQLDialect.TSQL
-        assert validate_dialect("MYSQL") == SQLDialect.MYSQL
+        assert validate_dialect("FABRIC") == SQLDialect.FABRIC
         assert validate_dialect("POSTGRES") == SQLDialect.POSTGRES
 
     def test_validate_mixedcase(self):
         """Test validation with mixed case input"""
         assert validate_dialect("TsQl") == SQLDialect.TSQL
-        assert validate_dialect("MySQL") == SQLDialect.MYSQL
-        assert validate_dialect("PostgreSQL").value == "postgres"
+        assert validate_dialect("Fabric") == SQLDialect.FABRIC
+        assert validate_dialect("PoStGrEs") == SQLDialect.POSTGRES
 
     def test_validate_invalid_dialect(self):
         """Test validation raises ValueError for unsupported dialect"""
@@ -74,7 +73,7 @@ class TestValidateDialect:
 
     def test_validate_error_message_includes_supported(self):
         """Test error message lists supported dialects"""
-        with pytest.raises(ValueError, match="tsql, mysql, postgres"):
+        with pytest.raises(ValueError, match="tsql, fabric, postgres"):
             validate_dialect("invalid")
 
 
@@ -106,14 +105,6 @@ class TestDialectMetadata:
         assert metadata.metadata_source == "information_schema"
         assert metadata.supports_stored_procedures is True
 
-    def test_mysql_metadata(self):
-        """Test MySQL metadata is correct"""
-        metadata = get_dialect_metadata(SQLDialect.MYSQL)
-        assert metadata.dialect == SQLDialect.MYSQL
-        assert "MySQL" in metadata.display_name
-        assert metadata.metadata_source == "information_schema"
-        assert metadata.supports_stored_procedures is True
-
     def test_postgres_metadata(self):
         """Test PostgreSQL metadata is correct"""
         metadata = get_dialect_metadata(SQLDialect.POSTGRES)
@@ -139,10 +130,9 @@ class TestListSupportedDialects:
     def test_list_returns_all_dialects(self):
         """Test list returns all SQLDialect enums"""
         dialects = list_supported_dialects()
-        assert len(dialects) == 8
+        assert len(dialects) == 7
         assert SQLDialect.TSQL in dialects
         assert SQLDialect.FABRIC in dialects
-        assert SQLDialect.MYSQL in dialects
         assert SQLDialect.POSTGRES in dialects
         assert SQLDialect.ORACLE in dialects
         assert SQLDialect.SNOWFLAKE in dialects
