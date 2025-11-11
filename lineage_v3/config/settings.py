@@ -8,11 +8,11 @@ This replaces scattered os.getenv() calls with a single source of truth,
 providing type safety, validation, and better testability.
 
 Author: Vibecoding
-Version: 2.0.0 - AI removed
-Date: 2025-11-05
+Version: 2.1.0 - Multi-dialect support added
+Date: 2025-11-11
 """
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import Literal
 from pathlib import Path
@@ -121,6 +121,27 @@ class Settings(BaseSettings):
         default=False,
         description="Skip query log analysis"
     )
+
+    # SQL Dialect Configuration (v2.1.0 - Multi-dialect support)
+    sql_dialect: str = Field(
+        default="tsql",
+        description="SQL dialect for parser and metadata extraction (tsql, mysql, postgres, oracle, snowflake, redshift, bigquery)"
+    )
+
+    @field_validator('sql_dialect')
+    @classmethod
+    def validate_sql_dialect(cls, v: str) -> str:
+        """Validate SQL dialect is supported"""
+        from lineage_v3.config.dialect_config import validate_dialect
+        # This will raise ValueError if invalid
+        validate_dialect(v)
+        return v.lower()
+
+    @property
+    def dialect(self):
+        """Get validated SQLDialect enum"""
+        from lineage_v3.config.dialect_config import validate_dialect
+        return validate_dialect(self.sql_dialect)
 
     model_config = SettingsConfigDict(
         env_file='.env',
