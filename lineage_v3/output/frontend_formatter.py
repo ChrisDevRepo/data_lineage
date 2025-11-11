@@ -170,6 +170,9 @@ class FrontendFormatter:
                 node['object_type']
             )
 
+            # Determine node symbol for visualization (v4.3.0 - UDF support)
+            node_symbol = self._get_node_symbol(node['object_type'], is_phantom)
+
             # Create frontend node (base properties)
             frontend_node = {
                 'id': node_id,
@@ -178,6 +181,7 @@ class FrontendFormatter:
                 'object_type': node['object_type'],
                 'description': description,
                 'data_model_type': data_model_type,
+                'node_symbol': node_symbol,  # v4.3.0: 'circle', 'diamond', 'question_mark'
                 'inputs': sorted(input_node_ids, key=lambda x: int(x)),
                 'outputs': sorted(output_node_ids, key=lambda x: int(x)),
                 'confidence': confidence,  # v2.0.0 - explicit confidence field (null for phantoms)
@@ -210,6 +214,37 @@ class FrontendFormatter:
         
         return frontend_nodes
     
+    def _get_node_symbol(self, object_type: str, is_phantom: bool) -> str:
+        """
+        Determine node symbol for visualization.
+
+        v4.3.0: Support for phantom objects and functions
+
+        Args:
+            object_type: Object type from database
+            is_phantom: Whether object is a phantom
+
+        Returns:
+            Node symbol: 'circle', 'diamond', 'question_mark', 'square'
+        """
+        if is_phantom:
+            return 'question_mark'  # ❓ for phantom objects
+
+        # Function types use diamond symbol
+        if object_type in ['Function', 'Scalar Function', 'Table-valued Function']:
+            return 'diamond'  # ◆ for functions
+
+        # Tables and views use circle
+        if object_type in ['Table', 'View']:
+            return 'circle'  # ● for tables/views
+
+        # Stored procedures use square
+        if object_type == 'Stored Procedure':
+            return 'square'  # ■ for stored procedures
+
+        # Default
+        return 'circle'
+
     def _classify_data_model_type(self, object_name: str, object_type: str) -> str:
         """
         Classify data model type based on naming conventions.

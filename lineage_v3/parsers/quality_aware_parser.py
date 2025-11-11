@@ -304,10 +304,11 @@ class QualityAwareParser:
 
         try:
             # STEP 1: Regex baseline (expected counts)
-            regex_sources, regex_targets, regex_sp_calls = self._regex_scan(ddl)
+            regex_sources, regex_targets, regex_sp_calls, regex_function_calls = self._regex_scan(ddl)
             regex_sources_valid = self._validate_against_catalog(regex_sources)
             regex_targets_valid = self._validate_against_catalog(regex_targets)
             regex_sp_calls_valid = self._validate_sp_calls(regex_sp_calls)
+            regex_function_calls_valid = self._validate_function_calls(regex_function_calls)  # v4.3.0
 
             # STEP 2: Preprocess and parse with SQLGlot
             cleaned_ddl = self._preprocess_ddl(ddl)
@@ -361,10 +362,16 @@ class QualityAwareParser:
             sp_ids = self._resolve_sp_names(regex_sp_calls_valid)
             output_ids.extend(sp_ids)
 
+            # STEP 5b2: Add function lineage (v4.3.0 - UDF support)
+            # Functions are INPUTS (we use/read them)
+            # When SP_A uses func_B: func_B → SP_A (func_B is a source/input)
+            func_ids = self._resolve_function_names(regex_function_calls_valid)
+            input_ids.extend(func_ids)
+
             # STEP 5c: Handle phantom objects (v4.3.0)
             # Create/get phantom objects and their negative IDs
             # Add to inputs/outputs for visualization, but DON'T count in confidence
-            phantom_ids_map = self._create_or_get_phantom_objects(all_phantoms)
+            phantom_ids_map = self._create_or_get_phantom_objects(all_phantoms, object_type='Table')
 
             # Add phantom IDs to inputs/outputs
             phantom_input_ids = [phantom_ids_map[name] for name in phantom_sources if name in phantom_ids_map]
@@ -381,10 +388,37 @@ class QualityAwareParser:
                     dependency_types[name] = 'output'
                 self._track_phantom_references(object_id, phantom_ids_map, dependency_types)
 
+            # STEP 5d: Handle phantom functions (v4.3.0 - UDF support)
+            # Detect functions not in catalog
+            phantom_functions = set()
+            for func_name in regex_function_calls:
+                if func_name not in regex_function_calls_valid:
+                    # Function not in catalog, check if it's excluded
+                    parts = func_name.split('.')
+                    if len(parts) == 2:
+                        schema, name = parts
+                        if not self._is_excluded(schema, name):
+                            phantom_functions.add(func_name)
+
+            if phantom_functions:
+                logger.info(f"Detected {len(phantom_functions)} phantom functions: {phantom_functions}")
+                phantom_func_ids_map = self._create_or_get_phantom_objects(phantom_functions, object_type='Function')
+
+                # Add phantom function IDs to inputs
+                phantom_func_ids = [phantom_func_ids_map[name] for name in phantom_functions if name in phantom_func_ids_map]
+                input_ids.extend(phantom_func_ids)
+
+                # Track phantom function references
+                if phantom_func_ids_map:
+                    func_dependency_types = {name: 'input' for name in phantom_functions}
+                    self._track_phantom_references(object_id, phantom_func_ids_map, func_dependency_types)
+
             # STEP 6: Calculate expected vs found counts for confidence calculation (v2.1.0)
-            # IMPORTANT: Phantoms do NOT count in found_count (confidence based on real catalog matches only)
+            # IMPORTANT: Phantoms and functions do NOT count in found_count (confidence based on real catalog table matches only)
             expected_count = len(regex_sources_valid) + len(regex_targets_valid)
-            found_count = len(input_ids) + len(output_ids) - len(sp_ids) - len(phantom_input_ids) - len(phantom_output_ids)
+            # Exclude: SP IDs, function IDs, and all phantom IDs
+            phantom_func_ids_count = len(phantom_func_ids) if phantom_functions else 0
+            found_count = len(input_ids) + len(output_ids) - len(sp_ids) - len(func_ids) - len(phantom_input_ids) - len(phantom_output_ids) - phantom_func_ids_count
 
             # Detect orchestrator SPs (only calls other SPs, no table access)
             is_orchestrator = (expected_count == 0 and len(regex_sp_calls_valid) > 0)
@@ -468,7 +502,7 @@ class QualityAwareParser:
                 'confidence_breakdown': result['breakdown']
             }
 
-    def _regex_scan(self, ddl: str) -> Tuple[Set[str], Set[str]]:
+    def _regex_scan(self, ddl: str) -> Tuple[Set[str], Set[str], Set[str], Set[str]]:
         """
         Scan full DDL with regex to get expected entity counts.
 
@@ -584,8 +618,41 @@ class QualityAwareParser:
 
                 sp_calls.add(f"{schema}.{sp_name}")
 
-        logger.debug(f"Regex baseline: {len(sources)} sources, {len(targets)} targets, {len(sp_calls)} SP calls (after filtering)")
-        return sources, targets, sp_calls
+        # FUNCTION CALL patterns (UDFs - v4.3.0)
+        # Detects both scalar and table-valued functions:
+        # - Scalar: SELECT dbo.GetPrice(id) FROM Table
+        # - Table-valued: FROM dbo.GetOrders() o, FROM dbo.GetOrdersByDate(@date) AS o
+        # Pattern: [schema].[function_name](...) - function call with parentheses
+        function_calls = set()
+        function_patterns = [
+            # Table-valued functions in FROM/JOIN (most common)
+            r'\bFROM\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # FROM [schema].[function](
+            r'\bJOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # JOIN [schema].[function](
+            r'\bINNER\s+JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # INNER JOIN [schema].[function](
+            r'\bLEFT\s+(?:OUTER\s+)?JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # LEFT JOIN [schema].[function](
+            r'\bRIGHT\s+(?:OUTER\s+)?JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # RIGHT JOIN [schema].[function](
+            r'\bCROSS\s+APPLY\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # CROSS APPLY [schema].[function](
+            r'\bOUTER\s+APPLY\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # OUTER APPLY [schema].[function](
+            # Scalar functions anywhere (general pattern)
+            # Matches schema.function( pattern - catches all UDF calls
+            r'\b\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # [schema].[function](
+        ]
+
+        for pattern in function_patterns:
+            matches = re.findall(pattern, ddl, re.IGNORECASE)
+            for schema, func_name in matches:
+                # Skip built-in functions (CAST, CONVERT, etc.)
+                if func_name.upper() in ['CAST', 'CONVERT', 'COALESCE', 'ISNULL', 'CASE', 'COUNT', 'SUM', 'AVG', 'MAX', 'MIN']:
+                    continue
+
+                # Skip system schemas
+                if self._is_excluded(schema, func_name):
+                    continue
+
+                function_calls.add(f"{schema}.{func_name}")
+
+        logger.debug(f"Regex baseline: {len(sources)} sources, {len(targets)} targets, {len(sp_calls)} SP calls, {len(function_calls)} function calls (after filtering)")
+        return sources, targets, sp_calls, function_calls
 
     def _sqlglot_parse(self, cleaned_ddl: str, original_ddl: str) -> Tuple[Set[str], Set[str]]:
         """
@@ -620,13 +687,13 @@ class QualityAwareParser:
                     targets.update(stmt_targets)
             except Exception:
                 # SQLGlot failed, try regex fallback on this statement
-                regex_s, regex_t, _ = self._regex_scan(stmt)  # Ignore SP calls in statement fallback
+                regex_s, regex_t, _, _ = self._regex_scan(stmt)  # Ignore SP/function calls in statement fallback
                 sources.update(regex_s)
                 targets.update(regex_t)
 
         # If SQLGlot got nothing, fallback to regex on original DDL
         if not sources and not targets:
-            sources, targets, _ = self._regex_scan(original_ddl)  # Ignore SP calls in full fallback
+            sources, targets, _, _ = self._regex_scan(original_ddl)  # Ignore SP/function calls in full fallback
 
         # v4.1.2 FIX: Remove all targets from sources AFTER parsing all statements
         # This prevents false positives where a table is a target in one statement
@@ -1212,19 +1279,20 @@ class QualityAwareParser:
 
         return phantoms
 
-    def _create_or_get_phantom_objects(self, phantom_names: Set[str]) -> Dict[str, int]:
+    def _create_or_get_phantom_objects(self, phantom_names: Set[str], object_type: str = 'Table') -> Dict[str, int]:
         """
         Create or get phantom objects in database.
 
         v4.3.0: Phantom Objects Feature
         Uses UPSERT logic to avoid duplicates.
-        Returns mapping of table_name -> phantom_id (negative).
+        Returns mapping of table/function_name -> phantom_id (negative).
 
         Args:
-            phantom_names: Set of schema.table names
+            phantom_names: Set of schema.object names
+            object_type: 'Table' or 'Function' (default: 'Table')
 
         Returns:
-            Dict mapping "schema.table" -> phantom_id (negative int)
+            Dict mapping "schema.object" -> phantom_id (negative int)
         """
         if not phantom_names:
             return {}
@@ -1237,7 +1305,7 @@ class QualityAwareParser:
                 logger.warning(f"Skipping invalid phantom name: {name}")
                 continue
 
-            schema, table = parts
+            schema, obj_name = parts
 
             # Check if phantom already exists
             check_query = """
@@ -1247,7 +1315,7 @@ class QualityAwareParser:
                   AND LOWER(object_name) = LOWER(?)
                   AND is_promoted = FALSE
             """
-            results = self.workspace.query(check_query, params=[schema, table])
+            results = self.workspace.query(check_query, params=[schema, obj_name])
 
             if results:
                 # Phantom exists, update last_seen
@@ -1264,9 +1332,9 @@ class QualityAwareParser:
                 # Create new phantom
                 insert_query = """
                     INSERT INTO phantom_objects (schema_name, object_name, object_type, phantom_reason)
-                    VALUES (?, ?, 'Table', 'not_in_catalog')
+                    VALUES (?, ?, ?, 'not_in_catalog')
                 """
-                self.workspace.query(insert_query, params=[schema, table])
+                self.workspace.query(insert_query, params=[schema, obj_name, object_type])
 
                 # Get the auto-generated negative ID
                 get_id_query = """
@@ -1424,6 +1492,71 @@ class QualityAwareParser:
             """
 
             results = self.workspace.query(query, params=[schema, sp_name])
+            if results:
+                object_ids.append(results[0][0])
+
+        return object_ids
+
+    def _validate_function_calls(self, function_names: Set[str]) -> Set[str]:
+        """
+        Validate function calls against object catalog.
+        Only keep functions that exist in the objects table.
+
+        v4.3.0: Added for UDF detection
+        """
+        if not function_names:
+            return set()
+
+        # Get all functions from catalog (scalar and table-valued)
+        query = """
+        SELECT LOWER(schema_name || '.' || object_name)
+        FROM objects
+        WHERE object_type IN ('Function', 'Scalar Function', 'Table-valued Function')
+        """
+        results = self.workspace.query(query)
+        func_catalog = {row[0] for row in results}
+
+        validated = set()
+        for name in function_names:
+            name_lower = name.lower()
+            if name_lower in func_catalog:
+                validated.add(name)
+
+        return validated
+
+    def _resolve_function_names(self, function_names: Set[str]) -> List[int]:
+        """
+        Resolve function names to object_ids.
+
+        v4.3.0: Added for UDF detection
+        """
+        if not function_names:
+            return []
+
+        object_ids = []
+
+        for name in function_names:
+            parts = name.split('.')
+            if len(parts) != 2:
+                continue
+
+            schema, func_name = parts
+
+            try:
+                schema = sanitize_identifier(schema)
+                func_name = sanitize_identifier(func_name)
+            except ValueError:
+                continue
+
+            query = """
+            SELECT object_id
+            FROM objects
+            WHERE LOWER(schema_name) = LOWER(?)
+              AND LOWER(object_name) = LOWER(?)
+              AND object_type IN ('Function', 'Scalar Function', 'Table-valued Function')
+            """
+
+            results = self.workspace.query(query, params=[schema, func_name])
             if results:
                 object_ids.append(results[0][0])
 
@@ -1596,23 +1729,27 @@ class QualityAwareParser:
             }
         """
         # Use existing internal regex scan
-        sources, targets, sp_calls = self._regex_scan(ddl)
+        sources, targets, sp_calls, function_calls = self._regex_scan(ddl)
 
         # Validate against catalog (same as production)
         sources_validated = self._validate_against_catalog(sources)
         targets_validated = self._validate_against_catalog(targets)
         sp_calls_validated = self._validate_sp_calls(sp_calls)
+        function_calls_validated = self._validate_function_calls(function_calls)  # v4.3.0
 
         return {
             'sources': sources,
             'targets': targets,
             'sp_calls': sp_calls,  # v4.0.1: Added SP-to-SP lineage
+            'function_calls': function_calls,  # v4.3.0: Added function detection
             'sources_validated': sources_validated,
             'targets_validated': targets_validated,
             'sp_calls_validated': sp_calls_validated,  # v4.0.1
+            'function_calls_validated': function_calls_validated,  # v4.3.0
             'sources_count': len(sources_validated),
             'targets_count': len(targets_validated),
-            'sp_calls_count': len(sp_calls_validated)  # v4.0.1
+            'sp_calls_count': len(sp_calls_validated),  # v4.0.1
+            'function_calls_count': len(function_calls_validated)  # v4.3.0
         }
 
     def extract_sqlglot_dependencies(self, ddl: str) -> Dict[str, Any]:

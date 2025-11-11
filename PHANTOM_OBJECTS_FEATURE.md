@@ -1,8 +1,8 @@
-# Phantom Objects Feature (v4.3.0)
+# Phantom Objects Feature (v4.3.0) + UDF Support
 
 ## Overview
 
-Phantom objects are **tables/views referenced in SQL but NOT in your metadata catalog**. Previously, these were silently dropped during parsing. Now they are:
+Phantom objects are **tables/views/functions referenced in SQL but NOT in your metadata catalog**. Previously, these were silently dropped during parsing. Now they are:
 
 - ✅ **Tracked** with negative IDs in `phantom_objects` table
 - ✅ **Visualized** in the lineage graph with ❓ icon
@@ -91,25 +91,60 @@ ALTER TABLE dependencies ADD COLUMN referenced_id BIGINT;
 }
 ```
 
+## UDF Support (v4.3.0)
+
+**NEW: User-Defined Functions (UDFs) are now tracked and visualized!**
+
+### Function Detection
+Parser now detects:
+- **Table-valued functions**: `FROM dbo.GetOrders() o`
+- **Scalar functions**: `SELECT dbo.CalculatePrice(id)`
+- **CROSS/OUTER APPLY**: `CROSS APPLY dbo.GetDetails(id)`
+
+### Function Visualization
+- **Real functions** → ◆ Diamond symbol (object_type='Function')
+- **Phantom functions** → ❓ Question mark (not in catalog)
+- **Direction**: Functions are INPUTS (func → SP)
+
+### Example
+```sql
+CREATE PROCEDURE dbo.ProcessOrders AS
+BEGIN
+    SELECT dbo.CalculateTotal(order_id)  -- ◆ or ❓
+    FROM dbo.GetActiveOrders() o         -- ◆ or ❓
+END
+```
+- If functions in catalog: Diamond nodes
+- If not in catalog: Question mark nodes (phantom functions)
+
 ## Frontend Tasks (User Action Required)
 
 **React changes needed:**
 
-1. **Node Icon** - Check `node.is_phantom` or `node.id < 0`:
+1. **Node Symbol** - Use `node.node_symbol` field:
 ```jsx
-{node.is_phantom ? <QuestionMarkIcon /> : <TableIcon />}
+switch (node.node_symbol) {
+  case 'question_mark': return <QuestionMarkIcon />;  // ❓ Phantoms
+  case 'diamond': return <DiamondIcon />;             // ◆ Functions
+  case 'square': return <SquareIcon />;               // ■ SPs
+  case 'circle': return <CircleIcon />;               // ● Tables/Views
+}
 ```
 
-2. **Tooltip** - Show warning:
+2. **Tooltip** - Show appropriate message:
 ```jsx
 {node.is_phantom && (
   <Tooltip>⚠️ {node.phantom_reason}</Tooltip>
 )}
+{node.object_type.includes('Function') && (
+  <Tooltip>User-Defined Function</Tooltip>
+)}
 ```
 
-3. **Edge Styling** - Dotted lines:
+3. **Edge Styling** - Dotted lines for phantoms:
 ```jsx
-const edgeStyle = (sourceId < 0 || targetId < 0)
+const isPhantomEdge = sourceId < 0 || targetId < 0;
+const edgeStyle = isPhantomEdge
   ? { strokeDasharray: '5,5' }  // Dotted
   : {};
 ```
