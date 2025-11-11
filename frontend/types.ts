@@ -2,12 +2,17 @@ export type DataNode = {
   id: string;
   name: string;
   schema: string;
-  object_type: 'Table' | 'View' | 'Stored Procedure';
+  object_type: 'Table' | 'View' | 'Stored Procedure' | 'Function';
   description?: string;
   data_model_type?: 'Dimension' | 'Fact' | 'Lookup' | 'Other';
   inputs: string[];
   outputs: string[];
   ddl_text?: string | null;  // SQL definition for Views and Stored Procedures (v3.0 SQL Viewer feature)
+  node_symbol?: 'circle' | 'diamond' | 'square' | 'question_mark';  // v4.3.0 Phantom Objects
+  is_phantom?: boolean;  // v4.3.0 Phantom Objects
+  phantom_reason?: string;  // v4.3.0 Phantom Objects
+  confidence?: number | null;  // Confidence score for Stored Procedures
+  confidence_breakdown?: object;  // Confidence breakdown details
 };
 
 export type TraceConfig = {

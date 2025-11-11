@@ -14,7 +14,11 @@
     "deploy:zip": "npm run build:azure && cd dist && zip -r ../deploy.zip . && cd .. && echo 'Created deploy.zip'",
     "serve": "npm run build && npm run preview",
     "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist deploy.zip node_modules/.vite"
+    "clean": "rm -rf dist deploy.zip node_modules/.vite",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -26,6 +30,7 @@
     "reactflow": "^11.11.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
