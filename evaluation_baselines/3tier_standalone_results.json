@@ -1,16 +1,16 @@
 [
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimCompanyKoncern",
-    "parse_method":"tier1_warn",
-    "tables":2,
-    "sources":2,
+    "parse_method":"tier2_17rules",
+    "tables":4,
+    "sources":4,
     "targets":0
   },
   {
     "sp_name":"dbo.usp_GET_ACCOUNT_RELATIONSHIPS",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "parse_method":"tier2_17rules",
+    "tables":7,
+    "sources":7,
     "targets":0
   },
   {
@@ -134,10 +134,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadFact_SAP_Sales_Details",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":6,
+    "sources":5,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA_2.spLoadEnrollmentPlanSites",
@@ -155,10 +155,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadSAPSalesRetainerDetailsMetrics",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":3,
+    "sources":2,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA_2.spLoadExportLog",
@@ -246,10 +246,10 @@
   },
   {
     "sp_name":"CONSUMPTION_EnterpriseMetrics.spLoadDataFilters_JobPositions",
-    "parse_method":"tier1_warn",
-    "tables":1,
+    "parse_method":"tier2_17rules",
+    "tables":2,
     "sources":1,
-    "targets":0
+    "targets":1
   },
   {
     "sp_name":"STAGING_STARTUP.spLoadEpmfCdtTracker",
@@ -275,16 +275,16 @@
   {
     "sp_name":"Consumption_FinanceHub.sp_LoadLCognosData_OLD",
     "parse_method":"tier1_warn",
-    "tables":3,
+    "tables":4,
     "sources":3,
-    "targets":0
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadSAPSalesSummaryMetrics",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":5,
+    "sources":4,
+    "targets":1
   },
   {
     "sp_name":"STAGING_CADENCE.TRIAL_spLoadTaskAndFunctionData",
@@ -316,10 +316,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadFactGLCOGNOS",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":11,
+    "sources":10,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA_2.spLoadGlobalSignObjects",
@@ -414,10 +414,10 @@
   },
   {
     "sp_name":"CONSUMPTION_ClinOpsFinance.spLoadEmployeeUtilization_Post",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":5,
+    "sources":4,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA_2.spLoadListOfPsiTherapeuticAreas",
@@ -456,10 +456,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadSAP_Sales_Summary_AverageDaysToPayPerQuarterMetrics",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":3,
+    "sources":2,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA_2.spLoadPmKpiMaster",
@@ -541,8 +541,8 @@
   {
     "sp_name":"dbo.spLastRowCount",
     "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "tables":3,
+    "sources":3,
     "targets":0
   },
   {
@@ -554,9 +554,9 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadArAnalyticsMetrics",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "parse_method":"tier2_17rules",
+    "tables":7,
+    "sources":7,
     "targets":0
   },
   {
@@ -610,10 +610,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimActuality",
-    "parse_method":"tier1_warn",
-    "tables":1,
+    "parse_method":"tier2_17rules",
+    "tables":2,
     "sources":1,
-    "targets":0
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_STARTUP.spLoadlkp_MetricGlossary",
@@ -828,8 +828,8 @@
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spstenslandLoop",
     "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "tables":2,
+    "sources":2,
     "targets":0
   },
   {
@@ -904,10 +904,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimConsType",
-    "parse_method":"tier1_warn",
-    "tables":1,
+    "parse_method":"tier2_17rules",
+    "tables":2,
     "sources":1,
-    "targets":0
+    "targets":1
   },
   {
     "sp_name":"STAGING_CADENCE.TRIAL_spLoadCadence-ETL",
@@ -1072,10 +1072,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimAccount",
-    "parse_method":"tier1_warn",
-    "tables":1,
+    "parse_method":"tier2_17rules",
+    "tables":2,
     "sources":1,
-    "targets":0
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA_2.spLoadSubjectEventTemplates",
@@ -1086,10 +1086,10 @@
   },
   {
     "sp_name":"CONSUMPTION_PRIMA_2.spLoadSubjects",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":4,
+    "sources":3,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA.spLoadEnrollmentPlans",
@@ -1184,9 +1184,9 @@
   },
   {
     "sp_name":"CONSUMPTION_PRIMA.spLoadEnrollmentPlanSitesHistory",
-    "parse_method":"tier1_warn",
-    "tables":2,
-    "sources":1,
+    "parse_method":"tier2_17rules",
+    "tables":3,
+    "sources":2,
     "targets":1
   },
   {
@@ -1268,10 +1268,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimAccountDetailsCognos",
-    "parse_method":"tier1_warn",
-    "tables":3,
+    "parse_method":"tier2_17rules",
+    "tables":4,
     "sources":2,
-    "targets":1
+    "targets":2
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING.spLoadPrimaReportingProjectDeviations",
@@ -1282,10 +1282,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimAccountDetailsSAP",
-    "parse_method":"tier1_warn",
-    "tables":3,
+    "parse_method":"tier2_17rules",
+    "tables":4,
     "sources":2,
-    "targets":1
+    "targets":2
   },
   {
     "sp_name":"CONSUMPTION_PRIMA.spLoadGlobalContacts",
@@ -1303,10 +1303,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadFactSAPSalesRetainerDetails",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":6,
+    "sources":5,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA.spLoadGlobalCountries",
@@ -1324,10 +1324,10 @@
   },
   {
     "sp_name":"CONSUMPTION_ClinOpsFinance.spLoadCadenceBudgetData_Post",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":3,
+    "sources":2,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_STARTUP.spLoadDWH",
@@ -1366,10 +1366,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimCompany",
-    "parse_method":"tier1_warn",
-    "tables":2,
-    "sources":2,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":4,
+    "sources":3,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_ClinOpsFinance.spLoadDateRange",
@@ -1401,16 +1401,16 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadSAPSalesInterestSummaryMetrics",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":3,
+    "sources":2,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spLastRowCount",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "parse_method":"tier2_17rules",
+    "tables":2,
+    "sources":2,
     "targets":0
   },
   {
@@ -1422,10 +1422,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimDepartment",
-    "parse_method":"tier1_warn",
-    "tables":3,
+    "parse_method":"tier2_17rules",
+    "tables":4,
     "sources":2,
-    "targets":1
+    "targets":2
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadvCCR2PowerBIfacts",
@@ -1443,10 +1443,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadFactSAPSalesInterestSummary",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":4,
+    "sources":3,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA.spLoadListOfPsiServices",
@@ -1478,10 +1478,10 @@
   },
   {
     "sp_name":"CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_LaborCost_PrimaUtilization_Junc",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":5,
+    "sources":4,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_EnterpriseMetrics.spLoadFactEnterpriseMetrics_Current",
@@ -1492,10 +1492,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadArAnalyticsDetailMetrics",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":4,
+    "sources":3,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA.spLoadPmKpiMaster",
@@ -1535,8 +1535,8 @@
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spGetEventDates",
     "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "tables":4,
+    "sources":4,
     "targets":0
   },
   {
@@ -1576,10 +1576,10 @@
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spLoadPrimaReportingFeasibilityQuestionsAndAnswers",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":9,
+    "sources":7,
+    "targets":2
   },
   {
     "sp_name":"CONSUMPTION_PRIMA.spLoadProjectRegions",
@@ -1625,10 +1625,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadArAnalyticsMetricsQuarterlyGlobal",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":7,
+    "sources":6,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING.spLoadPrimaReportingIntermediateSitesActivated",
@@ -1766,9 +1766,9 @@
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadGLCognosData_Test",
     "parse_method":"tier1_warn",
-    "tables":2,
+    "tables":3,
     "sources":2,
-    "targets":0
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spLoadPrimaReportingSubjects",
@@ -1814,17 +1814,17 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimPosition",
-    "parse_method":"tier1_warn",
-    "tables":3,
+    "parse_method":"tier2_17rules",
+    "tables":4,
     "sources":2,
-    "targets":1
+    "targets":2
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimCustomers",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":3,
+    "sources":2,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spLoadPrimaReportingProjectRegions",
@@ -1849,10 +1849,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimProjects",
-    "parse_method":"tier1_warn",
-    "tables":1,
+    "parse_method":"tier2_17rules",
+    "tables":2,
     "sources":1,
-    "targets":0
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spLoadPrimaReportingProjects",
@@ -1870,10 +1870,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimCustomersProjects",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":4,
+    "sources":3,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spLoadPrimaReportingRaEcSubmissions",
@@ -1968,10 +1968,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadQuarterRanges",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":3,
+    "sources":2,
+    "targets":1
   },
   {
     "sp_name":"STAGING_CADENCE.TRIAL_spLoadFinalCountryReallocateTS_Case3",
@@ -1996,10 +1996,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadSAPSalesDetailsMetrics",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":5,
+    "sources":4,
+    "targets":1
   },
   {
     "sp_name":"STAGING_CADENCE.TRIAL_spLoadCountryReallocateTS",
@@ -2038,16 +2038,16 @@
   },
   {
     "sp_name":"CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "parse_method":"tier2_17rules",
+    "tables":2,
+    "sources":2,
     "targets":0
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spLoadPrimaReportingSiteEvents",
     "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "tables":3,
+    "sources":3,
     "targets":0
   },
   {
@@ -2059,16 +2059,16 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadFactSAPSalesSponsorRiskInterestQuarterly",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":4,
+    "sources":3,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_ClinOpsFinance.spLoadFactLaborCostForEarnedValue_Post",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "parse_method":"tier2_17rules",
+    "tables":2,
+    "sources":2,
     "targets":0
   },
   {
@@ -2087,16 +2087,16 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadFactSAPSalesSponsorRiskSnapshot",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":5,
+    "sources":4,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_ClinOpsFinance.spLoadCadenceBudget_LaborCost_PrimaContractUtilization_Junc",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "parse_method":"tier2_17rules",
+    "tables":2,
+    "sources":2,
     "targets":0
   },
   {
@@ -2115,10 +2115,10 @@
   },
   {
     "sp_name":"CONSUMPTION_ClinOpsFinance.spLoadEmployeeContractUtilization_Post",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":5,
+    "sources":4,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spLoadPrimaReportingSitePerformanceByAccount",
@@ -2172,8 +2172,8 @@
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING_2.spLoadPrimaReportingSites",
     "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "tables":7,
+    "sources":7,
     "targets":0
   },
   {
@@ -2185,17 +2185,17 @@
   },
   {
     "sp_name":"CONSUMPTION_PRIMA.spLoadSubjects",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":4,
+    "sources":3,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadFactAgingSAP",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":4,
+    "sources":3,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMA_2.spLoadProjectNameHistory",
@@ -2206,10 +2206,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadFactGLSAP",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":7,
+    "sources":6,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING.spLoadPrimaReportingIpRedsReview",
@@ -2262,10 +2262,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadDimCurrency",
-    "parse_method":"tier1_warn",
-    "tables":1,
+    "parse_method":"tier2_17rules",
+    "tables":2,
     "sources":1,
-    "targets":0
+    "targets":1
   },
   {
     "sp_name":"STAGING_CADENCE.spLoadCadenceCase0Data",
@@ -2297,10 +2297,10 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadGLCognosData_Backup",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":3,
+    "sources":2,
+    "targets":1
   },
   {
     "sp_name":"CONSUMPTION_STARTUP.spLoadProject",
@@ -2312,8 +2312,8 @@
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING.spLastRowCount",
     "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
+    "tables":3,
+    "sources":3,
     "targets":0
   },
   {
@@ -2375,8 +2375,8 @@
   {
     "sp_name":"CONSUMPTION_EnterpriseMetricsSnapshot.spCreateSnapshot",
     "parse_method":"tier1_warn",
-    "tables":2,
-    "sources":2,
+    "tables":3,
+    "sources":3,
     "targets":0
   },
   {
@@ -2423,9 +2423,9 @@
   },
   {
     "sp_name":"CONSUMPTION_PRIMAREPORTING.spLoadPrimaReportingFeasibilityQuestionsAndAnswers",
-    "parse_method":"tier2_7rules",
-    "tables":8,
-    "sources":7,
+    "parse_method":"tier2_17rules",
+    "tables":9,
+    "sources":8,
     "targets":1
   },
   {
@@ -2437,9 +2437,9 @@
   },
   {
     "sp_name":"CONSUMPTION_FINANCE.spLoadFact_SAP_Sales_Summary",
-    "parse_method":"tier1_warn",
-    "tables":1,
-    "sources":1,
-    "targets":0
+    "parse_method":"tier2_17rules",
+    "tables":6,
+    "sources":5,
+    "targets":1
   }
 ]

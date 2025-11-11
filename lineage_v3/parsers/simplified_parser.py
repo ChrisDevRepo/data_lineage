@@ -1,19 +1,19 @@
 """
-Simplified Parser v5.1 - 3-Tier WARN Mode with Smart Fallback
+Simplified Parser v5.1 - WARN Mode with Best-Effort Fallback
 
 Architecture:
 - Tier 1: WARN-only (no cleaning) - Primary approach for 86.5% of SPs
-- Tier 2: WARN + 7 simplified rules - Fallback for noisy SPs
-- Tier 3: WARN + 17 original rules - Emergency for edge cases
-- SQLGlot-based confidence (no hints or regex baseline needed)
-- Zero dependencies on regex scanning
+- Tier 2: WARN + 17-rule cleaning - Fallback for complex cases (13.5% of SPs)
+- Manual overrides: @LINEAGE_INPUTS/@LINEAGE_OUTPUTS comments (100% confidence)
+- SQLGlot-based confidence (no hints required)
+- Zero dependencies on regex baseline
 
-Key improvements over v5.0.0:
-1. 3-tier smart fallback (0 rules → 7 rules → 17 rules)
-2. 86.5% of SPs use simplest approach (0 rules)
-3. Expected ~745 tables (vs 743 in v5.0.0)
-4. Maintains 100% parse success
-5. Average ~1 rule per SP (vs 17 for all)
+Key features:
+1. Best-effort parsing: Try both, use whichever finds more tables
+2. 86.5% of SPs use WARN-only (zero rules)
+3. 743 tables extracted (matches Phase 1 baseline)
+4. 100% parse success rate
+5. Manual override support for edge cases
 
 Version: 5.1.0
 Date: 2025-11-11
@@ -29,7 +29,6 @@ import re
 
 from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
 from lineage_v3.parsers.sql_cleaning_rules import RuleEngine
-from lineage_v3.parsers.simplified_rule_engine import SimplifiedRuleEngine
 from lineage_v3.parsers.comment_hints_parser import CommentHintsParser
 
 logger = logging.getLogger(__name__)
@@ -37,14 +36,14 @@ logger = logging.getLogger(__name__)
 
 class SimplifiedParser:
     """
-    3-tier parser using WARN mode with smart fallback.
+    Best-effort parser using WARN mode with smart fallback.
 
-    Key innovations:
+    Key features:
     1. No regex baseline - SQLGlot handles everything
-    2. No hint requirement - Confidence from parse quality
-    3. 3-tier approach: WARN-only → 7 rules → 17 rules
-    4. Smart fallback: Use simpler approach when possible
-    5. Average ~1 rule per SP (vs 17 for all)
+    2. Optional hints - @LINEAGE_INPUTS/@LINEAGE_OUTPUTS for edge cases
+    3. Best-effort approach: WARN-only primary, 17-rule cleaning fallback
+    4. 86.5% of SPs use WARN-only (zero rules)
+    5. Manual overrides supported (100% confidence)
     """
 
     # Excluded schemas (system, temp)
@@ -52,7 +51,7 @@ class SimplifiedParser:
 
     def __init__(self, workspace: DuckDBWorkspace, enable_sql_cleaning: bool = True, enable_manual_overrides: bool = True):
         """
-        Initialize 3-tier parser.
+        Initialize best-effort parser.
 
         Args:
             workspace: DuckDB workspace for catalog access
@@ -62,12 +61,11 @@ class SimplifiedParser:
         self.workspace = workspace
         self._object_catalog = None
 
-        # SQL Cleaning Engines (3-tier)
+        # SQL Cleaning Engine (17 rules)
         self.enable_sql_cleaning = enable_sql_cleaning
         if self.enable_sql_cleaning:
-            self.engine_7 = SimplifiedRuleEngine()  # Tier 2: 7 simplified rules
-            self.engine_17 = RuleEngine()  # Tier 3: 17 original rules
-            logger.info("3-Tier SQL Cleaning enabled: Tier 1 (0 rules) → Tier 2 (7 rules) → Tier 3 (17 rules)")
+            self.cleaning_engine = RuleEngine()  # 17-rule engine
+            logger.info("SQL Cleaning Engine enabled: WARN-only primary, 17-rule cleaning fallback")
 
         # Manual override support (comment hints)
         self.enable_manual_overrides = enable_manual_overrides
@@ -77,7 +75,7 @@ class SimplifiedParser:
 
     def parse_object(self, object_id: int) -> Dict[str, Any]:
         """
-        Parse stored procedure with 3-tier approach.
+        Parse stored procedure with best-effort approach.
 
         Returns:
             {
@@ -85,8 +83,8 @@ class SimplifiedParser:
                 'inputs': List[int],
                 'outputs': List[int],
                 'confidence': int,  # 0, 75, 85, or 100
-                'source': 'parser',
-                'parse_method': str,  # 'tier1_warn', 'tier2_7rules', 'tier3_17rules', or 'failed'
+                'source': 'parser' or 'manual_override',
+                'parse_method': str,  # 'warn', 'cleaned', or 'failed'
                 'parse_error': Optional[str],
                 'quality_metadata': {
                     'total_statements': int,
@@ -123,8 +121,8 @@ class SimplifiedParser:
                 if has_manual_hints:
                     logger.info(f"Manual overrides detected: {len(manual_inputs)} inputs, {len(manual_outputs)} outputs")
 
-            # Parse with 3-tier approach
-            sources, targets, sp_calls, parse_method, quality = self._parse_with_3_tier_approach(ddl)
+            # Parse with best-effort approach
+            sources, targets, sp_calls, parse_method, quality = self._parse_with_best_effort(ddl)
 
             # Validate against catalog
             sources_valid = self._validate_against_catalog(sources)
@@ -185,102 +183,58 @@ class SimplifiedParser:
                 'quality_metadata': {}
             }
 
-    def _parse_with_3_tier_approach(self, ddl: str) -> Tuple[Set[str], Set[str], Set[str], str, Dict]:
+    def _parse_with_best_effort(self, ddl: str) -> Tuple[Set[str], Set[str], Set[str], str, Dict]:
         """
-        Parse with 3-tier smart fallback approach (adjusted for best-effort).
+        Parse with best-effort approach.
 
-        Tier 1: WARN-only (no cleaning) - Always try
-        Tier 2: WARN + 7 simplified rules - Always try (best-effort like Phase 1)
-        Tier 3: WARN + 17 original rules - Emergency for edge cases (0 tables in Tiers 1 & 2)
+        Try both:
+        1. WARN-only (no cleaning) - Primary for 86.5% of SPs
+        2. WARN + 17-rule cleaning - Fallback for complex cases
 
-        Returns best result by table count (validated against catalog).
+        Returns whichever finds more tables.
 
         Returns:
             (sources, targets, sp_calls, method_used, quality_metadata)
         """
-        # Tier 1: WARN-only (no cleaning) - ALWAYS TRY
+        # Approach 1: WARN-only (no cleaning)
         try:
-            parsed_tier1 = sqlglot.parse(ddl, dialect='tsql', error_level=ErrorLevel.WARN)
-            sources_t1, targets_t1, sp_t1 = self._extract_from_parsed(parsed_tier1)
-            quality_t1 = self._analyze_parse_quality(parsed_tier1, sources_t1, targets_t1, sp_t1)
-
-            # Validate against catalog BEFORE counting
-            sources_t1_valid = self._validate_against_catalog(sources_t1)
-            targets_t1_valid = self._validate_against_catalog(targets_t1)
-            sp_t1_valid = self._validate_sp_calls(sp_t1)
-            tables_t1 = len(sources_t1_valid) + len(targets_t1_valid)
+            parsed_warn = sqlglot.parse(ddl, dialect='tsql', error_level=ErrorLevel.WARN)
+            sources_warn, targets_warn, sp_warn = self._extract_from_parsed(parsed_warn)
+            quality_warn = self._analyze_parse_quality(parsed_warn, sources_warn, targets_warn, sp_warn)
+            tables_warn = len(sources_warn) + len(targets_warn)
         except Exception as e:
-            logger.debug(f"Tier 1 (WARN-only) failed: {e}")
-            sources_t1_valid, targets_t1_valid, sp_t1_valid = set(), set(), set()
-            quality_t1 = {'total_statements': 0, 'command_statements': 0, 'command_ratio': 100.0,
-                         'tables_found': 0, 'sp_calls_found': 0}
-            tables_t1 = 0
+            logger.debug(f"WARN-only failed: {e}")
+            sources_warn, targets_warn, sp_warn = set(), set(), set()
+            quality_warn = {'total_statements': 0, 'command_statements': 0, 'command_ratio': 100.0,
+                          'tables_found': 0, 'sp_calls_found': 0}
+            tables_warn = 0
 
-        # Tier 2: WARN + 7 rules - ALWAYS TRY (best-effort like Phase 1)
+        # Approach 2: WARN + 17-rule cleaning
+        sources_clean, targets_clean, sp_clean = set(), set(), set()
+        quality_clean = None
+        tables_clean = 0
+
         if self.enable_sql_cleaning:
             try:
-                cleaned_7 = self.engine_7.apply_all(ddl)
-                parsed_tier2 = sqlglot.parse(cleaned_7, dialect='tsql', error_level=ErrorLevel.WARN)
-                sources_t2, targets_t2, sp_t2 = self._extract_from_parsed(parsed_tier2)
-                quality_t2 = self._analyze_parse_quality(parsed_tier2, sources_t2, targets_t2, sp_t2)
+                cleaned = self.cleaning_engine.apply_all(ddl)
+                parsed_clean = sqlglot.parse(cleaned, dialect='tsql', error_level=ErrorLevel.WARN)
+                sources_clean, targets_clean, sp_clean = self._extract_from_parsed(parsed_clean)
+                quality_clean = self._analyze_parse_quality(parsed_clean, sources_clean, targets_clean, sp_clean)
+                tables_clean = len(sources_clean) + len(targets_clean)
 
-                # Validate against catalog BEFORE counting
-                sources_t2_valid = self._validate_against_catalog(sources_t2)
-                targets_t2_valid = self._validate_against_catalog(targets_t2)
-                sp_t2_valid = self._validate_sp_calls(sp_t2)
-                tables_t2 = len(sources_t2_valid) + len(targets_t2_valid)
-
-                logger.debug(f"Tier 2: {tables_t2} tables vs Tier 1: {tables_t1} tables")
+                logger.debug(f"Cleaned: {tables_clean} tables vs WARN-only: {tables_warn} tables")
             except Exception as e:
-                logger.debug(f"Tier 2 (7 rules) failed: {e}")
-                sources_t2_valid, targets_t2_valid, sp_t2_valid = set(), set(), set()
-                quality_t2 = {'total_statements': 0, 'command_statements': 0, 'command_ratio': 100.0,
-                            'tables_found': 0, 'sp_calls_found': 0}
-                tables_t2 = 0
+                logger.debug(f"Cleaned parsing failed: {e}")
+                quality_clean = {'total_statements': 0, 'command_statements': 0, 'command_ratio': 100.0,
+                               'tables_found': 0, 'sp_calls_found': 0}
+
+        # Return best result (whichever found more tables)
+        if tables_clean > tables_warn:
+            logger.debug(f"Using cleaned approach: {tables_clean} tables vs {tables_warn} tables (WARN)")
+            return sources_clean, targets_clean, sp_clean, 'cleaned', quality_clean
         else:
-            sources_t2_valid, targets_t2_valid, sp_t2_valid = set(), set(), set()
-            quality_t2 = None
-            tables_t2 = 0
-
-        # Tier 3: WARN + 17 rules (only if Tiers 1 & 2 both found 0 tables)
-        if self.enable_sql_cleaning and tables_t1 == 0 and tables_t2 == 0:
-            try:
-                cleaned_17 = self.engine_17.apply_all(ddl)
-                parsed_tier3 = sqlglot.parse(cleaned_17, dialect='tsql', error_level=ErrorLevel.WARN)
-                sources_t3, targets_t3, sp_t3 = self._extract_from_parsed(parsed_tier3)
-                quality_t3 = self._analyze_parse_quality(parsed_tier3, sources_t3, targets_t3, sp_t3)
-
-                # Validate against catalog BEFORE counting
-                sources_t3_valid = self._validate_against_catalog(sources_t3)
-                targets_t3_valid = self._validate_against_catalog(targets_t3)
-                sp_t3_valid = self._validate_sp_calls(sp_t3)
-                tables_t3 = len(sources_t3_valid) + len(targets_t3_valid)
-
-                logger.debug(f"Tier 3 triggered: found {tables_t3} tables")
-            except Exception as e:
-                logger.debug(f"Tier 3 (17 rules) failed: {e}")
-                sources_t3_valid, targets_t3_valid, sp_t3_valid = set(), set(), set()
-                quality_t3 = {'total_statements': 0, 'command_statements': 0, 'command_ratio': 100.0,
-                            'tables_found': 0, 'sp_calls_found': 0}
-                tables_t3 = 0
-        else:
-            sources_t3_valid, targets_t3_valid, sp_t3_valid = set(), set(), set()
-            quality_t3 = None
-            tables_t3 = 0
-
-        # Return best result by validated table count
-        results = [
-            (sources_t1_valid, targets_t1_valid, sp_t1_valid, 'tier1_warn', quality_t1, tables_t1),
-            (sources_t2_valid, targets_t2_valid, sp_t2_valid, 'tier2_7rules', quality_t2, tables_t2),
-            (sources_t3_valid, targets_t3_valid, sp_t3_valid, 'tier3_17rules', quality_t3, tables_t3)
-        ]
-
-        # Find best result by validated table count
-        best = max(results, key=lambda x: x[5])
-        sources, targets, sp_calls, method, quality, tables_count = best
-
-        logger.debug(f"3-tier result: {method} selected with {tables_count} validated tables")
-        return sources, targets, sp_calls, method, quality
+            logger.debug(f"Using WARN-only approach: {tables_warn} tables vs {tables_clean} tables (cleaned)")
+            return sources_warn, targets_warn, sp_warn, 'warn', quality_warn
 
     def _extract_from_parsed(self, parsed_statements: List) -> Tuple[Set[str], Set[str], Set[str]]:
         """

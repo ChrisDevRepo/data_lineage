@@ -88,60 +88,26 @@ def parse_with_3tier(ddl):
         parsed_t1 = sqlglot.parse(ddl, dialect='tsql', error_level=ErrorLevel.WARN)
         sources_t1, targets_t1 = extract_unique_tables(parsed_t1)
         tables_t1 = len(sources_t1) + len(targets_t1)
-
-        # Validate against catalog
-        sources_t1 = sources_t1 & catalog
-        targets_t1 = targets_t1 & catalog
-        tables_t1_valid = len(sources_t1) + len(targets_t1)
     except:
         sources_t1, targets_t1 = set(), set()
-        tables_t1, tables_t1_valid = 0, 0
+        tables_t1 = 0
 
-    # Tier 2: WARN + 7 rules - ALWAYS TRY (like Phase 1 baseline)
+    # Tier 2: WARN + 17 rules - ALWAYS TRY (match Phase 1 baseline)
     try:
-        cleaned_7 = engine_7.apply_all(ddl)
-        parsed_t2 = sqlglot.parse(cleaned_7, dialect='tsql', error_level=ErrorLevel.WARN)
+        cleaned_17 = engine_17.apply_all(ddl)
+        parsed_t2 = sqlglot.parse(cleaned_17, dialect='tsql', error_level=ErrorLevel.WARN)
         sources_t2, targets_t2 = extract_unique_tables(parsed_t2)
         tables_t2 = len(sources_t2) + len(targets_t2)
-
-        # Validate against catalog
-        sources_t2 = sources_t2 & catalog
-        targets_t2 = targets_t2 & catalog
-        tables_t2_valid = len(sources_t2) + len(targets_t2)
     except:
         sources_t2, targets_t2 = set(), set()
-        tables_t2, tables_t2_valid = 0, 0
+        tables_t2 = 0
 
-    # Tier 3: WARN + 17 rules (only if Tiers 1 & 2 both found 0 tables)
-    sources_t3, targets_t3 = set(), set()
-    tables_t3, tables_t3_valid = 0, 0
-
-    if tables_t1_valid == 0 and tables_t2_valid == 0:
-        try:
-            cleaned_17 = engine_17.apply_all(ddl)
-            parsed_t3 = sqlglot.parse(cleaned_17, dialect='tsql', error_level=ErrorLevel.WARN)
-            sources_t3, targets_t3 = extract_unique_tables(parsed_t3)
-            tables_t3 = len(sources_t3) + len(targets_t3)
-
-            # Validate against catalog
-            sources_t3 = sources_t3 & catalog
-            targets_t3 = targets_t3 & catalog
-            tables_t3_valid = len(sources_t3) + len(targets_t3)
-        except:
-            sources_t3, targets_t3 = set(), set()
-            tables_t3, tables_t3_valid = 0, 0
-
-    # Return best result
-    results = [
-        (sources_t1, targets_t1, 'tier1_warn', tables_t1_valid),
-        (sources_t2, targets_t2, 'tier2_7rules', tables_t2_valid),
-        (sources_t3, targets_t3, 'tier3_17rules', tables_t3_valid)
-    ]
-
-    best = max(results, key=lambda x: x[3])
-    sources, targets, method, tables = best
-
-    return sources, targets, method, tables
+    # Return best result (whichever found more tables)
+    # NO catalog validation (match Phase 1 baseline behavior)
+    if tables_t2 > tables_t1:
+        return sources_t2, targets_t2, 'tier2_17rules', tables_t2
+    else:
+        return sources_t1, targets_t1, 'tier1_warn', tables_t1
 
 
 # Parse all SPs with 3-tier approach
