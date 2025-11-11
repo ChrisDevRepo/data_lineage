@@ -10,7 +10,8 @@
 - **Database:** Azure Synapse Analytics (T-SQL) - extensible to other data warehouses
 - **Parser:** v4.3.0 (95.5% accuracy, 97.0% on SPs, multi-dialect support)
 - **Confidence:** v2.1.0 (4-value: 0, 75, 85, 100)
-- **Frontend:** v2.9.2 | **API:** v4.0.3
+- **Frontend:** v3.0.0 | **API:** v4.0.3
+- **Features:** Phantom Objects (v4.3.0), UDF Support, Performance-Optimized
 
 ## Quick Start
 
@@ -23,13 +24,20 @@
 pip install -r requirements.txt && ./start-app.sh
 ```
 
-## Configuration
+## Configuration (v4.3.0 - Pydantic Settings)
 
-**Default: Azure Synapse (T-SQL)**
+**Centralized configuration** via `.env` with type safety:
 
-All configuration in `.env`:
 ```bash
+# SQL Dialect
 SQL_DIALECT=tsql  # Default (Synapse/SQL Server)
+
+# Global Schema Exclusion (v4.3.0)
+EXCLUDED_SCHEMAS=sys,dummy,information_schema,tempdb,master,msdb,model
+
+# Phantom Objects (v4.3.0)
+PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
+PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 ```
 
 **Supported dialects** (data warehouses only):
@@ -41,6 +49,8 @@ SQL_DIALECT=tsql  # Default (Synapse/SQL Server)
 - `redshift` - Amazon Redshift
 - `bigquery` - Google BigQuery
 
+**Configuration File:** `lineage_v3/config/settings.py` (Pydantic BaseSettings)
+
 ## Documentation
 
 **Essential:**
@@ -48,8 +58,13 @@ SQL_DIALECT=tsql  # Default (Synapse/SQL Server)
 - [docs/SETUP.md](docs/SETUP.md) - Installation, configuration, deployment
 - [docs/USAGE.md](docs/USAGE.md) - Parser usage, hints, troubleshooting
 - [docs/REFERENCE.md](docs/REFERENCE.md) - Technical specs, schema, API
-- [docs/RULE_DEVELOPMENT.md](docs/RULE_DEVELOPMENT.md) - YAML rule creation & debugging ✨ NEW
+- [docs/RULE_DEVELOPMENT.md](docs/RULE_DEVELOPMENT.md) - YAML rule creation & debugging
 - [BUGS.md](BUGS.md) - Issue tracking with business context
+
+**Performance (v4.3.0):**
+- [docs/PERFORMANCE_ANALYSIS.md](docs/PERFORMANCE_ANALYSIS.md) - Current optimizations & benchmarks ✨ NEW
+- [docs/REACT_FLOW_PERFORMANCE.md](docs/REACT_FLOW_PERFORMANCE.md) - React Flow guide for 5K-10K nodes ✨ NEW
+- [UAT_READINESS_REPORT.md](UAT_READINESS_REPORT.md) - Phantom objects feature status ✨ NEW
 
 ## Parser v4.3.0
 
@@ -114,6 +129,61 @@ else: confidence = 0
 ```
 
 **Special cases:** Orchestrators (only EXEC) → 100% | Parse failures → 0%
+
+## Phantom Objects & UDF Support (v4.3.0)
+
+**Phantom Objects:** Database objects referenced in SQL but not in catalog metadata
+
+**Features:**
+- **Automatic detection** from stored procedure dependencies
+- **Negative IDs** (-1 to -∞) to distinguish from real objects
+- **Visual indicators:** Orange question mark badge, dashed borders
+- **Include-list filtering:** Only create phantoms for configured schemas (CONSUMPTION*, STAGING*, etc.)
+- **Universal exclusion:** System schemas (sys, dummy, information_schema) filtered globally
+
+**Configuration:**
+```bash
+# Include schemas for phantom creation (wildcard support)
+PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
+
+# Exclude patterns in dbo schema (CTEs, temp tables)
+PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
+```
+
+**Database Tables:**
+- `phantom_objects` - Stores phantom metadata with negative IDs
+- `phantom_references` - Tracks which SPs reference each phantom
+
+**Frontend:**
+- 🔶 Orange question mark badge on phantom nodes
+- 🔶 Dashed orange borders
+- 💎 Diamond shape for Functions (UDFs, TVFs, etc.)
+- 🟦 Square shape for Stored Procedures
+- ⚪ Circle shape for Tables/Views
+
+**UAT Status:** ✅ 223 phantoms exported, system schemas filtered, ready for testing
+
+See [UAT_READINESS_REPORT.md](UAT_READINESS_REPORT.md) for details.
+
+## Performance (v4.3.0)
+
+**Current:** 500-node visible limit prevents browser crashes
+**Target:** 5K-10K nodes for production with 60 FPS
+
+**Optimizations Implemented:**
+- ✅ All React components wrapped in React.memo
+- ✅ All ReactFlow props properly memoized (useCallback, useMemo)
+- ✅ Smart node prioritization (Phantoms > SPs > Functions > Tables)
+- ✅ QuestionMarkIcon and CustomNode fully optimized
+
+**Performance Grade:** **A-** (Excellent foundation, ready for scale)
+
+**For Production Scale:**
+- Remove 500-node limit after UAT validation
+- Expected 45-60 FPS with current optimizations
+- CSS optimizations available if needed
+
+See [docs/PERFORMANCE_ANALYSIS.md](docs/PERFORMANCE_ANALYSIS.md) and [docs/REACT_FLOW_PERFORMANCE.md](docs/REACT_FLOW_PERFORMANCE.md).
 
 ## Testing
 
