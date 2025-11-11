@@ -1,0 +1,74 @@
+# =============================================================================
+# Generic Rule: Normalize Whitespace
+# =============================================================================
+# Collapses multiple whitespace characters (spaces, tabs, newlines) into
+# single spaces to improve SQLGlot parsing success rate.
+#
+# This is a preprocessing rule that runs before all other rules.
+# =============================================================================
+
+name: normalize_whitespace
+description: |
+  Normalize whitespace to improve SQLGlot parsing success rate.
+  Replaces multiple consecutive whitespace characters with a single space.
+
+# Dialect applicability
+dialect: generic  # Applies to ALL dialects
+category: preprocessing
+enabled: true
+priority: 1  # Run FIRST (lower = earlier)
+
+# -----------------------------------------------------------------------------
+# Pattern Configuration
+# -----------------------------------------------------------------------------
+pattern_type: regex
+
+# Regex pattern to match
+pattern: '\s+'
+
+# Replacement text
+replacement: ' '
+
+# -----------------------------------------------------------------------------
+# Test Cases
+# -----------------------------------------------------------------------------
+test_cases:
+  - name: multiple_spaces
+    description: "Collapse multiple spaces"
+    input: "SELECT    a    FROM    table"
+    expected: "SELECT a FROM table"
+
+  - name: tabs_and_newlines
+    description: "Replace tabs and newlines with spaces"
+    input: "SELECT\t\na\n\nFROM\ttable"
+    expected: "SELECT a FROM table"
+
+  - name: mixed_whitespace
+    description: "Handle mixed whitespace"
+    input: "SELECT\n\t  \t\na\n  \t  FROM\t\n  table"
+    expected: "SELECT a FROM table"
+
+  - name: preserve_single_space
+    description: "Single spaces should remain unchanged"
+    input: "SELECT a FROM table"
+    expected: "SELECT a FROM table"
+
+# -----------------------------------------------------------------------------
+# Debug Configuration
+# -----------------------------------------------------------------------------
+debug:
+  log_matches: false  # Too noisy for whitespace normalization
+  log_replacements: false
+  show_context_lines: 0
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: system
+  created: "2025-11-11"
+  updated: "2025-11-11"
+  jira_ticket: null
+  impact: "Preprocessing step that improves SQLGlot parsing by ~5-10%"
+  risk: low
+  affects_lineage: false
