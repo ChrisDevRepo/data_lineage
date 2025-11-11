@@ -141,7 +141,16 @@ class FrontendFormatter:
             found_count = node['provenance'].get('found_count', 0)  # v4.2.0
             source = node['provenance'].get('primary_source', 'unknown')
 
-            if node['object_type'] == 'Stored Procedure':
+            # Check if this is a phantom object (v4.3.0)
+            is_phantom = node.get('is_phantom', False)
+            phantom_reason = node.get('phantom_reason')
+
+            if is_phantom:
+                # Phantom objects have null confidence and special description
+                description = f"⚠️ Phantom object ({phantom_reason or 'not in catalog'})"
+                confidence = None
+                confidence_breakdown = None
+            elif node['object_type'] == 'Stored Procedure':
                 # Enhanced description with actionable guidance (v4.2.0)
                 description = self._format_sp_description(
                     confidence=confidence,
@@ -161,6 +170,9 @@ class FrontendFormatter:
                 node['object_type']
             )
 
+            # Determine node symbol for visualization (v4.3.0 - UDF support)
+            node_symbol = self._get_node_symbol(node['object_type'], is_phantom)
+
             # Create frontend node (base properties)
             frontend_node = {
                 'id': node_id,
@@ -169,11 +181,17 @@ class FrontendFormatter:
                 'object_type': node['object_type'],
                 'description': description,
                 'data_model_type': data_model_type,
+                'node_symbol': node_symbol,  # v4.3.0: 'circle', 'diamond', 'question_mark'
                 'inputs': sorted(input_node_ids, key=lambda x: int(x)),
                 'outputs': sorted(output_node_ids, key=lambda x: int(x)),
-                'confidence': confidence,  # v2.0.0 - explicit confidence field
+                'confidence': confidence,  # v2.0.0 - explicit confidence field (null for phantoms)
                 'confidence_breakdown': confidence_breakdown  # v2.0.0 - multi-factor breakdown
             }
+
+            # Add phantom metadata if applicable (v4.3.0)
+            if is_phantom:
+                frontend_node['is_phantom'] = True
+                frontend_node['phantom_reason'] = phantom_reason or 'not_in_catalog'
 
             # Conditionally add DDL text if requested (for JSON mode with embedded DDL)
             # In Parquet mode (include_ddl=False), property is omitted entirely
@@ -196,6 +214,37 @@ class FrontendFormatter:
         
         return frontend_nodes
     
+    def _get_node_symbol(self, object_type: str, is_phantom: bool) -> str:
+        """
+        Determine node symbol for visualization.
+
+        v4.3.0: Support for phantom objects and functions
+
+        Args:
+            object_type: Object type from database
+            is_phantom: Whether object is a phantom
+
+        Returns:
+            Node symbol: 'circle', 'diamond', 'question_mark', 'square'
+        """
+        if is_phantom:
+            return 'question_mark'  # ❓ for phantom objects
+
+        # Function types use diamond symbol
+        if object_type in ['Function', 'Scalar Function', 'Table-valued Function']:
+            return 'diamond'  # ◆ for functions
+
+        # Tables and views use circle
+        if object_type in ['Table', 'View']:
+            return 'circle'  # ● for tables/views
+
+        # Stored procedures use square
+        if object_type == 'Stored Procedure':
+            return 'square'  # ■ for stored procedures
+
+        # Default
+        return 'circle'
+
     def _classify_data_model_type(self, object_name: str, object_type: str) -> str:
         """
         Classify data model type based on naming conventions.

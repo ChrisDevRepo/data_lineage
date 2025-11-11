@@ -86,35 +86,90 @@ class InternalFormatter:
     
     def _fetch_objects(self) -> List[Dict[str, Any]]:
         """
-        Fetch ALL objects from workspace.
+        Fetch ALL objects from workspace (including phantoms).
+
+        v4.3.0: Now includes phantom objects (negative IDs) for visualization.
 
         Returns all objects regardless of whether they have been parsed or not.
         Objects without dependencies will have empty inputs/outputs and confidence 0.
         """
-        query = """
-        SELECT
-            object_id,
-            schema_name,
-            object_name,
-            object_type
-        FROM objects
-        WHERE object_type IN ('Table', 'View', 'Stored Procedure')
-        ORDER BY object_id
-        """
+        # Check if phantom_objects table exists
+        tables = [row[0] for row in self.workspace.query("SHOW TABLES")]
+        has_phantoms = 'phantom_objects' in tables
 
-        results = self.workspace.query(query)
+        if has_phantoms:
+            # Fetch real objects AND phantom objects via UNION
+            query = """
+            SELECT
+                object_id,
+                schema_name,
+                object_name,
+                object_type,
+                FALSE as is_phantom,
+                NULL as phantom_reason
+            FROM objects
+            WHERE object_type IN ('Table', 'View', 'Stored Procedure')
 
-        objects = []
-        for row in results:
-            objects.append({
-                'object_id': row[0],
-                'schema': row[1],
-                'name': row[2],
-                'object_type': row[3]  # Already human-readable
-            })
+            UNION ALL
 
-        logger.info(f"Fetched {len(objects)} objects from workspace")
-        return objects
+            SELECT
+                object_id,
+                schema_name,
+                object_name,
+                object_type,
+                TRUE as is_phantom,
+                phantom_reason
+            FROM phantom_objects
+            WHERE is_promoted = FALSE
+
+            ORDER BY object_id
+            """
+
+            results = self.workspace.query(query)
+
+            objects = []
+            for row in results:
+                obj = {
+                    'object_id': row[0],
+                    'schema': row[1],
+                    'name': row[2],
+                    'object_type': row[3]
+                }
+                # Add phantom metadata if present
+                if row[4]:  # is_phantom
+                    obj['is_phantom'] = True
+                    obj['phantom_reason'] = row[5]
+
+                objects.append(obj)
+
+            logger.info(f"Fetched {len(objects)} objects from workspace (including phantoms)")
+            return objects
+        else:
+            # Legacy: No phantom_objects table yet
+            query = """
+            SELECT
+                object_id,
+                schema_name,
+                object_name,
+                object_type
+            FROM objects
+            WHERE object_type IN ('Table', 'View', 'Stored Procedure')
+            ORDER BY object_id
+            """
+
+            results = self.workspace.query(query)
+
+            objects = []
+            for row in results:
+                objects.append({
+                    'object_id': row[0],
+                    'schema': row[1],
+                    'name': row[2],
+                    'object_type': row[3]
+                })
+
+            logger.info(f"Fetched {len(objects)} objects from workspace")
+            return objects
     
     def _fetch_dependencies(self) -> Dict[int, Dict[str, Any]]:
         """
@@ -235,6 +290,11 @@ class InternalFormatter:
                     'found_count': dep_meta.get('found_count')  # v2.1.0 / BUG-002
                 }
             }
+
+            # Preserve phantom metadata (v4.3.0)
+            if obj.get('is_phantom'):
+                node['is_phantom'] = True
+                node['phantom_reason'] = obj.get('phantom_reason', 'not_in_catalog')
 
             nodes.append(node)
             object_map[object_id] = node

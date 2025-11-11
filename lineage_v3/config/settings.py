@@ -86,6 +86,38 @@ class PathSettings(BaseSettings):
     )
 
 
+class PhantomSettings(BaseSettings):
+    """
+    Phantom object configuration (v4.3.0).
+
+    Controls which schemas are eligible for phantom object creation.
+    Uses INCLUDE list approach with wildcard support.
+    """
+    include_schemas: str = Field(
+        default="CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B",
+        description="Comma-separated list of schema patterns for phantom creation (wildcards supported with *)"
+    )
+    exclude_dbo_objects: str = Field(
+        default="cte,cte_*,CTE*,ParsedData,PartitionedCompany*,#*,@*,temp_*,tmp_*,[a-z],[A-Z]",
+        description="Comma-separated list of object name patterns to exclude in dbo schema"
+    )
+
+    @property
+    def include_schema_list(self) -> list[str]:
+        """Parse comma-separated include patterns for phantom creation"""
+        return [s.strip() for s in self.include_schemas.split(',') if s.strip()]
+
+    @property
+    def exclude_dbo_pattern_list(self) -> list[str]:
+        """Parse comma-separated dbo object patterns"""
+        return [s.strip() for s in self.exclude_dbo_objects.split(',') if s.strip()]
+
+    model_config = SettingsConfigDict(
+        env_prefix='PHANTOM_',
+        case_sensitive=False
+    )
+
+
 class Settings(BaseSettings):
     """
     Main application settings.
@@ -106,6 +138,10 @@ class Settings(BaseSettings):
     )
     paths: PathSettings = Field(
         default_factory=PathSettings
+    )
+    phantom: PhantomSettings = Field(
+        default_factory=PhantomSettings,
+        description="Phantom object configuration (v4.3.0)"
     )
 
     # Top-level application settings
@@ -128,6 +164,12 @@ class Settings(BaseSettings):
         description="SQL dialect for parser and metadata extraction (tsql, fabric, postgres, oracle, snowflake, redshift, bigquery)"
     )
 
+    # Global Schema Exclusion (v4.3.0 - Universal filter)
+    excluded_schemas: str = Field(
+        default="sys,dummy,information_schema,tempdb,master,msdb,model",
+        description="Comma-separated list of schemas to ALWAYS exclude from ALL processing (metadata, objects, phantoms)"
+    )
+
     @field_validator('sql_dialect')
     @classmethod
     def validate_sql_dialect(cls, v: str) -> str:
@@ -142,6 +184,11 @@ class Settings(BaseSettings):
         """Get validated SQLDialect enum"""
         from lineage_v3.config.dialect_config import validate_dialect
         return validate_dialect(self.sql_dialect)
+
+    @property
+    def excluded_schema_set(self) -> set[str]:
+        """Parse comma-separated excluded schemas (universal filter)"""
+        return {s.strip().lower() for s in self.excluded_schemas.split(',') if s.strip()}
 
     model_config = SettingsConfigDict(
         env_file='.env',

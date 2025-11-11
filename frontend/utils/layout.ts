@@ -57,17 +57,31 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
         height: 48,
     }));
 
-    // Create edges
+    // Create edges (v4.3.0: phantom edges are dotted and orange)
     const edgesSet = new Map<string, Edge>();
     if (lineageGraph) {
         lineageGraph.forEachEdge((edge, attrs, source, target) => {
             if (visibleNodeIds.has(source) && visibleNodeIds.has(target)) {
+                // Check if either endpoint is a phantom (negative ID)
+                const sourceId = parseInt(source);
+                const targetId = parseInt(target);
+                const isPhantomEdge = sourceId < 0 || targetId < 0;
+
+                // Phantom edges: orange color with dashed line
+                const edgeColor = isPhantomEdge ? '#ff9800' : '#9ca3af';
+                const strokeDasharray = isPhantomEdge ? '5,5' : undefined;
+
                 edgesSet.set(`e-${source}-${target}`, {
                     id: `e-${source}-${target}`,
                     source,
                     target,
-                    style: { stroke: '#9ca3af', strokeWidth: 1.5 },
-                    markerEnd: { type: MarkerType.ArrowClosed, color: '#9ca3af', width: 20, height: 20 }
+                    style: {
+                        stroke: edgeColor,
+                        strokeWidth: 1.5,
+                        strokeDasharray
+                    },
+                    markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor, width: 20, height: 20 },
+                    data: { isPhantom: isPhantomEdge }  // For test selectors
                 });
             }
         });
