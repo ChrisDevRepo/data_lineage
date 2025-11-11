@@ -213,21 +213,56 @@ class SQLCleaningRules:
         Becomes:
             (removed)
 
-        CRITICAL FIX (2025-11-08): Changed pattern from [^;]*;? to .*?(?:;|\n|$)
-        Previous pattern was TOO GREEDY - if no semicolon, it would eat entire SQL!
-        Example: "DECLARE @x INT\nINSERT INTO Table" → matched entire string
-        New pattern stops at first semicolon, newline, or end of string.
+        CRITICAL FIX (2025-11-11): Made pattern MORE SPECIFIC
+        Issue: Pattern was removing ALL DECLARE including scalar SELECT without FROM
+        Example BROKEN: "DECLARE @month INT = (SELECT Month(@Today))" → removed entire line
+        Example CORRECT: "DECLARE @count INT = (SELECT COUNT(*) FROM Table)" → should remove
+
+        Solution: Only remove DECLARE if it contains SELECT...FROM pattern (admin queries)
+        OR if it doesn't contain SELECT at all (simple declarations)
+        But KEEP DECLARE with scalar SELECT (no FROM clause) - these are calculations, not queries
+
+        New Strategy: Remove in TWO passes via callback
+        Pass 1: Remove DECLARE with SELECT...FROM (admin queries accessing tables)
+        Pass 2: Remove simple DECLARE (no SELECT at all)
+        This preserves DECLARE with scalar SELECT functions
         """
-        return RegexRule(
+        def remove_declare_callback(sql: str) -> str:
+            # Pass 1: Remove DECLARE with SELECT...FROM (admin queries)
+            # Pattern: DECLARE @var type = (SELECT ... FROM ...)
+            sql = re.sub(
+                r'DECLARE\s+@\w+\s+\w+(?:\([^\)]*\))?\s*=\s*\([^()]*SELECT[^()]*FROM[^()]*\)',
+                '',
+                sql,
+                flags=re.IGNORECASE | re.DOTALL
+            )
+
+            # Pass 2: Remove simple DECLARE without SELECT (pure declarations)
+            # Pattern: DECLARE @var type = value (no SELECT keyword)
+            # But do NOT match if line contains SELECT (preserves scalar SELECTs)
+            sql = re.sub(
+                r'DECLARE\s+@\w+(?!\s*\w*\s*=\s*\([^()]*SELECT).*?(?:;|\n|$)',
+                '',
+                sql,
+                flags=re.IGNORECASE | re.DOTALL
+            )
+
+            return sql
+
+        return CallbackRule(
             name="RemoveDECLARE",
             category=RuleCategory.VARIABLE_DECLARATION,
-            description="Remove DECLARE variable declarations",
-            pattern=r'DECLARE\s+@\w+.*?(?:;|\n|$)',
-            replacement='',
-            flags=re.IGNORECASE | re.DOTALL,
+            description="Remove DECLARE variable declarations (except scalar SELECT)",
+            callback=remove_declare_callback,
             priority=20,
-            examples_before=["DECLARE @var VARCHAR(100);\nSELECT 1"],
-            examples_after=["\nSELECT 1"]
+            examples_before=[
+                "DECLARE @var VARCHAR(100);\nSELECT 1",
+                "DECLARE @count INT = (SELECT COUNT(*) FROM Table1);\nSELECT 1"
+            ],
+            examples_after=[
+                "\nSELECT 1",
+                ";\nSELECT 1"
+            ]
         )
 
     @staticmethod
@@ -245,19 +280,51 @@ class SQLCleaningRules:
         Becomes:
             (removed)
 
-        CRITICAL FIX (2025-11-08): Changed pattern from =[^;]*;? to =.*?(?:;|\n|$)
-        Same greedy pattern issue as DECLARE - stops at semicolon/newline/end.
+        CRITICAL FIX (2025-11-11): Made pattern MORE SPECIFIC
+        Issue: Same as DECLARE - was removing ALL SET including scalar SELECT without FROM
+        Example BROKEN: "SET @month = (SELECT Month(@Today))" → removed entire line
+        Example CORRECT: "SET @count = (SELECT COUNT(*) FROM Table)" → should remove
+
+        Solution: Only remove SET if it contains SELECT...FROM pattern (admin queries)
+        OR if it doesn't contain SELECT at all (simple assignments)
+        But KEEP SET with scalar SELECT (no FROM clause) - these are calculations
         """
-        return RegexRule(
+        def remove_set_callback(sql: str) -> str:
+            # Pass 1: Remove SET with SELECT...FROM (admin queries)
+            # Pattern: SET @var = (SELECT ... FROM ...)
+            sql = re.sub(
+                r'SET\s+@\w+\s*=\s*\([^()]*SELECT[^()]*FROM[^()]*\)',
+                '',
+                sql,
+                flags=re.IGNORECASE | re.DOTALL
+            )
+
+            # Pass 2: Remove simple SET without SELECT (pure assignments)
+            # Pattern: SET @var = value (no SELECT keyword)
+            # But do NOT match if line contains SELECT (preserves scalar SELECTs)
+            sql = re.sub(
+                r'SET\s+@\w+(?!\s*=\s*\([^()]*SELECT)\s*=.*?(?:;|\n|$)',
+                '',
+                sql,
+                flags=re.IGNORECASE | re.DOTALL
+            )
+
+            return sql
+
+        return CallbackRule(
             name="RemoveSET",
             category=RuleCategory.VARIABLE_DECLARATION,
-            description="Remove SET variable assignments",
-            pattern=r'SET\s+@\w+\s*=.*?(?:;|\n|$)',
-            replacement='',
-            flags=re.IGNORECASE | re.DOTALL,
+            description="Remove SET variable assignments (except scalar SELECT)",
+            callback=remove_set_callback,
             priority=21,
-            examples_before=["SET @var = 'test';\nSELECT 1"],
-            examples_after=["\nSELECT 1"]
+            examples_before=[
+                "SET @var = 'test';\nSELECT 1",
+                "SET @count = (SELECT COUNT(*) FROM Table1);\nSELECT 1"
+            ],
+            examples_after=[
+                "\nSELECT 1",
+                ";\nSELECT 1"
+            ]
         )
 
     # ------------------------------------------------------------------------
@@ -425,17 +492,23 @@ class SQLCleaningRules:
 
         Becomes:
             (removed)
+
+        CRITICAL FIX (2025-11-11): Pattern was TOO GREEDY
+        Issue: [^;]+ matched EVERYTHING until first semicolon
+        Example BROKEN: "TRUNCATE TABLE Target\nINSERT INTO Target..." → removed entire INSERT!
+        Root cause: If no semicolon after TRUNCATE, [^;]+ eats all following SQL
+        Solution: Match only table name components ([\w\.\[\]]+) not arbitrary text
         """
         return RegexRule(
             name="RemoveTRUNCATE",
             category=RuleCategory.TABLE_MANAGEMENT,
             description="Remove TRUNCATE TABLE statements",
-            pattern=r'TRUNCATE\s+TABLE\s+[^;]+;?',
+            pattern=r'TRUNCATE\s+TABLE\s+\[?\w+\]?(?:\.\[?\w+\]?(?:\.\[?\w+\]?)?)?',
             replacement='',
             flags=re.IGNORECASE,
             priority=60,
-            examples_before=["TRUNCATE TABLE dbo.Test;\nSELECT 1"],
-            examples_after=["\nSELECT 1"]
+            examples_before=["TRUNCATE TABLE dbo.Test;\nSELECT 1", "TRUNCATE TABLE [schema].[table]\nINSERT 1"],
+            examples_after=["\nSELECT 1", "\nINSERT 1"]
         )
 
     # ------------------------------------------------------------------------
@@ -467,21 +540,29 @@ class SQLCleaningRules:
         """
 
         def extract_dml(sql: str) -> str:
-            # Pattern for WITH...INSERT/SELECT/UPDATE/DELETE/MERGE
-            core_pattern = r'(WITH\s+\w+\s+AS\s*\(.*?\)\s*(?:,\s*\w+\s+AS\s*\(.*?\))*\s*(?:INSERT|SELECT|UPDATE|DELETE|MERGE)\s+.*?)(?=\n\s*(?:END|$))'
+            # CRITICAL FIX (2025-11-11): Remove CREATE PROC wrapper while preserving all DML
+            # Issue: SPs with multiple DML blocks were either losing statements OR keeping wrapper
+            # Solution: Always remove wrapper (CREATE PROC...AS BEGIN...END), keep entire body
 
-            matches = re.findall(core_pattern, sql, flags=re.DOTALL | re.IGNORECASE)
+            # Step 1: Remove CREATE PROC header and extract body
+            # Pattern: CREATE PROC [schema].[name] ... AS BEGIN <body> END
+            proc_pattern = r'CREATE\s+PROC(?:EDURE)?\s+\[?[\w\.\[\]]+\]?.*?AS\s+BEGIN\s+(.*)\s+END'
+            match = re.search(proc_pattern, sql, flags=re.IGNORECASE | re.DOTALL)
+
+            if match:
+                # Extract body (everything between AS BEGIN and END)
+                body = match.group(1).strip()
+                return body
+
+            # Step 2: Fallback - try to find body without exact pattern match
+            # Look for BEGIN/END block and extract content
+            begin_end_pattern = r'BEGIN\s+(.*?)\s+END'
+            matches = re.findall(begin_end_pattern, sql, flags=re.IGNORECASE | re.DOTALL)
             if matches:
-                # Return longest match (most complete)
+                # Return the longest BEGIN/END block (likely the main body)
                 return max(matches, key=len).strip()
 
-            # Fallback: Try standalone DML
-            dml_pattern = r'((?:INSERT|SELECT|UPDATE|DELETE|MERGE)\s+(?:INTO\s+)?\s*.*?)(?=\n\s*(?:END|$))'
-            dml_matches = re.findall(dml_pattern, sql, flags=re.DOTALL | re.IGNORECASE)
-            if dml_matches:
-                return max(dml_matches, key=len).strip()
-
-            # If no DML found, return cleaned original
+            # Step 3: If no wrapper found, return cleaned original (already processed)
             return sql
 
         return CallbackRule(
