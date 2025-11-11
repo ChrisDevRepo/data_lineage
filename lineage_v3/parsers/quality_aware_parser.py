@@ -129,19 +129,24 @@ class QualityAwareParser:
     THRESHOLD_GOOD = 0.10     # ±10% difference
     THRESHOLD_FAIR = 0.25     # ±25% difference
 
-    # System schemas to exclude
-    EXCLUDED_SCHEMAS = {'sys', 'INFORMATION_SCHEMA', 'tempdb', 'dummy'}
+    # Phantom schema configuration (v4.3.0)
+    # Loaded from phantom_schema_config.yaml - INCLUDE list approach with wildcards
+    PHANTOM_CONFIG_FILE = 'phantom_schema_config.yaml'
 
-    # Patterns for dbo schema objects to exclude (CTEs, temp tables, etc.)
-    EXCLUDED_DBO_PATTERNS = [
-        'cte',  # Common CTE names
-        'cte_',
-        'cte1', 'cte2', 'cte3',
-        'ParsedData',  # Temp parsing tables
-        'PartitionedCompany',
-        'PartitionedCompanyKoncern',
-        't',  # Single letter temp variables
-        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
+    # Default configuration if file not found
+    DEFAULT_INCLUDE_SCHEMAS = [
+        'CONSUMPTION*', 'Consumption*',
+        'STAGING*', 'Staging*',
+        'TRANSFORMATION*', 'Transformation*',
+        'BB', 'B'
+    ]
+
+    DEFAULT_EXCLUDED_SCHEMAS = {'sys', 'dummy', 'information_schema', 'INFORMATION_SCHEMA', 'tempdb', 'master', 'msdb', 'model'}
+
+    DEFAULT_EXCLUDED_DBO_PATTERNS = [
+        'cte', 'cte_', 'cte1', 'cte2', 'cte3', 'CTE', 'CTE_',
+        'ParsedData', 'PartitionedCompany', 'PartitionedCompanyKoncern',
+        't', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
         'n', 'o', 'p', 'q', 'r', 's', 'u', 'v', 'w', 'x', 'y', 'z',
     ]
 
@@ -268,6 +273,48 @@ class QualityAwareParser:
         if self.enable_sql_cleaning:
             self.cleaning_engine = RuleEngine()
             logger.info("SQL Cleaning Engine enabled (expected +27% SQLGlot success rate)")
+
+        # Load phantom schema configuration (v4.3.0)
+        self._load_phantom_config()
+
+    def _load_phantom_config(self):
+        """Load phantom schema configuration from centralized settings (v4.3.0)."""
+        import re
+        from lineage_v3.config.settings import settings
+
+        # Load from centralized Pydantic settings (configured via .env or defaults)
+        self.include_schemas = settings.phantom.include_schema_list
+        self.excluded_schemas = settings.excluded_schema_set  # Global universal exclusion
+        self.excluded_dbo_patterns = settings.phantom.exclude_dbo_pattern_list
+
+        logger.info(f"Loaded phantom config from settings.py: {len(self.include_schemas)} include patterns")
+        logger.debug(f"Include patterns: {self.include_schemas}")
+        logger.debug(f"Universal excluded schemas: {self.excluded_schemas}")
+
+        # Compile include patterns to regex for efficient matching
+        self.include_schema_patterns = []
+        for pattern in self.include_schemas:
+            # Convert wildcard pattern to regex
+            regex_pattern = pattern.replace('*', '.*')
+            self.include_schema_patterns.append(re.compile(f'^{regex_pattern}$', re.IGNORECASE))
+
+    def _schema_matches_include_list(self, schema: str) -> bool:
+        """
+        Check if schema matches any include pattern (v4.3.0).
+
+        Uses wildcard matching (e.g., CONSUMPTION* matches CONSUMPTION_FINANCE).
+        Returns True if schema should have phantoms created.
+        """
+        # First check if it's in the global excluded_schemas (universal filter)
+        if schema.lower() in [s.lower() for s in self.excluded_schemas]:
+            return False
+
+        # Check if schema matches any include pattern
+        for pattern in self.include_schema_patterns:
+            if pattern.match(schema):
+                return True
+
+        return False
 
     def parse_object(self, object_id: int) -> Dict[str, Any]:
         """
@@ -1267,30 +1314,52 @@ class QualityAwareParser:
         phantoms = set()
 
         for name in table_names:
-            # Skip dummy.* temp table placeholders
-            if name.lower().startswith('dummy.'):
+            # Parse schema.object format
+            parts = name.split('.')
+            if len(parts) != 2:
                 continue
 
-            # Skip system schemas
-            parts = name.split('.')
-            if len(parts) == 2:
-                schema, table = parts
-                if schema.lower() in self.EXCLUDED_SCHEMAS:
+            schema, table = parts
+
+            # v4.3.0: INCLUDE LIST APPROACH - Only create phantoms for schemas matching include patterns
+            if not self._schema_matches_include_list(schema):
+                logger.debug(f"Skipping phantom (schema not in include list): {name}")
+                continue
+
+            # Additional filtering for dbo schema CTEs and temp objects
+            if schema.lower() == 'dbo':
+                table_lower = table.lower()
+
+                # Check if table name matches any exclusion pattern
+                skip = False
+                for pattern in self.excluded_dbo_patterns:
+                    pattern_lower = pattern.lower()
+                    # Handle different pattern types
+                    if '*' in pattern:
+                        # Wildcard pattern
+                        prefix = pattern_lower.replace('*', '')
+                        if table_lower.startswith(prefix):
+                            logger.debug(f"Excluding dbo object (wildcard match '{pattern}'): {name}")
+                            skip = True
+                            break
+                    elif table_lower == pattern_lower:
+                        # Exact match
+                        logger.debug(f"Excluding dbo object (exact match): {name}")
+                        skip = True
+                        break
+                    elif table_lower.startswith(pattern_lower):
+                        # Prefix match
+                        logger.debug(f"Excluding dbo object (prefix match '{pattern}'): {name}")
+                        skip = True
+                        break
+
+                if skip:
                     continue
 
-                # Skip dbo schema CTEs and temp objects (v4.3.0)
-                if schema.lower() == 'dbo':
-                    table_lower = table.lower()
-                    # Check if table name matches any exclusion pattern
-                    if any(table_lower.startswith(pattern.lower()) or table_lower == pattern.lower()
-                           for pattern in self.EXCLUDED_DBO_PATTERNS):
-                        logger.debug(f"Excluding dbo temp object: {name}")
-                        continue
-
-                    # Also exclude objects starting with # or @
-                    if table.startswith('#') or table.startswith('@'):
-                        logger.debug(f"Excluding temp table/variable: {name}")
-                        continue
+                # Also exclude objects starting with # or @
+                if table.startswith('#') or table.startswith('@'):
+                    logger.debug(f"Excluding temp table/variable: {name}")
+                    continue
 
             # If not in catalog (case-insensitive), it's a phantom
             if name not in catalog:
@@ -1303,7 +1372,9 @@ class QualityAwareParser:
 
                 if not found:
                     phantoms.add(name)
+                    logger.debug(f"Phantom detected: {name}")
 
+        logger.info(f"Identified {len(phantoms)} phantom objects (include-list filtered)")
         return phantoms
 
     def _create_or_get_phantom_objects(self, phantom_names: Set[str], object_type: str = 'Table') -> Dict[str, int]:

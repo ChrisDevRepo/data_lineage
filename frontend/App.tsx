@@ -235,16 +235,44 @@ function DataLineageVisualizer() {
     ddl_text?: string | null; // Optional: only present in JSON uploads
   } | null>(null);
 
+  // --- Performance: Node Limiting for Large Graphs ---
+  // v4.3.0: Limit visible nodes to prevent browser crashes with 1,000+ nodes
+  const MAX_VISIBLE_NODES = 500;
+  const limitedVisibleData = useMemo(() => {
+    if (finalVisibleData.length <= MAX_VISIBLE_NODES) {
+      return finalVisibleData;
+    }
+
+    // Smart prioritization: Show most important nodes first
+    // Priority order: 1) Phantoms, 2) Stored Procedures, 3) Functions, 4) Tables/Views
+    const prioritized = [...finalVisibleData].sort((a, b) => {
+      if (a.is_phantom && !b.is_phantom) return -1;
+      if (!a.is_phantom && b.is_phantom) return 1;
+      if (a.object_type === 'Stored Procedure' && b.object_type !== 'Stored Procedure') return -1;
+      if (a.object_type !== 'Stored Procedure' && b.object_type === 'Stored Procedure') return 1;
+      if (a.object_type === 'Function' && b.object_type !== 'Function') return -1;
+      if (a.object_type !== 'Function' && b.object_type === 'Function') return 1;
+      return 0;
+    });
+
+    const limited = prioritized.slice(0, MAX_VISIBLE_NODES);
+    const hiddenCount = finalVisibleData.length - MAX_VISIBLE_NODES;
+
+    logger.perf(`Performance limit: Showing ${MAX_VISIBLE_NODES} of ${finalVisibleData.length} nodes (${hiddenCount} hidden)`);
+
+    return limited;
+  }, [finalVisibleData]);
+
   // --- Memos for Derived State and Layouting ---
   const layoutedElements = useMemo(() => {
     return getDagreLayoutedElements({
-      data: finalVisibleData,
+      data: limitedVisibleData,
       layout,
       schemaColorMap,
       lineageGraph,
       isTraceModeActive,
     });
-  }, [finalVisibleData, layout, schemaColorMap, lineageGraph, isTraceModeActive]);
+  }, [limitedVisibleData, layout, schemaColorMap, lineageGraph, isTraceModeActive]);
 
   // OPTIMIZATION: Create Map for O(1) lookups instead of O(n) find()
   const allDataMap = useMemo(() => {
