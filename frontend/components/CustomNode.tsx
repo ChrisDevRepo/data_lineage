@@ -48,7 +48,7 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
     `;
 
     const nodeStyle = {
-        backgroundColor: isPhantom ? '#ff980020' : `${schemaColor}30`,
+        backgroundColor: `${schemaColor}30`,
         borderColor: isPhantom ? '#ff9800' : schemaColor,
     };
 
