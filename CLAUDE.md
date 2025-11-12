@@ -155,18 +155,12 @@ PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 
 ## Documentation
 
-**Essential:**
+**All documentation (4 files only):**
 - [README.md](README.md) - Project overview & quickstart
-- [docs/SETUP.md](docs/SETUP.md) - Installation, configuration, deployment
-- [docs/USAGE.md](docs/USAGE.md) - Parser usage, hints, troubleshooting
+- [docs/SETUP.md](docs/SETUP.md) - Installation & configuration
+- [docs/USAGE.md](docs/USAGE.md) - Parser usage & troubleshooting
 - [docs/REFERENCE.md](docs/REFERENCE.md) - Technical specs, schema, API
-- [docs/RULE_DEVELOPMENT.md](docs/RULE_DEVELOPMENT.md) - YAML rule creation & debugging
-- [BUGS.md](docs/reports/BUGS.md) - Issue tracking with business context
-
-**Performance (v4.3.0):**
-- [docs/PERFORMANCE_ANALYSIS.md](docs/PERFORMANCE_ANALYSIS.md) - Current optimizations & benchmarks ✨ NEW
-- [docs/REACT_FLOW_PERFORMANCE.md](docs/REACT_FLOW_PERFORMANCE.md) - React Flow guide for 5K-10K nodes ✨ NEW
-- [UAT_READINESS_REPORT.md](docs/reports/UAT_READINESS_REPORT.md) - Phantom objects feature status ✨ NEW
+- [docs/RULE_DEVELOPMENT.md](docs/RULE_DEVELOPMENT.md) - YAML rule creation
 
 ## Parser v4.3.0
 
