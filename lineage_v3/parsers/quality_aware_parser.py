@@ -12,10 +12,19 @@ Strategy:
 
 This gives us quality assurance built into the parser!
 
-Version: 4.1.3 (Dataflow-Focused Lineage - IF EXISTS Administrative Query Filtering)
-Date: 2025-11-04
+Version: 4.3.2 (Defensive Improvements + Performance Tracking)
+Date: 2025-11-12
 
 Changelog:
+- v4.3.2 (2025-11-12): DEFENSIVE IMPROVEMENTS
+    Added: Empty Command node check (prevents WARN mode regression)
+    Issue: SQLGlot WARN mode returns Command nodes with no .expression → empty lineage
+    Fix: Explicit check `isinstance(parsed, exp.Command) and not parsed.expression`
+    Added: Performance tracking - logs SPs taking >1 second to parse
+    Impact: Defensive programming, prevents silent failures
+    Files: quality_aware_parser.py lines 752-762, 344-346, 512-515, 562-565
+    Testing: Created golden test cases to detect empty lineage regression
+    Test files: tests/unit/test_parser_golden_cases.py
 - v4.1.3 (2025-11-04): CRITICAL FIX - IF EXISTS/IF NOT EXISTS filtering
     Fixed: IF EXISTS (SELECT ... FROM Table) checks no longer create false input dependencies
     Issue: Administrative IF EXISTS checks were treated as data lineage sources
@@ -341,6 +350,10 @@ class QualityAwareParser:
                 }
             }
         """
+        # Performance tracking (v4.3.2)
+        import time
+        parse_start = time.time()
+
         # Fetch DDL
         ddl = self._fetch_ddl(object_id)
         if not ddl:
@@ -505,6 +518,11 @@ class QualityAwareParser:
                 )
                 logger.warning(f"Low confidence ({confidence}) for object_id {object_id}: {parse_failure_reason}")
 
+            # Performance tracking (v4.3.2) - Log slow parses
+            parse_time = time.time() - parse_start
+            if parse_time > 1.0:
+                logger.warning(f"Slow parse for object_id {object_id}: {parse_time:.2f}s")
+
             return {
                 'object_id': object_id,
                 'inputs': input_ids,
@@ -549,6 +567,11 @@ class QualityAwareParser:
                 is_orchestrator=False,
                 parse_failure_reason=parse_failure_reason
             )
+
+            # Performance tracking (v4.3.2) - Log slow parses even on failure
+            parse_time = time.time() - parse_start
+            if parse_time > 1.0:
+                logger.warning(f"Slow parse for object_id {object_id}: {parse_time:.2f}s (failed)")
 
             return {
                 'object_id': object_id,
@@ -749,11 +772,17 @@ class QualityAwareParser:
                 try:
                     # RAISE mode: fails fast with exception if SQL is invalid
                     parsed = parse_one(stmt, dialect='tsql', error_level=ErrorLevel.RAISE)
-                    if parsed:
+                    # Defensive: Skip empty Command nodes (can occur even with RAISE mode)
+                    # Empty Command nodes have no .expression attribute and yield zero tables
+                    # Root cause: SQLGlot WARN mode bug (documented in v4.3.1), but defensive check kept
+                    if parsed and not (isinstance(parsed, exp.Command) and not parsed.expression):
                         stmt_sources, stmt_targets = self._extract_from_ast(parsed)
                         # Add any additional tables SQLGlot found
                         sources.update(stmt_sources)
                         targets.update(stmt_targets)
+                    else:
+                        # Empty parse, regex baseline already captured tables
+                        logger.debug("Skipped empty Command node, using regex baseline")
                 except Exception:
                     # SQLGlot failed on this statement, regex baseline already has it
                     continue
