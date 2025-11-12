@@ -5,7 +5,7 @@ API Bulk Data Upload Testing Script
 Tests the /api/upload-parquet endpoint with real Synapse data.
 
 Usage:
-    python tests/api_bulk_upload_test.py --data-dir evaluation_baselines/real_data
+    python tests/api_bulk_upload_test.py --data-dir evaluation/real_data
 
 Features:
     - Validates API response structure

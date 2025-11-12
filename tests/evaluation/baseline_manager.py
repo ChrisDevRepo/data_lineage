@@ -42,7 +42,7 @@ class BaselineManager:
 
         Args:
             baseline_dir: Directory containing baseline databases
-                         (e.g., evaluation_baselines/)
+                         (e.g., evaluation/)
         """
         self.baseline_dir = Path(baseline_dir)
         self.baseline_dir.mkdir(parents=True, exist_ok=True)

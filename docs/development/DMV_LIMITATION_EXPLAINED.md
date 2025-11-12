@@ -287,7 +287,7 @@ Plausibility = |Expected - Actual| ≤ 2
 **Metrics:** Expected vs actual count, outlier detection
 **Purpose:** Plausibility check, identify problem SPs
 
-**Status:** ✅ Script created (`evaluation_baselines/smoke_test_analysis.py`)
+**Status:** ✅ Script created (`evaluation/smoke_test_analysis.py`)
 
 ### Tier 4: UAT Feedback - REAL WORLD
 
@@ -407,8 +407,8 @@ Plausibility = |Expected - Actual| ≤ 2
 ---
 
 **References:**
-- Real data analysis: `evaluation_baselines/real_data_results/REAL_DATA_ANALYSIS_FINDINGS.md`
-- Smoke test results: `evaluation_baselines/real_data_results/smoke_test_results.json`
+- Real data analysis: `evaluation/real_data_results/REAL_DATA_ANALYSIS_FINDINGS.md`
+- Smoke test results: `evaluation/real_data_results/smoke_test_results.json`
 - Microsoft Docs: sys.sql_dependencies, sys.sql_expression_dependencies
 - Implementation roadmap: `docs/development/PARSER_IMPROVEMENT_ROADMAP.md`
 

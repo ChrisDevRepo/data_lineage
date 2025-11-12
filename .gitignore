@@ -64,6 +64,4 @@ data/
 dist/
 build/
 *.egg-info/
-
-# Temporary scripts and testing (keep root clean)
-temp/
+.build/

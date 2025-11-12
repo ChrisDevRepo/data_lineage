@@ -66,6 +66,66 @@
 pip install -r requirements.txt && ./start-app.sh
 ```
 
+## Folder Structure
+
+```
+/
+├── README.md                     # Project overview
+├── CLAUDE.md                     # AI instructions
+├── requirements.txt              # Python dependencies
+├── start-app.sh / stop-app.sh    # Application control
+│
+├── api/                          # FastAPI backend
+├── frontend/                     # React + React Flow UI
+├── lineage_v3/                   # Core parsing engine
+│   ├── config/                   # Pydantic settings
+│   ├── core/                     # Main parser logic
+│   ├── dialects/                 # SQL dialect handlers
+│   ├── extractor/                # DMV extractors (internal)
+│   ├── parsers/                  # Quality-aware parser
+│   ├── rules/                    # YAML cleaning rules
+│   └── utils/                    # Helper utilities
+│
+├── scripts/                      # User-facing utilities
+│   └── extractors/               # Database metadata export tools
+│       ├── synapse_dmv_extractor.py  # For Synapse admins
+│       └── README.md             # Extractor usage guide
+│
+├── docs/                         # Documentation
+│   ├── SETUP.md                  # Installation guide
+│   ├── USAGE.md                  # Parser usage
+│   ├── REFERENCE.md              # Technical reference
+│   ├── RULE_DEVELOPMENT.md       # YAML rule creation
+│   ├── reports/                  # Status reports
+│   │   ├── BUGS.md
+│   │   ├── TESTING_SUMMARY.md
+│   │   └── UAT_READINESS_REPORT.md
+│   └── archive/                  # Old documentation
+│
+├── evaluation/                   # Evaluation & baselines
+│   ├── baselines/                # Historical baselines
+│   ├── real_data/                # Test Parquet files
+│   └── results/                  # Analysis results
+│
+├── tests/                        # Test suite
+│   ├── unit/                     # Unit tests
+│   ├── integration/              # Integration tests
+│   ├── exploratory/              # Ad-hoc test scripts
+│   └── baselines/                # Test baselines
+│
+├── data/                         # Sample data
+└── .build/                       # Build artifacts (gitignored)
+    ├── temp/                     # Temporary files
+    └── test_screenshots/         # Test screenshots
+```
+
+**Key principles:**
+- **Root directory:** Only essential files (README, CLAUDE.md, requirements.txt, app control scripts)
+- **User-facing tools:** `/scripts/extractors/` for database admins
+- **Documentation:** All markdown docs organized in `/docs/`
+- **Evaluation:** Renamed from `evaluation_baselines` to `evaluation` for clarity
+- **Build artifacts:** Hidden in `.build/` directory (gitignored)
+
 ## Configuration (v4.3.0 - Pydantic Settings)
 
 **Centralized configuration** via `.env` with type safety:
@@ -101,12 +161,12 @@ PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 - [docs/USAGE.md](docs/USAGE.md) - Parser usage, hints, troubleshooting
 - [docs/REFERENCE.md](docs/REFERENCE.md) - Technical specs, schema, API
 - [docs/RULE_DEVELOPMENT.md](docs/RULE_DEVELOPMENT.md) - YAML rule creation & debugging
-- [BUGS.md](BUGS.md) - Issue tracking with business context
+- [BUGS.md](docs/reports/BUGS.md) - Issue tracking with business context
 
 **Performance (v4.3.0):**
 - [docs/PERFORMANCE_ANALYSIS.md](docs/PERFORMANCE_ANALYSIS.md) - Current optimizations & benchmarks ✨ NEW
 - [docs/REACT_FLOW_PERFORMANCE.md](docs/REACT_FLOW_PERFORMANCE.md) - React Flow guide for 5K-10K nodes ✨ NEW
-- [UAT_READINESS_REPORT.md](UAT_READINESS_REPORT.md) - Phantom objects feature status ✨ NEW
+- [UAT_READINESS_REPORT.md](docs/reports/UAT_READINESS_REPORT.md) - Phantom objects feature status ✨ NEW
 
 ## Parser v4.3.0
 
@@ -205,7 +265,7 @@ PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 
 **UAT Status:** ✅ 223 phantoms exported, system schemas filtered, ready for testing
 
-See [UAT_READINESS_REPORT.md](UAT_READINESS_REPORT.md) for details.
+See [UAT_READINESS_REPORT.md](docs/reports/UAT_READINESS_REPORT.md) for details.
 
 ## Performance (v4.3.0)
 
@@ -246,7 +306,7 @@ pytest tests/ -v  # 73+ tests, < 1 second
 
 Test API with production data:
 ```bash
-python tests/api_bulk_upload_test.py --data-dir evaluation_baselines/real_data
+python tests/api_bulk_upload_test.py --data-dir evaluation/real_data
 ```
 
 **Features:**
@@ -298,7 +358,7 @@ npm run test:e2e  # 90+ tests for phantom objects feature
 - 5K nodes: 45-60 FPS (production target)
 - 10K nodes: 30-45 FPS (may require WebGL)
 
-See [TESTING_SUMMARY.md](TESTING_SUMMARY.md) for details.
+See [TESTING_SUMMARY.md](docs/reports/TESTING_SUMMARY.md) for details.
 
 ## Slash Commands
 

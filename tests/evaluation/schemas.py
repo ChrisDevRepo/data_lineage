@@ -162,7 +162,7 @@ def initialize_baseline_db(connection):
 
     Usage:
         import duckdb
-        conn = duckdb.connect('evaluation_baselines/baseline_v3.7.0.duckdb')
+        conn = duckdb.connect('evaluation/baseline_v3.7.0.duckdb')
         initialize_baseline_db(conn)
     """
     connection.execute(BASELINE_METADATA_SCHEMA)
@@ -181,7 +181,7 @@ def initialize_evaluation_db(connection):
 
     Usage:
         import duckdb
-        conn = duckdb.connect('evaluation_baselines/current_evaluation.duckdb')
+        conn = duckdb.connect('evaluation/current_evaluation.duckdb')
         initialize_evaluation_db(conn)
     """
     connection.execute(EVALUATION_RUNS_SCHEMA)

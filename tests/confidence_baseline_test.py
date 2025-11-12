@@ -29,7 +29,7 @@ from datetime import datetime
 class ConfidenceBaselineTester:
     """Test confidence scores against baseline"""
 
-    def __init__(self, baseline_file: Path = Path("evaluation_baselines/confidence_baseline.json")):
+    def __init__(self, baseline_file: Path = Path("evaluation/confidence_baseline.json")):
         self.baseline_file = baseline_file
         self.baseline_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -239,7 +239,7 @@ def main():
     parser = argparse.ArgumentParser(description="Test confidence scores against baseline")
     parser.add_argument('--create-baseline', action='store_true', help="Create baseline from smoke test results")
     parser.add_argument('--validate', action='store_true', help="Validate current results against baseline")
-    parser.add_argument('--baseline-file', type=Path, default=Path("evaluation_baselines/confidence_baseline.json"),
+    parser.add_argument('--baseline-file', type=Path, default=Path("evaluation/confidence_baseline.json"),
                         help="Path to baseline file")
     parser.add_argument('--smoke-test-file', type=Path, default=Path("smoke_test_analysis.json"),
                         help="Path to smoke test results")

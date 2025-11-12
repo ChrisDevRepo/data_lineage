@@ -184,7 +184,7 @@ mv baseline_v3.7.0.duckdb archive/baseline_v3.7.0.duckdb
 ### Issue: "Baseline not found"
 ```bash
 # List available baselines
-ls -lh evaluation_baselines/*.duckdb
+ls -lh evaluation/*.duckdb
 
 # Expected output:
 # baseline_v3.7.0.duckdb
