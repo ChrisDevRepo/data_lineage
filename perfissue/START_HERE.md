@@ -2,7 +2,7 @@
 
 **Created:** 2025-11-12
 **Purpose:** Complete parsing subsystem snapshot for external analysis
-**Total Files:** 60+ files (all parsing-related code, tests, docs, baselines)
+**Total Files:** 47 files (essential parsing-related code, tests, docs, baselines)
 
 ---
 
@@ -93,7 +93,6 @@ python3 testing/check_parsing_results.py
 |----------|---------|------|
 | `docs/COMPLETE_TECHNICAL_REPORT_MASSIVE.md` | All code embedded (no references) | 3,000+ lines |
 | `docs/COMPLETE_PARSING_ARCHITECTURE_REPORT.md` | Root cause analysis (1% → 100%) | 800+ lines |
-| `docs/REGEX_SOLUTION_REPORT.md` | Regex-first solution details | 400+ lines |
 | `docs/query_log_research.md` | Ad-hoc query filtering research | 80 lines |
 
 ### **📚 User Guides:**
@@ -102,13 +101,11 @@ python3 testing/check_parsing_results.py
 | `docs/USAGE.md` | Parser usage & troubleshooting | 500+ |
 | `docs/REFERENCE.md` | Technical specs, schema, API | 600+ |
 | `docs/RULE_DEVELOPMENT.md` | YAML rule creation guide | 400+ |
-| `docs/SETUP.md` | Installation & deployment | 400+ |
 
 ### **📝 Project Context:**
 | Document | Purpose |
 |----------|---------|
 | `CLAUDE.md` | AI instructions & project context |
-| `README.md` | Project overview & quickstart |
 
 ---
 
@@ -120,17 +117,14 @@ perfissue/
 ├── QUICK_REFERENCE.md               ← Fast concept lookup
 ├── README_PERFISSUE.md              ← Directory overview
 ├── FILE_INVENTORY.md                ← Complete file listing
-├── DIRECTORY_TREE.txt               ← Directory tree
 ├── CLAUDE.md                        ← AI instructions
-├── README.md                        ← Project overview
 ├── main.py                          ← CLI entry point
 │
-├── parsers/                         ← Core parsing logic (8 files)
+├── parsers/                         ← Core parsing logic (4 files)
 │   ├── quality_aware_parser.py     ← MAIN PARSER (2,800+ lines)
 │   ├── comment_hints_parser.py     ← @LINEAGE_INPUTS/@LINEAGE_OUTPUTS
-│   ├── query_log_validator.py      ← Query log validation
 │   ├── sql_cleaning_rules.py       ← SQL cleaning logic (1,200+ lines)
-│   └── ...
+│   └── __init__.py
 │
 ├── core/                            ← Core engine (2 files)
 │   ├── duckdb_workspace.py         ← DuckDB workspace (1,200+ lines)
@@ -147,15 +141,16 @@ perfissue/
 │   ├── settings.py                 ← Pydantic settings
 │   └── dialect_config.py           ← Dialect configurations
 │
-├── dialects/                        ← SQL dialects (5 files)
+├── dialects/                        ← SQL dialects (4 files)
 │   ├── tsql.py                     ← T-SQL (Synapse, SQL Server)
-│   ├── postgres.py                 ← PostgreSQL
-│   └── ...
+│   ├── base.py                     ← Base dialect
+│   └── registry.py                 ← Dialect registry
 │
-├── utils/                           ← Utilities (6 files)
+├── utils/                           ← Utilities (5 files)
 │   ├── confidence_calculator.py    ← Confidence scoring
-│   ├── phantom_promotion.py        ← Phantom logic
-│   └── ...
+│   ├── synapse_query_helper.py     ← Synapse helpers
+│   ├── workspace_query_helper.py   ← DuckDB helpers
+│   └── validators.py               ← Validation utilities
 │
 ├── testing/                         ← All tests & validation
 │   ├── check_parsing_results.py   ← Database validation
@@ -163,8 +158,8 @@ perfissue/
 │   ├── analyze_sp.py              ← Deep debugging
 │   ├── test_upload.sh             ← API test
 │   ├── poll_job.sh                ← Job polling
-│   ├── unit/                      ← Unit tests (73+ tests)
-│   └── integration/               ← Integration tests (1,067 objects)
+│   ├── unit/                      ← Unit tests
+│   └── integration/               ← Integration tests
 │
 ├── extractors/                      ← DMV extraction (2 files)
 │   ├── get_metadata.ipynb         ← PRIMARY (Jupyter notebook)
@@ -175,21 +170,16 @@ perfissue/
 │   ├── real_data/                 ← Test Parquet files
 │   └── results/                   ← Analysis results
 │
-├── docs/                            ← All documentation (8+ files)
-│   ├── COMPLETE_TECHNICAL_REPORT_MASSIVE.md
-│   ├── COMPLETE_PARSING_ARCHITECTURE_REPORT.md
-│   ├── REGEX_SOLUTION_REPORT.md
-│   ├── USAGE.md
-│   ├── REFERENCE.md
-│   ├── RULE_DEVELOPMENT.md
-│   ├── SETUP.md
-│   └── query_log_research.md
-│
-└── api/                             ← API integration
-    └── parser_job.py               ← FastAPI router (not copied yet)
+└── docs/                            ← Essential documentation (5 files)
+    ├── COMPLETE_TECHNICAL_REPORT_MASSIVE.md
+    ├── COMPLETE_PARSING_ARCHITECTURE_REPORT.md
+    ├── USAGE.md
+    ├── REFERENCE.md
+    ├── RULE_DEVELOPMENT.md
+    └── query_log_research.md
 ```
 
-**Total:** 60+ files covering all aspects of parsing subsystem
+**Total:** 47 files covering essential parsing subsystem
 
 ---
 
@@ -470,13 +460,13 @@ PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 
 | Category | Count | Examples |
 |----------|-------|----------|
-| **Python files** | 35+ | Parser, tests, utilities |
+| **Python files** | 27 | Parser, tests, utilities |
 | **YAML rules** | 2 | SQL cleaning rules |
-| **Documentation** | 10+ | Reports, guides, references |
+| **Documentation** | 10 | Reports, guides, references |
 | **Notebooks** | 1 | DMV extraction |
 | **Shell scripts** | 2 | Testing automation |
-| **Config files** | 3 | Settings, dialects |
-| **Total** | **60+** | **Complete subsystem** |
+| **Config files** | 5 | Settings, dialects, init files |
+| **Total** | **47** | **Essential subsystem** |
 
 **Total Lines of Code:** 15,000+ (excluding docs)
 **Total Lines of Documentation:** 10,000+ (including reports)
@@ -526,7 +516,7 @@ PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 **Parser Version:** v4.3.1
 **Status:** Production Ready ✅
 
-**Total Files:** 60+
+**Total Files:** 47
 **Total Code:** 15,000+ lines
 **Total Docs:** 10,000+ lines
 
