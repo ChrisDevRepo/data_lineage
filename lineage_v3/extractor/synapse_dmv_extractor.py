@@ -75,9 +75,9 @@ class SynapseDMVExtractor:
                 WHEN 'U' THEN 'Table'
                 WHEN 'V' THEN 'View'
                 WHEN 'P' THEN 'Stored Procedure'
-                WHEN 'TF' THEN 'Table Function'
-                WHEN 'IF' THEN 'Inline Function'
-                WHEN 'FN' THEN 'Scalar Function'
+                WHEN 'TF' THEN 'Function'
+                WHEN 'IF' THEN 'Function'
+                WHEN 'FN' THEN 'Function'
                 ELSE o.type_desc
             END AS object_type,
             o.create_date,
@@ -148,6 +148,21 @@ class SynapseDMVExtractor:
             AND r.command NOT LIKE '%sys.dm_pdw_exec_requests%'
             AND r.status IN ('Completed', 'Failed')
             AND r.submit_time >= DATEADD(day, -7, GETDATE())
+            AND (
+                r.[label] IS NOT NULL  -- Has label (ETL process marker)
+                OR r.command LIKE 'EXEC %'  -- Stored procedure execution
+                OR r.command LIKE 'EXECUTE %'  -- Stored procedure execution
+                OR r.command LIKE 'INSERT %'  -- DML operations
+                OR r.command LIKE 'UPDATE %'
+                OR r.command LIKE 'DELETE %'
+                OR r.command LIKE 'MERGE %'
+                OR r.command LIKE 'TRUNCATE %'
+                OR r.command LIKE 'CREATE %'  -- DDL operations
+                OR r.command LIKE 'ALTER %'
+                OR r.command LIKE 'DROP %'
+            )
+            AND r.command NOT LIKE 'SELECT %'  -- Exclude ad-hoc SELECT queries
+            AND r.command NOT LIKE 'WITH %'  -- Exclude ad-hoc CTE queries
         ORDER BY r.submit_time DESC
     """
 
