@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { DataNode } from '../types';
 import { NotificationHistory } from './NotificationSystem';
 import { Notification } from '../types';
@@ -42,6 +42,7 @@ type ToolbarProps = {
     onClearNotificationHistory: () => void;
     isInTraceExitMode: boolean;
     closeDropdownsTrigger?: number; // Increment this to close all dropdowns from outside
+    nodes: DataNode[]; // Added to detect phantom schemas
 };
 
 // OPTIMIZATION: Memoize to prevent unnecessary re-renders
@@ -59,8 +60,20 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         onOpenDetailSearch,
         notificationHistory, onClearNotificationHistory,
         isInTraceExitMode,
-        closeDropdownsTrigger
+        closeDropdownsTrigger,
+        nodes
     } = props;
+
+    // Detect phantom schemas (schemas that contain at least one phantom node)
+    const phantomSchemas = useMemo(() => {
+        const phantomSchemaSet = new Set<string>();
+        nodes.forEach(node => {
+            if (node.is_phantom) {
+                phantomSchemaSet.add(node.schema);
+            }
+        });
+        return phantomSchemaSet;
+    }, [nodes]);
 
     const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
     const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
@@ -281,12 +294,24 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             <div className="space-y-2 overflow-y-auto flex-1 pr-1">
                                 {filteredSchemas.length > 0 ? (
                                     filteredSchemas.map(s => (
-                                        <Checkbox key={s} checked={selectedSchemas.has(s)} onChange={() => {
-                                            const newSet = new Set(selectedSchemas);
-                                            if (newSet.has(s)) newSet.delete(s);
-                                            else newSet.add(s);
-                                            setSelectedSchemas(newSet);
-                                        }} label={s} />
+                                        <Checkbox
+                                            key={s}
+                                            checked={selectedSchemas.has(s)}
+                                            onChange={() => {
+                                                const newSet = new Set(selectedSchemas);
+                                                if (newSet.has(s)) newSet.delete(s);
+                                                else newSet.add(s);
+                                                setSelectedSchemas(newSet);
+                                            }}
+                                            label={
+                                                <span className="flex items-center gap-1.5">
+                                                    {s}
+                                                    {phantomSchemas.has(s) && (
+                                                        <span className="text-base" title="Schema contains phantom objects">👻</span>
+                                                    )}
+                                                </span>
+                                            }
+                                        />
                                     ))
                                 ) : (
                                     <div className="text-xs text-gray-500 text-center py-4">
