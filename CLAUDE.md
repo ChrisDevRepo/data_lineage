@@ -5,17 +5,52 @@
 - Ask questions last; complete analysis first
 - Use TodoWrite tool; update immediately after completion
 
-## Project: Data Lineage Visualizer v4.3.1
+## Project: Data Lineage Visualizer v4.3.2
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **Database:** Azure Synapse Analytics (T-SQL) - extensible to other data warehouses
-- **Parser:** v4.3.1 ✅ **100% success rate** (was 1%, fixed 2025-11-12)
+- **Parser:** v4.3.2 ✅ **100% success rate** + defensive improvements (2025-11-12)
 - **Confidence:** v2.1.0 (4-value: 0, 75, 85, 100)
 - **Frontend:** v3.0.1 | **API:** v4.0.3
 - **Features:** Phantom Objects (v4.3.0), UDF Support, Regex-First Architecture (v4.3.1)
 
-## Recent Critical Fix (v4.3.1 - 2025-11-12) 🔥
+## ⚠️ BEFORE CHANGING PARSER - READ THIS
+**Critical Reference:** [PARSER_CRITICAL_REFERENCE.md](PARSER_CRITICAL_REFERENCE.md)
+- Explains WARN mode regression (empty lineage disaster)
+- Documents why RAISE mode is ONLY correct choice
+- Lists what NOT to change (defensive checks, regex patterns)
+- Testing protocol to prevent regressions
 
-### Parser Architecture Restored ✅
+## Recent Updates
+
+### v4.3.2 - Defensive Improvements (2025-11-12) 🛡️
+**Prevents WARN mode regression from happening again**
+
+**Changes:**
+1. **Empty Command Node Check** (`quality_aware_parser.py:752-762`)
+   - Detects: `isinstance(parsed, exp.Command) and not parsed.expression`
+   - Prevents: WARN mode returning empty Command nodes → empty lineage
+   - Impact: Zero functional change, pure defensive programming
+
+2. **Performance Tracking** (`quality_aware_parser.py:344-346, 512-515, 562-565`)
+   - Logs: SPs taking >1 second to parse
+   - Purpose: Identify performance bottlenecks
+   - Impact: Diagnostic visibility only
+
+3. **Golden Test Suite** (`tests/unit/test_parser_golden_cases.py`)
+   - Tests: Specific SPs with known correct inputs/outputs
+   - Detects: Empty lineage regression immediately
+   - Coverage: ErrorLevel modes, confidence model, edge cases
+
+**Documentation:**
+- `PARSER_CRITICAL_REFERENCE.md` - Slim critical reference (READ BEFORE CHANGING PARSER)
+- `PARSER_IMPROVEMENT_SUMMARY.md` - Comprehensive analysis
+- `parser_recommendations_analysis.md` - Recommendation review
+- `implementation_plan.md` - Research-backed plan
+
+**Risk:** Zero (defensive only)
+**Success Rate:** 100% maintained
+
+### v4.3.1 - Parser Architecture Restored (2025-11-12) 🔥
 **CRITICAL FIX: Reverted from broken SQLGlot WARN mode to proven regex-first baseline**
 
 **Before (Broken):**
