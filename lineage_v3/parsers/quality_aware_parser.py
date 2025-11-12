@@ -767,8 +767,16 @@ class QualityAwareParser:
 
         # STEP 2: Try SQLGlot as enhancement (optional bonus)
         # Use RAISE mode (strict) so failures are explicit, not silent
+        # Track SQLGlot success/failure for diagnostics (v4.3.2)
+        sqlglot_total_stmts = 0
+        sqlglot_success_count = 0
+        sqlglot_failed_count = 0
+        sqlglot_empty_command_count = 0
+
         try:
             statements = self._split_statements(cleaned_ddl)
+            sqlglot_total_stmts = len(statements)
+
             for stmt in statements:
                 try:
                     # RAISE mode: fails fast with exception if SQL is invalid
@@ -781,15 +789,29 @@ class QualityAwareParser:
                         # Add any additional tables SQLGlot found
                         sources.update(stmt_sources)
                         targets.update(stmt_targets)
+                        sqlglot_success_count += 1
                     else:
                         # Empty parse, regex baseline already captured tables
+                        sqlglot_empty_command_count += 1
                         logger.debug("Skipped empty Command node, using regex baseline")
-                except Exception:
+                except Exception as e:
                     # SQLGlot failed on this statement, regex baseline already has it
+                    sqlglot_failed_count += 1
+                    logger.debug(f"SQLGlot parse failed: {str(e)[:100]}")
                     continue
-        except Exception:
+        except Exception as e:
             # Any failure in splitting/parsing, use regex baseline
+            logger.debug(f"SQLGlot statement splitting failed: {str(e)[:100]}")
             pass
+
+        # Log SQLGlot statistics (v4.3.2)
+        if sqlglot_total_stmts > 0:
+            sqlglot_success_rate = (sqlglot_success_count / sqlglot_total_stmts) * 100
+            logger.debug(
+                f"SQLGlot stats: {sqlglot_success_count}/{sqlglot_total_stmts} statements parsed "
+                f"({sqlglot_success_rate:.1f}% success), "
+                f"{sqlglot_failed_count} failed, {sqlglot_empty_command_count} empty"
+            )
 
         # v4.1.2 FIX: Remove all targets from sources AFTER parsing all statements
         # This prevents false positives where a table is a target in one statement
