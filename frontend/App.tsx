@@ -93,7 +93,7 @@ function DataLineageVisualizer() {
 
   // --- Custom Hooks for Logic Encapsulation ---
   const { addNotification, activeToasts, removeActiveToast, notificationHistory, clearNotificationHistory } = useNotifications();
-  const { lineageGraph, schemas, schemaColorMap, dataModelTypes } = useGraphology(allData);
+  const { lineageGraph, schemas, schemaColorMap, objectTypes, dataModelTypes } = useGraphology(allData);
   const { traceConfig, isTraceModeActive, setIsTraceModeActive, performInteractiveTrace, handleApplyTrace } = useInteractiveTrace(addNotification, lineageGraph);
   // Store previous trace results for when we exit trace mode (as state for reactivity)
   const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
@@ -114,6 +114,8 @@ function DataLineageVisualizer() {
     finalVisibleData,
     selectedSchemas,
     setSelectedSchemas,
+    selectedObjectTypes,
+    setSelectedObjectTypes,
     selectedTypes,
     setSelectedTypes,
     searchTerm,
@@ -128,6 +130,7 @@ function DataLineageVisualizer() {
     allData,
     lineageGraph,
     schemas,
+    objectTypes,
     dataModelTypes,
     activeExcludeTerms,
     isTraceModeActive,
@@ -962,6 +965,9 @@ function DataLineageVisualizer() {
             selectedSchemas={selectedSchemas}
             setSelectedSchemas={setSelectedSchemas}
             schemas={schemas}
+            selectedObjectTypes={selectedObjectTypes}
+            setSelectedObjectTypes={setSelectedObjectTypes}
+            objectTypes={objectTypes}
             selectedTypes={selectedTypes}
             setSelectedTypes={setSelectedTypes}
             dataModelTypes={dataModelTypes}
@@ -984,6 +990,7 @@ function DataLineageVisualizer() {
             onClearNotificationHistory={clearNotificationHistory}
             isInTraceExitMode={isInTraceExitMode}
             closeDropdownsTrigger={closeDropdownsTrigger}
+            nodes={nodes.map(n => n.data).filter((data): data is DataNode => data != null)}
           />
           {isTraceModeActive && traceConfig && (
             <InlineTraceControls
@@ -1025,6 +1032,7 @@ function DataLineageVisualizer() {
                   schemas={schemas}
                   schemaColorMap={schemaColorMap}
                   selectedSchemas={selectedSchemas}
+                  nodes={nodes.map(n => n.data).filter((data): data is DataNode => data != null)}
                 />
               </ReactFlow>
             </div>

@@ -3,7 +3,6 @@ import { Handle, Position, NodeProps } from 'reactflow';
 import { CONSTANTS } from '../constants';
 import { DataNode } from '../types';
 import { getConfidenceLevel } from '../utils/confidenceUtils';
-import { QuestionMarkIcon } from './ui/QuestionMarkIcon';
 
 type CustomNodeData = DataNode & {
     isHighlighted: boolean;
@@ -103,12 +102,6 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
                 <div className="truncate px-2">{data.name}</div>
                 <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} className="!bg-gray-500" />
             </div>
-            {/* Phantom badge (v4.3.0) - Question mark overlay */}
-            {isPhantom && (
-                <div key={`phantom-${data.id}`} className="absolute -top-2 -left-2 text-sm leading-none">
-                    <QuestionMarkIcon size={24} title={`Phantom ${data.object_type}: ${data.phantom_reason || 'not in catalog'}`} />
-                </div>
-            )}
             {/* Confidence badge for Stored Procedures (v2.1.0) */}
             {confidenceBadge && (
                 <div key={`badge-${data.id}`} className="absolute -top-1 -right-1 text-sm leading-none">

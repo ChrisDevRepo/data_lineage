@@ -7,7 +7,7 @@ import React from 'react';
  */
 
 interface CheckboxProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
-  label?: string;
+  label?: React.ReactNode;
   description?: string;
 }
 

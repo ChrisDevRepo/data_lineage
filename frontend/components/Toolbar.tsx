@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { DataNode } from '../types';
 import { NotificationHistory } from './NotificationSystem';
 import { Notification } from '../types';
@@ -20,6 +20,9 @@ type ToolbarProps = {
     selectedSchemas: Set<string>;
     setSelectedSchemas: (schemas: Set<string>) => void;
     schemas: string[];
+    selectedObjectTypes: Set<string>;
+    setSelectedObjectTypes: (types: Set<string>) => void;
+    objectTypes: string[];
     selectedTypes: Set<string>;
     setSelectedTypes: (types: Set<string>) => void;
     dataModelTypes: string[];
@@ -42,6 +45,7 @@ type ToolbarProps = {
     onClearNotificationHistory: () => void;
     isInTraceExitMode: boolean;
     closeDropdownsTrigger?: number; // Increment this to close all dropdowns from outside
+    nodes: DataNode[]; // Added to detect phantom schemas
 };
 
 // OPTIMIZATION: Memoize to prevent unnecessary re-renders
@@ -51,6 +55,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         autocompleteSuggestions, setAutocompleteSuggestions,
         excludeTerm, setExcludeTerm, applyExcludeTerms, clearExcludeTerms,
         selectedSchemas, setSelectedSchemas, schemas,
+        selectedObjectTypes, setSelectedObjectTypes, objectTypes,
         selectedTypes, setSelectedTypes, dataModelTypes,
         layout, setLayout, hideUnrelated, setHideUnrelated,
         isTraceModeActive, onStartTrace,
@@ -59,8 +64,33 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         onOpenDetailSearch,
         notificationHistory, onClearNotificationHistory,
         isInTraceExitMode,
-        closeDropdownsTrigger
+        closeDropdownsTrigger,
+        nodes
     } = props;
+
+    // Detect phantom schemas (schemas that ONLY contain phantom objects, no regular objects)
+    const phantomSchemas = useMemo(() => {
+        const schemasWithPhantoms = new Set<string>();
+        const schemasWithRegular = new Set<string>();
+
+        nodes.forEach(node => {
+            if (node.is_phantom) {
+                schemasWithPhantoms.add(node.schema);
+            } else {
+                schemasWithRegular.add(node.schema);
+            }
+        });
+
+        // Only mark as phantom if schema has phantom objects but NO regular objects
+        const phantomOnlySchemas = new Set<string>();
+        schemasWithPhantoms.forEach(schema => {
+            if (!schemasWithRegular.has(schema)) {
+                phantomOnlySchemas.add(schema);
+            }
+        });
+
+        return phantomOnlySchemas;
+    }, [nodes]);
 
     const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
     const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
@@ -281,12 +311,21 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             <div className="space-y-2 overflow-y-auto flex-1 pr-1">
                                 {filteredSchemas.length > 0 ? (
                                     filteredSchemas.map(s => (
-                                        <Checkbox key={s} checked={selectedSchemas.has(s)} onChange={() => {
-                                            const newSet = new Set(selectedSchemas);
-                                            if (newSet.has(s)) newSet.delete(s);
-                                            else newSet.add(s);
-                                            setSelectedSchemas(newSet);
-                                        }} label={s} />
+                                        <Checkbox
+                                            key={s}
+                                            checked={selectedSchemas.has(s)}
+                                            onChange={() => {
+                                                const newSet = new Set(selectedSchemas);
+                                                if (newSet.has(s)) newSet.delete(s);
+                                                else newSet.add(s);
+                                                setSelectedSchemas(newSet);
+                                            }}
+                                            label={
+                                                <span className="flex items-center gap-1.5">
+                                                    {s}
+                                                </span>
+                                            }
+                                        />
                                     ))
                                 ) : (
                                     <div className="text-xs text-gray-500 text-center py-4">
@@ -298,21 +337,30 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                     )}
                 </div>
 
-                {dataModelTypes.length > 0 && (
+                {(objectTypes.length > 0 || dataModelTypes.length > 0) && (
                     <div className="relative" ref={typeFilterRef}>
-                        <Button onClick={() => setIsTypeFilterOpen(p => !p)} variant="icon" title={`Types (${selectedTypes.size}/${dataModelTypes.length})`}>
+                        <Button
+                            onClick={() => setIsTypeFilterOpen(p => !p)}
+                            variant="icon"
+                            title={`Types (${selectedObjectTypes.size + selectedTypes.size}/${objectTypes.length + dataModelTypes.length})`}
+                        >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" />
                             </svg>
                         </Button>
                         {isTypeFilterOpen && (
-                            <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-80 overflow-y-auto">
+                            <div className="absolute top-full mt-2 w-80 bg-white border border-gray-300 rounded-md shadow-lg z-30 p-3 max-h-96 overflow-y-auto">
                                 <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
-                                    <span className="text-xs font-semibold text-gray-700">Types <span className="text-gray-500">({selectedTypes.size}/{dataModelTypes.length})</span></span>
+                                    <span className="text-xs font-semibold text-gray-700">
+                                        Types <span className="text-gray-500">({selectedObjectTypes.size + selectedTypes.size}/{objectTypes.length + dataModelTypes.length})</span>
+                                    </span>
                                     <div className="flex gap-1">
                                         <button
-                                            onClick={() => setSelectedTypes(new Set(dataModelTypes))}
+                                            onClick={() => {
+                                                setSelectedObjectTypes(new Set(objectTypes));
+                                                setSelectedTypes(new Set(dataModelTypes));
+                                            }}
                                             className="text-xs px-2.5 py-1 rounded-md bg-primary-50 text-primary-700 hover:bg-primary-100 font-medium transition-colors flex items-center gap-1"
                                             title="Select all types"
                                         >
@@ -322,7 +370,10 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                                             All
                                         </button>
                                         <button
-                                            onClick={() => setSelectedTypes(new Set())}
+                                            onClick={() => {
+                                                setSelectedObjectTypes(new Set());
+                                                setSelectedTypes(new Set());
+                                            }}
                                             className="text-xs px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium transition-colors flex items-center gap-1"
                                             title="Unselect all types"
                                         >
@@ -333,16 +384,55 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                                         </button>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    {dataModelTypes.map(t => (
-                                        <Checkbox key={t} checked={selectedTypes.has(t)} onChange={() => {
-                                            const newSet = new Set(selectedTypes);
-                                            if (newSet.has(t)) newSet.delete(t);
-                                            else newSet.add(t);
-                                            setSelectedTypes(newSet);
-                                        }} label={t} />
-                                    ))}
-                                </div>
+
+                                {/* Object Types Section */}
+                                {objectTypes.length > 0 && (
+                                    <div className="mb-3">
+                                        <div className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Object Types</div>
+                                        <div className="space-y-2">
+                                            {objectTypes.map(t => (
+                                                <Checkbox
+                                                    key={t}
+                                                    checked={selectedObjectTypes.has(t)}
+                                                    onChange={() => {
+                                                        const newSet = new Set(selectedObjectTypes);
+                                                        if (newSet.has(t)) newSet.delete(t);
+                                                        else newSet.add(t);
+                                                        setSelectedObjectTypes(newSet);
+                                                    }}
+                                                    label={t}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Visual Divider */}
+                                {objectTypes.length > 0 && dataModelTypes.length > 0 && (
+                                    <div className="border-t border-gray-200 my-3"></div>
+                                )}
+
+                                {/* Data Model Types Section */}
+                                {dataModelTypes.length > 0 && (
+                                    <div>
+                                        <div className="text-xs font-medium text-gray-600 mb-2 uppercase tracking-wide">Data Model Types</div>
+                                        <div className="space-y-2">
+                                            {dataModelTypes.map(t => (
+                                                <Checkbox
+                                                    key={t}
+                                                    checked={selectedTypes.has(t)}
+                                                    onChange={() => {
+                                                        const newSet = new Set(selectedTypes);
+                                                        if (newSet.has(t)) newSet.delete(t);
+                                                        else newSet.add(t);
+                                                        setSelectedTypes(newSet);
+                                                    }}
+                                                    label={t}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
