@@ -261,6 +261,10 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
             message: 'Uploading files...'
         });
 
+        // CRITICAL: Clear frontend cache before starting new upload
+        // This prevents showing stale data if upload fails
+        onImport([]);
+
         try {
             // Upload all selected files with incremental flag
             const formData = new FormData();
@@ -296,6 +300,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                 errors: [error instanceof Error ? error.message : 'Unknown error']
             });
             setIsProcessing(false);
+            // Cache already cleared above - user sees empty graph on error
         }
     };
 
