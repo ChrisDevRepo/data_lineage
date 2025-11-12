@@ -441,7 +441,8 @@ class QualityAwareParser:
                     parts = func_name.split('.')
                     if len(parts) == 2:
                         schema, name = parts
-                        if not self._is_excluded(schema, name):
+                        # v4.3.3: Apply same include list filtering as phantom tables
+                        if not self._is_excluded(schema, name) and self._schema_matches_include_list(schema):
                             phantom_functions.add(func_name)
 
             if phantom_functions:
