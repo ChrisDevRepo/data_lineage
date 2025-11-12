@@ -5,13 +5,55 @@
 - Ask questions last; complete analysis first
 - Use TodoWrite tool; update immediately after completion
 
-## Project: Data Lineage Visualizer v4.3.0
+## Project: Data Lineage Visualizer v4.3.1
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **Database:** Azure Synapse Analytics (T-SQL) - extensible to other data warehouses
 - **Parser:** v4.3.0 (95.5% accuracy, 97.0% on SPs, multi-dialect support)
 - **Confidence:** v2.1.0 (4-value: 0, 75, 85, 100)
-- **Frontend:** v3.0.0 | **API:** v4.0.3
-- **Features:** Phantom Objects (v4.3.0), UDF Support, Performance-Optimized
+- **Frontend:** v3.0.1 | **API:** v4.0.3
+- **Features:** Phantom Objects (v4.3.0), UDF Support, Performance-Optimized (v4.3.1)
+
+## Recent Improvements (v4.3.1 - 2025-11-11)
+
+### Critical Bug Fixes ✅
+1. **Fixed phantom object creation bug** (`quality_aware_parser.py:1446`)
+   - Variable name mismatch causing `NameError`
+   - All phantom object creation now works correctly
+
+2. **Improved error handling in background tasks** (`background_tasks.py:414-433`)
+   - Silent failures now logged with full error details
+   - Failed SP parsing stored in metadata with error reason
+   - Improved visibility into parsing failures
+
+### Performance Optimizations ✅
+1. **Frontend React Flow optimizations:**
+   - ✅ Memoized ReactFlow proOptions for stable reference
+   - ✅ Changed `transition-all` to `transition-transform` (faster CSS)
+   - ✅ Added FPS monitoring in development mode (`window.__fpsMonitor`)
+   - ✅ All components already using React.memo (CustomNode, QuestionMarkIcon)
+   - ✅ All event handlers properly wrapped in useCallback
+   - **Performance Grade: A-** (ready for production scale)
+
+2. **Documentation fixes:**
+   - ✅ Fixed 60+ broken documentation links
+   - ✅ Cleaned up cross-references
+   - ✅ Added comprehensive performance testing guide
+
+### Testing Infrastructure ✅
+1. **API bulk upload testing** (`tests/api_bulk_upload_test.py`)
+   - End-to-end workflow validation
+   - Job status polling and result verification
+   - Performance metrics tracking
+
+2. **Confidence score baseline testing** (`tests/confidence_baseline_test.py`)
+   - Regression detection for parser changes
+   - Improvement tracking
+   - Detailed comparison reports
+
+3. **Frontend performance testing:**
+   - FPS monitoring utility
+   - Performance profiling guide
+   - See `frontend/docs/PERFORMANCE_TESTING.md`
 
 ## Quick Start
 
@@ -185,17 +227,76 @@ See [UAT_READINESS_REPORT.md](UAT_READINESS_REPORT.md) for details.
 
 See [docs/PERFORMANCE_ANALYSIS.md](docs/PERFORMANCE_ANALYSIS.md) and [docs/REACT_FLOW_PERFORMANCE.md](docs/REACT_FLOW_PERFORMANCE.md).
 
-## Testing
+## Testing Infrastructure
+
+### Unit & Integration Tests
 
 **Run all tests:**
 ```bash
-pytest tests/ -v  # 58 tests, < 3 seconds
+pytest tests/ -v  # 73+ tests, < 1 second
 ```
 
 **Test coverage:**
-- Unit tests: 28 tests (dialect validation)
+- Unit tests: 28 tests (dialect validation, settings)
+- Comment hint parser: 19 tests
 - Synapse integration: 11 tests (1,067 real objects)
-- Total: 58 tests, ZERO regressions ✅
+- Total: 73 passing, ZERO regressions ✅
+
+### API Bulk Upload Testing
+
+Test API with production data:
+```bash
+python tests/api_bulk_upload_test.py --data-dir evaluation_baselines/real_data
+```
+
+**Features:**
+- ✅ End-to-end API workflow validation
+- ✅ Job status polling with timeout
+- ✅ Result structure validation
+- ✅ Performance metrics tracking
+- ✅ Incremental vs full refresh testing
+
+### Confidence Score Baseline Testing
+
+Regression testing for parser confidence scores:
+```bash
+# Create baseline from current results
+python tests/confidence_baseline_test.py --create-baseline
+
+# Validate against baseline (run after parser changes)
+python tests/confidence_baseline_test.py --validate
+```
+
+**Features:**
+- ✅ Detects confidence score regressions
+- ✅ Tracks improvements
+- ✅ Identifies missing/new objects
+- ✅ Detailed comparison reports
+
+### Frontend Performance Testing
+
+**FPS Monitoring (Development Mode):**
+```bash
+npm run dev
+# In browser console:
+window.__fpsMonitor.getAverage()  # Check current FPS
+```
+
+**Playwright E2E Tests:**
+```bash
+cd frontend
+npm run test:e2e  # 90+ tests for phantom objects feature
+```
+
+**Performance Profiling:**
+- React DevTools Profiler (identifies slow components)
+- Chrome Performance tab (FPS graph, flame charts)
+- See [frontend/docs/PERFORMANCE_TESTING.md](frontend/docs/PERFORMANCE_TESTING.md)
+
+**Targets:**
+- 1K nodes: 60 FPS ✅ (expected with optimizations)
+- 5K nodes: 45-60 FPS (production target)
+- 10K nodes: 30-45 FPS (may require WebGL)
 
 See [TESTING_SUMMARY.md](TESTING_SUMMARY.md) for details.
 

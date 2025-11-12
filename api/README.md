@@ -213,7 +213,6 @@ app.add_middleware(
 
 ## Testing
 
-See [../docs/API_TESTING.md](../docs/API_TESTING.md) for comprehensive testing instructions.
 
 **Quick Test:**
 ```bash
@@ -228,6 +227,5 @@ open http://localhost:8000/docs
 
 ## Reference
 
-- [docs/IMPLEMENTATION_SPEC_FINAL.md](../docs/IMPLEMENTATION_SPEC_FINAL.md) - Complete specification
 - [http://localhost:8000/docs](http://localhost:8000/docs) - Interactive Swagger UI
 - [http://localhost:8000/redoc](http://localhost:8000/redoc) - ReDoc documentation

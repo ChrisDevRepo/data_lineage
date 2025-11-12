@@ -38,6 +38,9 @@ function DataLineageVisualizer() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const { fitView, setCenter, getNodes, getEdges } = useReactFlow();
+  // Memoize ReactFlow proOptions for performance (stable reference)
+  const reactFlowProOptions = useMemo(() => ({ hideAttribution: true }), []);
+
 
   // --- State Management ---
   // Start with empty data, load from API asynchronously
@@ -1012,7 +1015,7 @@ function DataLineageVisualizer() {
                 onNodeContextMenu={handleNodeContextMenu}
                 fitView
                 minZoom={0.1}
-                proOptions={{ hideAttribution: true }}
+                proOptions={reactFlowProOptions}
               >
                 <Controls />
                 <Background color={'#a1a1aa'} gap={16} />

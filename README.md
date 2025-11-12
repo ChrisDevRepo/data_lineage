@@ -167,30 +167,27 @@ sandbox/
 
 **Getting Started:**
 - [CLAUDE.md](CLAUDE.md) - Complete developer guide
-- [ENV_SETUP.md](ENV_SETUP.md) - Environment configuration quick start **NEW**
-- [docs/SETUP_AND_DEPLOYMENT.md](docs/SETUP_AND_DEPLOYMENT.md) - Installation & deployment
-- [docs/SYSTEM_OVERVIEW.md](docs/SYSTEM_OVERVIEW.md) - Architecture & components
+- [ENV_SETUP.md](docs/archive/ENV_SETUP.md) - Environment configuration quick start **NEW**
+- [docs/SETUP_AND_DEPLOYMENT.md](docs/SETUP.md) - Installation & deployment
+- [docs/SYSTEM_OVERVIEW.md](docs/documentation-mode/01_CURRENT_SYSTEM_ARCHITECTURE.md) - Architecture & components
 
 **Configuration:**
-- [docs/CONFIGURATION_GUIDE.md](docs/CONFIGURATION_GUIDE.md) - Complete configuration reference **NEW**
+- [docs/CONFIGURATION_GUIDE.md](docs/SETUP.md) - Complete configuration reference **NEW**
 - [.env.example](.env.example) - Simple template (copy to .env) **NEW**
 - [.env.template](.env.template) - Detailed template with all options
 
 **Parser & Technical:**
-- [lineage_specs.md](lineage_specs.md) - Parser specification
-- [docs/PARSING_USER_GUIDE.md](docs/PARSING_USER_GUIDE.md) - SQL parsing guide
-- [docs/PARSER_EVOLUTION_LOG.md](docs/PARSER_EVOLUTION_LOG.md) - Version history
-- [docs/DUCKDB_SCHEMA.md](docs/DUCKDB_SCHEMA.md) - Database schema
+- [docs/PARSING_USER_GUIDE.md](docs/USAGE.md) - SQL parsing guide
+- [docs/PARSER_EVOLUTION_LOG.md](docs/REFERENCE.md) - Version history
+- [docs/DUCKDB_SCHEMA.md](docs/REFERENCE.md) - Database schema
 
 **Component-Specific:**
 - [api/README.md](api/README.md) - Backend API documentation
 - [frontend/README.md](frontend/README.md) - Frontend guide
 - [requirements/README.md](requirements/README.md) - Dependency structure **NEW**
-- [extractor/README.md](extractor/README.md) - Extractor setup
-- [docs/MAINTENANCE_GUIDE.md](docs/MAINTENANCE_GUIDE.md) - Operations & troubleshooting
+- [docs/MAINTENANCE_GUIDE.md](docs/USAGE.md) - Operations & troubleshooting
 
 **Advanced:**
-- [docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md](docs/SUB_DL_OPTIMIZE_PARSING_SPEC.md) - Parser evaluation framework
 - [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md) - Frontend performance
 
 ---
@@ -226,7 +223,7 @@ cp .env.example .env  # Works immediately, no editing needed
 ./setup-env.sh        # Interactive setup with guidance
 ```
 
-See [ENV_SETUP.md](ENV_SETUP.md) for details.
+See [ENV_SETUP.md](docs/archive/ENV_SETUP.md) for details.
 
 ---
 

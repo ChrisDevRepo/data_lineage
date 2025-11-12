@@ -47,3 +47,48 @@ export const logger = {
     console.info('[INFO]', ...args);
   },
 };
+
+
+// FPS Monitoring (Development Only)
+class FPSMonitor {
+  private frames: number[] = [];
+  private lastTime: number = performance.now();
+
+  track() {
+    const now = performance.now();
+    const delta = now - this.lastTime;
+
+    if (delta > 0) {
+      const fps = 1000 / delta;
+      this.frames.push(fps);
+
+      // Keep only last 60 frames (1 second at 60fps)
+      if (this.frames.length > 60) {
+        this.frames.shift();
+      }
+    }
+
+    this.lastTime = now;
+  }
+
+  getAverage(): number {
+    if (this.frames.length === 0) return 0;
+    const sum = this.frames.reduce((a, b) => a + b, 0);
+    return Math.round(sum / this.frames.length);
+  }
+
+  reset() {
+    this.frames = [];
+    this.lastTime = performance.now();
+  }
+}
+
+export const fpsMonitor = new FPSMonitor();
+
+// Expose FPS tracker in development mode
+if (import.meta.env.DEV) {
+  // @ts-ignore
+  window.__fpsMonitor = fpsMonitor;
+  console.log('📊 FPS Monitor available at window.__fpsMonitor');
+  console.log('   Usage: window.__fpsMonitor.getAverage()');
+}
