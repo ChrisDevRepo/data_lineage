@@ -32,13 +32,14 @@ export function useGraphology(allData: DataNode[]) {
         return graph;
     }, [allData]);
 
-    const { schemas, schemaColorMap, dataModelTypes } = useMemo(() => {
+    const { schemas, schemaColorMap, objectTypes, dataModelTypes } = useMemo(() => {
         const uniqueSchemas = [...new Set(allData.map(n => n.schema))].sort();
         // Use smart color assignment that groups related schemas by layer
         const map = createSchemaColorMap(uniqueSchemas);
-        const uniqueTypes = [...new Set(allData.map(n => n.data_model_type).filter(Boolean) as string[])].sort();
-        return { schemas: uniqueSchemas, schemaColorMap: map, dataModelTypes: uniqueTypes };
+        const uniqueObjectTypes = [...new Set(allData.map(n => n.object_type))].sort();
+        const uniqueDataModelTypes = [...new Set(allData.map(n => n.data_model_type).filter(Boolean) as string[])].sort();
+        return { schemas: uniqueSchemas, schemaColorMap: map, objectTypes: uniqueObjectTypes, dataModelTypes: uniqueDataModelTypes };
     }, [allData]);
 
-    return { lineageGraph, schemas, schemaColorMap, dataModelTypes };
+    return { lineageGraph, schemas, schemaColorMap, objectTypes, dataModelTypes };
 }

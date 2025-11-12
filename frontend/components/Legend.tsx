@@ -91,12 +91,9 @@ export const Legend = React.memo(({ isCollapsed, onToggle, schemas, schemaColorM
                         {/* Schemas Section */}
                         <div className="grid grid-cols-1 gap-y-1.5">
                             {schemasToShow.map(s => (
-                                <div key={s} className="flex items-center gap-2" title={phantomSchemas.has(s) ? `${s} (contains phantom objects)` : s}>
+                                <div key={s} className="flex items-center gap-2" title={s}>
                                     <span style={{ backgroundColor: schemaColorMap.get(s) }} className="w-3 h-3 inline-block rounded-sm ring-1 ring-black/20 flex-shrink-0"></span>
                                     <span className="text-gray-700">{s}</span>
-                                    {phantomSchemas.has(s) && (
-                                        <span className="text-base" title="Schema contains phantom objects">👻</span>
-                                    )}
                                 </div>
                             ))}
                         </div>

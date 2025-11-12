@@ -8,6 +8,7 @@ type UseDataFilteringProps = {
     allData: DataNode[];
     lineageGraph: Graph;
     schemas: string[];
+    objectTypes: string[];
     dataModelTypes: string[];
     activeExcludeTerms: string[];
     isTraceModeActive: boolean;
@@ -22,6 +23,7 @@ export function useDataFiltering({
     allData,
     lineageGraph,
     schemas,
+    objectTypes,
     dataModelTypes,
     activeExcludeTerms,
     isTraceModeActive,
@@ -32,6 +34,7 @@ export function useDataFiltering({
     isTraceFilterApplied
 }: UseDataFilteringProps) {
     const [selectedSchemas, setSelectedSchemas] = useState<Set<string>>(new Set());
+    const [selectedObjectTypes, setSelectedObjectTypes] = useState<Set<string>>(new Set());
     const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
     const [searchTerm, setSearchTerm] = useState('');
     const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
@@ -55,11 +58,13 @@ export function useDataFiltering({
 
     // Debounced versions for performance with large datasets
     const [debouncedSelectedSchemas, setDebouncedSelectedSchemas] = useState<Set<string>>(new Set());
+    const [debouncedSelectedObjectTypes, setDebouncedSelectedObjectTypes] = useState<Set<string>>(new Set());
     const [debouncedSelectedTypes, setDebouncedSelectedTypes] = useState<Set<string>>(new Set());
     const debounceTimerRef = useRef<number>();
 
     // Track if schemas have been initialized (from localStorage or default)
     const hasInitializedSchemas = useRef(false);
+    const hasInitializedObjectTypes = useRef(false);
     const hasInitializedTypes = useRef(false);
 
     // Initialize schemas from localStorage or default to all
@@ -89,7 +94,34 @@ export function useDataFiltering({
         }
     }, [schemas]);
 
-    // Initialize types from localStorage or default to all
+    // Initialize object types from localStorage or default to all
+    useEffect(() => {
+        if (objectTypes.length > 0 && !hasInitializedObjectTypes.current) {
+            hasInitializedObjectTypes.current = true;
+
+            // Try to load from localStorage first
+            try {
+                const saved = localStorage.getItem('lineage_filter_preferences');
+                if (saved) {
+                    const { objectTypes: savedObjectTypes } = JSON.parse(saved);
+                    if (savedObjectTypes && Array.isArray(savedObjectTypes)) {
+                        const validSavedObjectTypes = savedObjectTypes.filter(t => objectTypes.includes(t));
+                        if (validSavedObjectTypes.length > 0) {
+                            setSelectedObjectTypes(new Set(validSavedObjectTypes));
+                            return; // Exit early, we loaded from localStorage
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('[useDataFiltering] Failed to load object type preferences:', error);
+            }
+
+            // Default: select all object types
+            setSelectedObjectTypes(new Set(objectTypes));
+        }
+    }, [objectTypes]);
+
+    // Initialize data model types from localStorage or default to all
     useEffect(() => {
         if (dataModelTypes.length > 0 && !hasInitializedTypes.current) {
             hasInitializedTypes.current = true;
@@ -128,11 +160,13 @@ export function useDataFiltering({
         if (shouldDebounce) {
             debounceTimerRef.current = window.setTimeout(() => {
                 setDebouncedSelectedSchemas(selectedSchemas);
+                setDebouncedSelectedObjectTypes(selectedObjectTypes);
                 setDebouncedSelectedTypes(selectedTypes);
             }, debounceDelay);
         } else {
             // For small datasets (<500 nodes), update immediately
             setDebouncedSelectedSchemas(selectedSchemas);
+            setDebouncedSelectedObjectTypes(selectedObjectTypes);
             setDebouncedSelectedTypes(selectedTypes);
         }
 
@@ -141,7 +175,7 @@ export function useDataFiltering({
                 clearTimeout(debounceTimerRef.current);
             }
         };
-    }, [selectedSchemas, selectedTypes, allData.length]);
+    }, [selectedSchemas, selectedObjectTypes, selectedTypes, allData.length]);
     
     useEffect(() => {
         const trimmedSearch = searchTerm.trim();
@@ -174,6 +208,7 @@ export function useDataFiltering({
                 const lowerName = attributes.name.toLowerCase();
                 const matchesFilters =
                     debouncedSelectedSchemas.has(attributes.schema) &&
+                    (objectTypes.length === 0 || !attributes.object_type || debouncedSelectedObjectTypes.has(attributes.object_type)) &&
                     (dataModelTypes.length === 0 || !attributes.data_model_type || debouncedSelectedTypes.has(attributes.data_model_type));
 
                 if (matchesFilters) {
@@ -231,12 +266,13 @@ export function useDataFiltering({
 
     const finalVisibleData = useMemo(() => {
         // If trace filter is applied (during or after trace mode), combine with base filters (AND condition)
-        // This ensures trace + schemas + types + exclude all work together
+        // This ensures trace + schemas + object types + data model types + exclude all work together
         if (isTraceFilterApplied && traceConfig) {
             const tracedIds = performInteractiveTrace(traceConfig);
             const result = preFilteredData.filter(node =>
                 tracedIds.has(node.id) &&
                 debouncedSelectedSchemas.has(node.schema) &&
+                (objectTypes.length === 0 || !node.object_type || debouncedSelectedObjectTypes.has(node.object_type)) &&
                 (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
                 !shouldExcludeNode(node)
             );
@@ -248,26 +284,30 @@ export function useDataFiltering({
         if (isTraceModeActive && traceConfig) {
             const result = preFilteredData.filter(node =>
                 debouncedSelectedSchemas.has(node.schema) &&
+                (objectTypes.length === 0 || !node.object_type || debouncedSelectedObjectTypes.has(node.object_type)) &&
                 (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
                 !shouldExcludeNode(node)
             );
             return result;
         }
 
-        // Default behavior: filter by selected schemas and types
+        // Default behavior: filter by selected schemas, object types, and data model types
         // Optimized O(n) array filtering instead of O(n²) graph iteration
         const result = preFilteredData.filter(node =>
             debouncedSelectedSchemas.has(node.schema) &&
+            (objectTypes.length === 0 || !node.object_type || debouncedSelectedObjectTypes.has(node.object_type)) &&
             (dataModelTypes.length === 0 || !node.data_model_type || debouncedSelectedTypes.has(node.data_model_type)) &&
             !shouldExcludeNode(node)
         );
         return result;
-    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, activeExcludeTerms, isTraceFilterApplied]);
+    }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedObjectTypes, debouncedSelectedTypes, objectTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, activeExcludeTerms, isTraceFilterApplied]);
 
     return {
         finalVisibleData,
         selectedSchemas,
         setSelectedSchemas,
+        selectedObjectTypes,
+        setSelectedObjectTypes,
         selectedTypes,
         setSelectedTypes,
         searchTerm,
