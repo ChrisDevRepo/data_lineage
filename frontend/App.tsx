@@ -984,7 +984,7 @@ function DataLineageVisualizer() {
             onClearNotificationHistory={clearNotificationHistory}
             isInTraceExitMode={isInTraceExitMode}
             closeDropdownsTrigger={closeDropdownsTrigger}
-            nodes={nodes.map(n => n.data as DataNode)}
+            nodes={nodes.map(n => n.data).filter((data): data is DataNode => data != null)}
           />
           {isTraceModeActive && traceConfig && (
             <InlineTraceControls
@@ -1026,7 +1026,7 @@ function DataLineageVisualizer() {
                   schemas={schemas}
                   schemaColorMap={schemaColorMap}
                   selectedSchemas={selectedSchemas}
-                  nodes={nodes.map(n => n.data as DataNode)}
+                  nodes={nodes.map(n => n.data).filter((data): data is DataNode => data != null)}
                 />
               </ReactFlow>
             </div>
