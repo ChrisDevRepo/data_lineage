@@ -1150,7 +1150,7 @@ class QualityAwareParser:
 
         simplified = re.sub(
             r'\bSELECT\s+(TOP\s+\d+\s+|DISTINCT\s+)?.*?(?=\s+FROM\b)',
-            r'SELECT \1* ',
+            r'SELECT \g<1>*',
             sql,
             flags=re.IGNORECASE | re.DOTALL
         )
