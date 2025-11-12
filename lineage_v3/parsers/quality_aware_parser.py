@@ -95,6 +95,7 @@ Changelog:
 from typing import List, Dict, Any, Set, Tuple, Optional
 import sqlglot
 from sqlglot import exp, parse_one
+from sqlglot.errors import ErrorLevel
 import logging
 import re
 import os
@@ -737,19 +738,26 @@ class QualityAwareParser:
         # Split into statements
         statements = self._split_statements(cleaned_ddl)
 
-        # Try parsing each statement
+        # Try parsing each statement with optimized two-tier strategy
+        # Strategy: WARN first (fast), then regex fallback if empty results
         for stmt in statements:
+            stmt_sources = set()
+            stmt_targets = set()
+
+            # Phase 1: Try WARN mode (lenient - accepts broken SQL, fast)
             try:
-                parsed = parse_one(stmt, dialect='tsql', error_level=None)
+                parsed = parse_one(stmt, dialect='tsql', error_level=ErrorLevel.WARN)
                 if parsed:
                     stmt_sources, stmt_targets = self._extract_from_ast(parsed)
-                    sources.update(stmt_sources)
-                    targets.update(stmt_targets)
             except Exception:
-                # SQLGlot failed, try regex fallback on this statement
-                regex_s, regex_t, _, _ = self._regex_scan(stmt)  # Ignore SP/function calls in statement fallback
-                sources.update(regex_s)
-                targets.update(regex_t)
+                pass  # SQLGlot failed completely, will use regex
+
+            # Phase 2: If SQLGlot got nothing, use regex fallback
+            if not stmt_sources and not stmt_targets:
+                stmt_sources, stmt_targets, _, _ = self._regex_scan(stmt)
+
+            sources.update(stmt_sources)
+            targets.update(stmt_targets)
 
         # If SQLGlot got nothing, fallback to regex on original DDL
         if not sources and not targets:
@@ -876,7 +884,7 @@ class QualityAwareParser:
 
     def _is_excluded(self, schema: str, table: str) -> bool:
         """Check if table should be excluded (temp tables, system schemas)."""
-        if schema.lower() in self.EXCLUDED_SCHEMAS:
+        if schema.lower() in self.excluded_schemas:
             return True
         if table.startswith('#') or table.startswith('@'):
             return True
