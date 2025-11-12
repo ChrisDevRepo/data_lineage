@@ -3,6 +3,6 @@ export const CONSTANTS = {
     "Table": { style: 'rounded-full' },
     "View": { style: 'rounded-md' },
     "Stored Procedure": { style: 'border-dashed' },
-    "Function": { style: 'rotate-45' }  // Diamond shape via CSS rotation
+    "Function": { style: '[clip-path:polygon(50%_0%,100%_50%,50%_100%,0%_50%)]' }  // True diamond shape via clip-path
   }
 };
