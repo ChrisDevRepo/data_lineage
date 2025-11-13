@@ -28,14 +28,15 @@
 1. **Isolated Nodes Filter** - Hide nodes with no connections (degree = 0)
 2. **Focus Schema Filtering** - Two-tier schema filtering (master vs extended)
 3. **Star Icon UI** - Click ⭐ to designate focus schemas
-4. **Graph Library BFS** - Uses graphology-traversal's optimized implementation
-5. **Correctness Testing** - Comprehensive test suite validates filtering logic
+4. **BFS Optimization** - Uses graphology-traversal where appropriate
+5. **Correctness Testing** - Comprehensive test suite validates all implementations
 
 **Features:**
 - **Isolated Nodes:** Filter nodes with no connections in complete graph
 - **Focus Schemas:** Always fully visible (master/anchor schemas)
 - **Extended Schemas:** Filtered by reachability from focus when button enabled
-- **Graph Traversal:** Uses graphology-traversal's `bfsFromNode` for optimal performance
+- **Graph Traversal:** Manual BFS for focus filtering (multi-source + bidirectional)
+- **Interactive Trace:** Uses graphology-traversal's `bfsFromNode` (single-source + unidirectional)
 - **Scalability:** Production-ready for 10K nodes + 20K edges
 
 **UX:**
@@ -45,12 +46,17 @@
 - Clear tooltips explain behavior
 
 **Technical Implementation:**
-- Uses graphology-traversal's `bfsFromNode` for filtered reachability
-- Conditional traversal: skip neighbors of nodes in unselected schemas
-- O(V + E) performance with library-optimized BFS queue
-- Comprehensive test validates correctness (see test_bfs_comparison.mjs)
+- **Focus Filtering:** Manual BFS (multi-source start, bidirectional traversal)
+- **Interactive Trace:** graphology-traversal BFS (single-source, depth-limited, unidirectional)
+- O(V + E) performance for both implementations
+- See `docs/GRAPHOLOGY_BFS_ANALYSIS.md` for detailed analysis
 
-**Result:** Powerful two-tier filtering, intuitive UX, production-ready scalability ✅
+**Testing:**
+- ✅ test_focus_schema_filtering.mjs - 5/5 tests pass (prima example verified)
+- ✅ test_interactive_trace_bfs.mjs - 4/4 tests pass (old vs new identical)
+- ✅ Comprehensive edge case coverage (cycles, blocking, multiple focus)
+
+**Result:** Powerful two-tier filtering, intuitive UX, optimized graph traversal ✅
 
 ### v4.3.3 - Simplified Rules + Phantom Fix (2025-11-12) ⭐
 1. **Simplified SQL Cleaning:** 11 → 5 patterns (55% reduction, 75% less code)
