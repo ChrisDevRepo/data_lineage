@@ -40,7 +40,25 @@ export function useDataFiltering({
     const [highlightedNodes, setHighlightedNodes] = useState<Set<string>>(new Set());
     const [autocompleteSuggestions, setAutocompleteSuggestions] = useState<DataNode[]>([]);
 
-    // Initialize hideUnrelated from localStorage or default to true
+    // Initialize hideIsolated from localStorage or default to true
+    // "Isolated nodes" = nodes with degree 0 in the COMPLETE graph (no connections at all)
+    const [hideIsolated, setHideIsolated] = useState<boolean>(() => {
+        try {
+            const saved = localStorage.getItem('lineage_filter_preferences');
+            if (saved) {
+                const { hideIsolated: savedHideIsolated } = JSON.parse(saved);
+                if (typeof savedHideIsolated === 'boolean') {
+                    return savedHideIsolated;
+                }
+            }
+        } catch (error) {
+            console.error('[useDataFiltering] Failed to load hideIsolated preference:', error);
+        }
+        return true; // Default: hide isolated nodes
+    });
+
+    // Initialize hideUnrelated from localStorage or default to false
+    // "Unrelated nodes" = nodes with no connections in the FILTERED graph (filter context-aware)
     const [hideUnrelated, setHideUnrelated] = useState<boolean>(() => {
         try {
             const saved = localStorage.getItem('lineage_filter_preferences');
@@ -53,7 +71,7 @@ export function useDataFiltering({
         } catch (error) {
             console.error('[useDataFiltering] Failed to load hideUnrelated preference:', error);
         }
-        return true; // Default: hide unrelated nodes
+        return false; // Default: show unrelated nodes (only hide when filters active)
     });
 
     // Debounced versions for performance with large datasets
@@ -233,10 +251,11 @@ export function useDataFiltering({
         }
     }, [searchTerm, lineageGraph, selectedSchemas, selectedTypes, dataModelTypes]);
 
-    // Static pre-filter: Apply "Hide Unrelated" BEFORE any other filters
+    // Static pre-filter: Apply "Hide Isolated" BEFORE any other filters
+    // Isolated nodes = degree 0 in COMPLETE graph (no connections at all)
     // This is memoized separately so it doesn't recalculate when clicking nodes
     const preFilteredData = useMemo(() => {
-        if (hideUnrelated) {
+        if (hideIsolated) {
             // Filter out nodes with NO connections in the complete graph
             const filtered = allData.filter(node => {
                 if (lineageGraph.hasNode(node.id)) {
@@ -247,8 +266,8 @@ export function useDataFiltering({
             });
             return filtered;
         }
-        return allData; // No pre-filtering if hideUnrelated is off
-    }, [allData, lineageGraph, hideUnrelated]);
+        return allData; // No pre-filtering if hideIsolated is off
+    }, [allData, lineageGraph, hideIsolated]);
 
     // Helper function to check if a node should be excluded based on exclude terms
     // Supports wildcard patterns (e.g., "*_VAT", "tmp_*", "*test*")
@@ -302,8 +321,45 @@ export function useDataFiltering({
         return result;
     }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedObjectTypes, debouncedSelectedTypes, objectTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, activeExcludeTerms, isTraceFilterApplied]);
 
+    // POST-filter: Apply "Hide Unrelated" as FINAL step (filter context-aware)
+    // Unrelated nodes = nodes with no connections in the FILTERED graph
+    // Only applied when filters are active (schema/type filters reducing visible set)
+    const finalConnectedData = useMemo(() => {
+        // Check if any filters are active (not showing all data)
+        const hasActiveSchemaFilter = debouncedSelectedSchemas.size < schemas.length;
+        const hasActiveObjectTypeFilter = objectTypes.length > 0 && debouncedSelectedObjectTypes.size < objectTypes.length;
+        const hasActiveDataModelFilter = dataModelTypes.length > 0 && debouncedSelectedTypes.size < dataModelTypes.length;
+        const hasActiveFilters = hasActiveSchemaFilter || hasActiveObjectTypeFilter || hasActiveDataModelFilter;
+
+        // Only apply unrelated filter when:
+        // 1. hideUnrelated is enabled
+        // 2. Filters are active (reducing the visible set)
+        if (!hideUnrelated || !hasActiveFilters) {
+            return finalVisibleData; // No post-filtering
+        }
+
+        // Build set of visible node IDs for O(1) lookup
+        const visibleIds = new Set(finalVisibleData.map(n => n.id));
+
+        // Find nodes that have at least one connection in the filtered graph
+        // Performance: O(E) where E = number of edges (~2N typically)
+        const connectedIds = new Set<string>();
+        lineageGraph.forEachEdge((edge, attributes, source, target) => {
+            // Only count edges where BOTH source AND target are visible
+            if (visibleIds.has(source) && visibleIds.has(target)) {
+                connectedIds.add(source);
+                connectedIds.add(target);
+            }
+        });
+
+        // Filter out nodes with no connections in the filtered context
+        const connected = finalVisibleData.filter(node => connectedIds.has(node.id));
+
+        return connected;
+    }, [finalVisibleData, hideUnrelated, lineageGraph, debouncedSelectedSchemas, schemas.length, debouncedSelectedObjectTypes, objectTypes.length, debouncedSelectedTypes, dataModelTypes.length]);
+
     return {
-        finalVisibleData,
+        finalVisibleData: finalConnectedData, // Return post-filtered data
         selectedSchemas,
         setSelectedSchemas,
         selectedObjectTypes,
@@ -312,6 +368,8 @@ export function useDataFiltering({
         setSelectedTypes,
         searchTerm,
         setSearchTerm,
+        hideIsolated,
+        setHideIsolated,
         hideUnrelated,
         setHideUnrelated,
         highlightedNodes,

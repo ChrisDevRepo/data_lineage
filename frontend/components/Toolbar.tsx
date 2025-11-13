@@ -28,6 +28,8 @@ type ToolbarProps = {
     dataModelTypes: string[];
     layout: 'LR' | 'TB';
     setLayout: (layout: 'LR' | 'TB') => void;
+    hideIsolated: boolean;
+    setHideIsolated: (hide: boolean) => void;
     hideUnrelated: boolean;
     setHideUnrelated: (hide: boolean) => void;
     isTraceModeActive: boolean;
@@ -57,7 +59,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         selectedSchemas, setSelectedSchemas, schemas,
         selectedObjectTypes, setSelectedObjectTypes, objectTypes,
         selectedTypes, setSelectedTypes, dataModelTypes,
-        layout, setLayout, hideUnrelated, setHideUnrelated,
+        layout, setLayout, hideIsolated, setHideIsolated, hideUnrelated, setHideUnrelated,
         isTraceModeActive, onStartTrace,
         onOpenImport, onOpenInfo, onExportSVG, onResetView,
         sqlViewerOpen, onToggleSqlViewer, sqlViewerEnabled, hasDdlData,
@@ -454,10 +456,19 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                     )}
                 </Button>
 
-                {/* Hide Unrelated Toggle */}
+                {/* Hide Isolated Nodes Toggle */}
+                <Button onClick={() => {
+                    setHideIsolated(!hideIsolated);
+                }} variant="icon" className={hideIsolated ? 'bg-blue-50 text-blue-600' : ''} title={hideIsolated ? 'Show Isolated Nodes' : 'Hide Isolated Nodes (degree = 0)'}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                </Button>
+
+                {/* Hide Unrelated Nodes Toggle (Filter Context-Aware) */}
                 <Button onClick={() => {
                     setHideUnrelated(!hideUnrelated);
-                }} variant="icon" className={hideUnrelated ? 'bg-blue-50 text-blue-600' : ''} title={hideUnrelated ? 'Show All Nodes' : 'Hide Unrelated Nodes'}>
+                }} variant="icon" className={hideUnrelated ? 'bg-blue-50 text-blue-600' : ''} title={hideUnrelated ? 'Show Unrelated Nodes' : 'Hide Unrelated Nodes (no connections in filtered context)'}>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
                     </svg>

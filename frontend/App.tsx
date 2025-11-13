@@ -120,6 +120,8 @@ function DataLineageVisualizer() {
     setSelectedTypes,
     searchTerm,
     setSearchTerm,
+    hideIsolated,
+    setHideIsolated,
     hideUnrelated,
     setHideUnrelated,
     highlightedNodes,
@@ -170,7 +172,7 @@ function DataLineageVisualizer() {
   // --- localStorage Persistence ---
   const hasInitializedPreferences = useRef(false);
 
-  // Load saved layout preference (schemas/types/hideUnrelated are loaded in useDataFiltering)
+  // Load saved layout preference (schemas/types/hideIsolated/hideUnrelated are loaded in useDataFiltering)
   useEffect(() => {
     try {
       const saved = localStorage.getItem('lineage_filter_preferences');
@@ -205,6 +207,7 @@ function DataLineageVisualizer() {
       const preferences = {
         schemas: Array.from(selectedSchemas),
         types: Array.from(selectedTypes),
+        hideIsolated,
         hideUnrelated,
         layout
       };
@@ -213,7 +216,7 @@ function DataLineageVisualizer() {
     } catch (error) {
       console.error('[localStorage] Failed to save preferences:', error);
     }
-  }, [selectedSchemas, selectedTypes, hideUnrelated, layout]);
+  }, [selectedSchemas, selectedTypes, hideIsolated, hideUnrelated, layout]);
 
   // --- Detect DDL Availability (memoized for performance) ---
   // DDL is now fetched on-demand via API, so always available when data is loaded
@@ -524,14 +527,14 @@ function DataLineageVisualizer() {
   }, [isInTraceExitMode, setHighlightedNodes]);
 
   const handleResetView = useCallback(() => {
-    // Reset view controls but PRESERVE schema, type, and hideUnrelated filter selections
+    // Reset view controls but PRESERVE schema, type, hideIsolated, and hideUnrelated filter selections
     // Only reset: highlights, focus, search, excludeTerms, trace mode, traced filter mode
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
     setSearchTerm('');
     setExcludeTerm(''); // Clear exclude input field
     setActiveExcludeTerms([]); // Clear active exclude filters
-    // hideUnrelated is preserved (not reset) - it's a persistent filter preference
+    // hideIsolated and hideUnrelated are preserved (not reset) - they're persistent filter preferences
     setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
@@ -973,6 +976,8 @@ function DataLineageVisualizer() {
             dataModelTypes={dataModelTypes}
             layout={layout}
             setLayout={setLayout}
+            hideIsolated={hideIsolated}
+            setHideIsolated={setHideIsolated}
             hideUnrelated={hideUnrelated}
             setHideUnrelated={setHideUnrelated}
             isTraceModeActive={isTraceModeActive}
