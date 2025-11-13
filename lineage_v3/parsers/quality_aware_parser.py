@@ -435,8 +435,28 @@ class QualityAwareParser:
             # STEP 5d: Handle phantom functions (v4.3.0 - UDF support)
             # Detect functions not in catalog
             phantom_functions = set()
+            catalog = self._get_object_catalog()  # All objects (tables, views, SPs, functions)
+
             for func_name in regex_function_calls:
                 if func_name not in regex_function_calls_valid:
+                    # v4.3.3 BUG FIX: Check if object exists as ANY type before creating phantom
+                    # Issue: FactGLCognos exists as TABLE but was created as phantom FUNCTION
+                    # because it wasn't in function catalog (only checked function catalog, not all objects)
+
+                    # Check if object exists anywhere in catalog (case-insensitive)
+                    exists_in_catalog = func_name in catalog
+                    if not exists_in_catalog:
+                        func_name_lower = func_name.lower()
+                        for catalog_name in catalog:
+                            if catalog_name.lower() == func_name_lower:
+                                exists_in_catalog = True
+                                break
+
+                    if exists_in_catalog:
+                        # Object exists as table/view/SP, don't create phantom function
+                        logger.debug(f"Skipping phantom function (exists as table/view/SP): {func_name}")
+                        continue
+
                     # Function not in catalog, check if it's excluded
                     parts = func_name.split('.')
                     if len(parts) == 2:
