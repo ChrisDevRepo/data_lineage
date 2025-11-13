@@ -317,6 +317,29 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                                 {filteredSchemas.length > 0 ? (
                                     filteredSchemas.map(s => (
                                         <div key={s} className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // Toggle focus
+                                                    const newFocus = new Set(focusSchemas);
+                                                    if (newFocus.has(s)) {
+                                                        newFocus.delete(s);
+                                                    } else {
+                                                        newFocus.add(s);
+                                                        // Auto-select schema when making it focus
+                                                        const newSelected = new Set(selectedSchemas);
+                                                        newSelected.add(s);
+                                                        setSelectedSchemas(newSelected);
+                                                    }
+                                                    setFocusSchemas(newFocus);
+                                                }}
+                                                className={`p-1 rounded hover:bg-gray-100 transition-colors flex-shrink-0 ${focusSchemas.has(s) ? 'text-yellow-500' : 'text-gray-300'}`}
+                                                title={focusSchemas.has(s) ? 'Remove from focus schemas' : 'Add to focus schemas (always fully visible)'}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                                                    <path fillRule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401Z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
                                             <Checkbox
                                                 checked={selectedSchemas.has(s)}
                                                 onChange={() => {
@@ -327,21 +350,6 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                                                 }}
                                                 label={s}
                                             />
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const newFocus = new Set(focusSchemas);
-                                                    if (newFocus.has(s)) newFocus.delete(s);
-                                                    else newFocus.add(s);
-                                                    setFocusSchemas(newFocus);
-                                                }}
-                                                className={`ml-auto p-1 rounded hover:bg-gray-100 transition-colors ${focusSchemas.has(s) ? 'text-yellow-500' : 'text-gray-300'}`}
-                                                title={focusSchemas.has(s) ? 'Remove from focus schemas' : 'Add to focus schemas (always fully visible)'}
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                                                    <path fillRule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401Z" clipRule="evenodd" />
-                                                </svg>
-                                            </button>
                                         </div>
                                     ))
                                 ) : (

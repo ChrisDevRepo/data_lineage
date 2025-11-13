@@ -357,7 +357,9 @@ export function useDataFiltering({
         const focusNodeIds = new Set(focusNodes.map(n => n.id));
 
         // Build reachable set via BFS graph traversal (bidirectional)
+        // IMPORTANT: Only traverse to nodes that are in the visible set (respect schema filters)
         // Performance: O(V + E) where V = nodes, E = edges (~5-10ms typical)
+        const visibleIds = new Set(finalVisibleData.map(n => n.id));
         const reachable = new Set(focusNodeIds);
         const queue = Array.from(focusNodeIds);
 
@@ -366,7 +368,8 @@ export function useDataFiltering({
             try {
                 const neighbors = lineageGraph.neighbors(nodeId);
                 for (const neighbor of neighbors) {
-                    if (!reachable.has(neighbor)) {
+                    // Only add if neighbor is in visible set (selected schemas) and not already reached
+                    if (visibleIds.has(neighbor) && !reachable.has(neighbor)) {
                         reachable.add(neighbor);
                         queue.push(neighbor);
                     }
@@ -376,7 +379,7 @@ export function useDataFiltering({
             }
         }
 
-        // Filter: show if in focus schema OR reachable from focus
+        // Filter: show if in focus schema OR reachable from focus (and in selected schemas)
         const result = finalVisibleData.filter(n => {
             if (focusSchemas.has(n.schema)) return true; // Always show focus
             return reachable.has(n.id); // Show if reachable from focus
