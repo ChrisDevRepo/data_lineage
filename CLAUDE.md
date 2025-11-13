@@ -79,7 +79,11 @@
 ```bash
 SQL_DIALECT=tsql  # Default (Synapse/SQL Server)
 EXCLUDED_SCHEMAS=sys,dummy,information_schema,tempdb,master,msdb,model
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*
+
+# v4.3.3: REDESIGNED - Phantoms = EXTERNAL sources ONLY
+PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
+# Examples: power_consumption,external_lakehouse,partner_erp
+
 PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 ```
 
@@ -192,18 +196,31 @@ cd frontend && npm run test:e2e  # 90+ tests
 - [docs/reports/TESTING_SUMMARY.md](docs/reports/TESTING_SUMMARY.md)
 - [docs/reports/BUGS.md](docs/reports/BUGS.md)
 
-## Phantom Objects (v4.3.0)
+## Phantom Objects (v4.3.3 - REDESIGNED)
 
-**What:** Database objects referenced in SQL but not in catalog
+**What:** External dependencies NOT in our metadata database
+
+**New Philosophy (v4.3.3):**
+- Phantoms = **EXTERNAL sources only** (data lakes, partner DBs, external APIs)
+- For schemas in OUR metadata DB, missing objects = DB quality issues (not phantoms)
+- We are NOT the authority to flag internal missing objects
 
 **Features:**
 - Automatic detection from SP dependencies
 - Negative IDs (-1 to -∞)
-- Visual: 👻 ghost emoji badge, dashed borders
-- Include-list filtering (CONSUMPTION*, STAGING*, etc.)
+- Visual: 🔗 link icon for external dependencies, dashed borders
+- Exact schema matching (no wildcards)
+- Only schemas NOT in our metadata database
 - Frontend shapes: 💎 Functions, 🟦 SPs, ⚪ Tables/Views
 
-**Status:** ✅ 100% functional, detection working perfectly
+**Configuration:**
+```bash
+# Only list EXTERNAL schemas (not in our metadata DB)
+PHANTOM_EXTERNAL_SCHEMAS=power_consumption,external_lakehouse,partner_erp
+# Leave empty if no external dependencies
+```
+
+**Status:** ✅ Redesigned v4.3.3, external dependencies only
 
 ## Performance
 

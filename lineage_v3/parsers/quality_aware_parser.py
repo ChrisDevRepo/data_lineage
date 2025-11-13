@@ -258,7 +258,14 @@ class QualityAwareParser:
         self._load_phantom_config()
 
     def _load_phantom_config(self):
-        """Load phantom schema configuration from centralized settings (v4.3.0)."""
+        """
+        Load phantom schema configuration from centralized settings (v4.3.3).
+
+        NEW PHILOSOPHY (v4.3.3):
+        - Phantoms = EXTERNAL dependencies ONLY (schemas not in our metadata DB)
+        - For schemas in our metadata DB, missing objects = DB quality issues (not phantoms)
+        - We are NOT the authority to flag missing objects in schemas we manage
+        """
         import re
         from lineage_v3.config.settings import settings
 
@@ -267,33 +274,74 @@ class QualityAwareParser:
         self.excluded_schemas = settings.excluded_schema_set  # Global universal exclusion
         self.excluded_dbo_patterns = settings.phantom.exclude_dbo_pattern_list
 
-        logger.info(f"Loaded phantom config from settings.py: {len(self.include_schemas)} include patterns")
-        logger.debug(f"Include patterns: {self.include_schemas}")
+        # v4.3.3: Get all schemas from our metadata database
+        self.database_schemas = self._get_database_schemas()
+
+        logger.info(f"Loaded phantom config from settings.py: {len(self.include_schemas)} external schema patterns")
+        logger.info(f"Found {len(self.database_schemas)} schemas in metadata database")
+        logger.debug(f"External schema patterns: {self.include_schemas}")
         logger.debug(f"Universal excluded schemas: {self.excluded_schemas}")
 
-        # Compile include patterns to regex for efficient matching
-        self.include_schema_patterns = []
-        for pattern in self.include_schemas:
-            # Convert wildcard pattern to regex
-            regex_pattern = pattern.replace('*', '.*')
-            self.include_schema_patterns.append(re.compile(f'^{regex_pattern}$', re.IGNORECASE))
+    def _get_database_schemas(self) -> Set[str]:
+        """
+        Get all schemas that exist in our metadata database (v4.3.3).
+
+        Used to distinguish:
+        - Internal schemas (in our DB) → missing objects = DB issues, NOT phantoms
+        - External schemas (not in our DB) → missing objects = phantoms
+
+        Returns:
+            Set of schema names (lowercase) from our metadata database
+        """
+        query = """
+            SELECT DISTINCT LOWER(schema_name)
+            FROM objects
+        """
+        try:
+            results = self.workspace.query(query)
+            schemas = {row[0] for row in results if row[0]}
+            logger.debug(f"Database schemas: {sorted(schemas)[:10]}...")  # Show first 10
+            return schemas
+        except Exception as e:
+            logger.warning(f"Could not load database schemas: {e}")
+            return set()
 
     def _schema_matches_include_list(self, schema: str) -> bool:
         """
-        Check if schema matches any include pattern (v4.3.0).
+        Check if schema should have phantoms created (v4.3.3).
 
-        Uses wildcard matching (e.g., CONSUMPTION* matches CONSUMPTION_FINANCE).
-        Returns True if schema should have phantoms created.
+        NEW LOGIC:
+        1. Schema must NOT exist in our metadata database (external only)
+        2. Schema must match external schema list (exact match, case-insensitive)
+        3. Schema must not be globally excluded
+
+        Philosophy:
+        - Phantoms = external sources we don't manage
+        - If schema exists in our DB, missing objects are DB team's responsibility
+
+        Returns:
+            True if schema is external and should have phantoms created
         """
+        schema_lower = schema.lower()
+
         # First check if it's in the global excluded_schemas (universal filter)
-        if schema.lower() in [s.lower() for s in self.excluded_schemas]:
+        if schema_lower in [s.lower() for s in self.excluded_schemas]:
+            logger.debug(f"Schema excluded (global): {schema}")
             return False
 
-        # Check if schema matches any include pattern
-        for pattern in self.include_schema_patterns:
-            if pattern.match(schema):
+        # v4.3.3 NEW: Check if schema exists in our metadata database
+        if schema_lower in self.database_schemas:
+            logger.debug(f"Schema exists in metadata DB (skip phantom): {schema}")
+            return False  # Internal schema → DB quality issue, not phantom
+
+        # Check if schema matches external include list (exact match, case-insensitive)
+        # Note: Wildcards removed in v4.3.3, now exact match only
+        for pattern in self.include_schemas:
+            if schema_lower == pattern.lower():
+                logger.debug(f"External schema matched (create phantom): {schema}")
                 return True
 
+        logger.debug(f"Schema not in external list (skip phantom): {schema}")
         return False
 
     def parse_object(self, object_id: int) -> Dict[str, Any]:
