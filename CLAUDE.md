@@ -107,6 +107,70 @@
 └── tests/                  # Test suite (73+ tests)
 ```
 
+## Graph Library Usage (Graphology)
+
+**Library:** [Graphology](https://graphology.github.io/) - Production-ready graph data structure
+**Traversal:** [graphology-traversal](https://www.npmjs.com/package/graphology-traversal) - Optimized BFS/DFS algorithms
+
+### ✅ When to Use graphology-traversal
+
+**Use the library for graph traversal when:**
+1. ✅ **Single source node** - Starting from 1 node
+2. ✅ **Unidirectional traversal** - Going upstream OR downstream (not both)
+3. ✅ **Depth-limited** - Stopping at specific levels
+4. ✅ **Simple filtering** - Filter by node attributes
+
+**Example: Interactive Trace** (`frontend/hooks/useInteractiveTrace.ts`)
+```typescript
+import { bfsFromNode } from 'graphology-traversal';
+
+bfsFromNode(graph, startNode, (nodeId, attr, depth) => {
+    if (!includedSchemas.has(attr.schema)) return true; // Skip
+    if (depth >= maxLevels) return true; // Stop at depth
+    visibleIds.add(nodeId);
+    return false; // Continue
+}, { mode: 'inbound' }); // or 'outbound'
+```
+
+### ⚠️ When to Use Manual Implementation
+
+**Use manual BFS when:**
+1. ⚠️ **Multiple source nodes** - Starting from 10+ nodes simultaneously
+2. ⚠️ **Bidirectional traversal** - Going both upstream AND downstream at once
+3. ⚠️ **Complex filtering** - Library workarounds would be more complex than simple loop
+
+**Example: Focus Schema Filtering** (`frontend/hooks/useDataFiltering.ts`)
+```typescript
+const queue = Array.from(focusNodeIds); // Start from ALL focus nodes
+while (queue.length > 0) {
+    const nodeId = queue.shift()!;
+    const neighbors = graph.neighbors(nodeId); // Bidirectional
+    for (const neighbor of neighbors) {
+        if (visibleIds.has(neighbor) && !reachable.has(neighbor)) {
+            reachable.add(neighbor);
+            queue.push(neighbor);
+        }
+    }
+}
+```
+
+**Why manual here?**
+- Library only accepts 1 starting node (not 10)
+- Library mode is 'inbound' OR 'outbound' (not both)
+- 12-line manual BFS is simpler than complex library workarounds
+
+### 📚 Documentation
+
+- **Analysis:** [docs/GRAPHOLOGY_BFS_ANALYSIS.md](docs/GRAPHOLOGY_BFS_ANALYSIS.md) - Detailed comparison & decision rationale
+- **Tests:**
+  - `frontend/test_interactive_trace_bfs.mjs` - Library BFS correctness
+  - `frontend/test_focus_schema_filtering.mjs` - Manual BFS correctness
+
+### 🎯 Best Practice
+
+**Always prefer the library WHEN it makes code simpler.**
+If library workarounds are more complex than a simple loop, use the loop.
+
 ## Configuration
 
 **.env File:**

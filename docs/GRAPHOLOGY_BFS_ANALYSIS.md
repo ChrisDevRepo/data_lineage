@@ -1,71 +1,72 @@
-# Graphology BFS Analysis - Why Manual BFS for Focus Schema Filtering
+# Graphology BFS - When to Use Library vs Manual Implementation
 
-## TL;DR
+## Executive Summary
 
-**Manual BFS is the correct choice** for focus schema filtering, NOT because Graphology is wrong, but because our requirements don't map cleanly to the library's API.
+**Graphology and graphology-traversal are excellent, production-ready libraries.**
 
-## Requirements for Focus Schema Filtering
+This document explains when to use the library vs when a simple manual implementation is clearer.
 
-1. **Multi-node start**: Begin BFS from MULTIPLE focus nodes simultaneously
-2. **Bidirectional traversal**: Follow edges in BOTH directions (upstream dependencies + downstream dependents)
-3. **Conditional traversal**: Skip nodes in unselected schemas (don't add their neighbors)
+---
 
-## Graphology-Traversal API
+## Two BFS Use Cases in This Codebase
 
-The `bfsFromNode` function signature:
-```javascript
-bfsFromNode(graph, startingNode, callback, options)
+### ✅ Case 1: Interactive Trace - **USING LIBRARY**
+
+**Requirements:**
+- Start from **1 node**
+- Traverse **one direction** (upstream OR downstream)
+- Stop at **specific depth** (e.g., 3 levels)
+
+**Library API:** Perfect fit
+```typescript
+bfsFromNode(graph, startNode, (nodeId, attr, depth) => {
+    if (depth >= maxLevels) return true; // Stop at depth
+    visibleIds.add(nodeId);
+    return false; // Continue
+}, { mode: 'inbound' }); // or 'outbound'
 ```
 
-**Key limitations:**
-- `startingNode` is a SINGLE node (not an array)
-- `options.mode` can be:
-  - `'outbound'` (default) - follow outgoing edges only
-  - `'inbound'` - follow incoming edges only
-  - `'undirected'` - only works for undirected graphs (NOT directed)
-- **No built-in bidirectional mode for directed graphs**
+**Result:** Simplified code, well-tested library ✅
 
-## Attempted Solutions
+---
 
-### ❌ Attempt 1: Multiple BFS calls
-```javascript
-focusNodeIds.forEach(startNodeId => {
-    bfsFromNode(graph, startNodeId, callback);
-});
-```
-**Problem**: Each `bfsFromNode` creates a separate BFSQueue with its own `seen` tracking. Nodes reachable from node A but visited during BFS from node B won't be explored properly.
+### ⚠️ Case 2: Focus Schema Filtering - **MANUAL IMPLEMENTATION**
 
-### ❌ Attempt 2: Super-root node
-```javascript
-graph.addNode('__SUPER_ROOT__');
-focusNodes.forEach(node => graph.addEdge('__SUPER_ROOT__', node));
-bfsFromNode(graph, '__SUPER_ROOT__', callback);
-```
-**Problems**:
-- Modifies the graph during traversal (not pure)
-- Still only traverses in ONE direction
-- Needs cleanup logic (error-prone)
+**Requirements:**
+1. Start from **10+ nodes simultaneously** (all focus schemas)
+2. Traverse **both directions** (upstream AND downstream at once)
+3. Filter by schema while traversing
 
-### ❌ Attempt 3: Run twice (inbound + outbound)
-```javascript
-bfsFromNode(graph, superRoot, callback, { mode: 'outbound' });
-bfsFromNode(graph, superRoot, callback, { mode: 'inbound' });
-```
-**Problems**:
-- Super-root edges point FROM super-root TO focus nodes
-- Inbound traversal from super-root goes BACKWARDS (wrong direction)
-- Would need to recreate graph structure for each direction
-- Significantly more complex than manual BFS
+**Library limitations:**
+- `bfsFromNode(graph, startNode, ...)` accepts **1 node only**
+- `mode` is `'inbound'` **OR** `'outbound'` (not both)
+- No bidirectional mode for directed graphs
 
-## Manual BFS Implementation
+**Workaround attempts:**
 
-```javascript
+❌ **Option A:** Call library 10 times
+- Separate tracking per call (incorrect results)
+- More complex than manual BFS
+
+❌ **Option B:** Create temporary super-root node
+- Modifies graph structure
+- Still single-direction
+- Complex cleanup logic
+
+❌ **Option C:** Run library twice (inbound + outbound)
+- Need to recreate graph structure
+- Complex edge case handling
+- Way more code than manual BFS
+
+**✅ Manual implementation:** Simple and clear
+```typescript
+// 12 lines total - simpler than any library workaround
 const reachable = new Set(focusNodeIds); // Start with ALL focus nodes
 const queue = Array.from(focusNodeIds);  // Queue ALL at once
 
 while (queue.length > 0) {
-    const nodeId = queue.shift();
-    const neighbors = lineageGraph.neighbors(nodeId); // BIDIRECTIONAL
+    const nodeId = queue.shift()!;
+    const neighbors = graph.neighbors(nodeId); // Bidirectional: in + out
 
     for (const neighbor of neighbors) {
         if (visibleIds.has(neighbor) && !reachable.has(neighbor)) {
@@ -76,45 +77,75 @@ while (queue.length > 0) {
 }
 ```
 
-**Advantages:**
-- ✅ Starts from multiple nodes naturally
-- ✅ `graph.neighbors()` returns both in and out neighbors (bidirectional)
-- ✅ Simple, readable, correct
-- ✅ No graph modifications
-- ✅ Single traversal (not two passes)
+**Why this is better:**
+- ✅ Starts from 10+ nodes naturally (no library support needed)
+- ✅ `graph.neighbors()` is bidirectional by default (in + out neighbors)
+- ✅ 12 lines - simpler than any library workaround
+- ✅ No graph modifications, no cleanup needed
+- ✅ Clear, readable, correct
 
-## Performance Comparison
+---
 
-| Metric | Manual BFS | Graphology BFS (if we could make it work) |
-|--------|------------|-------------------------------------------|
-| Code complexity | Simple (12 lines) | Complex (super-root + dual traversal) |
-| Graph modifications | None | Temporary nodes/edges (cleanup needed) |
-| Correctness | ✅ Proven | ⚠️ Complex workarounds |
-| Performance | ~15-20ms for 10K nodes | Similar or worse (overhead from workarounds) |
+## Decision Matrix
 
-## Recommendation
+| Requirement | Library Support | Manual BFS |
+|-------------|----------------|------------|
+| Single source | ✅ Perfect | ✅ Works |
+| Multiple sources | ❌ Not supported | ✅ Natural |
+| Unidirectional | ✅ Perfect | ✅ Works |
+| Bidirectional | ❌ Not supported | ✅ Natural |
+| Depth-limited | ✅ Perfect | ✅ Works |
+| Conditional filtering | ✅ Via callback | ✅ Via if statements |
 
-**Use manual BFS** for focus schema filtering because:
-1. Graphology-traversal doesn't provide the specific API we need
-2. Workarounds are more complex than the manual implementation
-3. Manual BFS is simple, correct, and performant
-4. Data lineage correctness > library usage
+---
 
-## When to Use Graphology-Traversal
+## Best Practice Guidelines
 
-The library is excellent for:
-- ✅ Single-source BFS (one starting node)
-- ✅ Unidirectional traversal (outbound OR inbound, not both)
-- ✅ Undirected graphs
-- ✅ Depth-limited traversal
+### ✅ Use graphology-traversal when:
+1. Requirements match library API
+2. Code becomes simpler
+3. Single source + unidirectional + depth-limited
+
+### ✅ Use manual BFS when:
+1. Library doesn't support requirements
+2. Workarounds are more complex than manual code
+3. Multi-source OR bidirectional traversal needed
+
+**Key principle:** Use the library when it makes code simpler. If workarounds are more complex than a simple loop, use the loop.
+
+---
+
+## Testing
+
+Both implementations are thoroughly tested:
+
+**Interactive Trace (library):**
+- `frontend/test_interactive_trace_bfs.mjs`
+- 4/4 tests pass
+- Old vs new: identical results
+
+**Focus Schema Filtering (manual):**
+- `frontend/test_focus_schema_filtering.mjs`
+- 5/5 tests pass
+- Includes prima example verification
+
+---
 
 ## Conclusion
 
-**Graphology and graphology-traversal are excellent, production-ready libraries.** The issue is NOT that the library is incorrect, but that our specific requirements (multi-source + bidirectional + conditional) don't align with the library's API design.
+**Graphology is NOT wrong - it's an excellent library.**
 
-Manual BFS is the **right tool for this job**.
+We use it extensively:
+- ✅ Graph data structure (entire codebase)
+- ✅ BFS for Interactive Trace
+- ✅ Graph utilities and algorithms
+
+For Focus Schema Filtering, the 12-line manual BFS is the **simpler, clearer solution** because the library API doesn't match our specific needs.
+
+**This is good engineering practice** - not every problem requires a library if the manual solution is clearer.
 
 ---
 
 **Last Updated**: 2025-11-13
 **Version**: v4.3.3
+**Files:** `frontend/hooks/useDataFiltering.ts`, `frontend/hooks/useInteractiveTrace.ts`
