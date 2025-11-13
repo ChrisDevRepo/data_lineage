@@ -94,7 +94,7 @@ class PhantomSettings(BaseSettings):
     Uses INCLUDE list approach with wildcard support.
     """
     include_schemas: str = Field(
-        default="CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B",
+        default="CONSUMPTION*,STAGING*,TRANSFORMATION*",
         description="Comma-separated list of schema patterns for phantom creation (wildcards supported with *)"
     )
     exclude_dbo_objects: str = Field(

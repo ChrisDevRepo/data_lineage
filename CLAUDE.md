@@ -79,7 +79,7 @@
 ```bash
 SQL_DIALECT=tsql  # Default (Synapse/SQL Server)
 EXCLUDED_SCHEMAS=sys,dummy,information_schema,tempdb,master,msdb,model
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
+PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*
 PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 ```
 
