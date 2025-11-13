@@ -57,21 +57,38 @@ export function useDataFiltering({
         return true; // Default: hide isolated nodes
     });
 
-    // Initialize hideUnrelated from localStorage or default to false
-    // "Unrelated nodes" = nodes with no connections in the FILTERED graph (filter context-aware)
-    const [hideUnrelated, setHideUnrelated] = useState<boolean>(() => {
+    // Initialize filterExtended from localStorage or default to false
+    // "Filter Extended" = show extended schemas only if connected to focus schemas
+    const [filterExtended, setFilterExtended] = useState<boolean>(() => {
         try {
             const saved = localStorage.getItem('lineage_filter_preferences');
             if (saved) {
-                const { hideUnrelated: savedHideUnrelated } = JSON.parse(saved);
-                if (typeof savedHideUnrelated === 'boolean') {
-                    return savedHideUnrelated;
+                const { filterExtended: savedFilterExtended } = JSON.parse(saved);
+                if (typeof savedFilterExtended === 'boolean') {
+                    return savedFilterExtended;
                 }
             }
         } catch (error) {
-            console.error('[useDataFiltering] Failed to load hideUnrelated preference:', error);
+            console.error('[useDataFiltering] Failed to load filterExtended preference:', error);
         }
-        return false; // Default: show unrelated nodes (only hide when filters active)
+        return false; // Default: show all selected schemas fully
+    });
+
+    // Initialize focusSchemas from localStorage or default to empty
+    // "Focus schemas" = master/anchor schemas that are always fully visible
+    const [focusSchemas, setFocusSchemas] = useState<Set<string>>(() => {
+        try {
+            const saved = localStorage.getItem('lineage_filter_preferences');
+            if (saved) {
+                const { focusSchemas: savedFocusSchemas } = JSON.parse(saved);
+                if (savedFocusSchemas && Array.isArray(savedFocusSchemas)) {
+                    return new Set(savedFocusSchemas);
+                }
+            }
+        } catch (error) {
+            console.error('[useDataFiltering] Failed to load focusSchemas preference:', error);
+        }
+        return new Set(); // Default: no focus schemas
     });
 
     // Debounced versions for performance with large datasets
@@ -321,42 +338,52 @@ export function useDataFiltering({
         return result;
     }, [preFilteredData, debouncedSelectedSchemas, debouncedSelectedObjectTypes, debouncedSelectedTypes, objectTypes, dataModelTypes, isTraceModeActive, traceConfig, performInteractiveTrace, activeExcludeTerms, isTraceFilterApplied]);
 
-    // POST-filter: Apply "Hide Unrelated" as FINAL step (filter context-aware)
-    // Unrelated nodes = nodes with no connections in the FILTERED graph
-    // Only applied when filters are active (schema/type filters reducing visible set)
+    // POST-filter: Apply "Filter Extended Schemas" as FINAL step (focus schema reachability)
+    // Focus schema filtering = show extended schemas only if reachable from focus/master schemas
+    // Focus schemas are always fully visible, extended schemas filtered by graph reachability
     const finalConnectedData = useMemo(() => {
-        // Check if any filters are active (not showing all data)
-        const hasActiveSchemaFilter = debouncedSelectedSchemas.size < schemas.length;
-        const hasActiveObjectTypeFilter = objectTypes.length > 0 && debouncedSelectedObjectTypes.size < objectTypes.length;
-        const hasActiveDataModelFilter = dataModelTypes.length > 0 && debouncedSelectedTypes.size < dataModelTypes.length;
-        const hasActiveFilters = hasActiveSchemaFilter || hasActiveObjectTypeFilter || hasActiveDataModelFilter;
-
-        // Only apply unrelated filter when:
-        // 1. hideUnrelated is enabled
-        // 2. Filters are active (reducing the visible set)
-        if (!hideUnrelated || !hasActiveFilters) {
-            return finalVisibleData; // No post-filtering
+        // If filterExtended is disabled, return as-is
+        if (!filterExtended) {
+            return finalVisibleData;
         }
 
-        // Build set of visible node IDs for O(1) lookup
-        const visibleIds = new Set(finalVisibleData.map(n => n.id));
+        // If no focus schemas set, show everything (no filtering)
+        if (focusSchemas.size === 0) {
+            return finalVisibleData;
+        }
 
-        // Find nodes that have at least one connection in the filtered graph
-        // Performance: O(E) where E = number of edges (~2N typically)
-        const connectedIds = new Set<string>();
-        lineageGraph.forEachEdge((edge, attributes, source, target) => {
-            // Only count edges where BOTH source AND target are visible
-            if (visibleIds.has(source) && visibleIds.has(target)) {
-                connectedIds.add(source);
-                connectedIds.add(target);
+        // Get all nodes from focus schemas (these are always shown)
+        const focusNodes = finalVisibleData.filter(n => focusSchemas.has(n.schema));
+        const focusNodeIds = new Set(focusNodes.map(n => n.id));
+
+        // Build reachable set via BFS graph traversal (bidirectional)
+        // Performance: O(V + E) where V = nodes, E = edges (~5-10ms typical)
+        const reachable = new Set(focusNodeIds);
+        const queue = Array.from(focusNodeIds);
+
+        while (queue.length > 0) {
+            const nodeId = queue.shift()!;
+            try {
+                const neighbors = lineageGraph.neighbors(nodeId);
+                for (const neighbor of neighbors) {
+                    if (!reachable.has(neighbor)) {
+                        reachable.add(neighbor);
+                        queue.push(neighbor);
+                    }
+                }
+            } catch (e) {
+                // Node might not be in graph
             }
+        }
+
+        // Filter: show if in focus schema OR reachable from focus
+        const result = finalVisibleData.filter(n => {
+            if (focusSchemas.has(n.schema)) return true; // Always show focus
+            return reachable.has(n.id); // Show if reachable from focus
         });
 
-        // Filter out nodes with no connections in the filtered context
-        const connected = finalVisibleData.filter(node => connectedIds.has(node.id));
-
-        return connected;
-    }, [finalVisibleData, hideUnrelated, lineageGraph, debouncedSelectedSchemas, schemas.length, debouncedSelectedObjectTypes, objectTypes.length, debouncedSelectedTypes, dataModelTypes.length]);
+        return result;
+    }, [finalVisibleData, filterExtended, focusSchemas, lineageGraph]);
 
     return {
         finalVisibleData: finalConnectedData, // Return post-filtered data
@@ -370,8 +397,10 @@ export function useDataFiltering({
         setSearchTerm,
         hideIsolated,
         setHideIsolated,
-        hideUnrelated,
-        setHideUnrelated,
+        filterExtended,
+        setFilterExtended,
+        focusSchemas,
+        setFocusSchemas,
         highlightedNodes,
         setHighlightedNodes,
         autocompleteSuggestions,
