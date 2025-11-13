@@ -28,8 +28,12 @@ type ToolbarProps = {
     dataModelTypes: string[];
     layout: 'LR' | 'TB';
     setLayout: (layout: 'LR' | 'TB') => void;
-    hideUnrelated: boolean;
-    setHideUnrelated: (hide: boolean) => void;
+    hideIsolated: boolean;
+    setHideIsolated: (hide: boolean) => void;
+    filterExtended: boolean;
+    setFilterExtended: (filter: boolean) => void;
+    focusSchemas: Set<string>;
+    setFocusSchemas: (schemas: Set<string>) => void;
     isTraceModeActive: boolean;
     onStartTrace: () => void;
     onOpenImport: () => void;
@@ -57,7 +61,8 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         selectedSchemas, setSelectedSchemas, schemas,
         selectedObjectTypes, setSelectedObjectTypes, objectTypes,
         selectedTypes, setSelectedTypes, dataModelTypes,
-        layout, setLayout, hideUnrelated, setHideUnrelated,
+        layout, setLayout, hideIsolated, setHideIsolated, filterExtended, setFilterExtended,
+        focusSchemas, setFocusSchemas,
         isTraceModeActive, onStartTrace,
         onOpenImport, onOpenInfo, onExportSVG, onResetView,
         sqlViewerOpen, onToggleSqlViewer, sqlViewerEnabled, hasDdlData,
@@ -311,21 +316,41 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                             <div className="space-y-2 overflow-y-auto flex-1 pr-1">
                                 {filteredSchemas.length > 0 ? (
                                     filteredSchemas.map(s => (
-                                        <Checkbox
-                                            key={s}
-                                            checked={selectedSchemas.has(s)}
-                                            onChange={() => {
-                                                const newSet = new Set(selectedSchemas);
-                                                if (newSet.has(s)) newSet.delete(s);
-                                                else newSet.add(s);
-                                                setSelectedSchemas(newSet);
-                                            }}
-                                            label={
-                                                <span className="flex items-center gap-1.5">
-                                                    {s}
-                                                </span>
-                                            }
-                                        />
+                                        <div key={s} className="flex items-center gap-1.5">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    // Toggle focus
+                                                    const newFocus = new Set(focusSchemas);
+                                                    if (newFocus.has(s)) {
+                                                        newFocus.delete(s);
+                                                    } else {
+                                                        newFocus.add(s);
+                                                        // Auto-select schema when making it focus
+                                                        const newSelected = new Set(selectedSchemas);
+                                                        newSelected.add(s);
+                                                        setSelectedSchemas(newSelected);
+                                                    }
+                                                    setFocusSchemas(newFocus);
+                                                }}
+                                                className={`p-1 rounded hover:bg-gray-100 transition-colors flex-shrink-0 ${focusSchemas.has(s) ? 'text-yellow-500' : 'text-gray-300'}`}
+                                                title={focusSchemas.has(s) ? 'Remove from focus schemas' : 'Add to focus schemas (always fully visible)'}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                                                    <path fillRule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401Z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                            <Checkbox
+                                                checked={selectedSchemas.has(s)}
+                                                onChange={() => {
+                                                    const newSet = new Set(selectedSchemas);
+                                                    if (newSet.has(s)) newSet.delete(s);
+                                                    else newSet.add(s);
+                                                    setSelectedSchemas(newSet);
+                                                }}
+                                                label={s}
+                                            />
+                                        </div>
                                     ))
                                 ) : (
                                     <div className="text-xs text-gray-500 text-center py-4">
@@ -454,10 +479,19 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                     )}
                 </Button>
 
-                {/* Hide Unrelated Toggle */}
+                {/* Hide Isolated Nodes Toggle */}
                 <Button onClick={() => {
-                    setHideUnrelated(!hideUnrelated);
-                }} variant="icon" className={hideUnrelated ? 'bg-blue-50 text-blue-600' : ''} title={hideUnrelated ? 'Show All Nodes' : 'Hide Unrelated Nodes'}>
+                    setHideIsolated(!hideIsolated);
+                }} variant="icon" className={hideIsolated ? 'bg-blue-50 text-blue-600' : ''} title={hideIsolated ? 'Show Isolated Nodes' : 'Hide Isolated Nodes (degree = 0)'}>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                </Button>
+
+                {/* Filter Extended Schemas (Focus Schema Reachability) */}
+                <Button onClick={() => {
+                    setFilterExtended(!filterExtended);
+                }} variant="icon" className={filterExtended ? 'bg-blue-50 text-blue-600' : ''} title={filterExtended ? `Show All Extended Schemas` : `Filter Extended Schemas (show only if connected to focus ⭐)`} disabled={focusSchemas.size === 0}>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
                     </svg>

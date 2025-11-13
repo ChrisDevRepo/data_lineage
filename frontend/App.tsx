@@ -120,8 +120,12 @@ function DataLineageVisualizer() {
     setSelectedTypes,
     searchTerm,
     setSearchTerm,
-    hideUnrelated,
-    setHideUnrelated,
+    hideIsolated,
+    setHideIsolated,
+    filterExtended,
+    setFilterExtended,
+    focusSchemas,
+    setFocusSchemas,
     highlightedNodes,
     setHighlightedNodes,
     autocompleteSuggestions,
@@ -170,7 +174,7 @@ function DataLineageVisualizer() {
   // --- localStorage Persistence ---
   const hasInitializedPreferences = useRef(false);
 
-  // Load saved layout preference (schemas/types/hideUnrelated are loaded in useDataFiltering)
+  // Load saved layout preference (schemas/types/hideIsolated/filterExtended/focusSchemas are loaded in useDataFiltering)
   useEffect(() => {
     try {
       const saved = localStorage.getItem('lineage_filter_preferences');
@@ -205,7 +209,9 @@ function DataLineageVisualizer() {
       const preferences = {
         schemas: Array.from(selectedSchemas),
         types: Array.from(selectedTypes),
-        hideUnrelated,
+        hideIsolated,
+        filterExtended,
+        focusSchemas: Array.from(focusSchemas),
         layout
       };
       localStorage.setItem('lineage_filter_preferences', JSON.stringify(preferences));
@@ -213,7 +219,7 @@ function DataLineageVisualizer() {
     } catch (error) {
       console.error('[localStorage] Failed to save preferences:', error);
     }
-  }, [selectedSchemas, selectedTypes, hideUnrelated, layout]);
+  }, [selectedSchemas, selectedTypes, hideIsolated, filterExtended, focusSchemas, layout]);
 
   // --- Detect DDL Availability (memoized for performance) ---
   // DDL is now fetched on-demand via API, so always available when data is loaded
@@ -524,14 +530,14 @@ function DataLineageVisualizer() {
   }, [isInTraceExitMode, setHighlightedNodes]);
 
   const handleResetView = useCallback(() => {
-    // Reset view controls but PRESERVE schema, type, and hideUnrelated filter selections
+    // Reset view controls but PRESERVE schema, type, hideIsolated, filterExtended, and focusSchemas filter selections
     // Only reset: highlights, focus, search, excludeTerms, trace mode, traced filter mode
     setHighlightedNodes(new Set());
     setFocusedNodeId(null);
     setSearchTerm('');
     setExcludeTerm(''); // Clear exclude input field
     setActiveExcludeTerms([]); // Clear active exclude filters
-    // hideUnrelated is preserved (not reset) - it's a persistent filter preference
+    // hideIsolated, filterExtended, and focusSchemas are preserved (not reset) - they're persistent filter preferences
     setIsTraceModeActive(false); // Exit trace mode if active
     setTraceExitNodes(new Set());
     setIsInTraceExitMode(false);
@@ -973,8 +979,12 @@ function DataLineageVisualizer() {
             dataModelTypes={dataModelTypes}
             layout={layout}
             setLayout={setLayout}
-            hideUnrelated={hideUnrelated}
-            setHideUnrelated={setHideUnrelated}
+            hideIsolated={hideIsolated}
+            setHideIsolated={setHideIsolated}
+            filterExtended={filterExtended}
+            setFilterExtended={setFilterExtended}
+            focusSchemas={focusSchemas}
+            setFocusSchemas={setFocusSchemas}
             isTraceModeActive={isTraceModeActive}
             onStartTrace={() => setIsTraceModeActive(true)}
             onOpenImport={() => setIsImportModalOpen(true)}

@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import Graph from 'graphology';
+import { bfsFromNode } from 'graphology-traversal';
 import { TraceConfig, DataNode } from '../types';
 import { patternToRegex } from '../utils/layout';
 
@@ -122,46 +123,38 @@ export function useInteractiveTrace(
             );
         }
 
-        // Level mode: Traverse by levels (original behavior)
-        const visibleIds = new Set<string>([config.startNodeId]);
+        // Level mode: Traverse by levels using graphology-traversal
+        // This is a PERFECT use case for the library:
+        //   - Single source node ✓
+        //   - Unidirectional (upstream OR downstream) ✓
+        //   - Depth-limited ✓
+        //   - Conditional traversal (filter by schema/type) ✓
+        const visibleIds = new Set<string>();
 
-        const traverse = (
-            startNode: string,
-            maxLevels: number,
-            getNeighbors: (node: string, cb: (neighbor: string) => void) => void
-        ) => {
-            const queue: { id: string; level: number }[] = [{ id: startNode, level: 0 }];
-            const visited = new Set<string>([startNode]);
+        const traverse = (maxLevels: number, mode: 'inbound' | 'outbound') => {
+            bfsFromNode(lineageGraph, config.startNodeId, (nodeId, attr: DataNode, depth) => {
+                // Filter by schema
+                if (!config.includedSchemas.has(attr.schema)) return true;
 
-            let head = 0;
-            while (head < queue.length) {
-                const { id: currentId, level } = queue[head++];
-                if (level >= maxLevels) continue;
+                // Filter by data model type
+                if (attr.data_model_type && !config.includedTypes.has(attr.data_model_type)) return true;
 
-                getNeighbors(currentId, (neighborId) => {
-                    if (visited.has(neighborId)) return;
-                    visited.add(neighborId);
+                // Filter by exclusion patterns
+                const isExcluded = exclusionRegexes.some(regex => regex.test(attr.name));
+                if (isExcluded) return true;
 
-                    const neighborNode = lineageGraph.getNodeAttributes(neighborId) as DataNode;
-                    if (!neighborNode) return;
-                    if (!config.includedSchemas.has(neighborNode.schema)) return;
+                // Add to visible set
+                visibleIds.add(nodeId);
 
-                    // Filter by data model type if the node has one
-                    if (neighborNode.data_model_type && !config.includedTypes.has(neighborNode.data_model_type)) return;
+                // Stop exploring neighbors if we've reached max depth
+                if (depth >= maxLevels) return true;
 
-                    // Check if node matches any exclusion pattern
-                    const isExcluded = exclusionRegexes.some(regex => regex.test(neighborNode.name));
-                    if (isExcluded) return;
-
-                    // Add the neighbor to the visible set and continue traversing
-                    visibleIds.add(neighborId);
-                    queue.push({ id: neighborId, level: level + 1 });
-                });
-            }
+                return false; // Continue traversal
+            }, { mode });
         };
 
-        traverse(config.startNodeId, config.upstreamLevels, (node, cb) => lineageGraph.forEachInNeighbor(node, cb));
-        traverse(config.startNodeId, config.downstreamLevels, (node, cb) => lineageGraph.forEachOutNeighbor(node, cb));
+        traverse(config.upstreamLevels, 'inbound');
+        traverse(config.downstreamLevels, 'outbound');
 
         return visibleIds;
 

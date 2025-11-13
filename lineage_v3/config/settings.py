@@ -88,15 +88,23 @@ class PathSettings(BaseSettings):
 
 class PhantomSettings(BaseSettings):
     """
-    Phantom object configuration (v4.3.0).
+    Phantom object configuration (v4.3.3 - REDESIGNED).
 
-    Controls which schemas are eligible for phantom object creation.
-    Uses INCLUDE list approach with wildcard support.
+    NEW PHILOSOPHY:
+    - Phantoms = EXTERNAL dependencies only (schemas NOT in our metadata database)
+    - For schemas in our metadata DB, missing objects = DB quality issues (not our concern)
+    - We are NOT the authority to flag missing objects in schemas we manage
+
+    Configuration:
+    - PHANTOM_EXTERNAL_SCHEMAS: External schema names (exact match, no wildcards)
+    - Leave empty if no external dependencies
     """
-    include_schemas: str = Field(
-        default="CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B",
-        description="Comma-separated list of schema patterns for phantom creation (wildcards supported with *)"
+    external_schemas: str = Field(
+        default="",
+        description="Comma-separated list of EXTERNAL schema names (exact match, case-insensitive, NO wildcards)",
+        validation_alias='PHANTOM_EXTERNAL_SCHEMAS'
     )
+
     exclude_dbo_objects: str = Field(
         default="cte,cte_*,CTE*,ParsedData,PartitionedCompany*,#*,@*,temp_*,tmp_*,[a-z],[A-Z]",
         description="Comma-separated list of object name patterns to exclude in dbo schema"
@@ -104,8 +112,12 @@ class PhantomSettings(BaseSettings):
 
     @property
     def include_schema_list(self) -> list[str]:
-        """Parse comma-separated include patterns for phantom creation"""
-        return [s.strip() for s in self.include_schemas.split(',') if s.strip()]
+        """
+        Parse external schema list (v4.3.3).
+
+        Returns exact schema names (no wildcards).
+        """
+        return [s.strip() for s in self.external_schemas.split(',') if s.strip()]
 
     @property
     def exclude_dbo_pattern_list(self) -> list[str]:
@@ -114,7 +126,8 @@ class PhantomSettings(BaseSettings):
 
     model_config = SettingsConfigDict(
         env_prefix='PHANTOM_',
-        case_sensitive=False
+        case_sensitive=False,
+        populate_by_name=True
     )
 
 

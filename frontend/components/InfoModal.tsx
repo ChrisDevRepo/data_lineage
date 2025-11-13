@@ -99,7 +99,7 @@ export const InfoModal = ({ isOpen, onClose }: InfoModalProps) => {
                             </Feature>
 
                             <Feature icon={<FilterIcon />} title="Filter & Focus">
-                                Filter the canvas to show only specific schemas or object types. Use pattern-based exclusions to hide temporary or backup objects and simplify complex diagrams.
+                                Filter the canvas by schemas or object types. Click the <strong>⭐ star icon</strong> next to schemas to designate them as <strong>focus schemas</strong> (master/anchor). When enabled, extended schemas show only nodes connected to focus schemas. Use <strong>Hide Isolated Nodes</strong> to remove nodes with no connections, and pattern-based exclusions to hide temporary or backup objects.
                             </Feature>
 
                             <Feature icon={<TraceIcon />} title="Interactive Trace">
