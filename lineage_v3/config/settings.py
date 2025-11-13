@@ -105,13 +105,6 @@ class PhantomSettings(BaseSettings):
         validation_alias='PHANTOM_EXTERNAL_SCHEMAS'
     )
 
-    # Backward compatibility with old naming
-    include_schemas: str | None = Field(
-        default=None,
-        description="[DEPRECATED v4.3.3] Use external_schemas instead",
-        validation_alias='PHANTOM_INCLUDE_SCHEMAS'
-    )
-
     exclude_dbo_objects: str = Field(
         default="cte,cte_*,CTE*,ParsedData,PartitionedCompany*,#*,@*,temp_*,tmp_*,[a-z],[A-Z]",
         description="Comma-separated list of object name patterns to exclude in dbo schema"
@@ -123,11 +116,8 @@ class PhantomSettings(BaseSettings):
         Parse external schema list (v4.3.3).
 
         Returns exact schema names (no wildcards).
-        Supports backward compatibility with old naming.
         """
-        # Use new naming if set, otherwise fall back to old naming for backward compatibility
-        schemas_str = self.external_schemas or self.include_schemas or ""
-        return [s.strip() for s in schemas_str.split(',') if s.strip()]
+        return [s.strip() for s in self.external_schemas.split(',') if s.strip()]
 
     @property
     def exclude_dbo_pattern_list(self) -> list[str]:
