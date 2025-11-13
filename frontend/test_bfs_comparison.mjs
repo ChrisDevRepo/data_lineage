@@ -1,6 +1,6 @@
 // Test to verify manual BFS and graphology BFS produce identical results
 import Graph from 'graphology';
-import { bfs } from 'graphology-traversal';
+import { bfsFromNode } from 'graphology-traversal';
 
 // Create test graph matching your scenario
 const graph = new Graph({ type: 'directed' });
@@ -59,18 +59,24 @@ function manualBFS() {
     return reachable;
 }
 
-// GRAPHOLOGY BFS (new implementation)
+// GRAPHOLOGY BFS (corrected implementation)
 function graphologyBFS() {
     const reachable = new Set(focusNodeIds);
 
     focusNodeIds.forEach(startNodeId => {
         try {
-            bfs(graph, startNodeId, (node, attr, depth) => {
-                if (visibleIds.has(node) && !reachable.has(node)) {
+            bfsFromNode(graph, startNodeId, (node, attr, depth) => {
+                // If already processed, skip
+                if (reachable.has(node)) return false;
+
+                // If node is in visible set, add it and continue traversal
+                if (visibleIds.has(node)) {
                     reachable.add(node);
-                    return true;
+                    return false; // Continue traversal
                 }
-                return false;
+
+                // Node not in visible set - skip its neighbors
+                return true; // Don't traverse through unselected schemas
             });
         } catch (e) {
             console.error('Graphology BFS error:', e);

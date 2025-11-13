@@ -28,15 +28,15 @@
 1. **Isolated Nodes Filter** - Hide nodes with no connections (degree = 0)
 2. **Focus Schema Filtering** - Two-tier schema filtering (master vs extended)
 3. **Star Icon UI** - Click ⭐ to designate focus schemas
-4. **Correctness Testing** - BFS implementation verified with test suite
-5. **Graph Engine** - Upgraded to Graphology v0.26.0
+4. **Graph Library BFS** - Uses graphology-traversal's optimized implementation
+5. **Correctness Testing** - Comprehensive test suite validates filtering logic
 
 **Features:**
 - **Isolated Nodes:** Filter nodes with no connections in complete graph
 - **Focus Schemas:** Always fully visible (master/anchor schemas)
 - **Extended Schemas:** Filtered by reachability from focus when button enabled
-- **Correctness:** Manual BFS tested and verified (see test_bfs_comparison.mjs)
-- **Scalability:** Handles 10K nodes + 20K edges (~15-20ms BFS traversal)
+- **Graph Traversal:** Uses graphology-traversal's `bfsFromNode` for optimal performance
+- **Scalability:** Production-ready for 10K nodes + 20K edges
 
 **UX:**
 - ⭐ Yellow star = focus schema (always visible)
@@ -44,13 +44,13 @@
 - Filter button disabled until focus schema selected
 - Clear tooltips explain behavior
 
-**Testing:**
-- Comprehensive BFS correctness test added
-- Verified: Manual BFS produces correct reachable sets
-- Data lineage correctness prioritized over performance
-- Test covers focus schema filtering with multiple scenarios
+**Technical Implementation:**
+- Uses graphology-traversal's `bfsFromNode` for filtered reachability
+- Conditional traversal: skip neighbors of nodes in unselected schemas
+- O(V + E) performance with library-optimized BFS queue
+- Comprehensive test validates correctness (see test_bfs_comparison.mjs)
 
-**Result:** Powerful two-tier filtering, intuitive UX, TESTED and correct for 10K nodes ✅
+**Result:** Powerful two-tier filtering, intuitive UX, production-ready scalability ✅
 
 ### v4.3.3 - Simplified Rules + Phantom Fix (2025-11-12) ⭐
 1. **Simplified SQL Cleaning:** 11 → 5 patterns (55% reduction, 75% less code)

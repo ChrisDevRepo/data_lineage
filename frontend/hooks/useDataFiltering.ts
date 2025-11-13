@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { DataNode, TraceConfig } from '../types';
 import Graph from 'graphology';
+import { bfsFromNode } from 'graphology-traversal';
 import { INTERACTION_CONSTANTS } from '../interaction-constants';
 import { patternToRegex } from '../utils/layout';
 
@@ -359,27 +360,30 @@ export function useDataFiltering({
         // Build reachable set via BFS graph traversal (bidirectional)
         // IMPORTANT: Only traverse to nodes that are in the visible set (respect schema filters)
         // Performance: O(V + E) where V = nodes, E = edges
-        // NOTE: Manual BFS used instead of graphology-traversal due to correctness requirements
-        //       (tested - graphology BFS produced incorrect results with filtered traversal)
+        // Uses graphology-traversal's optimized BFS implementation
         const visibleIds = new Set(finalVisibleData.map(n => n.id));
         const reachable = new Set(focusNodeIds);
-        const queue = Array.from(focusNodeIds);
 
-        while (queue.length > 0) {
-            const nodeId = queue.shift()!;
+        // Run BFS from each focus node using graphology-traversal
+        focusNodeIds.forEach(startNodeId => {
             try {
-                const neighbors = lineageGraph.neighbors(nodeId);
-                for (const neighbor of neighbors) {
-                    // Only add if neighbor is in visible set (selected schemas) and not already reached
-                    if (visibleIds.has(neighbor) && !reachable.has(neighbor)) {
-                        reachable.add(neighbor);
-                        queue.push(neighbor);
+                bfsFromNode(lineageGraph, startNodeId, (nodeId, attr, depth) => {
+                    // If already processed, continue
+                    if (reachable.has(nodeId)) return false;
+
+                    // If node is in visible set (selected schemas), add it and continue traversal
+                    if (visibleIds.has(nodeId)) {
+                        reachable.add(nodeId);
+                        return false; // Continue traversal from this node
                     }
-                }
+
+                    // Node not in visible set - skip its neighbors (don't traverse through unselected schemas)
+                    return true; // Skip neighbors
+                });
             } catch (e) {
                 // Node might not be in graph
             }
-        }
+        });
 
         // Filter: show if in focus schema OR reachable from focus (and in selected schemas)
         const result = finalVisibleData.filter(n => {
