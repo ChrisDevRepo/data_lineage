@@ -27,15 +27,28 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Q
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from models import (
-    UploadResponse,
-    JobStatusResponse,
-    LineageResultResponse,
-    HealthResponse,
-    ErrorResponse,
-    JobStatus
-)
-from background_tasks import process_lineage_job
+try:
+    # Try absolute import first (for pytest from project root)
+    from api.models import (
+        UploadResponse,
+        JobStatusResponse,
+        LineageResultResponse,
+        HealthResponse,
+        ErrorResponse,
+        JobStatus
+    )
+    from api.background_tasks import process_lineage_job
+except ImportError:
+    # Fall back to relative import (for running from api/ directory)
+    from models import (
+        UploadResponse,
+        JobStatusResponse,
+        LineageResultResponse,
+        HealthResponse,
+        ErrorResponse,
+        JobStatus
+    )
+    from background_tasks import process_lineage_job
 
 # Configure logging
 logging.basicConfig(

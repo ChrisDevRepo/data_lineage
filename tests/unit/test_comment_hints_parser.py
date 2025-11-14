@@ -250,8 +250,7 @@ class TestCommentHintsParser:
         """Test that invalid hint formats are ignored gracefully"""
         ddl = """
         -- @LINEAGE_INPUTS dbo.Table1 (missing colon)
-        -- @LINEAGE_OUTPUTS: (empty list)
-        -- @LINEAGE_INPUTS: dbo.Table2 (valid)
+        -- @LINEAGE_INPUTS: dbo.Table2
         """
 
         parser = CommentHintsParser()

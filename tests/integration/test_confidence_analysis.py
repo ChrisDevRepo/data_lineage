@@ -22,7 +22,7 @@ class TestConfidenceDistribution:
         with_deps = db_connection.execute("""
             SELECT COUNT(*) FROM lineage_metadata
             WHERE primary_source = 'parser'
-              AND (inputs IS NOT NULL AND inputs != '' OR outputs IS NOT NULL AND outputs != '')
+              AND (json_array_length(COALESCE(inputs, '[]')) > 0 OR json_array_length(COALESCE(outputs, '[]')) > 0)
         """).fetchone()[0]
 
         success_rate = (with_deps / total) * 100 if total > 0 else 0

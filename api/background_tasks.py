@@ -570,7 +570,11 @@ class LineageProcessor:
                     primary_source=result.get('primary_source', 'parser'),
                     confidence=result['confidence'],
                     inputs=result.get('inputs', []),
-                    outputs=result.get('outputs', [])
+                    outputs=result.get('outputs', []),
+                    confidence_breakdown=result.get('confidence_breakdown'),
+                    parse_failure_reason=result.get('parse_failure_reason'),
+                    expected_count=result.get('expected_count'),
+                    found_count=result.get('found_count')
                 )
             except Exception as e:
                 # Log parsing failure and continue with next SP

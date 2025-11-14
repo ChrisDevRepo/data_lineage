@@ -46,6 +46,9 @@ lineage_workspace.*
 # Parquet snapshots (may contain sensitive data)
 parquet_snapshots/*.parquet
 
+# Temp folder (uploaded parquet files and development artifacts)
+temp/
+
 # Lineage output (generated files should not be tracked)
 lineage_output/*.json
 
