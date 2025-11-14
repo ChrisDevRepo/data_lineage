@@ -237,11 +237,42 @@ diff baseline_before.txt baseline_after.txt
 
 **Active System:** 17 Python rules in `lineage_v3/parsers/sql_cleaning_rules.py`
 
+### 🚨 MANDATORY Process for Rule Engine Changes
+
+**⚠️ CRITICAL: Always check journal before making changes!**
+
+```bash
+# STEP 1: Check change journal (MANDATORY)
+cat docs/PARSER_CHANGE_JOURNAL.md | grep -A 10 "DO NOT"
+# Review past issues, root causes, and what NOT to change
+
+# STEP 2: Document baseline (MANDATORY)
+python3 scripts/testing/check_parsing_results.py > baseline_before.txt
+
+# STEP 3: Make rule changes
+# Edit lineage_v3/parsers/sql_cleaning_rules.py
+
+# STEP 4: Run test suite (MANDATORY)
+pytest tests/unit/test_parser_golden_cases.py -v  # Regression detection
+pytest tests/unit/test_user_verified_cases.py -v  # User-reported cases
+python3 scripts/testing/check_parsing_results.py > baseline_after.txt
+diff baseline_before.txt baseline_after.txt
+
+# STEP 5: Acceptance criteria
+# ✅ 100% success rate maintained
+# ✅ No regressions in confidence distribution
+# ✅ All user-verified tests pass
+# ✅ Rule examples work correctly
+# ✅ No new patterns added to "DO NOT" journal
+```
+
 **Add new rules:**
 1. Edit `lineage_v3/parsers/sql_cleaning_rules.py`
 2. Add new rule method (RegexRule or CallbackRule)
 3. Register in `_load_default_rules()`
 4. Test with built-in examples
+5. Run full test suite (see process above)
+6. Document in journal if fixing user-reported issue
 
 Example:
 ```python
@@ -258,6 +289,48 @@ def remove_print() -> RegexRule:
 ```
 
 See [docs/PYTHON_RULES.md](docs/PYTHON_RULES.md) for complete documentation (17 rules, execution order, critical fixes).
+
+### 🚨 MANDATORY Process for SQLGlot Settings Changes
+
+**⚠️ CRITICAL: Changing ErrorLevel or dialect can break everything!**
+
+```bash
+# STEP 1: Check change journal (MANDATORY)
+cat docs/PARSER_CHANGE_JOURNAL.md | grep -E "WARN|ErrorLevel|dialect"
+# Review: WARN mode regression, ErrorLevel behavior
+
+# STEP 2: Read critical reference (MANDATORY)
+cat docs/PARSER_CRITICAL_REFERENCE.md | grep -A 20 "ErrorLevel"
+# Understand: RAISE vs WARN vs IGNORE behavior
+
+# STEP 3: Document baseline (MANDATORY)
+python3 scripts/testing/check_parsing_results.py > baseline_before.txt
+
+# STEP 4: Make SQLGlot changes
+# Only change: lineage_v3/parsers/quality_aware_parser.py
+# Settings: error_level, dialect, read_settings
+
+# STEP 5: Run FULL test suite (MANDATORY)
+pytest tests/unit/test_parser_golden_cases.py::TestErrorLevelBehavior -v
+pytest tests/unit/test_user_verified_cases.py -v
+python3 scripts/testing/check_parsing_results.py > baseline_after.txt
+diff baseline_before.txt baseline_after.txt
+
+# STEP 6: Acceptance criteria (STRICT)
+# ✅ 100% success rate maintained (NO EXCEPTIONS)
+# ✅ NO SPs with empty lineage (inputs=[], outputs=[])
+# ✅ ErrorLevel tests pass (RAISE mode behavior)
+# ✅ All user-verified tests pass
+# ✅ Confidence distribution unchanged or improved
+```
+
+**Never change without approval:**
+- `ErrorLevel.RAISE` → Any other mode
+- Dialect settings
+- Parser read_settings
+- Empty command node check
+
+**If ANY test fails → ROLLBACK IMMEDIATELY**
 
 ## Testing & Validation
 

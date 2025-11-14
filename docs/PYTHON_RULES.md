@@ -14,6 +14,28 @@
 >
 > **To modify rules:** Edit `lineage_v3/parsers/sql_cleaning_rules.py` directly.
 
+## 🚨 MANDATORY: Check Journal Before Making Changes
+
+**⚠️ CRITICAL: ALWAYS check change journal BEFORE modifying rules!**
+
+```bash
+# STEP 1: Check journal (MANDATORY)
+cat docs/PARSER_CHANGE_JOURNAL.md | grep -A 10 "DO NOT"
+cat docs/PARSER_CHANGE_JOURNAL.md | grep -E "rule|cleaning|preprocessing"
+
+# Review:
+# - Past rule issues and root causes
+# - What NOT to change (defensive patterns)
+# - Patterns that caused regressions
+# - User-verified corrections
+```
+
+**Why this is mandatory:**
+- Rule changes affect ALL 349 stored procedures
+- One bad pattern can break 100% success rate
+- Past issues documented: WARN mode, IF EXISTS, DECLARE/SET conflicts
+- "Never change a running system" - validate heavily before changing
+
 ---
 
 ## Overview

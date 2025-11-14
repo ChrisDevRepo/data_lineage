@@ -177,12 +177,30 @@ r'DECLARE\s+(@\w+)\s+(\w+(?:\([^\)]*\))?)\s*=\s*\((?:[^()]|\([^()]*\))*\)'
 
 ## ✅ Testing Protocol (Before ANY Change)
 
-### 1. Record Baseline
+### 1. Check Change Journal (MANDATORY)
+```bash
+# ALWAYS check journal BEFORE making changes
+cat docs/PARSER_CHANGE_JOURNAL.md | grep -A 10 "DO NOT"
+
+# For rule engine changes
+cat docs/PARSER_CHANGE_JOURNAL.md | grep -E "rule|cleaning|preprocessing"
+
+# For SQLGlot changes
+cat docs/PARSER_CHANGE_JOURNAL.md | grep -E "WARN|ErrorLevel|dialect"
+```
+
+**Why this is critical:**
+- Prevents repeating past mistakes
+- Shows what NOT to change
+- Explains root causes of previous issues
+- Documents user-verified corrections
+
+### 2. Record Baseline
 ```bash
 python3 scripts/testing/check_parsing_results.py > baseline_before.txt
 ```
 
-### 2. Make ONE Change at a Time
+### 3. Make ONE Change at a Time
 - Never change multiple things at once
 - Test after each change
 - Rollback immediately if regression

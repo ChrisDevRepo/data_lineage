@@ -4,6 +4,19 @@
 
 **Source:** Auto-generated from `tests/fixtures/user_verified_cases/*.yaml`
 
+## 🚨 CRITICAL: Check This Journal BEFORE Making Changes
+
+**⚠️ MANDATORY REQUIREMENT:**
+- **Rule engine changes** → Check journal for preprocessing/cleaning patterns
+- **SQLGlot changes** → Check journal for ErrorLevel/dialect/WARN mode issues
+- **Parser logic changes** → Check journal for regression patterns
+
+**Why this matters:**
+- Prevents repeating past mistakes (e.g., WARN mode regression)
+- Shows what NOT to change (defensive checks, critical patterns)
+- Explains root causes (not just symptoms)
+- Documents user-verified corrections
+
 **Philosophy:** Every user-reported bug becomes a permanent record with:
 - What was wrong (issue)
 - Why it happened (root cause)
