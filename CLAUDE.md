@@ -21,22 +21,25 @@
 
 ## Recent Updates
 
+### v4.3.3 - CI/CD Workflows + Integration Tests (2025-11-14) 🚀
+- Parser Validation Workflow: 5 automated jobs validate parser changes
+- 64 pytest integration tests (database validation, confidence analysis, SQLGlot performance)
+- Baseline comparison blocks regressions (confidence distribution)
+- Tests skip gracefully in CI without workspace database
+- **Result:** Comprehensive automated validation prevents regressions ✅
+
+See .github/workflows/README.md and tests/integration/README.md for details.
+
 ### v4.3.3 - Frontend Filtering + Simplified Rules (2025-11-13) 🎯
 - Isolated Nodes Filter, Focus Schema Filtering, Interactive Trace (BFS)
 - Two-tier filtering, ⭐ UI for focus designation, 10K nodes ready
 - Tests pass: 5/5 focus, 4/4 trace, edge cases covered
 - **Result:** Powerful filtering + optimized graph traversal ✅
 
-See docs/GRAPHOLOGY_BFS_ANALYSIS.md for technical details.
-
 ### v4.3.3 - Simplified Rules + Phantom Fix (2025-11-12) ⭐
 - SQL patterns: 11 → 5 (55% reduction), phantom filter fixed
 - 54% faster preprocessing, eliminated conflicts, removed 8 invalid schemas
 - **Result:** 100% success maintained, zero regressions ✅
-
-### v4.3.2 - Defensive Improvements (2025-11-12) 🛡️
-- Empty command node check, performance tracking, SELECT simplification
-- **Result:** 100% success, zero regressions ✅
 
 ## Quick Start
 
@@ -50,6 +53,7 @@ See docs/GRAPHOLOGY_BFS_ANALYSIS.md for technical details.
 
 ```
 /
+├── .github/workflows/      # CI/CD pipelines (parser validation, PR checks)
 ├── api/                    # FastAPI backend
 ├── frontend/               # React + React Flow UI
 ├── lineage_v3/             # Core parsing engine
@@ -60,8 +64,10 @@ See docs/GRAPHOLOGY_BFS_ANALYSIS.md for technical details.
 ├── docs/                   # Documentation
 │   ├── PARSER_CRITICAL_REFERENCE.md
 │   ├── PARSER_TECHNICAL_GUIDE.md
-│   └── reports/PARSER_ANALYSIS_V4.3.2.md
-└── tests/                  # Test suite (73+ tests)
+│   └── reports/
+└── tests/                  # Test suite (137+ tests: 73 unit + 64 integration)
+    ├── unit/               # Unit tests (parser, API, fixtures)
+    └── integration/        # Integration tests (database validation, SQLGlot)
 ```
 
 ## Graph Library Usage (Graphology)
@@ -175,7 +181,29 @@ See docs/PARSER_CHANGE_JOURNAL.md for past regressions and what NOT to change.
 
 ## Testing & Validation
 
-**Parser Validation:**
+**CI/CD Workflows (Automated):**
+- **Parser Validation** - Triggers on parser file changes, runs 5 jobs (unit tests, integration tests, baseline comparison)
+- **CI Validation** - Full pipeline on every push (backend, frontend, E2E)
+- **PR Validation** - Fast quality checks and parser change warnings
+
+See `.github/workflows/README.md` for complete workflow documentation.
+
+**Local Testing:**
+```bash
+# Unit tests (73 tests)
+pytest tests/unit/ -v
+
+# Integration tests (64 tests, requires workspace database)
+pytest tests/integration/ -v
+
+# All tests
+pytest tests/ -v  # 137+ tests
+
+# Frontend E2E
+cd frontend && npm run test:e2e  # 90+ tests
+```
+
+**Parser Validation Scripts:**
 ```bash
 python3 scripts/testing/check_parsing_results.py  # Full results
 python3 scripts/testing/analyze_lower_confidence_sps.py  # Why not 100%?
@@ -183,17 +211,17 @@ python3 scripts/testing/verify_sp_parsing.py  # Specific SP analysis
 ./scripts/testing/test_upload.sh  # API end-to-end
 ```
 
-**Unit Tests:**
-```bash
-pytest tests/ -v  # 73+ tests, < 1 second
-```
-
-**Frontend E2E:**
-```bash
-cd frontend && npm run test:e2e  # 90+ tests
-```
-
 **User-Verified Tests:** `tests/unit/test_parser_golden_cases.py` - Detects regressions immediately
+
+**Integration Test Modules (64 tests):**
+- `test_database_validation.py` - Overall statistics, confidence distribution (13 tests)
+- `test_sp_parsing_details.py` - Phantom detection, table validation (8 tests)
+- `test_confidence_analysis.py` - Why some SPs have lower confidence (11 tests)
+- `test_sqlglot_performance.py` - SQLGlot enhancement impact (14 tests)
+- `test_failure_analysis.py` - Root cause investigation (8 tests)
+- `test_sp_deep_debugging.py` - Debugging workflows (10 tests)
+
+See `tests/integration/README.md` for complete test documentation.
 
 ## Documentation
 
@@ -203,11 +231,15 @@ cd frontend && npm run test:e2e  # 90+ tests
 - PARSER_CHANGE_JOURNAL.md - MANDATORY: check before rule/SQLGlot changes
 - PARSER_V4.3.3_SUMMARY.md - Complete v4.3.3 summary
 
+**CI/CD & Testing:**
+- .github/workflows/README.md - CI/CD workflows, validation requirements
+- tests/integration/README.md - Integration tests (64 tests), running locally
+- tests/fixtures/user_verified_cases/README.md - User-verified test cases
+
 **Quick Access:**
 - Setup: docs/SETUP.md | Usage: docs/USAGE.md | API: docs/REFERENCE.md
 - Configuration: docs/reports/CONFIGURATION_VERIFICATION_REPORT.md
 - Performance: docs/PERFORMANCE_ANALYSIS.md
-- User-Verified Tests: tests/fixtures/user_verified_cases/README.md
 
 See docs/DOCUMENTATION.md for complete index.
 
@@ -297,4 +329,6 @@ See .claude/agents/README.md for complete table, tools, and example workflows.
 - Complete Summary: [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md)
 - Critical Reference: [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md)
 - Technical Guide: [docs/PARSER_TECHNICAL_GUIDE.md](docs/PARSER_TECHNICAL_GUIDE.md)
+- CI/CD Workflows: [.github/workflows/README.md](.github/workflows/README.md)
+- Integration Tests: [tests/integration/README.md](tests/integration/README.md)
 - Configuration Verification: [docs/reports/CONFIGURATION_VERIFICATION_REPORT.md](docs/reports/CONFIGURATION_VERIFICATION_REPORT.md)
