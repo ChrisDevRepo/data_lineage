@@ -226,6 +226,83 @@ class LineageProcessor:
 
         return None
 
+    def _parse_stored_procedures(
+        self,
+        db: 'DuckDBWorkspace',
+        sps_to_parse: List[Dict],
+        start_progress: float = 40.0,
+        end_progress: float = 80.0
+    ) -> None:
+        """
+        Parse stored procedures using QualityAwareParser.
+
+        Extracted from process() method to improve maintainability and testability.
+
+        Args:
+            db: DuckDB workspace instance
+            sps_to_parse: List of SP dictionaries to parse (from get_objects_to_parse)
+            start_progress: Starting progress percentage (default 40%)
+            end_progress: Ending progress percentage (default 80%)
+
+        Note:
+            Updates lineage_metadata table directly via db.update_metadata()
+            Logs errors but continues processing remaining SPs
+        """
+        if not sps_to_parse:
+            logger.info("No stored procedures to parse")
+            return
+
+        parser = QualityAwareParser(db)
+        total_sps = len(sps_to_parse)
+
+        for i, sp_dict in enumerate(sps_to_parse):
+            # Calculate progress within the range
+            progress_pct = start_progress + ((end_progress - start_progress) * (i + 1) / total_sps)
+
+            # Update status (with stats every 10 SPs or at end)
+            include_stats = (i + 1) % 10 == 0 or (i + 1) == total_sps
+            self.update_status(
+                "processing",
+                progress_pct,
+                f"Parsing stored procedures ({i+1}/{total_sps})",
+                f"Analyzing {sp_dict['schema_name']}.{sp_dict['object_name']}...",
+                include_stats=include_stats
+            )
+
+            try:
+                # Parse with QualityAwareParser
+                result = parser.parse_object(sp_dict['object_id'])
+
+                # Persist result to lineage_metadata
+                db.update_metadata(
+                    object_id=sp_dict['object_id'],
+                    modify_date=sp_dict['modify_date'],
+                    primary_source=result.get('primary_source', 'parser'),
+                    confidence=result['confidence'],
+                    inputs=result.get('inputs', []),
+                    outputs=result.get('outputs', [])
+                )
+            except Exception as e:
+                # Log parsing failure and continue with next SP
+                logger.error(
+                    f"Failed to parse SP {sp_dict['schema_name']}.{sp_dict['object_name']} "
+                    f"(object_id={sp_dict['object_id']}): {e}",
+                    exc_info=True
+                )
+                # Store failure in metadata for visibility
+                try:
+                    db.update_metadata(
+                        object_id=sp_dict['object_id'],
+                        modify_date=sp_dict['modify_date'],
+                        primary_source='parser',
+                        confidence=0.0,
+                        inputs=[],
+                        outputs=[],
+                        parse_failure_reason=f"Parser error: {str(e)[:200]}"
+                    )
+                except Exception as meta_error:
+                    logger.error(f"Failed to store error metadata: {meta_error}")
+
     def process(self) -> Dict:
         """
         Execute the lineage pipeline.
@@ -383,54 +460,13 @@ class LineageProcessor:
                 # Filter objects_to_parse for SPs only
                 sps_to_parse = [obj for obj in objects_to_parse if obj['object_type'] == 'Stored Procedure']
 
-                if sps_to_parse:
-                    parser = QualityAwareParser(db)
-
-                    for i, sp_dict in enumerate(sps_to_parse):
-                        # Update progress (with stats every 10 SPs or at end)
-                        sp_progress = 40 + (40 * (i + 1) / len(sps_to_parse))  # 40% to 80%
-                        include_stats = (i + 1) % 10 == 0 or (i + 1) == len(sps_to_parse)
-                        self.update_status(
-                            "processing",
-                            sp_progress,
-                            f"Parsing stored procedures ({i+1}/{len(sps_to_parse)})",
-                            f"Analyzing {sp_dict['schema_name']}.{sp_dict['object_name']}...",
-                            include_stats=include_stats
-                        )
-
-                        try:
-                            # Parse with QualityAwareParser
-                            result = parser.parse_object(sp_dict['object_id'])
-
-                            # Persist result to lineage_metadata
-                            db.update_metadata(
-                                object_id=sp_dict['object_id'],
-                                modify_date=sp_dict['modify_date'],
-                                primary_source=result.get('primary_source', 'parser'),
-                                confidence=result['confidence'],
-                                inputs=result.get('inputs', []),
-                                outputs=result.get('outputs', [])
-                            )
-                        except Exception as e:
-                            # Log parsing failure and continue with next SP
-                            logger.error(
-                                f"Failed to parse SP {sp_dict['schema_name']}.{sp_dict['object_name']} "
-                                f"(object_id={sp_dict['object_id']}): {e}",
-                                exc_info=True
-                            )
-                            # Store failure in metadata for visibility
-                            try:
-                                db.update_metadata(
-                                    object_id=sp_dict['object_id'],
-                                    modify_date=sp_dict['modify_date'],
-                                    primary_source='parser',
-                                    confidence=0.0,
-                                    inputs=[],
-                                    outputs=[],
-                                    parse_failure_reason=f"Parser error: {str(e)[:200]}"
-                                )
-                            except Exception as meta_error:
-                                logger.error(f"Failed to store error metadata: {meta_error}")
+                # Parse stored procedures (extracted method for better maintainability)
+                self._parse_stored_procedures(
+                    db=db,
+                    sps_to_parse=sps_to_parse,
+                    start_progress=40.0,
+                    end_progress=80.0
+                )
 
                 step_times['parse_sps'] = time.time() - step_start
                 step_start = time.time()
