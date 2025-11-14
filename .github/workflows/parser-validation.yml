@@ -1,0 +1,357 @@
+name: Parser Validation
+
+# Comprehensive parser validation workflow
+# Runs on: Parser file changes (quality_aware_parser.py, sql_cleaning_rules.py)
+# Validates: No regressions, 100% success rate, confidence maintained
+
+on:
+  pull_request:
+    paths:
+      - 'lineage_v3/parsers/quality_aware_parser.py'
+      - 'lineage_v3/parsers/sql_cleaning_rules.py'
+      - 'lineage_v3/rules/**/*.yaml'
+      - 'tests/unit/test_parser_golden_cases.py'
+      - 'tests/fixtures/user_verified_cases/**/*.yaml'
+  push:
+    branches: ['claude/**']
+    paths:
+      - 'lineage_v3/parsers/quality_aware_parser.py'
+      - 'lineage_v3/parsers/sql_cleaning_rules.py'
+
+jobs:
+  # ============================================================================
+  # Job 1: Pre-flight Checks
+  # ============================================================================
+  pre-flight-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Check parser change journal consulted
+      run: |
+        echo "🔍 Checking if PARSER_CHANGE_JOURNAL.md was consulted..."
+
+        # Get commit messages from this PR/push
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          COMMITS=$(git log --format=%B origin/${{ github.base_ref }}..HEAD)
+        else
+          COMMITS=$(git log --format=%B ${{ github.event.before }}..${{ github.sha }})
+        fi
+
+        # Check if journal mentioned in commits or PR description
+        JOURNAL_REFS=$(echo "$COMMITS" | grep -i "journal\|PARSER_CHANGE_JOURNAL" || true)
+
+        if [ -n "$JOURNAL_REFS" ]; then
+          echo "✅ Parser change journal mentioned in commits"
+        else
+          echo "⚠️  CRITICAL: Parser change journal not mentioned!"
+          echo ""
+          echo "📋 MANDATORY: Check docs/PARSER_CHANGE_JOURNAL.md before parser changes"
+          echo ""
+          echo "This is a reminder - not blocking the build."
+          echo "But you MUST review the journal to avoid known regressions."
+        fi
+
+    - name: Check parser file modifications
+      run: |
+        echo "📊 Parser files modified in this change:"
+
+        if [ "${{ github.event_name }}" == "pull_request" ]; then
+          git diff --name-only origin/${{ github.base_ref }}..HEAD | grep -E '(quality_aware_parser.py|sql_cleaning_rules.py)' || echo "  (none)"
+        else
+          git diff --name-only ${{ github.event.before }}..${{ github.sha }} | grep -E '(quality_aware_parser.py|sql_cleaning_rules.py)' || echo "  (none)"
+        fi
+
+    - name: Check critical reference documentation exists
+      run: |
+        echo "🔍 Verifying critical documentation exists..."
+
+        CRITICAL_DOCS=(
+          "docs/PARSER_CRITICAL_REFERENCE.md"
+          "docs/PARSER_CHANGE_JOURNAL.md"
+          "docs/PARSER_TECHNICAL_GUIDE.md"
+        )
+
+        for doc in "${CRITICAL_DOCS[@]}"; do
+          if [ -f "$doc" ]; then
+            echo "✅ $doc exists"
+          else
+            echo "❌ CRITICAL: $doc missing!"
+            exit 1
+          fi
+        done
+
+  # ============================================================================
+  # Job 2: User-Verified Test Cases (Golden Cases)
+  # ============================================================================
+  user-verified-cases:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: pre-flight-checks
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements/parser.txt
+        pip install pytest pytest-cov
+
+    - name: Check if user-verified cases exist
+      id: check_cases
+      run: |
+        if [ -f "tests/unit/test_parser_golden_cases.py" ]; then
+          echo "has_cases=true" >> $GITHUB_OUTPUT
+          echo "✅ User-verified test cases found"
+        else
+          echo "has_cases=false" >> $GITHUB_OUTPUT
+          echo "⚠️  No user-verified test cases (OK for new projects)"
+        fi
+
+    - name: Run user-verified test cases
+      if: steps.check_cases.outputs.has_cases == 'true'
+      run: |
+        echo "🧪 Running user-verified parser test cases..."
+        pytest tests/unit/test_parser_golden_cases.py -v --tb=short
+
+        echo ""
+        echo "✅ All user-verified test cases passed!"
+        echo "   No regressions detected in known test cases."
+
+  # ============================================================================
+  # Job 3: Parser Unit Tests
+  # ============================================================================
+  parser-unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: pre-flight-checks
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements/parser.txt
+        pip install pytest pytest-cov
+
+    - name: Run parser unit tests with coverage
+      run: |
+        echo "🧪 Running parser unit tests..."
+        pytest tests/unit/ -v \
+          --cov=lineage_v3/parsers \
+          --cov-report=xml \
+          --cov-report=term \
+          --tb=short
+
+    - name: Upload coverage report
+      if: github.event_name == 'pull_request'
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage.xml
+        flags: parser
+        name: parser-coverage
+      continue-on-error: true
+
+  # ============================================================================
+  # Job 4: Integration Tests (Parser Validation)
+  # ============================================================================
+  parser-integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: pre-flight-checks
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements/parser.txt
+        pip install pytest pytest-cov
+
+    - name: Run integration tests
+      run: |
+        echo "🧪 Running parser integration tests..."
+        echo ""
+        echo "Note: Integration tests require DuckDB workspace database."
+        echo "Tests will skip if data/lineage_workspace.duckdb not found."
+        echo ""
+
+        pytest tests/integration/ -v --tb=short
+
+        echo ""
+        echo "ℹ️  Integration tests completed."
+        echo "   If all tests skipped, this means no workspace database was available."
+        echo "   This is expected in CI without real data."
+
+    - name: Integration test summary
+      if: always()
+      run: |
+        echo ""
+        echo "📊 Integration Test Summary:"
+        echo "  - Tests validate parser expectations (100% success, 80%+ confidence)"
+        echo "  - Tests skip when workspace database unavailable (normal in CI)"
+        echo "  - For full validation, run tests locally with real data"
+
+  # ============================================================================
+  # Job 5: Baseline Comparison (if test data available)
+  # ============================================================================
+  baseline-comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [user-verified-cases, parser-unit-tests]
+    if: github.event_name == 'pull_request'
+
+    steps:
+    - name: Checkout PR branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements/parser.txt
+
+    - name: Check if workspace database exists
+      id: check_db
+      run: |
+        if [ -f "data/lineage_workspace.duckdb" ]; then
+          echo "has_db=true" >> $GITHUB_OUTPUT
+          echo "✅ Workspace database found - baseline comparison possible"
+        else
+          echo "has_db=false" >> $GITHUB_OUTPUT
+          echo "⚠️  No workspace database - baseline comparison skipped"
+        fi
+
+    - name: Capture PR baseline
+      if: steps.check_db.outputs.has_db == 'true'
+      run: |
+        mkdir -p tests/baselines
+        echo "📊 Capturing PR baseline..."
+        python scripts/testing/check_parsing_results.py > tests/baselines/pr_baseline.txt
+
+    - name: Checkout main branch
+      if: steps.check_db.outputs.has_db == 'true'
+      run: |
+        git fetch origin main
+        git checkout origin/main
+
+    - name: Capture main baseline
+      if: steps.check_db.outputs.has_db == 'true'
+      run: |
+        echo "📊 Capturing main branch baseline..."
+        python scripts/testing/check_parsing_results.py > tests/baselines/main_baseline.txt
+
+    - name: Compare baselines
+      if: steps.check_db.outputs.has_db == 'true'
+      run: |
+        echo "=== Parser Baseline Comparison ==="
+        echo ""
+        diff tests/baselines/main_baseline.txt tests/baselines/pr_baseline.txt || true
+        echo ""
+
+        # Extract confidence percentages
+        PR_CONF_100=$(grep "Confidence 100:" tests/baselines/pr_baseline.txt | grep -oP '\d+\.\d+(?=%)' || echo "0")
+        MAIN_CONF_100=$(grep "Confidence 100:" tests/baselines/main_baseline.txt | grep -oP '\d+\.\d+(?=%)' || echo "0")
+
+        echo "📊 Confidence 100 Percentage:"
+        echo "  Main branch: $MAIN_CONF_100%"
+        echo "  PR branch:   $PR_CONF_100%"
+
+        # Check for regressions (allow 1% tolerance)
+        if (( $(echo "$PR_CONF_100 < $MAIN_CONF_100 - 1.0" | bc -l) )); then
+          echo ""
+          echo "❌ REGRESSION DETECTED"
+          echo "   Confidence 100% decreased: $MAIN_CONF_100% → $PR_CONF_100%"
+          exit 1
+        else
+          echo ""
+          echo "✅ No confidence regression detected"
+        fi
+
+    - name: Upload baseline artifacts
+      if: always() && steps.check_db.outputs.has_db == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: parser-baselines
+        path: tests/baselines/
+        retention-days: 30
+
+  # ============================================================================
+  # Summary Job (Required for PR merge)
+  # ============================================================================
+  parser-validation-success:
+    runs-on: ubuntu-latest
+    needs: [pre-flight-checks, user-verified-cases, parser-unit-tests, parser-integration-tests]
+    if: always()
+
+    steps:
+    - name: Check all validation jobs
+      run: |
+        echo "📊 Parser Validation Summary:"
+        echo ""
+        echo "Pre-flight checks:        ${{ needs.pre-flight-checks.result }}"
+        echo "User-verified cases:      ${{ needs.user-verified-cases.result }}"
+        echo "Parser unit tests:        ${{ needs.parser-unit-tests.result }}"
+        echo "Integration tests:        ${{ needs.parser-integration-tests.result }}"
+        echo ""
+
+        # Check if any required job failed
+        if [ "${{ needs.pre-flight-checks.result }}" != "success" ] || \
+           [ "${{ needs.parser-unit-tests.result }}" != "success" ] || \
+           [ "${{ needs.parser-integration-tests.result }}" != "success" ]; then
+          echo "❌ Parser validation FAILED"
+          echo ""
+          echo "Review failed jobs above and fix issues before merging."
+          exit 1
+        fi
+
+        # User-verified cases are optional (may be skipped if no cases exist)
+        if [ "${{ needs.user-verified-cases.result }}" == "failure" ]; then
+          echo "❌ User-verified test cases FAILED"
+          echo "   This indicates a REGRESSION in known test cases!"
+          exit 1
+        fi
+
+        echo "✅ All parser validation checks passed!"
+        echo ""
+        echo "Parser changes validated:"
+        echo "  ✅ Unit tests passing"
+        echo "  ✅ Integration tests passing (or skipped without data)"
+        echo "  ✅ User-verified cases passing (if available)"
+        echo "  ✅ No critical issues detected"

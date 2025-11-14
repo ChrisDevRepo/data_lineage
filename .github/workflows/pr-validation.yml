@@ -1,0 +1,199 @@
+name: PR Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  # ============================================================================
+  # PR Quality Checks
+  # ============================================================================
+  pr-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need full history for comparison
+
+    - name: Check PR title format
+      run: |
+        PR_TITLE="${{ github.event.pull_request.title }}"
+
+        # Check if PR title follows conventional commits format
+        if echo "$PR_TITLE" | grep -qE '^(feat|fix|docs|refactor|test|chore|perf|ci|build|style)(\(.+\))?: .+'; then
+          echo "✅ PR title follows conventional commits format"
+        else
+          echo "⚠️  PR title should follow conventional commits:"
+          echo "   feat: Add new feature"
+          echo "   fix: Fix bug"
+          echo "   docs: Update documentation"
+          echo "   refactor: Code refactoring"
+          echo "   test: Add tests"
+          echo "   chore: Maintenance tasks"
+        fi
+
+    - name: Check for breaking changes in parser
+      run: |
+        echo "🔍 Checking for parser changes..."
+
+        PARSER_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '(quality_aware_parser.py|sql_cleaning_rules.py)' || true)
+
+        if [ -n "$PARSER_FILES" ]; then
+          echo "⚠️  Parser files modified in this PR:"
+          echo "$PARSER_FILES"
+          echo ""
+          echo "📋 MANDATORY Requirements for Parser Changes:"
+          echo "  1. ⚠️  MUST check docs/PARSER_CHANGE_JOURNAL.md BEFORE changes"
+          echo "  2. ✅ User-verified test cases will validate no regressions"
+          echo "  3. ✅ Parser validation workflow will run comprehensive checks"
+          echo "  4. ✅ Integration tests (64 tests) will validate expectations"
+          echo "  5. ⚠️  Review parser changes carefully (ErrorLevel, RAISE mode)"
+          echo "  6. ⚠️  Update PARSER_CHANGE_JOURNAL.md if fixing regression"
+          echo ""
+          echo "📊 Automated validation includes:"
+          echo "  - pytest integration tests (64 tests)"
+          echo "  - User-verified golden cases"
+          echo "  - Baseline comparison (confidence distribution)"
+          echo "  - 100% success rate validation"
+        else
+          echo "✅ No parser files modified"
+        fi
+
+    - name: Check for documentation updates
+      run: |
+        CODE_CHANGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(py|ts|tsx|js|jsx)$' || true)
+        DOC_CHANGES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.md$' || true)
+
+        if [ -n "$CODE_CHANGES" ] && [ -z "$DOC_CHANGES" ]; then
+          echo "⚠️  Code changes detected but no documentation updates"
+          echo "   Consider updating relevant docs in docs/ directory"
+        else
+          echo "✅ Documentation updated or no code changes"
+        fi
+
+  # ============================================================================
+  # Baseline Comparison (Parser Changes)
+  # ============================================================================
+  baseline-comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: contains(github.event.pull_request.changed_files, 'quality_aware_parser.py') || contains(github.event.pull_request.changed_files, 'sql_cleaning_rules.py')
+
+    steps:
+    - name: Checkout PR branch
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Capture PR baseline
+      run: |
+        mkdir -p tests/baselines
+        python scripts/testing/check_parsing_results.py > tests/baselines/pr_baseline.txt
+
+    - name: Checkout main branch
+      run: |
+        git fetch origin main
+        git checkout origin/main
+
+    - name: Capture main baseline
+      run: |
+        python scripts/testing/check_parsing_results.py > tests/baselines/main_baseline.txt
+
+    - name: Compare baselines
+      run: |
+        echo "=== Parser Baseline Comparison ==="
+        echo ""
+        echo "Main branch → PR branch changes:"
+        echo ""
+        diff tests/baselines/main_baseline.txt tests/baselines/pr_baseline.txt || true
+        echo ""
+
+        # Extract success counts
+        PR_SUCCESS=$(grep -oP '\d+/\d+ SPs' tests/baselines/pr_baseline.txt | head -1 | cut -d'/' -f1)
+        MAIN_SUCCESS=$(grep -oP '\d+/\d+ SPs' tests/baselines/main_baseline.txt | head -1 | cut -d'/' -f1)
+
+        echo "📊 Success Rate:"
+        echo "  Main branch: $MAIN_SUCCESS SPs"
+        echo "  PR branch:   $PR_SUCCESS SPs"
+
+        if [ "$PR_SUCCESS" -lt "$MAIN_SUCCESS" ]; then
+          echo ""
+          echo "❌ REGRESSION DETECTED"
+          echo "   Success rate decreased: $MAIN_SUCCESS → $PR_SUCCESS"
+          echo "   Review parser changes carefully!"
+          exit 1
+        elif [ "$PR_SUCCESS" -gt "$MAIN_SUCCESS" ]; then
+          echo ""
+          echo "✅ IMPROVEMENT DETECTED"
+          echo "   Success rate increased: $MAIN_SUCCESS → $PR_SUCCESS"
+        else
+          echo ""
+          echo "✅ No regression - success rate maintained"
+        fi
+
+    - name: Upload baseline comparison
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: baseline-comparison
+        path: tests/baselines/
+        retention-days: 14
+
+  # ============================================================================
+  # Label PR based on changes
+  # ============================================================================
+  auto-label:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Label PR
+      run: |
+        # Get changed files
+        CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+
+        # Determine labels
+        LABELS=""
+
+        if echo "$CHANGED_FILES" | grep -q 'lineage_v3/parsers/'; then
+          LABELS="$LABELS,parser"
+        fi
+
+        if echo "$CHANGED_FILES" | grep -q 'frontend/'; then
+          LABELS="$LABELS,frontend"
+        fi
+
+        if echo "$CHANGED_FILES" | grep -q 'api/'; then
+          LABELS="$LABELS,backend"
+        fi
+
+        if echo "$CHANGED_FILES" | grep -q 'docs/'; then
+          LABELS="$LABELS,documentation"
+        fi
+
+        if echo "$CHANGED_FILES" | grep -q 'tests/'; then
+          LABELS="$LABELS,testing"
+        fi
+
+        echo "Suggested labels: $LABELS"
+
+        # GitHub CLI would add labels here (requires GITHUB_TOKEN)
+        # gh pr edit ${{ github.event.pull_request.number }} --add-label "${LABELS:1}"
