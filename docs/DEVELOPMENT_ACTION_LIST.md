@@ -48,21 +48,24 @@ This document consolidates findings from comprehensive multi-persona code review
 **Status:** ✅ Completed - Directory removed (verified 2025-11-14)
 
 ### 4. Outdated Phantom Configuration (11 files) 🔧 ✅ COMPLETED
-**Issue:** Documentation referenced old `PHANTOM_INCLUDE_SCHEMAS` with wildcards
+**Issue:** Documentation referenced old v4.3.2 phantom configuration with wildcards
 **Reality:** v4.3.3 uses `PHANTOM_EXTERNAL_SCHEMAS` (exact match only, no wildcards)
-**Files Updated:**
-- ✅ `docs/reports/PHANTOM_FUNCTION_FILTER_BUG.md`
-- ✅ `docs/reports/PHANTOM_ORPHAN_ISSUE.md`
-- ✅ `docs/DEVELOPMENT_ACTION_LIST.md` (this file)
-
 **Status:** ✅ Completed (2025-11-14)
 
-**v4.3.3 Configuration:**
+**Old System (v4.3.2):** Wildcard-based include list
+**New System (v4.3.3):** External-only schema list (exact match)
+
+**Current Configuration:**
 ```bash
 # v4.3.3: EXTERNAL sources ONLY (no wildcards, exact match)
 PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
 # Examples: power_consumption,external_lakehouse,partner_erp
 ```
+
+**Files Updated:**
+- ✅ docs/reports/PHANTOM_FUNCTION_FILTER_BUG.md
+- ✅ docs/reports/PHANTOM_ORPHAN_ISSUE.md
+- ✅ docs/DEVELOPMENT_ACTION_LIST.md (this file)
 
 ### 5. Bare Exception Blocks 🐛 ✅ COMPLETED
 **Files:** `lineage_v3/main.py`, `lineage_v3/core/duckdb_workspace.py`

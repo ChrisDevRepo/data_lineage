@@ -2,9 +2,10 @@ name: CI Validation
 
 on:
   push:
-    branches: [ main, develop, 'claude/**' ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   # ============================================================================
@@ -13,6 +14,14 @@ jobs:
   backend-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Only run if Python files or requirements changed
+    if: |
+      contains(github.event.head_commit.message, '[skip ci]') == false &&
+      (github.event_name == 'pull_request' ||
+       contains(github.event.head_commit.modified, 'lineage_v3/') ||
+       contains(github.event.head_commit.modified, 'api/') ||
+       contains(github.event.head_commit.modified, 'tests/') ||
+       contains(github.event.head_commit.modified, 'requirements.txt'))
 
     steps:
     - name: Checkout code
@@ -177,6 +186,11 @@ jobs:
   frontend-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Only run if frontend files changed
+    if: |
+      contains(github.event.head_commit.message, '[skip ci]') == false &&
+      (github.event_name == 'pull_request' ||
+       contains(github.event.head_commit.modified, 'frontend/'))
 
     steps:
     - name: Checkout code
@@ -211,6 +225,11 @@ jobs:
   frontend-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Only run if frontend files changed
+    if: |
+      contains(github.event.head_commit.message, '[skip ci]') == false &&
+      (github.event_name == 'pull_request' ||
+       contains(github.event.head_commit.modified, 'frontend/'))
 
     steps:
     - name: Checkout code
@@ -287,6 +306,11 @@ jobs:
   docs-validation:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    # Only run if docs changed
+    if: |
+      contains(github.event.head_commit.message, '[skip ci]') == false &&
+      (github.event_name == 'pull_request' ||
+       contains(github.event.head_commit.modified, 'docs/'))
 
     steps:
     - name: Checkout code

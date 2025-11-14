@@ -8,7 +8,7 @@
 
 ## Issue Summary
 
-**Historical Issue (v4.3.2):** Phantom functions bypassed the schema filter (v4.3.2 used `PHANTOM_INCLUDE_SCHEMAS`), allowing invalid schemas (AA, TS, U, ra, s) to be stored in the database.
+**Historical Issue (v4.3.2):** Phantom functions bypassed the schema filter (v4.3.2 used the old include-based config), allowing invalid schemas (AA, TS, U, ra, s) to be stored in the database.
 
 **Status:** ✅ Fixed in v4.3.3 with redesigned phantom philosophy (EXTERNAL sources only).
 
