@@ -52,8 +52,9 @@ WHERE BB.Date > ...     -- Regex sees "BB.Date(" as function call
 
 **Before (v4.3.2 and earlier - DEPRECATED):**
 ```bash
-# OLD configuration with wildcards (v4.3.2 and earlier)
-# PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
+# OLD configuration with wildcards (v4.3.2 - no longer used)
+# Old variable: PHANTOM_INCLUDE_SCHEMAS (replaced by PHANTOM_EXTERNAL_SCHEMAS)
+# Example old value: CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
 ```
 
 **After (v4.3.3 - REDESIGNED):**
