@@ -141,7 +141,7 @@ class LineageProcessor:
         current_step: str = "",
         message: str = "",
         include_stats: bool = False
-    ):
+    ) -> None:
         """
         Update job status file for frontend polling.
 

@@ -143,7 +143,7 @@ def get_job_result_data(job_id: str) -> dict:
         return json.load(f)
 
 
-def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = True):
+def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = True) -> None:
     """Thread function to run lineage processing in background"""
     try:
         result = process_lineage_job(job_id, job_dir, data_dir=DATA_DIR, incremental=incremental)
