@@ -11,6 +11,10 @@ import sys
 import logging
 from pathlib import Path
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load .env file FIRST
+load_dotenv(override=True)
 
 # Setup logging
 logging.basicConfig(

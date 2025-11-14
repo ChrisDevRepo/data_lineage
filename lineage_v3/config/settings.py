@@ -106,8 +106,8 @@ class PhantomSettings(BaseSettings):
     )
 
     exclude_dbo_objects: str = Field(
-        default="cte,cte_*,CTE*,ParsedData,PartitionedCompany*,#*,@*,temp_*,tmp_*,[a-z],[A-Z]",
-        description="Comma-separated list of object name patterns to exclude in dbo schema"
+        default="",
+        description="Comma-separated list of persistent object name patterns to exclude in dbo schema (transient objects like #temp, CTEs handled by SQL cleaning)"
     )
 
     @property

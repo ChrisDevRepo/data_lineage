@@ -19,31 +19,36 @@ sleep 1
 
 # Start Backend (FastAPI)
 echo "🔧 Starting Backend API on port 8000..."
-cd "$SCRIPT_DIR/api"
 
-# Activate virtual environment if it exists
+# Determine Python executable to use
 if [ -f "$SCRIPT_DIR/venv/bin/activate" ]; then
-    echo "   📦 Activating virtual environment (./venv)..."
-    source "$SCRIPT_DIR/venv/bin/activate"
+    echo "   📦 Using virtual environment (./venv)..."
+    PYTHON_BIN="$SCRIPT_DIR/venv/bin/python"
+    PIP_BIN="$SCRIPT_DIR/venv/bin/pip"
 elif [ -f "$SCRIPT_DIR/../venv/bin/activate" ]; then
-    echo "   📦 Activating virtual environment (../venv)..."
-    source "$SCRIPT_DIR/../venv/bin/activate"
+    echo "   📦 Using virtual environment (../venv)..."
+    PYTHON_BIN="$SCRIPT_DIR/../venv/bin/python"
+    PIP_BIN="$SCRIPT_DIR/../venv/bin/pip"
 elif [ -f "$SCRIPT_DIR/api/venv/bin/activate" ]; then
-    echo "   📦 Activating virtual environment (./api/venv)..."
-    source "$SCRIPT_DIR/api/venv/bin/activate"
+    echo "   📦 Using virtual environment (./api/venv)..."
+    PYTHON_BIN="$SCRIPT_DIR/api/venv/bin/python"
+    PIP_BIN="$SCRIPT_DIR/api/venv/bin/pip"
 else
     echo "   ⚠️  No virtual environment found - using system Python"
     echo "   💡 Create one with: python3 -m venv $SCRIPT_DIR/venv"
+    PYTHON_BIN="python3"
+    PIP_BIN="pip3"
 fi
 
 # Check if FastAPI is installed
-if ! python -c "import fastapi" 2>/dev/null; then
+if ! $PYTHON_BIN -c "import fastapi" 2>/dev/null; then
     echo "   ❌ FastAPI not found! Installing dependencies..."
-    pip install -r "$SCRIPT_DIR/requirements.txt" -q
+    $PIP_BIN install -r "$SCRIPT_DIR/requirements.txt" -q
     echo "   ✅ Dependencies installed"
 fi
 
-nohup python main.py > /tmp/backend.log 2>&1 &
+cd "$SCRIPT_DIR/api"
+nohup $PYTHON_BIN main.py > /tmp/backend.log 2>&1 &
 BACKEND_PID=$!
 echo "   ✅ Backend started (PID: $BACKEND_PID)"
 echo "   📋 Logs: tail -f /tmp/backend.log"
