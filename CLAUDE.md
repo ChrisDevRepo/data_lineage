@@ -276,23 +276,49 @@ cd frontend && npm run test:e2e  # 90+ tests
 
 ## Documentation
 
-**Quick Reference (you are here):** CLAUDE.md
-**Technical Details:**
-- [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md) - Critical warnings
-- [docs/PARSER_TECHNICAL_GUIDE.md](docs/PARSER_TECHNICAL_GUIDE.md) - Complete technical reference
-- [docs/reports/PARSER_ANALYSIS_V4.3.2.md](docs/reports/PARSER_ANALYSIS_V4.3.2.md) - Analysis & assessment
+### Quick Reference
+- **CLAUDE.md** (you are here) - Main project reference
+- [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md) - Complete v4.3.3 summary
 
-**Setup & Usage:**
+### Parser Documentation
+**Critical (Read First):**
+- [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md) - Critical warnings, what NOT to change
+- [docs/PARSER_TECHNICAL_GUIDE.md](docs/PARSER_TECHNICAL_GUIDE.md) - Complete technical reference
+- [docs/PARSER_CHANGE_JOURNAL.md](docs/PARSER_CHANGE_JOURNAL.md) - Change history & regression prevention
+
+**Analysis & Reports:**
+- [docs/reports/PARSER_ANALYSIS_V4.3.2.md](docs/reports/PARSER_ANALYSIS_V4.3.2.md) - Performance & architecture analysis
+- [docs/reports/CONFIGURATION_VERIFICATION_REPORT.md](docs/reports/CONFIGURATION_VERIFICATION_REPORT.md) - Multi-database support
+- [docs/reports/archive/README.md](docs/reports/archive/README.md) - Archived documentation
+
+### Setup & Usage
 - [docs/SETUP.md](docs/SETUP.md) - Installation guide
 - [docs/USAGE.md](docs/USAGE.md) - Parser usage & troubleshooting
 - [docs/REFERENCE.md](docs/REFERENCE.md) - API reference
-- [docs/RULE_DEVELOPMENT.md](docs/RULE_DEVELOPMENT.md) - YAML rule creation
+- [docs/RULE_DEVELOPMENT.md](docs/RULE_DEVELOPMENT.md) - YAML rule creation (⚠️ future, see WARNING in doc)
 
-**Reports:**
-- [docs/reports/COMPLETE_PARSING_ARCHITECTURE_REPORT.md](docs/reports/COMPLETE_PARSING_ARCHITECTURE_REPORT.md)
-- [docs/reports/UAT_READINESS_REPORT.md](docs/reports/UAT_READINESS_REPORT.md)
-- [docs/reports/TESTING_SUMMARY.md](docs/reports/TESTING_SUMMARY.md)
-- [docs/reports/BUGS.md](docs/reports/BUGS.md)
+### Testing & Quality
+**User-Verified Cases:**
+- [tests/fixtures/user_verified_cases/README.md](tests/fixtures/user_verified_cases/README.md) - User-reported bug → permanent test
+- [tests/fixtures/user_verified_cases/case_template.yaml](tests/fixtures/user_verified_cases/case_template.yaml) - Template for new cases
+- `tests/unit/test_user_verified_cases.py` - Automated test suite
+
+**Validation Scripts:**
+- `scripts/testing/run_baseline_validation.sh` - Automated regression detection (before/after/diff)
+- `scripts/testing/check_parsing_results.py` - Full parser validation
+- `scripts/testing/analyze_lower_confidence_sps.py` - Why not 100% confidence?
+- `scripts/testing/verify_sp_parsing.py` - Analyze specific SP
+
+**Test Reports:**
+- [docs/reports/UAT_READINESS_REPORT.md](docs/reports/UAT_READINESS_REPORT.md) - Production readiness assessment
+- [docs/reports/TESTING_SUMMARY.md](docs/reports/TESTING_SUMMARY.md) - Test coverage & results
+- [docs/reports/BUGS.md](docs/reports/BUGS.md) - Known issues tracker
+
+### Development
+- [docs/DEVELOPMENT_ACTION_LIST.md](docs/DEVELOPMENT_ACTION_LIST.md) - Master task list (53 tasks, 8 categories)
+- [docs/GRAPHOLOGY_BFS_ANALYSIS.md](docs/GRAPHOLOGY_BFS_ANALYSIS.md) - Graph library usage analysis
+- `.github/workflows/ci-validation.yml` - CI/CD pipeline configuration
+- `.git/hooks/pre-commit` - Local quality gates
 
 ## Phantom Objects (v4.3.3 - REDESIGNED)
 
