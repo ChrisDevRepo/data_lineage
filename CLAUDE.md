@@ -421,7 +421,8 @@ See [docs/USAGE.md](docs/USAGE.md) for detailed troubleshooting.
 
 ---
 
-**Last Updated:** 2025-11-12
+**Last Updated:** 2025-11-14
+**Last Verified:** 2025-11-14 (v4.3.3)
 **Version:** v4.3.3 ✅ Parser 100% success rate (349/349 SPs)
 
 **Quick Links:**
