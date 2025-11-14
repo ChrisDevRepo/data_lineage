@@ -72,24 +72,19 @@ implemented but NOT integrated with the parser (as of v4.3.3).
 rm -rf perfissue/testing/
 ```
 
-### 4. Outdated Phantom Configuration (11 files) 🔧
-**Issue:** Documentation references old `PHANTOM_INCLUDE_SCHEMAS` with wildcards
+### 4. Outdated Phantom Configuration (11 files) 🔧 ✅ COMPLETED
+**Issue:** Documentation referenced old `PHANTOM_INCLUDE_SCHEMAS` with wildcards
 **Reality:** v4.3.3 uses `PHANTOM_EXTERNAL_SCHEMAS` (exact match only, no wildcards)
-**Files Affected:**
-- `docs/PARSER_V4.3.3_SUMMARY.md`
-- `docs/reports/CONFIGURATION_VERIFICATION_REPORT.md`
-- `docs/reports/PHANTOM_FUNCTION_FILTER_BUG.md`
-- `docs/reports/PHANTOM_ORPHAN_ISSUE.md`
-- Plus 7 more
+**Files Updated:**
+- ✅ `docs/reports/PHANTOM_FUNCTION_FILTER_BUG.md`
+- ✅ `docs/reports/PHANTOM_ORPHAN_ISSUE.md`
+- ✅ `docs/DEVELOPMENT_ACTION_LIST.md` (this file)
 
-**Fix Time:** 30 minutes
-**Fix:** Find/replace:
+**Status:** ✅ Completed (2025-11-14)
+
+**v4.3.3 Configuration:**
 ```bash
-# OLD (v4.3.2 and earlier - REMOVE):
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
-
-# NEW (v4.3.3 - ADD):
-# Phantoms = EXTERNAL sources ONLY (no wildcards, exact match)
+# v4.3.3: EXTERNAL sources ONLY (no wildcards, exact match)
 PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
 # Examples: power_consumption,external_lakehouse,partner_erp
 ```

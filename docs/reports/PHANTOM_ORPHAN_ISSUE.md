@@ -50,12 +50,13 @@ WHERE BB.Date > ...     -- Regex sees "BB.Date(" as function call
 
 **v4.3.3 Solution: Use EXTERNAL schemas only (exact match, no wildcards):**
 
-**Before (v4.3.2 and earlier):**
+**Before (v4.3.2 and earlier - DEPRECATED):**
 ```bash
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
+# OLD configuration with wildcards (v4.3.2 and earlier)
+# PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
 ```
 
-**After (v4.3.3):**
+**After (v4.3.3 - REDESIGNED):**
 ```bash
 # EXTERNAL sources ONLY (not internal schemas from our metadata DB)
 PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
