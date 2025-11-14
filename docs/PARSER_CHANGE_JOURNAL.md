@@ -261,7 +261,7 @@ git commit -m "fix(parser): [brief description] (case_001)"
 - Added performance tracking (logs slow SPs > 1 second)
 - Simplified SELECT handling (object-level lineage only)
 - Added SQLGlot statistics tracking
-- Created golden test suite
+- Created user-verified test suite
 
 **DO NOT:**
 - Remove empty command node check (critical defensive check)

@@ -90,7 +90,7 @@ Step 4: CONFIDENCE CALCULATION
 
 ---
 
-## 🧪 Golden Test Cases (Detect Regressions)
+## 🧪 User-Verified Test Cases (Detect Regressions)
 
 **File:** `tests/unit/test_parser_golden_cases.py`
 
@@ -187,7 +187,7 @@ python3 scripts/testing/check_parsing_results.py > baseline_before.txt
 - Test after each change
 - Rollback immediately if regression
 
-### 3. Run Golden Tests
+### 3. Run User-Verified Tests
 ```bash
 pytest tests/unit/test_parser_golden_cases.py -v
 ```
@@ -202,7 +202,7 @@ diff baseline_before.txt baseline_after.txt
 - ✅ Success rate: 100% (maintained)
 - ✅ No SPs with empty lineage (inputs=[], outputs=[])
 - ✅ Confidence distribution: Unchanged or improved
-- ✅ All golden tests pass
+- ✅ All user-verified tests pass
 
 **If ANY criterion fails → ROLLBACK IMMEDIATELY**
 
@@ -265,7 +265,7 @@ diff baseline_before.txt baseline_after.txt
 
 ### ⚠️ WARNING FLAGS
 1. **Test SPs change** (spLoadFactLaborCostForEarnedValue_Post, spLoadDimTemplateType)
-   → Run golden tests immediately
+   → Run user-verified tests immediately
 
 2. **New pattern of parse errors** in logs
    → Preprocessing may have broken, check cleaned DDL

@@ -279,7 +279,7 @@ pytest tests/ -v  # 73+ tests, < 1 second
 cd frontend && npm run test:e2e  # 90+ tests
 ```
 
-**Golden Tests:** `tests/unit/test_parser_golden_cases.py` - Detects regressions immediately
+**User-Verified Tests:** `tests/unit/test_parser_golden_cases.py` - Detects regressions immediately
 
 ## Documentation
 

@@ -741,7 +741,7 @@ Added 7 new rules (Priority 15-41):
 
 1. **Always add test cases:** `examples_before` and `examples_after`
 2. **Document fixes in code:** Comment critical fixes with date and reason
-3. **Test with golden cases:** Run `pytest tests/unit/test_parser_golden_cases.py`
+3. **Test with user-verified cases:** Run `pytest tests/unit/test_parser_golden_cases.py`
 4. **Update change journal:** Document what changed and why
 5. **Baseline validation:** Use `scripts/testing/run_baseline_validation.sh`
 
@@ -762,10 +762,10 @@ pytest tests/unit/test_rule_engine.py::test_remove_go -v
 ### Integration Tests
 
 ```bash
-# Golden cases (regression detection)
+# User-verified cases (regression detection)
 pytest tests/unit/test_parser_golden_cases.py -v
 
-# User-verified cases
+# User-reported cases
 pytest tests/unit/test_user_verified_cases.py -v
 
 # Full parser validation

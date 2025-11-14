@@ -631,7 +631,7 @@ const graph = parse(Graph, serialized);
 
 ## 🧪 TESTING TASKS
 
-### 43. Implement Golden Test Cases
+### 43. Implement User-Verified Test Cases
 **File:** `tests/unit/test_parser_golden_cases.py`
 **Status:** CRITICAL (see Priority #6)
 **Fix Time:** 2-3 hours
@@ -828,7 +828,7 @@ Auto-generated from tests/fixtures/user_verified_cases/
 **Deliverable:** Cleaner, more maintainable code
 
 ### Sprint 3: Testing (1 week)
-13. Implement golden test cases
+13. Implement user-verified test cases
 14. Convert validation scripts to pytest
 15. Add test fixtures
 16. Create unified test structure
