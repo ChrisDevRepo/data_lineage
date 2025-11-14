@@ -9,7 +9,7 @@
 - **Database:** Azure Synapse Analytics (T-SQL) - extensible to 7 data warehouses
 - **Parser:** v4.3.3 ✅ **100% success rate** (349/349 SPs) + simplified rules + phantom fix
 - **Confidence:** 82.5% perfect (100), 7.4% good (85), 10.0% acceptable (75)
-- **Frontend:** v3.0.1 | **API:** v4.0.3
+- **Frontend:** v1.0.0 | **API:** v4.0.3
 ## ⚠️ BEFORE CHANGING PARSER - READ THIS
 **Critical Reference:** [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md)
 - WARN mode regression → empty lineage disaster
@@ -57,8 +57,7 @@ See .github/workflows/README.md and tests/integration/README.md for details.
 ├── api/                    # FastAPI backend
 ├── frontend/               # React + React Flow UI
 ├── lineage_v3/             # Core parsing engine
-│   ├── parsers/            # quality_aware_parser.py
-│   ├── rules/              # YAML cleaning rules
+│   ├── parsers/            # quality_aware_parser.py, SQL cleaning rules
 │   └── config/             # Pydantic settings
 ├── scripts/testing/        # Validation tools
 ├── docs/                   # Documentation
@@ -239,9 +238,6 @@ See `tests/integration/README.md` for complete test documentation.
 **Quick Access:**
 - Setup: docs/SETUP.md | Usage: docs/USAGE.md | API: docs/REFERENCE.md
 - Configuration: docs/reports/CONFIGURATION_VERIFICATION_REPORT.md
-- Performance: docs/PERFORMANCE_ANALYSIS.md
-
-See docs/DOCUMENTATION.md for complete index.
 
 ## Phantom Objects (v4.3.3)
 
@@ -269,8 +265,6 @@ PHANTOM_EXTERNAL_SCHEMAS=power_consumption,external_lakehouse,partner_erp
 - 40-60ms render pipeline → 15-25 FPS acceptable
 
 **Optimizations:** React.memo, useCallback, useMemo, debounced filtering, memoized graph, Set-based lookups
-
-See docs/PERFORMANCE_ANALYSIS.md for detailed metrics and optimization details.
 
 ## Confidence Model v2.1.0
 
