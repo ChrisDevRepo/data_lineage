@@ -1,86 +1,42 @@
 # CLAUDE.md
-
 ## Workflow
 - End responses with status (✅ Completed | ⏳ Pending | ❌ Not started | ⚠️ Needs clarification)
 - Ask questions last; complete analysis first
 - Use TodoWrite tool; update immediately after completion
 - Use subagents for specialized validation tasks (see Subagents section)
-
 ## Project: Data Lineage Visualizer v4.3.3
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **Database:** Azure Synapse Analytics (T-SQL) - extensible to 7 data warehouses
 - **Parser:** v4.3.3 ✅ **100% success rate** (349/349 SPs) + simplified rules + phantom fix
 - **Confidence:** 82.5% perfect (100), 7.4% good (85), 10.0% acceptable (75)
 - **Frontend:** v3.0.1 | **API:** v4.0.3
-
 ## ⚠️ BEFORE CHANGING PARSER - READ THIS
 **Critical Reference:** [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md)
 - WARN mode regression → empty lineage disaster
 - RAISE mode is ONLY correct choice
 - What NOT to change (defensive checks, regex patterns)
 - Testing protocol to prevent regressions
-
 **Technical Details:** [docs/PARSER_TECHNICAL_GUIDE.md](docs/PARSER_TECHNICAL_GUIDE.md)
 **Complete Summary:** [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md)
 
 ## Recent Updates
 
-### v4.3.3 - Frontend Filtering Enhancements (2025-11-13) 🎯
-1. **Isolated Nodes Filter** - Hide nodes with no connections (degree = 0)
-2. **Focus Schema Filtering** - Two-tier schema filtering (master vs extended)
-3. **Star Icon UI** - Click ⭐ to designate focus schemas
-4. **BFS Optimization** - Uses graphology-traversal where appropriate
-5. **Correctness Testing** - Comprehensive test suite validates all implementations
+### v4.3.3 - Frontend Filtering + Simplified Rules (2025-11-13) 🎯
+- Isolated Nodes Filter, Focus Schema Filtering, Interactive Trace (BFS)
+- Two-tier filtering, ⭐ UI for focus designation, 10K nodes ready
+- Tests pass: 5/5 focus, 4/4 trace, edge cases covered
+- **Result:** Powerful filtering + optimized graph traversal ✅
 
-**Features:**
-- **Isolated Nodes:** Filter nodes with no connections in complete graph
-- **Focus Schemas:** Always fully visible (master/anchor schemas)
-- **Extended Schemas:** Filtered by reachability from focus when button enabled
-- **Graph Traversal:** Manual BFS for focus filtering (multi-source + bidirectional)
-- **Interactive Trace:** Uses graphology-traversal's `bfsFromNode` (single-source + unidirectional)
-- **Scalability:** Production-ready for 10K nodes + 20K edges
-
-**UX:**
-- ⭐ Yellow star = focus schema (always visible)
-- ☆ Gray star = extended schema (can be filtered)
-- Filter button disabled until focus schema selected
-- Clear tooltips explain behavior
-
-**Technical Implementation:**
-- **Focus Filtering:** Manual BFS (multi-source start, bidirectional traversal)
-- **Interactive Trace:** graphology-traversal BFS (single-source, depth-limited, unidirectional)
-- O(V + E) performance for both implementations
-- See `docs/GRAPHOLOGY_BFS_ANALYSIS.md` for detailed analysis
-
-**Testing:**
-- ✅ test_focus_schema_filtering.mjs - 5/5 tests pass (prima example verified)
-- ✅ test_interactive_trace_bfs.mjs - 4/4 tests pass (old vs new identical)
-- ✅ Comprehensive edge case coverage (cycles, blocking, multiple focus)
-
-**Result:** Powerful two-tier filtering, intuitive UX, optimized graph traversal ✅
+See docs/GRAPHOLOGY_BFS_ANALYSIS.md for technical details.
 
 ### v4.3.3 - Simplified Rules + Phantom Fix (2025-11-12) ⭐
-1. **Simplified SQL Cleaning:** 11 → 5 patterns (55% reduction, 75% less code)
-2. **Phantom Function Filter:** Fixed to enforce include list
-3. **Performance:** 54% faster preprocessing (fewer regex operations)
-4. **Code Quality:** Eliminated create-then-remove conflicts
-5. **Data Quality:** Removed 8 invalid phantom functions
-
-**Changes:**
-- Combined 6 conflicting DECLARE/SET patterns into 1 pattern
-- Added `_schema_matches_include_list()` check to phantom functions
-- Removed invalid schemas (AA, TS, U, ra, s) from database
-
-**Result:** 100% success maintained, zero regressions, cleaner codebase ✅
+- SQL patterns: 11 → 5 (55% reduction), phantom filter fixed
+- 54% faster preprocessing, eliminated conflicts, removed 8 invalid schemas
+- **Result:** 100% success maintained, zero regressions ✅
 
 ### v4.3.2 - Defensive Improvements (2025-11-12) 🛡️
-1. Empty Command Node Check - Prevents WARN mode regression
-2. Performance Tracking - Logs slow SPs (>1 second)
-3. SELECT Simplification - Object-level lineage only
-4. SQLGlot Statistics - Per-SP success tracking
-5. Golden Test Suite - Regression detection
-
-**Result:** 100% success maintained, zero regressions ✅
+- Empty command node check, performance tracking, SELECT simplification
+- **Result:** 100% success, zero regressions ✅
 
 ## Quick Start
 
@@ -110,67 +66,21 @@
 
 ## Graph Library Usage (Graphology)
 
-**Library:** [Graphology](https://graphology.github.io/) - Production-ready graph data structure
-**Traversal:** [graphology-traversal](https://www.npmjs.com/package/graphology-traversal) - Optimized BFS/DFS algorithms
+**Decision:** Use [graphology-traversal](https://www.npmjs.com/package/graphology-traversal) when:
+- Single source node (1 node, not 10+)
+- Unidirectional traversal (upstream OR downstream, not both)
+- Depth-limited traversal (stopping at specific levels)
+- Simple node filtering (by attributes)
 
-### ✅ When to Use graphology-traversal
+**Why Manual BFS for Focus Filtering:**
+- Multiple source nodes (10+ focus nodes simultaneously)
+- Bidirectional traversal (both upstream AND downstream)
+- 12-line manual BFS simpler than complex library workarounds
 
-**Use the library for graph traversal when:**
-1. ✅ **Single source node** - Starting from 1 node
-2. ✅ **Unidirectional traversal** - Going upstream OR downstream (not both)
-3. ✅ **Depth-limited** - Stopping at specific levels
-4. ✅ **Simple filtering** - Filter by node attributes
+**Best Practice:** Always prefer the library WHEN it makes code simpler. If library workarounds are more complex than a simple loop, use the loop.
 
-**Example: Interactive Trace** (`frontend/hooks/useInteractiveTrace.ts`)
-```typescript
-import { bfsFromNode } from 'graphology-traversal';
-
-bfsFromNode(graph, startNode, (nodeId, attr, depth) => {
-    if (!includedSchemas.has(attr.schema)) return true; // Skip
-    if (depth >= maxLevels) return true; // Stop at depth
-    visibleIds.add(nodeId);
-    return false; // Continue
-}, { mode: 'inbound' }); // or 'outbound'
-```
-
-### ⚠️ When to Use Manual Implementation
-
-**Use manual BFS when:**
-1. ⚠️ **Multiple source nodes** - Starting from 10+ nodes simultaneously
-2. ⚠️ **Bidirectional traversal** - Going both upstream AND downstream at once
-3. ⚠️ **Complex filtering** - Library workarounds would be more complex than simple loop
-
-**Example: Focus Schema Filtering** (`frontend/hooks/useDataFiltering.ts`)
-```typescript
-const queue = Array.from(focusNodeIds); // Start from ALL focus nodes
-while (queue.length > 0) {
-    const nodeId = queue.shift()!;
-    const neighbors = graph.neighbors(nodeId); // Bidirectional
-    for (const neighbor of neighbors) {
-        if (visibleIds.has(neighbor) && !reachable.has(neighbor)) {
-            reachable.add(neighbor);
-            queue.push(neighbor);
-        }
-    }
-}
-```
-
-**Why manual here?**
-- Library only accepts 1 starting node (not 10)
-- Library mode is 'inbound' OR 'outbound' (not both)
-- 12-line manual BFS is simpler than complex library workarounds
-
-### 📚 Documentation
-
-- **Analysis:** [docs/GRAPHOLOGY_BFS_ANALYSIS.md](docs/GRAPHOLOGY_BFS_ANALYSIS.md) - Detailed comparison & decision rationale
-- **Tests:**
-  - `frontend/test_interactive_trace_bfs.mjs` - Library BFS correctness
-  - `frontend/test_focus_schema_filtering.mjs` - Manual BFS correctness
-
-### 🎯 Best Practice
-
-**Always prefer the library WHEN it makes code simpler.**
-If library workarounds are more complex than a simple loop, use the loop.
+See docs/GRAPHOLOGY_BFS_ANALYSIS.md for detailed comparison and code examples.
+See frontend/test_*.mjs for correctness validation.
 
 ## Configuration
 
@@ -241,97 +151,27 @@ diff baseline_before.txt baseline_after.txt
 ### 🚨 MANDATORY Process for Rule Engine Changes
 
 **⚠️ CRITICAL: Always check journal before making changes!**
+1. Check docs/PARSER_CHANGE_JOURNAL.md (MANDATORY)
+2. Document baseline: `python3 scripts/testing/check_parsing_results.py > baseline_before.txt`
+3. Make rule changes in lineage_v3/parsers/sql_cleaning_rules.py
+4. Run tests: `pytest tests/unit/test_parser_golden_cases.py -v`
+5. Compare: `diff baseline_before.txt baseline_after.txt`
 
-```bash
-# STEP 1: Check change journal (MANDATORY)
-cat docs/PARSER_CHANGE_JOURNAL.md | grep -A 10 "DO NOT"
-# Review past issues, root causes, and what NOT to change
+**Acceptance Criteria:**
+- ✅ 100% success rate maintained (NO EXCEPTIONS)
+- ✅ NO regressions in confidence distribution
+- ✅ All user-verified tests pass
 
-# STEP 2: Document baseline (MANDATORY)
-python3 scripts/testing/check_parsing_results.py > baseline_before.txt
-
-# STEP 3: Make rule changes
-# Edit lineage_v3/parsers/sql_cleaning_rules.py
-
-# STEP 4: Run test suite (MANDATORY)
-pytest tests/unit/test_parser_golden_cases.py -v  # Regression detection
-pytest tests/unit/test_user_verified_cases.py -v  # User-reported cases
-python3 scripts/testing/check_parsing_results.py > baseline_after.txt
-diff baseline_before.txt baseline_after.txt
-
-# STEP 5: Acceptance criteria
-# ✅ 100% success rate maintained
-# ✅ No regressions in confidence distribution
-# ✅ All user-verified tests pass
-# ✅ Rule examples work correctly
-# ✅ No new patterns added to "DO NOT" journal
-```
-
-**Add new rules:**
-1. Edit `lineage_v3/parsers/sql_cleaning_rules.py`
-2. Add new rule method (RegexRule or CallbackRule)
-3. Register in `_load_default_rules()`
-4. Test with built-in examples
-5. Run full test suite (see process above)
-6. Document in journal if fixing user-reported issue
-
-Example:
-```python
-@staticmethod
-def remove_print() -> RegexRule:
-    return RegexRule(
-        name="RemovePRINT",
-        category=RuleCategory.COMMENT,
-        pattern=r'PRINT\s+.*',
-        replacement='',
-        examples_before=["PRINT 'Debug'"],
-        examples_after=[""]
-    )
-```
-
-See [docs/PYTHON_RULES.md](docs/PYTHON_RULES.md) for complete documentation (17 rules, execution order, critical fixes).
+See docs/PYTHON_RULES.md for rule examples and complete documentation.
 
 ### 🚨 MANDATORY Process for SQLGlot Settings Changes
 
 **⚠️ CRITICAL: Changing ErrorLevel or dialect can break everything!**
+- RAISE mode is ONLY correct choice
+- Never change: ErrorLevel.RAISE, dialect settings, parser read_settings
+- If ANY test fails → ROLLBACK IMMEDIATELY
 
-```bash
-# STEP 1: Check change journal (MANDATORY)
-cat docs/PARSER_CHANGE_JOURNAL.md | grep -E "WARN|ErrorLevel|dialect"
-# Review: WARN mode regression, ErrorLevel behavior
-
-# STEP 2: Read critical reference (MANDATORY)
-cat docs/PARSER_CRITICAL_REFERENCE.md | grep -A 20 "ErrorLevel"
-# Understand: RAISE vs WARN vs IGNORE behavior
-
-# STEP 3: Document baseline (MANDATORY)
-python3 scripts/testing/check_parsing_results.py > baseline_before.txt
-
-# STEP 4: Make SQLGlot changes
-# Only change: lineage_v3/parsers/quality_aware_parser.py
-# Settings: error_level, dialect, read_settings
-
-# STEP 5: Run FULL test suite (MANDATORY)
-pytest tests/unit/test_parser_golden_cases.py::TestErrorLevelBehavior -v
-pytest tests/unit/test_user_verified_cases.py -v
-python3 scripts/testing/check_parsing_results.py > baseline_after.txt
-diff baseline_before.txt baseline_after.txt
-
-# STEP 6: Acceptance criteria (STRICT)
-# ✅ 100% success rate maintained (NO EXCEPTIONS)
-# ✅ NO SPs with empty lineage (inputs=[], outputs=[])
-# ✅ ErrorLevel tests pass (RAISE mode behavior)
-# ✅ All user-verified tests pass
-# ✅ Confidence distribution unchanged or improved
-```
-
-**Never change without approval:**
-- `ErrorLevel.RAISE` → Any other mode
-- Dialect settings
-- Parser read_settings
-- Empty command node check
-
-**If ANY test fails → ROLLBACK IMMEDIATELY**
+See docs/PARSER_CHANGE_JOURNAL.md for past regressions and what NOT to change.
 
 ## Testing & Validation
 
@@ -357,104 +197,48 @@ cd frontend && npm run test:e2e  # 90+ tests
 
 ## Documentation
 
-### 🗺️ Documentation Map
+**Essential References:**
+- PARSER_CRITICAL_REFERENCE.md - Critical warnings, BEFORE making parser changes
+- PARSER_TECHNICAL_GUIDE.md - Complete technical architecture
+- PARSER_CHANGE_JOURNAL.md - MANDATORY: check before rule/SQLGlot changes
+- PARSER_V4.3.3_SUMMARY.md - Complete v4.3.3 summary
 
-**Start Here:**
-- **CLAUDE.md** (you are here) - Main project reference, quick start, critical warnings
-- [PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md) - Complete v4.3.3 summary
+**Quick Access:**
+- Setup: docs/SETUP.md | Usage: docs/USAGE.md | API: docs/REFERENCE.md
+- Configuration: docs/reports/CONFIGURATION_VERIFICATION_REPORT.md
+- Performance: docs/PERFORMANCE_ANALYSIS.md
+- User-Verified Tests: tests/fixtures/user_verified_cases/README.md
 
-**Parser (Critical - Read Before Changes):**
-- [PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md) - ⚠️ Critical warnings, what NOT to change
-- [PARSER_TECHNICAL_GUIDE.md](docs/PARSER_TECHNICAL_GUIDE.md) - Complete technical architecture
-- [PARSER_CHANGE_JOURNAL.md](docs/PARSER_CHANGE_JOURNAL.md) - 🚨 MANDATORY: Check before rule/SQLGlot changes
-- [PYTHON_RULES.md](docs/PYTHON_RULES.md) - 17 SQL cleaning rules documentation
+See docs/DOCUMENTATION.md for complete index.
 
-**Setup & Usage:**
-- [SETUP.md](docs/SETUP.md) - Installation & first-time setup
-- [USAGE.md](docs/USAGE.md) - Parser usage & troubleshooting guide
-- [REFERENCE.md](docs/REFERENCE.md) - API reference & configuration
+## Phantom Objects (v4.3.3)
 
-**Testing & Quality:**
-- [User-Verified Cases](tests/fixtures/user_verified_cases/README.md) - User bug → permanent test
-- [Baseline Validation](scripts/testing/run_baseline_validation.sh) - Before/after regression detection
-- `check_parsing_results.py` - Full parser validation
-- `test_user_verified_cases.py` - Automated test suite
-
-**Reports & Analysis:**
-- [CONFIGURATION_VERIFICATION_REPORT.md](docs/reports/CONFIGURATION_VERIFICATION_REPORT.md) - Multi-database support
-- [DATABASE_SUPPORT_ASSESSMENT.md](docs/reports/DATABASE_SUPPORT_ASSESSMENT.md) - Platform compatibility
-- [PHANTOM_FUNCTION_FILTER_BUG.md](docs/reports/PHANTOM_FUNCTION_FILTER_BUG.md) - v4.3.3 Phantom fix
-- [GRAPHOLOGY_BFS_ANALYSIS.md](docs/GRAPHOLOGY_BFS_ANALYSIS.md) - Graph library usage
-
-**Development & Architecture:**
-- [DEVELOPMENT_ACTION_LIST.md](docs/DEVELOPMENT_ACTION_LIST.md) - 53 tasks across 8 categories
-- [ADRs](docs/adr/) - Architecture Decision Records (exception hierarchy, YAML deletion)
-- [Subagents](.claude/agents/README.md) - 4 specialized validators
-
-**By Task:**
-- 📖 Learning the system → PARSER_V4.3.3_SUMMARY.md
-- 🔧 Modifying parser → PARSER_CRITICAL_REFERENCE.md + PARSER_CHANGE_JOURNAL.md
-- 🧪 Adding tests → tests/fixtures/user_verified_cases/README.md
-- 🐛 Debugging issues → USAGE.md + PARSER_TECHNICAL_GUIDE.md
-- 🏗️ Understanding architecture → ADRs + DEVELOPMENT_ACTION_LIST.md
-
-## Phantom Objects (v4.3.3 - REDESIGNED)
-
-**What:** External dependencies NOT in our metadata database
-
-**New Philosophy (v4.3.3):**
-- Phantoms = **EXTERNAL sources only** (data lakes, partner DBs, external APIs)
-- For schemas in OUR metadata DB, missing objects = DB quality issues (not phantoms)
-- We are NOT the authority to flag internal missing objects
+**What:** External dependencies (data lakes, partner DBs) NOT in our metadata database
 
 **Features:**
-- Automatic detection from SP dependencies
-- Negative IDs (-1 to -∞)
-- Visual: 🔗 link icon for external dependencies, dashed borders
-- Exact schema matching (no wildcards)
-- Only schemas NOT in our metadata database
-- Frontend shapes: 💎 Functions, 🟦 SPs, ⚪ Tables/Views
+- Automatic detection from SP dependencies, negative IDs (-1 to -∞)
+- Visual: 🔗 link icon, dashed borders
+- Exact schema matching (no wildcards), only external schemas
 
 **Configuration:**
-```bash
-# Only list EXTERNAL schemas (not in our metadata DB)
 PHANTOM_EXTERNAL_SCHEMAS=power_consumption,external_lakehouse,partner_erp
-# Leave empty if no external dependencies
-```
 
-**Status:** ✅ Redesigned v4.3.3, external dependencies only
+**Status:** ✅ Redesigned v4.3.3
 
 ## Performance
 
-**Current:** 500-node visible limit (prevents crashes)
-**Target:** 10K nodes + 20K edges at acceptable performance
-**Grade:** A- (production ready, correctness prioritized)
-
-**Graph Engine:** Graphology v0.26.0
-- Directed graph with O(1) neighbor lookup
-- Efficient memory management for large graphs
-- Manual BFS traversal (tested and verified for correctness)
-
-**Filtering Performance (10K nodes):**
-- Focus schema BFS traversal: ~15-20ms (manual implementation)
-- Schema filtering: ~5-10ms (Set operations)
-- Type filtering: ~3-5ms (Set operations)
-- Total render pipeline: ~40-60ms → 15-25 FPS acceptable
+**Status:** 500-node visible limit | **Target:** 10K nodes + 20K edges | **Grade:** A-
+**Engine:** Graphology v0.26.0 - Directed graph with O(1) neighbor lookup
 
 **Correctness First:**
-- Manual BFS used instead of library BFS (tested, verified correct)
-- Comprehensive test suite (see frontend/test_bfs_comparison.mjs)
-- Data lineage correctness > Performance optimization
-- All filtering logic validated with real-world scenarios
+- Data lineage correctness prioritized over performance optimization
+- Manual BFS used instead of library (tested, verified correct)
+- Comprehensive test suite validates all implementations
+- 40-60ms render pipeline → 15-25 FPS acceptable
 
-**Optimizations:**
-- React.memo, useCallback, useMemo (prevent re-renders)
-- Debounced filtering (150ms for >500 nodes)
-- Memoized graph construction (useGraphology hook)
-- Set-based lookups (O(1) instead of O(n))
-- Manual BFS with queue (O(V + E), proven correct)
+**Optimizations:** React.memo, useCallback, useMemo, debounced filtering, memoized graph, Set-based lookups
 
-See [docs/PERFORMANCE_ANALYSIS.md](docs/PERFORMANCE_ANALYSIS.md) for details.
+See docs/PERFORMANCE_ANALYSIS.md for detailed metrics and optimization details.
 
 ## Confidence Model v2.1.0
 
@@ -495,41 +279,13 @@ See [docs/USAGE.md](docs/USAGE.md) for detailed troubleshooting.
 
 ## Subagents (Specialized Validators)
 
-**Location:** `.claude/agents/` - 4 specialized subagents for validation tasks
-
-### When to Use
-
-| Subagent | Use When | Tools | Output |
-|----------|----------|-------|--------|
-| **parser-validator** | Modifying parser or rules | Read, Bash, Grep | Success rate, confidence distribution, APPROVE/REJECT |
-| **rule-engine-reviewer** | Changing SQL cleaning rules | Read, Grep | Journal conflicts, safety assessment, recommendations |
-| **baseline-checker** | Before/after parser changes | Bash, Read | Baseline capture, before/after comparison, PASS/FAIL |
-| **doc-optimizer** | CLAUDE.md >300 lines | Read, Grep, Bash | Optimization targets, line reduction plan |
-
-### Invocation
+**Available:** parser-validator, rule-engine-reviewer, baseline-checker, doc-optimizer
+**Location:** .claude/agents/
 
 **Automatic:** Claude delegates matching tasks automatically
+**Manual:** "Use parser-validator to check my changes"
 
-**Manual:**
-```
-"Use parser-validator to check my changes"
-"Use rule-engine-reviewer for this rule"
-"Use baseline-checker to capture baseline"
-"Use doc-optimizer to reduce CLAUDE.md length"
-```
-
-### Example Workflow
-
-```
-1. User: "I'm going to modify DECLARE/SET rule"
-2. Claude: [rule-engine-reviewer checks journal]
-3. Claude: [baseline-checker captures baseline]
-4. User: [Makes changes]
-5. Claude: [parser-validator validates changes]
-6. Result: APPROVE/REJECT with detailed analysis
-```
-
-**Details:** See `.claude/agents/README.md` for complete documentation
+See .claude/agents/README.md for complete table, tools, and example workflows.
 
 ---
 
