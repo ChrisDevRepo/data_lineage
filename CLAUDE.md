@@ -233,24 +233,31 @@ diff baseline_before.txt baseline_after.txt
 # - All tests pass: pytest tests/ -v
 ```
 
-## SQL Cleaning Rules (YAML-based)
+## SQL Cleaning Rules (Python-based)
 
-**Add new rules without Python:**
-1. Create `lineage_v3/rules/tsql/20_your_rule.yaml`
-2. Define pattern, replacement, test cases
-3. Run: `pytest tests/unit/rules/ -v`
+**Active System:** 17 Python rules in `lineage_v3/parsers/sql_cleaning_rules.py`
+
+**Add new rules:**
+1. Edit `lineage_v3/parsers/sql_cleaning_rules.py`
+2. Add new rule method (RegexRule or CallbackRule)
+3. Register in `_load_default_rules()`
+4. Test with built-in examples
 
 Example:
-```yaml
-name: remove_print
-pattern: 'PRINT\s+.*'
-replacement: ''
-test_cases:
-  - input: "PRINT 'Debug'"
-    expected: ""
+```python
+@staticmethod
+def remove_print() -> RegexRule:
+    return RegexRule(
+        name="RemovePRINT",
+        category=RuleCategory.COMMENT,
+        pattern=r'PRINT\s+.*',
+        replacement='',
+        examples_before=["PRINT 'Debug'"],
+        examples_after=[""]
+    )
 ```
 
-See [docs/RULE_DEVELOPMENT.md](docs/RULE_DEVELOPMENT.md) for complete guide.
+See [docs/PYTHON_RULES.md](docs/PYTHON_RULES.md) for complete documentation (17 rules, execution order, critical fixes).
 
 ## Testing & Validation
 
@@ -287,15 +294,17 @@ cd frontend && npm run test:e2e  # 90+ tests
 - [docs/PARSER_CHANGE_JOURNAL.md](docs/PARSER_CHANGE_JOURNAL.md) - Change history & regression prevention
 
 **Analysis & Reports:**
-- [docs/reports/PARSER_ANALYSIS_V4.3.2.md](docs/reports/PARSER_ANALYSIS_V4.3.2.md) - Performance & architecture analysis
 - [docs/reports/CONFIGURATION_VERIFICATION_REPORT.md](docs/reports/CONFIGURATION_VERIFICATION_REPORT.md) - Multi-database support
+- [docs/reports/DATABASE_SUPPORT_ASSESSMENT.md](docs/reports/DATABASE_SUPPORT_ASSESSMENT.md) - Database platform support
+- [docs/reports/PHANTOM_FUNCTION_FILTER_BUG.md](docs/reports/PHANTOM_FUNCTION_FILTER_BUG.md) - Phantom function filter fix
+- [docs/reports/PHANTOM_ORPHAN_ISSUE.md](docs/reports/PHANTOM_ORPHAN_ISSUE.md) - Phantom orphan handling
 - [docs/reports/archive/README.md](docs/reports/archive/README.md) - Archived documentation
 
 ### Setup & Usage
 - [docs/SETUP.md](docs/SETUP.md) - Installation guide
 - [docs/USAGE.md](docs/USAGE.md) - Parser usage & troubleshooting
 - [docs/REFERENCE.md](docs/REFERENCE.md) - API reference
-- [docs/RULE_DEVELOPMENT.md](docs/RULE_DEVELOPMENT.md) - YAML rule creation (⚠️ future, see WARNING in doc)
+- [docs/PYTHON_RULES.md](docs/PYTHON_RULES.md) - SQL cleaning rules documentation
 
 ### Testing & Quality
 **User-Verified Cases:**
@@ -308,11 +317,6 @@ cd frontend && npm run test:e2e  # 90+ tests
 - `scripts/testing/check_parsing_results.py` - Full parser validation
 - `scripts/testing/analyze_lower_confidence_sps.py` - Why not 100% confidence?
 - `scripts/testing/verify_sp_parsing.py` - Analyze specific SP
-
-**Test Reports:**
-- [docs/reports/UAT_READINESS_REPORT.md](docs/reports/UAT_READINESS_REPORT.md) - Production readiness assessment
-- [docs/reports/TESTING_SUMMARY.md](docs/reports/TESTING_SUMMARY.md) - Test coverage & results
-- [docs/reports/BUGS.md](docs/reports/BUGS.md) - Known issues tracker
 
 ### Development
 - [docs/DEVELOPMENT_ACTION_LIST.md](docs/DEVELOPMENT_ACTION_LIST.md) - Master task list (53 tasks, 8 categories)
