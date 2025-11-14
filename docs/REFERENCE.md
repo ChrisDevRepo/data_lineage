@@ -21,7 +21,7 @@ Technical specifications, architecture, and schema documentation.
 └────────────────┬────────────────────────────────────────────┘
                  │
 ┌────────────────▼────────────────────────────────────────────┐
-│                    Parser (v4.2.0)                           │
+│                    Parser (v4.3.3)                           │
 │  Regex → SQLGlot → Rule Engine → Confidence                 │
 │  - Extracts table dependencies from SQL                      │
 │  - Calculates confidence scores                             │
@@ -36,7 +36,7 @@ Technical specifications, architecture, and schema documentation.
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Parser Specification (v4.2.0)
+## Parser Specification (v4.3.3)
 
 ### Parsing Strategy
 
@@ -131,9 +131,9 @@ CREATE TABLE lineage_metadata (
     object_id BIGINT PRIMARY KEY,
     confidence REAL,
     primary_source VARCHAR,
-    parse_failure_reason VARCHAR,      -- v4.2.0
-    expected_count INTEGER,            -- v4.2.0
-    found_count INTEGER,               -- v4.2.0
+    parse_failure_reason VARCHAR,      -- v4.3.3
+    expected_count INTEGER,            -- v4.3.3
+    found_count INTEGER,               -- v4.3.3
     last_updated TIMESTAMP
 );
 ```

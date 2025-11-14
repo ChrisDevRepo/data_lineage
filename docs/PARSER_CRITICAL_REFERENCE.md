@@ -210,7 +210,7 @@ diff baseline_before.txt baseline_after.txt
 
 ## 📊 Current Metrics (Baseline)
 
-**Version:** v4.3.2
+**Version:** v4.3.3
 **Success Rate:** 100% (349/349 SPs with dependencies)
 **Confidence Distribution:**
 - 100: 82.5% (288 SPs)
@@ -318,4 +318,4 @@ diff baseline_before.txt baseline_after.txt
 
 **Remember:** This parser has 100% success rate. Changes should be defensive only.
 
-**Last Updated:** 2025-11-12 (v4.3.2)
+**Last Verified:** 2025-11-14 (v4.3.3)

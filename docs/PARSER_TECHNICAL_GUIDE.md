@@ -1,4 +1,4 @@
-# Parser Technical Guide - v4.3.2
+# Parser Technical Guide - v4.3.3
 
 **Complete technical reference for the quality-aware parser**
 
@@ -394,4 +394,4 @@ Cleaning logic is working as designed:
 
 ---
 
-**Last Updated:** 2025-11-12 (v4.3.2)
+**Last Verified:** 2025-11-14 (v4.3.3)
