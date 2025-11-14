@@ -74,7 +74,7 @@ if not self._is_excluded(schema, name) and self._schema_matches_include_list(sch
 **Impact:**
 - ✅ Removed 8 invalid phantom functions (schemas: AA, TS, U, ra, s)
 - ✅ Include list now enforced for both tables AND functions
-- ✅ Only schemas matching `PHANTOM_INCLUDE_SCHEMAS` create phantoms
+- ✅ Only schemas matching `PHANTOM_EXTERNAL_SCHEMAS` create phantoms (v4.3.3)
 
 **Root Cause:** Table aliases misidentified as function calls by regex
 ```sql
@@ -127,7 +127,10 @@ All configuration systems tested and working:
 
 ### 1. Environment Configuration ✅
 ```bash
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
+# v4.3.3: REDESIGNED - Phantoms = EXTERNAL sources ONLY (no wildcards, exact match)
+PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
+# Examples: power_consumption,external_lakehouse,partner_erp
+
 PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 PARSER_CONFIDENCE_HIGH=0.85
 PARSER_CONFIDENCE_MEDIUM=0.75

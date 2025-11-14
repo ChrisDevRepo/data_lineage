@@ -6,7 +6,7 @@ description: Clean up old docs, archive outdated files, and optimize CLAUDE.md
 
 1. Identify outdated documentation files:
    ```bash
-   cd /home/chris/sandbox
+   cd /home/user/sandbox
    find docs/ -name "*_OLD.md" -o -name "*_DEPRECATED.md" -o -name "*_v1.md" -o -name "*_v2.md"
    ```
    - Look for: deprecated files, old versions, completed implementation specs

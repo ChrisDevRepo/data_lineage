@@ -257,7 +257,7 @@ class QualityAwareParser:
         # Load phantom schema configuration (v4.3.0)
         self._load_phantom_config()
 
-    def _load_phantom_config(self):
+    def _load_phantom_config(self) -> None:
         """
         Load phantom schema configuration from centralized settings (v4.3.3).
 
@@ -1604,7 +1604,7 @@ class QualityAwareParser:
 
         return phantom_map
 
-    def _track_phantom_references(self, sp_id: int, phantom_ids: Dict[str, int], dependency_types: Dict[str, str]):
+    def _track_phantom_references(self, sp_id: int, phantom_ids: Dict[str, int], dependency_types: Dict[str, str]) -> None:
         """
         Track which SPs reference which phantoms.
 

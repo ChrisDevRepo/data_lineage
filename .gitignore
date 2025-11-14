@@ -1,5 +1,7 @@
 # Hidden directories and OS files
 .*/
+!.claude/     # EXCEPTION: Claude Code configuration should be tracked
+!.github/     # EXCEPTION: GitHub workflows should be tracked
 .DS_Store
 Thumbs.db
 

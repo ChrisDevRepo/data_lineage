@@ -362,7 +362,8 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
             # Check if query logs available
             try:
                 query_log_count = db.query("SELECT COUNT(*) FROM query_logs")[0][0]
-            except:
+            except Exception as e:
+                logger.debug(f"Query logs table not available: {e}")
                 query_log_count = 0  # Table doesn't exist
 
             if query_log_count > 0:

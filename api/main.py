@@ -19,7 +19,7 @@ import shutil
 import threading
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, AsyncIterator, Dict, Any
 from contextlib import asynccontextmanager
 from datetime import datetime
 
@@ -72,7 +72,7 @@ current_upload_info = {"job_id": None, "started_at": None}
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan event handler"""
     # Startup
     JOBS_DIR.mkdir(exist_ok=True)
@@ -143,7 +143,7 @@ def get_job_result_data(job_id: str) -> dict:
         return json.load(f)
 
 
-def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = True):
+def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = True) -> None:
     """Thread function to run lineage processing in background"""
     try:
         result = process_lineage_job(job_id, job_dir, data_dir=DATA_DIR, incremental=incremental)
@@ -164,7 +164,7 @@ def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = True):
 # ============================================================================
 
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
-async def health_check():
+async def health_check() -> HealthResponse:
     """
     Health check endpoint for container orchestration.
 
@@ -179,7 +179,7 @@ async def health_check():
 
 
 @app.get("/api/latest-data", tags=["Data"])
-async def get_latest_data():
+async def get_latest_data() -> JSONResponse:
     """
     Get the latest processed lineage data (frontend JSON format).
 
@@ -221,7 +221,7 @@ async def get_latest_data():
 
 
 @app.get("/api/metadata", tags=["Data"])
-async def get_metadata():
+async def get_metadata() -> JSONResponse:
     """
     Get metadata about the current lineage data.
 
@@ -270,7 +270,7 @@ async def get_metadata():
 
 
 @app.get("/api/ddl/{object_id}", tags=["Data"])
-async def get_ddl(object_id: int):
+async def get_ddl(object_id: int) -> JSONResponse:
     """
     Get DDL definition for a specific object on demand.
 
@@ -332,7 +332,7 @@ async def get_ddl(object_id: int):
 
 
 @app.get("/api/search-ddl", tags=["Data"])
-async def search_ddl(q: str = Query(..., min_length=1, max_length=200, description="Search query")):
+async def search_ddl(q: str = Query(..., min_length=1, max_length=200, description="Search query")) -> JSONResponse:
     """
     Full-text search across all DDL definitions using DuckDB FTS.
 
@@ -417,7 +417,7 @@ async def upload_parquet(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(..., description="Parquet files (any names - will be auto-detected)"),
     incremental: bool = True
-):
+) -> UploadResponse:
     """
     Upload Parquet files and start lineage processing.
 
@@ -545,7 +545,7 @@ async def upload_parquet(
 
 
 @app.get("/api/status/{job_id}", response_model=JobStatusResponse, tags=["Lineage"])
-async def get_job_status(job_id: str):
+async def get_job_status(job_id: str) -> JobStatusResponse:
     """
     Poll job status (called every 2 seconds by frontend).
 
@@ -577,7 +577,7 @@ async def get_job_status(job_id: str):
 
 
 @app.get("/api/result/{job_id}", response_model=LineageResultResponse, tags=["Lineage"])
-async def get_job_result(job_id: str):
+async def get_job_result(job_id: str) -> LineageResultResponse:
     """
     Get final lineage JSON when job is complete.
 
@@ -621,7 +621,7 @@ async def get_job_result(job_id: str):
 
 
 @app.delete("/api/jobs/{job_id}", tags=["Admin"])
-async def delete_job(job_id: str):
+async def delete_job(job_id: str) -> Dict[str, str]:
     """
     Delete job files (cleanup).
 
@@ -650,7 +650,7 @@ async def delete_job(job_id: str):
 
 
 @app.get("/api/jobs", tags=["Admin"])
-async def list_jobs():
+async def list_jobs() -> Dict[str, Any]:
     """
     List all jobs (for debugging/admin).
 
@@ -683,7 +683,7 @@ async def list_jobs():
 
 
 @app.delete("/api/clear-data", tags=["Admin"])
-async def clear_all_data():
+async def clear_all_data() -> Dict[str, Any]:
     """
     Clear all lineage data (DuckDB workspace and JSON files).
 

@@ -27,13 +27,15 @@ export function getConfidenceLevel(confidence: number): ConfidenceLevel {
     const conf = confidence > 1 ? confidence : confidence * 100;
 
     // 3 categories (simplified from 4)
-    if (conf >= 80) {
+    // Backend produces discrete values: {0, 75, 85, 100}
+    // Threshold must match backend output (>= 85, not >= 80)
+    if (conf >= 85) {
         return {
             icon: '✅',
             label: 'Good',
             title: '✅ Good (85-100%)'
         };
-    } else if (conf >= 70) {
+    } else if (conf >= 75) {
         return {
             icon: '⚠️',
             label: 'Acceptable',

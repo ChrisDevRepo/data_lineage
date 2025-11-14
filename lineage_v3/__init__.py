@@ -19,4 +19,65 @@ License: MIT
 __version__ = "3.0.0"
 __author__ = "Vibecoding Team"
 
-# Core modules will be imported here as they are developed
+# Core modules
+from lineage_v3.exceptions import (
+    LineageError,
+    ParsingError,
+    DDLNotFoundError,
+    SQLGlotParsingError,
+    InvalidSQLError,
+    CatalogError,
+    InvalidSchemaError,
+    InvalidObjectError,
+    CatalogResolutionError,
+    WorkspaceError,
+    WorkspaceNotConnectedError,
+    WorkspaceFileNotFoundError,
+    WorkspaceMappingError,
+    ConfigurationError,
+    InvalidDialectError,
+    InvalidSettingError,
+    RuleEngineError,
+    RuleLoadError,
+    RuleValidationError,
+    RuleExecutionError,
+    JobError,
+    JobNotFoundError,
+    JobFailedError,
+    ValidationError,
+    InvalidIdentifierError,
+    SQLInjectionRiskError,
+)
+
+__all__ = [
+    # Version info
+    "__version__",
+    "__author__",
+    # Exceptions
+    "LineageError",
+    "ParsingError",
+    "DDLNotFoundError",
+    "SQLGlotParsingError",
+    "InvalidSQLError",
+    "CatalogError",
+    "InvalidSchemaError",
+    "InvalidObjectError",
+    "CatalogResolutionError",
+    "WorkspaceError",
+    "WorkspaceNotConnectedError",
+    "WorkspaceFileNotFoundError",
+    "WorkspaceMappingError",
+    "ConfigurationError",
+    "InvalidDialectError",
+    "InvalidSettingError",
+    "RuleEngineError",
+    "RuleLoadError",
+    "RuleValidationError",
+    "RuleExecutionError",
+    "JobError",
+    "JobNotFoundError",
+    "JobFailedError",
+    "ValidationError",
+    "InvalidIdentifierError",
+    "SQLInjectionRiskError",
+]

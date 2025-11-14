@@ -1,0 +1,46 @@
+# User-Verified Test Case Template
+# Copy this file and rename: case_XXX_descriptive_name.yaml
+
+sp_name: "spYourStoredProcedureName"
+reported_date: "YYYY-MM-DD"
+reported_by: "user@company.com"
+issue: "Brief description of what was wrong"
+root_cause: "Technical reason for the issue"
+fix_version: "vX.X.X"
+fix_description: "What was changed to fix it"
+
+# Expected parsing results (verified by user as correct)
+expected_inputs:
+  - "schema.Table1"
+  - "schema.Table2"
+  # Add all expected input tables
+
+expected_outputs:
+  - "schema.TargetTable1"
+  # Add all expected output tables
+
+expected_confidence: 100  # or 85, 75, 0
+
+# Optional: DDL snippet for reproducibility
+ddl_snippet: |
+  CREATE PROCEDURE spYourStoredProcedureName
+  AS
+  BEGIN
+      -- Your SQL code here
+      -- This helps reproduce the issue if needed
+  END
+
+# Optional: What NOT to change (prevents regression)
+do_not_change:
+  - "Specific pattern or rule that should not be removed"
+  - "Configuration that must stay as-is"
+
+# Optional: Related cases
+related_cases:
+  - "case_001_similar_issue.yaml"
+
+# Optional: Tags for categorization
+tags:
+  - "IF_EXISTS"
+  - "phantom"
+  - "confidence"

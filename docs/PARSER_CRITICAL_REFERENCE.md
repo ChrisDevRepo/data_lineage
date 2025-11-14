@@ -90,7 +90,7 @@ Step 4: CONFIDENCE CALCULATION
 
 ---
 
-## 🧪 Golden Test Cases (Detect Regressions)
+## 🧪 User-Verified Test Cases (Detect Regressions)
 
 **File:** `tests/unit/test_parser_golden_cases.py`
 
@@ -177,17 +177,35 @@ r'DECLARE\s+(@\w+)\s+(\w+(?:\([^\)]*\))?)\s*=\s*\((?:[^()]|\([^()]*\))*\)'
 
 ## ✅ Testing Protocol (Before ANY Change)
 
-### 1. Record Baseline
+### 1. Check Change Journal (MANDATORY)
+```bash
+# ALWAYS check journal BEFORE making changes
+cat docs/PARSER_CHANGE_JOURNAL.md | grep -A 10 "DO NOT"
+
+# For rule engine changes
+cat docs/PARSER_CHANGE_JOURNAL.md | grep -E "rule|cleaning|preprocessing"
+
+# For SQLGlot changes
+cat docs/PARSER_CHANGE_JOURNAL.md | grep -E "WARN|ErrorLevel|dialect"
+```
+
+**Why this is critical:**
+- Prevents repeating past mistakes
+- Shows what NOT to change
+- Explains root causes of previous issues
+- Documents user-verified corrections
+
+### 2. Record Baseline
 ```bash
 python3 scripts/testing/check_parsing_results.py > baseline_before.txt
 ```
 
-### 2. Make ONE Change at a Time
+### 3. Make ONE Change at a Time
 - Never change multiple things at once
 - Test after each change
 - Rollback immediately if regression
 
-### 3. Run Golden Tests
+### 3. Run User-Verified Tests
 ```bash
 pytest tests/unit/test_parser_golden_cases.py -v
 ```
@@ -202,7 +220,7 @@ diff baseline_before.txt baseline_after.txt
 - ✅ Success rate: 100% (maintained)
 - ✅ No SPs with empty lineage (inputs=[], outputs=[])
 - ✅ Confidence distribution: Unchanged or improved
-- ✅ All golden tests pass
+- ✅ All user-verified tests pass
 
 **If ANY criterion fails → ROLLBACK IMMEDIATELY**
 
@@ -210,7 +228,7 @@ diff baseline_before.txt baseline_after.txt
 
 ## 📊 Current Metrics (Baseline)
 
-**Version:** v4.3.2
+**Version:** v4.3.3
 **Success Rate:** 100% (349/349 SPs with dependencies)
 **Confidence Distribution:**
 - 100: 82.5% (288 SPs)
@@ -265,7 +283,7 @@ diff baseline_before.txt baseline_after.txt
 
 ### ⚠️ WARNING FLAGS
 1. **Test SPs change** (spLoadFactLaborCostForEarnedValue_Post, spLoadDimTemplateType)
-   → Run golden tests immediately
+   → Run user-verified tests immediately
 
 2. **New pattern of parse errors** in logs
    → Preprocessing may have broken, check cleaned DDL
@@ -318,4 +336,4 @@ diff baseline_before.txt baseline_after.txt
 
 **Remember:** This parser has 100% success rate. Changes should be defensive only.
 
-**Last Updated:** 2025-11-12 (v4.3.2)
+**Last Verified:** 2025-11-14 (v4.3.3)
