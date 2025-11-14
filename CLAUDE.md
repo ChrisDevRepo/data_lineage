@@ -357,46 +357,46 @@ cd frontend && npm run test:e2e  # 90+ tests
 
 ## Documentation
 
-### Quick Reference
-- **CLAUDE.md** (you are here) - Main project reference
-- [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md) - Complete v4.3.3 summary
+### 🗺️ Documentation Map
 
-### Parser Documentation
-**Critical (Read First):**
-- [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md) - Critical warnings, what NOT to change
-- [docs/PARSER_TECHNICAL_GUIDE.md](docs/PARSER_TECHNICAL_GUIDE.md) - Complete technical reference
-- [docs/PARSER_CHANGE_JOURNAL.md](docs/PARSER_CHANGE_JOURNAL.md) - Change history & regression prevention
+**Start Here:**
+- **CLAUDE.md** (you are here) - Main project reference, quick start, critical warnings
+- [PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md) - Complete v4.3.3 summary
 
-**Analysis & Reports:**
-- [docs/reports/CONFIGURATION_VERIFICATION_REPORT.md](docs/reports/CONFIGURATION_VERIFICATION_REPORT.md) - Multi-database support
-- [docs/reports/DATABASE_SUPPORT_ASSESSMENT.md](docs/reports/DATABASE_SUPPORT_ASSESSMENT.md) - Database platform support
-- [docs/reports/PHANTOM_FUNCTION_FILTER_BUG.md](docs/reports/PHANTOM_FUNCTION_FILTER_BUG.md) - Phantom function filter fix
-- [docs/reports/PHANTOM_ORPHAN_ISSUE.md](docs/reports/PHANTOM_ORPHAN_ISSUE.md) - Phantom orphan handling
-- [docs/reports/archive/README.md](docs/reports/archive/README.md) - Archived documentation
+**Parser (Critical - Read Before Changes):**
+- [PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md) - ⚠️ Critical warnings, what NOT to change
+- [PARSER_TECHNICAL_GUIDE.md](docs/PARSER_TECHNICAL_GUIDE.md) - Complete technical architecture
+- [PARSER_CHANGE_JOURNAL.md](docs/PARSER_CHANGE_JOURNAL.md) - 🚨 MANDATORY: Check before rule/SQLGlot changes
+- [PYTHON_RULES.md](docs/PYTHON_RULES.md) - 17 SQL cleaning rules documentation
 
-### Setup & Usage
-- [docs/SETUP.md](docs/SETUP.md) - Installation guide
-- [docs/USAGE.md](docs/USAGE.md) - Parser usage & troubleshooting
-- [docs/REFERENCE.md](docs/REFERENCE.md) - API reference
-- [docs/PYTHON_RULES.md](docs/PYTHON_RULES.md) - SQL cleaning rules documentation
+**Setup & Usage:**
+- [SETUP.md](docs/SETUP.md) - Installation & first-time setup
+- [USAGE.md](docs/USAGE.md) - Parser usage & troubleshooting guide
+- [REFERENCE.md](docs/REFERENCE.md) - API reference & configuration
 
-### Testing & Quality
-**User-Verified Cases:**
-- [tests/fixtures/user_verified_cases/README.md](tests/fixtures/user_verified_cases/README.md) - User-reported bug → permanent test
-- [tests/fixtures/user_verified_cases/case_template.yaml](tests/fixtures/user_verified_cases/case_template.yaml) - Template for new cases
-- `tests/unit/test_user_verified_cases.py` - Automated test suite
+**Testing & Quality:**
+- [User-Verified Cases](tests/fixtures/user_verified_cases/README.md) - User bug → permanent test
+- [Baseline Validation](scripts/testing/run_baseline_validation.sh) - Before/after regression detection
+- `check_parsing_results.py` - Full parser validation
+- `test_user_verified_cases.py` - Automated test suite
 
-**Validation Scripts:**
-- `scripts/testing/run_baseline_validation.sh` - Automated regression detection (before/after/diff)
-- `scripts/testing/check_parsing_results.py` - Full parser validation
-- `scripts/testing/analyze_lower_confidence_sps.py` - Why not 100% confidence?
-- `scripts/testing/verify_sp_parsing.py` - Analyze specific SP
+**Reports & Analysis:**
+- [CONFIGURATION_VERIFICATION_REPORT.md](docs/reports/CONFIGURATION_VERIFICATION_REPORT.md) - Multi-database support
+- [DATABASE_SUPPORT_ASSESSMENT.md](docs/reports/DATABASE_SUPPORT_ASSESSMENT.md) - Platform compatibility
+- [PHANTOM_FUNCTION_FILTER_BUG.md](docs/reports/PHANTOM_FUNCTION_FILTER_BUG.md) - v4.3.3 Phantom fix
+- [GRAPHOLOGY_BFS_ANALYSIS.md](docs/GRAPHOLOGY_BFS_ANALYSIS.md) - Graph library usage
 
-### Development
-- [docs/DEVELOPMENT_ACTION_LIST.md](docs/DEVELOPMENT_ACTION_LIST.md) - Master task list (53 tasks, 8 categories)
-- [docs/GRAPHOLOGY_BFS_ANALYSIS.md](docs/GRAPHOLOGY_BFS_ANALYSIS.md) - Graph library usage analysis
-- `.github/workflows/ci-validation.yml` - CI/CD pipeline configuration
-- `.git/hooks/pre-commit` - Local quality gates
+**Development & Architecture:**
+- [DEVELOPMENT_ACTION_LIST.md](docs/DEVELOPMENT_ACTION_LIST.md) - 53 tasks across 8 categories
+- [ADRs](docs/adr/) - Architecture Decision Records (exception hierarchy, YAML deletion)
+- [Subagents](.claude/agents/README.md) - 4 specialized validators
+
+**By Task:**
+- 📖 Learning the system → PARSER_V4.3.3_SUMMARY.md
+- 🔧 Modifying parser → PARSER_CRITICAL_REFERENCE.md + PARSER_CHANGE_JOURNAL.md
+- 🧪 Adding tests → tests/fixtures/user_verified_cases/README.md
+- 🐛 Debugging issues → USAGE.md + PARSER_TECHNICAL_GUIDE.md
+- 🏗️ Understanding architecture → ADRs + DEVELOPMENT_ACTION_LIST.md
 
 ## Phantom Objects (v4.3.3 - REDESIGNED)
 
