@@ -16,10 +16,10 @@ This document consolidates findings from comprehensive multi-persona code review
 - **Test Manager** - Testing strategy consolidation
 - **Documentation Specialist** - Docs cleanup and sync
 
-**Total Issues Identified:** 47 across 8 categories
+**Total Issues Identified:** 54 across 8 categories
 **Critical Issues:** 8 (7 completed ✅, 1 minor remaining)
-**High Priority:** 6 (4 completed ✅, 1 deferred, 1 open)
-**Status Updated:** 2025-11-14 - Comprehensive verification completed
+**High Priority:** 7 (4 completed ✅, 1 deferred, 2 open including golden cases)
+**Status Updated:** 2025-11-14 - Comprehensive verification + CI golden cases added
 **Estimated Remaining Effort:** ~15-20 hours (down from 40-50)
 
 ---
@@ -531,10 +531,77 @@ const graph = parse(Graph, serialized);
 
 ## 🧪 TESTING TASKS
 
-### 43. Implement User-Verified Test Cases
-**File:** `tests/unit/test_parser_golden_cases.py`
-**Status:** CRITICAL (see Priority #6)
-**Fix Time:** 2-3 hours
+### 43. Implement User-Verified Test Cases ✅ COMPLETED
+**File:** `tests/unit/test_user_verified_cases.py` (7,572 bytes)
+**Status:** ✅ Infrastructure completed (2025-11-14)
+**Implementation:**
+- Test runner: tests/unit/test_user_verified_cases.py
+- Fixtures directory: tests/fixtures/user_verified_cases/
+- Template: tests/fixtures/user_verified_cases/case_template.yaml
+- README: tests/fixtures/user_verified_cases/README.md
+- CI integration: .github/workflows/ci-validation.yml (job: user-verified-cases)
+
+**Current State:** Framework ready, 0 golden cases (add as regressions discovered)
+
+### 48. Create Golden Record Test Cases for CI Validation 🎯
+**Priority:** HIGH
+**Status:** Open
+**Fix Time:** 30 minutes per case (ongoing)
+
+**Purpose:** Populate user-verified test cases with real regression examples
+
+**Why This Matters:**
+- ✅ Golden cases work in CI (no database needed - self-contained YAML)
+- ✅ Most valuable tests - represent real user-reported issues
+- ✅ Catch regressions immediately
+- ✅ Make CI actually useful without production database
+
+**Current CI Limitations:**
+- Integration tests (64) - SKIP in CI (need lineage_workspace.duckdb)
+- Parser baseline - SKIP in CI (need 349 real SPs)
+- Unit tests (73) - Run in CI (mocked data)
+- **Golden cases (0)** - READY for CI but need population
+
+**Workflow:**
+1. User reports: "SP X is parsing incorrectly"
+2. Fix the parser issue
+3. Create `tests/fixtures/user_verified_cases/case_XXX.yaml` with:
+   - SP name and DDL
+   - Expected inputs (schema.table)
+   - Expected outputs (schema.table)
+   - Expected confidence
+4. Commit YAML to git
+5. CI validates forever
+
+**Example Golden Cases to Create:**
+```yaml
+# case_001_if_exists_pattern.yaml - Missing table due to IF EXISTS
+sp_name: spLoadFactTables
+issue: "Table FactLaborCost not detected (IF EXISTS pattern)"
+expected_inputs:
+  - CONSUMPTION_POWERBI.FactLaborCost
+  - STAGING.DimProject
+expected_confidence: 100
+
+# case_002_phantom_schema_exact_match.yaml - Phantom wildcard bug
+sp_name: spLoadExternalData
+issue: "Wildcard phantom config created false positives"
+expected_phantoms:
+  - power_consumption.meter_readings  # Exact match only
+expected_confidence: 85
+```
+
+**Integration with CI:**
+- Already configured in .github/workflows/ci-validation.yml
+- Job runs on every push/PR
+- Fails build if golden cases regress
+- Works without production database ✅
+
+**Next Steps:**
+1. Wait for first user-reported regression
+2. Fix issue in parser
+3. Create YAML golden case
+4. Verify CI catches regression if code reverted
 
 ### 44. Consolidate Testing Strategy ✅ COMPLETED
 **Status:** ✅ Completed (2025-11-14)
@@ -687,12 +754,12 @@ Auto-generated from tests/fixtures/user_verified_cases/
 |----------|-------|-----------|------|----------------|
 | **Critical Fixes** | 8 | 7 ✅ | 1 | ~30 min |
 | **Backend Code Quality** | 7 | 4 ✅ | 2 (1 deferred) | ~4 hours |
-| **Testing** | 8 | 5 ✅ | 3 | ~6 hours |
+| **Testing** | 9 | 6 ✅ | 3 | ~6 hours |
 | **Documentation** | 12 | 7 ✅ | 5 | ~2 hours |
 | **Frontend** | 4 | 0 | 4 | ~7-9 hours |
 | **Infrastructure** | 8 | 2 ✅ | 6 | ~8-10 hours |
 | **Graphology Optimization** | 6 | 0 | 6 | ~30 min |
-| **TOTAL** | **53** | **25 (47%)** | **27** | **~15-20 hours** |
+| **TOTAL** | **54** | **26 (48%)** | **27** | **~15-20 hours** |
 
 ---
 
