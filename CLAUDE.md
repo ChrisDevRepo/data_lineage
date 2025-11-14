@@ -4,6 +4,7 @@
 - End responses with status (✅ Completed | ⏳ Pending | ❌ Not started | ⚠️ Needs clarification)
 - Ask questions last; complete analysis first
 - Use TodoWrite tool; update immediately after completion
+- Use subagents for specialized validation tasks (see Subagents section)
 
 ## Project: Data Lineage Visualizer v4.3.3
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
@@ -491,6 +492,44 @@ See [docs/USAGE.md](docs/USAGE.md) for detailed troubleshooting.
 - Push to feature branches (never to main)
 - Pull requests required for merging
 - No rebasing or force pushing
+
+## Subagents (Specialized Validators)
+
+**Location:** `.claude/agents/` - 4 specialized subagents for validation tasks
+
+### When to Use
+
+| Subagent | Use When | Tools | Output |
+|----------|----------|-------|--------|
+| **parser-validator** | Modifying parser or rules | Read, Bash, Grep | Success rate, confidence distribution, APPROVE/REJECT |
+| **rule-engine-reviewer** | Changing SQL cleaning rules | Read, Grep | Journal conflicts, safety assessment, recommendations |
+| **baseline-checker** | Before/after parser changes | Bash, Read | Baseline capture, before/after comparison, PASS/FAIL |
+| **doc-optimizer** | CLAUDE.md >300 lines | Read, Grep, Bash | Optimization targets, line reduction plan |
+
+### Invocation
+
+**Automatic:** Claude delegates matching tasks automatically
+
+**Manual:**
+```
+"Use parser-validator to check my changes"
+"Use rule-engine-reviewer for this rule"
+"Use baseline-checker to capture baseline"
+"Use doc-optimizer to reduce CLAUDE.md length"
+```
+
+### Example Workflow
+
+```
+1. User: "I'm going to modify DECLARE/SET rule"
+2. Claude: [rule-engine-reviewer checks journal]
+3. Claude: [baseline-checker captures baseline]
+4. User: [Makes changes]
+5. Claude: [parser-validator validates changes]
+6. Result: APPROVE/REJECT with detailed analysis
+```
+
+**Details:** See `.claude/agents/README.md` for complete documentation
 
 ---
 
