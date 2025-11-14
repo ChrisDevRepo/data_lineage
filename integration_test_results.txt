@@ -1,0 +1,177 @@
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0 -- /home/chris/data_lineage/venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/chris/data_lineage
+configfile: pytest.ini
+plugins: cov-7.0.0, httpx-0.35.0, anyio-4.11.0
+[1mcollecting ... [0mcollected 94 items
+
+tests/integration/test_confidence_analysis.py::TestConfidenceDistribution::test_success_rate_is_100_percent [31mFAILED[0m[31m [  1%][0m
+tests/integration/test_confidence_analysis.py::TestConfidenceDistribution::test_confidence_100_majority [32mPASSED[0m[31m [  2%][0m
+tests/integration/test_confidence_analysis.py::TestConfidenceDistribution::test_confidence_85_acceptable [32mPASSED[0m[31m [  3%][0m
+tests/integration/test_confidence_analysis.py::TestConfidenceDistribution::test_confidence_75_acceptable [32mPASSED[0m[31m [  4%][0m
+tests/integration/test_confidence_analysis.py::TestConfidence85Analysis::test_conf_85_sps_have_dependencies [32mPASSED[0m[31m [  5%][0m
+tests/integration/test_confidence_analysis.py::TestConfidence85Analysis::test_conf_85_completeness_range [32mPASSED[0m[31m [  6%][0m
+tests/integration/test_confidence_analysis.py::TestConfidence75Analysis::test_conf_75_sps_have_dependencies [32mPASSED[0m[31m [  7%][0m
+tests/integration/test_confidence_analysis.py::TestConfidence75Analysis::test_conf_75_completeness_range [32mPASSED[0m[31m [  8%][0m
+tests/integration/test_confidence_analysis.py::TestPatternAnalysis::test_lower_confidence_sp_has_sql_patterns [32mPASSED[0m[31m [  9%][0m
+tests/integration/test_confidence_analysis.py::TestCleaningLogicAssessment::test_expected_count_populated [32mPASSED[0m[31m [ 10%][0m
+tests/integration/test_confidence_analysis.py::TestCleaningLogicAssessment::test_lower_confidence_reasons_identifiable [32mPASSED[0m[31m [ 11%][0m
+tests/integration/test_database_validation.py::TestOverallStatistics::test_all_sps_have_dependencies [32mPASSED[0m[31m [ 12%][0m
+tests/integration/test_database_validation.py::TestOverallStatistics::test_sps_with_inputs_percentage [32mPASSED[0m[31m [ 13%][0m
+tests/integration/test_database_validation.py::TestOverallStatistics::test_sps_with_outputs_percentage [32mPASSED[0m[31m [ 14%][0m
+tests/integration/test_database_validation.py::TestConfidenceDistribution::test_confidence_values_are_valid [32mPASSED[0m[31m [ 15%][0m
+tests/integration/test_database_validation.py::TestConfidenceDistribution::test_majority_have_perfect_confidence [32mPASSED[0m[31m [ 17%][0m
+tests/integration/test_database_validation.py::TestConfidenceDistribution::test_no_zero_confidence_sps [32mPASSED[0m[31m [ 18%][0m
+tests/integration/test_database_validation.py::TestAverageDependencies::test_average_inputs_per_sp [32mPASSED[0m[31m [ 19%][0m
+tests/integration/test_database_validation.py::TestAverageDependencies::test_average_outputs_per_sp [32mPASSED[0m[31m [ 20%][0m
+tests/integration/test_database_validation.py::TestSpecificStoredProcedures::test_sp_exists_and_parsed[spLoadFactLaborCostForEarnedValue_Post] [32mPASSED[0m[31m [ 21%][0m
+tests/integration/test_database_validation.py::TestSpecificStoredProcedures::test_sp_exists_and_parsed[spLoadDimTemplateType] [32mPASSED[0m[31m [ 22%][0m
+tests/integration/test_database_validation.py::TestSpecificStoredProcedures::test_spLoadFactLaborCostForEarnedValue_Post_has_expected_dependencies [32mPASSED[0m[31m [ 23%][0m
+tests/integration/test_database_validation.py::TestTopStoredProcedures::test_top_10_sps_by_dependency_count [32mPASSED[0m[31m [ 24%][0m
+tests/integration/test_database_validation.py::TestTopStoredProcedures::test_highest_dependency_sp_has_at_least_5_deps [32mPASSED[0m[31m [ 25%][0m
+tests/integration/test_failure_analysis.py::TestFailureIdentification::test_no_failed_sps [32mPASSED[0m[31m [ 26%][0m
+tests/integration/test_failure_analysis.py::TestFailureCategorization::test_no_unexpected_failures [33mSKIPPED[0m[31m [ 27%][0m
+tests/integration/test_failure_analysis.py::TestFailureCategorization::test_dynamic_sql_failures_expected [33mSKIPPED[0m[31m [ 28%][0m
+tests/integration/test_failure_analysis.py::TestFailureCategorization::test_template_empty_failures_expected [33mSKIPPED[0m[31m [ 29%][0m
+tests/integration/test_failure_analysis.py::TestPatternAnalysis::test_failed_sp_pattern_matches_category [33mSKIPPED[0m[31m [ 30%][0m
+tests/integration/test_failure_analysis.py::TestCleaningLogicAssessment::test_expected_failures_only [33mSKIPPED[0m[31m [ 31%][0m
+tests/integration/test_failure_analysis.py::TestCleaningLogicAssessment::test_cleaning_logic_not_too_aggressive [31mFAILED[0m[31m [ 32%][0m
+tests/integration/test_failure_analysis.py::TestConclusion::test_parser_health_excellent [32mPASSED[0m[31m [ 34%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDialectQueries::test_objects_query_structure [32mPASSED[0m[31m [ 35%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDialectQueries::test_definitions_query_structure [32mPASSED[0m[31m [ 36%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDialectQueries::test_query_logs_query_structure [32mPASSED[0m[31m [ 37%][0m
+tests/integration/test_postgres_mock.py::TestPostgresSchemaCompatibility::test_objects_schema_matches [32mPASSED[0m[31m [ 38%][0m
+tests/integration/test_postgres_mock.py::TestPostgresSchemaCompatibility::test_definitions_schema_matches [32mPASSED[0m[31m [ 39%][0m
+tests/integration/test_postgres_mock.py::TestPostgresSchemaCompatibility::test_query_logs_schema_matches [32mPASSED[0m[31m [ 40%][0m
+tests/integration/test_postgres_mock.py::TestPostgresSchemaCompatibility::test_required_columns_no_nulls [32mPASSED[0m[31m [ 41%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDynamicSQLDetection::test_positional_parameters [32mPASSED[0m[31m [ 42%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDynamicSQLDetection::test_format_function [32mPASSED[0m[31m [ 43%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDynamicSQLDetection::test_execute_using [32mPASSED[0m[31m [ 44%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDynamicSQLDetection::test_concatenation [32mPASSED[0m[31m [ 45%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDynamicSQLDetection::test_no_false_positives [32mPASSED[0m[31m [ 46%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDataQuality::test_objects_data_quality [32mPASSED[0m[31m [ 47%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDataQuality::test_definitions_completeness [32mPASSED[0m[31m [ 48%][0m
+tests/integration/test_postgres_mock.py::TestPostgresDataQuality::test_query_logs_data [32mPASSED[0m[31m [ 50%][0m
+tests/integration/test_postgres_mock.py::TestPostgresVsTSQL::test_schema_consistency [32mPASSED[0m[31m [ 51%][0m
+tests/integration/test_postgres_mock.py::TestPostgresVsTSQL::test_key_differences [32mPASSED[0m[31m [ 52%][0m
+tests/integration/test_postgres_mock.py::TestPostgresExtraction::test_full_extraction_workflow [32mPASSED[0m[31m [ 53%][0m
+tests/integration/test_postgres_mock.py::TestPostgresExtraction::test_dynamic_sql_summary [32mPASSED[0m[31m [ 54%][0m
+tests/integration/test_sp_deep_debugging.py::TestRegexExtraction::test_target_sp_exists [32mPASSED[0m[31m [ 55%][0m
+tests/integration/test_sp_deep_debugging.py::TestRegexExtraction::test_regex_extracts_from_tables [32mPASSED[0m[31m [ 56%][0m
+tests/integration/test_sp_deep_debugging.py::TestRegexExtraction::test_regex_extracts_target_tables [32mPASSED[0m[31m [ 57%][0m
+tests/integration/test_sp_deep_debugging.py::TestSQLGlotParsing::test_sqlglot_warn_mode_on_sample [32mPASSED[0m[31m [ 58%][0m
+tests/integration/test_sp_deep_debugging.py::TestSQLGlotParsing::test_sqlglot_raise_mode_behavior [32mPASSED[0m[31m [ 59%][0m
+tests/integration/test_sp_deep_debugging.py::TestProblematicPatterns::test_identify_problematic_patterns [32mPASSED[0m[31m [ 60%][0m
+tests/integration/test_sp_deep_debugging.py::TestProblematicPatterns::test_temp_tables_not_in_dependencies [32mPASSED[0m[31m [ 61%][0m
+tests/integration/test_sp_deep_debugging.py::TestExpectedDependencyValidation::test_expected_sources_found_in_regex [32mPASSED[0m[31m [ 62%][0m
+tests/integration/test_sp_deep_debugging.py::TestDebuggingWorkflow::test_ddl_length_reasonable [32mPASSED[0m[31m [ 63%][0m
+tests/integration/test_sp_deep_debugging.py::TestDebuggingWorkflow::test_sp_has_data_operations [32mPASSED[0m[31m [ 64%][0m
+tests/integration/test_sp_parsing_details.py::TestSPDetailedParsing::test_sp_has_confidence_score [32mPASSED[0m[31m [ 65%][0m
+tests/integration/test_sp_parsing_details.py::TestSPDetailedParsing::test_sp_input_tables_have_valid_names [32mPASSED[0m[31m [ 67%][0m
+tests/integration/test_sp_parsing_details.py::TestSPDetailedParsing::test_sp_output_tables_have_valid_names [32mPASSED[0m[31m [ 68%][0m
+tests/integration/test_sp_parsing_details.py::TestPhantomObjectDetection::test_phantom_objects_have_negative_ids [33mSKIPPED[0m[31m [ 69%][0m
+tests/integration/test_sp_parsing_details.py::TestPhantomObjectDetection::test_phantoms_are_marked_in_sp_dependencies [33mSKIPPED[0m[31m [ 70%][0m
+tests/integration/test_sp_parsing_details.py::TestPhantomObjectDetection::test_phantom_marker_in_output [32mPASSED[0m[31m [ 71%][0m
+tests/integration/test_sp_parsing_details.py::TestExpectedDependencies::test_spLoadFactLaborCostForEarnedValue_Post_expected_sources [32mPASSED[0m[31m [ 72%][0m
+tests/integration/test_sp_parsing_details.py::TestExpectedDependencies::test_spLoadFactLaborCostForEarnedValue_Post_expected_target [32mPASSED[0m[31m [ 73%][0m
+tests/integration/test_sqlglot_performance.py::TestOverallParsingSuccess::test_all_sps_have_dependencies [32mPASSED[0m[31m [ 74%][0m
+tests/integration/test_sqlglot_performance.py::TestOverallParsingSuccess::test_average_confidence_high [32mPASSED[0m[31m [ 75%][0m
+tests/integration/test_sqlglot_performance.py::TestOverallParsingSuccess::test_regex_baseline_provides_coverage [31mFAILED[0m[31m [ 76%][0m
+tests/integration/test_sqlglot_performance.py::TestConfidenceDistribution::test_confidence_distribution_valid [32mPASSED[0m[31m [ 77%][0m
+tests/integration/test_sqlglot_performance.py::TestConfidenceDistribution::test_confidence_distribution_percentages [32mPASSED[0m[31m [ 78%][0m
+tests/integration/test_sqlglot_performance.py::TestCompletenessAnalysis::test_completeness_ranges_distribution [32mPASSED[0m[31m [ 79%][0m
+tests/integration/test_sqlglot_performance.py::TestSQLGlotEnhancementImpact::test_sqlglot_adds_tables [31mFAILED[0m[31m [ 80%][0m
+tests/integration/test_sqlglot_performance.py::TestSQLGlotEnhancementImpact::test_sqlglot_average_tables_added [31mFAILED[0m[31m [ 81%][0m
+tests/integration/test_sqlglot_performance.py::TestSQLGlotEnhancementImpact::test_top_sps_where_sqlglot_helped [32mPASSED[0m[31m [ 82%][0m
+tests/integration/test_sqlglot_performance.py::TestPhantomObjectDetection::test_phantom_objects_table_exists [32mPASSED[0m[31m [ 84%][0m
+tests/integration/test_sqlglot_performance.py::TestPhantomObjectDetection::test_phantom_objects_count [32mPASSED[0m[31m [ 85%][0m
+tests/integration/test_sqlglot_performance.py::TestPhantomObjectDetection::test_phantom_objects_have_schema_and_name [33mSKIPPED[0m[31m [ 86%][0m
+tests/integration/test_sqlglot_performance.py::TestKeyInsights::test_regex_baseline_guarantees_coverage [32mPASSED[0m[31m [ 87%][0m
+tests/integration/test_sqlglot_performance.py::TestKeyInsights::test_sqlglot_enhances_not_replaces [31mFAILED[0m[31m [ 88%][0m
+tests/integration/test_synapse_integration.py::TestSynapseIntegration::test_synapse_parquet_files_exist [32mPASSED[0m[31m [ 89%][0m
+tests/integration/test_synapse_integration.py::TestSynapseIntegration::test_synapse_data_loaded [33mSKIPPED[0mobject_id', 'object_name',
+'object_type'}, Actual columns: {'command_text'}. These tests require
+direct Synapse DMV export format.)[31m                                       [ 90%][0m
+tests/integration/test_synapse_integration.py::TestSynapseIntegration::test_synapse_schema_columns [33mSKIPPED[0mobject_id', 'object_name',
+'object_type'}, Actual columns: {'command_text'}. These tests require
+direct Synapse DMV export format.)[31m                                       [ 91%][0m
+tests/integration/test_synapse_integration.py::TestSynapseIntegration::test_synapse_object_types [33mSKIPPED[0mobject_id', 'object_name',
+'object_type'}, Actual columns: {'command_text'}. These tests require
+direct Synapse DMV export format.)[31m                                       [ 92%][0m
+tests/integration/test_synapse_integration.py::TestSynapseIntegration::test_tsql_schema_compatibility [33mSKIPPED[0mobject_id', 'object_name',
+'object_type'}, Actual columns: {'command_text'}. These tests require
+direct Synapse DMV export format.)[31m                                       [ 93%][0m
+tests/integration/test_synapse_integration.py::TestSynapseIntegration::test_synapse_data_quality [33mSKIPPED[0mobject_id', 'object_name',
+'object_type'}, Actual columns: {'command_text'}. These tests require
+direct Synapse DMV export format.)[31m                                       [ 94%][0m
+tests/integration/test_synapse_integration.py::TestSynapseIntegration::test_synapse_stored_procedures [33mSKIPPED[0mobject_id', 'object_name',
+'object_type'}, Actual columns: {'command_text'}. These tests require
+direct Synapse DMV export format.)[31m                                       [ 95%][0m
+tests/integration/test_synapse_integration.py::TestSynapseIntegration::test_tsql_query_structure [32mPASSED[0m[31m [ 96%][0m
+tests/integration/test_synapse_integration.py::TestSynapseIntegration::test_backward_compatibility_mapping [33mSKIPPED[0mobject_id', 'object_name',
+'object_type'}, Actual columns: {'command_text'}. These tests require
+direct Synapse DMV export format.)[31m                                       [ 97%][0m
+tests/integration/test_synapse_integration.py::TestTSQLQueryLogs::test_query_logs_query_structure [32mPASSED[0m[31m [ 98%][0m
+tests/integration/test_synapse_integration.py::TestTSQLQueryLogs::test_dynamic_sql_pattern_validation [32mPASSED[0m[31m [100%][0m
+
+=================================== FAILURES ===================================
+[31m[1m_________ TestConfidenceDistribution.test_success_rate_is_100_percent __________[0m
+[1m[31mtests/integration/test_confidence_analysis.py[0m:29: in test_success_rate_is_100_percent
+    [0m[94massert[39;49;00m success_rate == [94m100.0[39;49;00m, [33mf[39;49;00m[33m"[39;49;00m[33mExpected 100% success rate, got [39;49;00m[33m{[39;49;00msuccess_rate[33m:[39;49;00m[33m.1f[39;49;00m[33m}[39;49;00m[33m%[39;49;00m[33m"[39;49;00m[90m[39;49;00m
+[1m[31mE   AssertionError: Expected 100% success rate, got 70.2%[0m
+[1m[31mE   assert 70.20057306590259 == 100.0[0m
+[31m[1m______ TestCleaningLogicAssessment.test_cleaning_logic_not_too_aggressive ______[0m
+[1m[31mtests/integration/test_failure_analysis.py[0m:295: in test_cleaning_logic_not_too_aggressive
+    [0m[94massert[39;49;00m success_rate >= [94m99.0[39;49;00m, ([90m[39;49;00m
+[1m[31mE   AssertionError: Success rate 70.2% suggests cleaning logic may be too aggressive[0m
+[1m[31mE   assert 70.20057306590259 >= 99.0[0m
+[31m[1m_______ TestOverallParsingSuccess.test_regex_baseline_provides_coverage ________[0m
+[1m[31mtests/integration/test_sqlglot_performance.py[0m:58: in test_regex_baseline_provides_coverage
+    [0m[94massert[39;49;00m total_found >= total_expected, ([90m[39;49;00m
+[1m[31mE   AssertionError: Found 787 tables but expected at least 852 (regex baseline)[0m
+[1m[31mE   assert 787 >= 852[0m
+[31m[1m____________ TestSQLGlotEnhancementImpact.test_sqlglot_adds_tables _____________[0m
+[1m[31mtests/integration/test_sqlglot_performance.py[0m:173: in test_sqlglot_adds_tables
+    [0m[94massert[39;49;00m added_or_exact / total >= [94m0.9[39;49;00m, ([90m[39;49;00m
+[1m[31mE   AssertionError: Expected >=90% SPs with exact or enhanced results, got 73.5%[0m
+[1m[31mE   assert (169 / 230) >= 0.9[0m
+[31m[1m________ TestSQLGlotEnhancementImpact.test_sqlglot_average_tables_added ________[0m
+[1m[31mtests/integration/test_sqlglot_performance.py[0m:194: in test_sqlglot_average_tables_added
+    [0m[94massert[39;49;00m [94m0[39;49;00m <= avg_added <= [94m5[39;49;00m, ([90m[39;49;00m
+[1m[31mE   AssertionError: Expected 0-5 tables added on average, got -0.28[0m
+[1m[31mE   assert 0 <= -0.28[0m
+[31m[1m______________ TestKeyInsights.test_sqlglot_enhances_not_replaces ______________[0m
+[1m[31mtests/integration/test_sqlglot_performance.py[0m:335: in test_sqlglot_enhances_not_replaces
+    [0m[94massert[39;49;00m percentage >= [94m95.0[39;49;00m, ([90m[39;49;00m
+[1m[31mE   AssertionError: SQLGlot should maintain or enhance regex baseline for >=95% of SPs, got 73.5%[0m
+[1m[31mE   assert 73.47826086956522 >= 95.0[0m
+[36m[1m=========================== short test summary info ============================[0m
+[33mSKIPPED[0m [1] tests/integration/test_failure_analysis.py:111: No failed SPs in database (100% success rate)
+[33mSKIPPED[0m [1] tests/integration/test_failure_analysis.py:126: No dynamic SQL only SPs
+[33mSKIPPED[0m [1] tests/integration/test_failure_analysis.py:137: No template/empty SPs
+[33mSKIPPED[0m [1] tests/integration/test_failure_analysis.py:170: No failed SPs in database (100% success rate)
+[33mSKIPPED[0m [1] tests/integration/test_failure_analysis.py:239: No failed SPs (100% success rate)
+[33mSKIPPED[0m [1] tests/integration/test_sp_parsing_details.py:138: No phantom objects in database (expected if all deps resolved)
+[33mSKIPPED[0m [1] tests/integration/test_sp_parsing_details.py:163: No phantom objects in database
+[33mSKIPPED[0m [1] tests/integration/test_sqlglot_performance.py:285: No phantom objects in database
+[33mSKIPPED[0m [1] tests/integration/test_synapse_integration.py:62: Parquet data has different format. Expected columns: {'schema_name', 'object_id', 'object_name', 'object_type'}, Actual columns: {'command_text'}. These tests require direct Synapse DMV export format.
+[33mSKIPPED[0m [1] tests/integration/test_synapse_integration.py:68: Parquet data has different format. Expected columns: {'schema_name', 'object_id', 'object_name', 'object_type'}, Actual columns: {'command_text'}. These tests require direct Synapse DMV export format.
+[33mSKIPPED[0m [1] tests/integration/test_synapse_integration.py:76: Parquet data has different format. Expected columns: {'schema_name', 'object_id', 'object_name', 'object_type'}, Actual columns: {'command_text'}. These tests require direct Synapse DMV export format.
+[33mSKIPPED[0m [1] tests/integration/test_synapse_integration.py:85: Parquet data has different format. Expected columns: {'schema_name', 'object_id', 'object_name', 'object_type'}, Actual columns: {'command_text'}. These tests require direct Synapse DMV export format.
+[33mSKIPPED[0m [1] tests/integration/test_synapse_integration.py:107: Parquet data has different format. Expected columns: {'schema_name', 'object_id', 'object_name', 'object_type'}, Actual columns: {'command_text'}. These tests require direct Synapse DMV export format.
+[33mSKIPPED[0m [1] tests/integration/test_synapse_integration.py:123: Parquet data has different format. Expected columns: {'schema_name', 'object_id', 'object_name', 'object_type'}, Actual columns: {'command_text'}. These tests require direct Synapse DMV export format.
+[33mSKIPPED[0m [1] tests/integration/test_synapse_integration.py:158: Parquet data has different format. Expected columns: {'schema_name', 'object_id', 'object_name', 'object_type'}, Actual columns: {'command_text'}. These tests require direct Synapse DMV export format.
+[31mFAILED[0m tests/integration/test_confidence_analysis.py::[1mTestConfidenceDistribution::test_success_rate_is_100_percent[0m - AssertionError: Expected 100% success rate, got 70.2%
+assert 70.20057306590259 == 100.0
+[31mFAILED[0m tests/integration/test_failure_analysis.py::[1mTestCleaningLogicAssessment::test_cleaning_logic_not_too_aggressive[0m - AssertionError: Success rate 70.2% suggests cleaning logic may be too aggressive
+assert 70.20057306590259 >= 99.0
+[31mFAILED[0m tests/integration/test_sqlglot_performance.py::[1mTestOverallParsingSuccess::test_regex_baseline_provides_coverage[0m - AssertionError: Found 787 tables but expected at least 852 (regex baseline)
+assert 787 >= 852
+[31mFAILED[0m tests/integration/test_sqlglot_performance.py::[1mTestSQLGlotEnhancementImpact::test_sqlglot_adds_tables[0m - AssertionError: Expected >=90% SPs with exact or enhanced results, got 73.5%
+assert (169 / 230) >= 0.9
+[31mFAILED[0m tests/integration/test_sqlglot_performance.py::[1mTestSQLGlotEnhancementImpact::test_sqlglot_average_tables_added[0m - AssertionError: Expected 0-5 tables added on average, got -0.28
+assert 0 <= -0.28
+[31mFAILED[0m tests/integration/test_sqlglot_performance.py::[1mTestKeyInsights::test_sqlglot_enhances_not_replaces[0m - AssertionError: SQLGlot should maintain or enhance regex baseline for >=95% of SPs, got 73.5%
+assert 73.47826086956522 >= 95.0
+[31m=================== [31m[1m6 failed[0m, [32m73 passed[0m, [33m15 skipped[0m[31m in 1.52s[0m[31m ===================[0m

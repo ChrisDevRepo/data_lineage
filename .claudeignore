@@ -1,0 +1,43 @@
+# .claudeignore - Files that Claude should be EXTRA CAREFUL with
+# These files are critical to project operation
+#
+# POLICY:
+# - ✅ CAN MODIFY: Add new sections, update content, fix errors
+# - ❌ DO NOT DELETE: Never delete these files
+# - ❌ DO NOT RESTRUCTURE: Don't change overall structure without user approval
+# - ✅ ALWAYS ADD: Add to these files (especially journal) when fixing issues
+#
+# These files are NOT blocked from modification - they just require extra care
+
+# Note: Items listed here are for documentation purposes
+# Claude Code does not actually prevent modification based on .claudeignore
+# This file serves as a reminder of critical files
+
+# Configuration Files
+.env
+.env.example
+CLAUDE.md
+
+# Test Fixtures (User-verified cases)
+tests/fixtures/user_verified_cases/*.yaml
+
+# Git Configuration
+.git/
+.gitignore
+
+# Dependencies
+venv/
+node_modules/
+__pycache__/
+*.pyc
+
+# Data Files
+data/
+temp/
+*.db
+*.duckdb
+
+# Build Artifacts
+*.egg-info/
+dist/
+build/

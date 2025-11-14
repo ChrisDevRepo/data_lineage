@@ -1,9 +1,22 @@
 # CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Python Environment
+
+**ALWAYS use the virtual environment for this project:**
+```bash
+source venv/bin/activate  # Always activate before running Python commands
+```
+
+All Python commands in this document assume the virtual environment is activated.
+
 ## Workflow
 - End responses with status (✅ Completed | ⏳ Pending | ❌ Not started | ⚠️ Needs clarification)
 - Ask questions last; complete analysis first
 - Use TodoWrite tool; update immediately after completion
 - Use subagents for specialized validation tasks (see Subagents section)
+
 ## Project: Data Lineage Visualizer v4.3.3
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **Database:** Azure Synapse Analytics (T-SQL) - extensible to 7 data warehouses
@@ -69,7 +82,7 @@ See .github/workflows/README.md and tests/integration/README.md for details.
     └── integration/        # Integration tests (database validation, SQLGlot)
 ```
 
-## Graph Library Usage (Graphology)
+## Graph Library Usage (Graphology - Frontend)
 
 **Decision:** Use [graphology-traversal](https://www.npmjs.com/package/graphology-traversal) when:
 - Single source node (1 node, not 10+)
@@ -135,18 +148,18 @@ See [docs/PARSER_TECHNICAL_GUIDE.md](docs/PARSER_TECHNICAL_GUIDE.md) for details
 
 ```bash
 # 1. Before changes - Document baseline
-python3 scripts/testing/check_parsing_results.py > baseline_before.txt
+source venv/bin/activate && python scripts/testing/check_parsing_results.py > baseline_before.txt
 
 # 2. Make changes to quality_aware_parser.py
 
 # 3. Validate results
-python3 scripts/testing/check_parsing_results.py > baseline_after.txt
+source venv/bin/activate && python scripts/testing/check_parsing_results.py > baseline_after.txt
 diff baseline_before.txt baseline_after.txt
 
 # 4. Acceptance criteria
 # - 100% success rate maintained
 # - No regressions in confidence distribution
-# - All tests pass: pytest tests/ -v
+# - All tests pass: source venv/bin/activate && pytest tests/ -v
 ```
 
 ## SQL Cleaning Rules (Python-based)
@@ -157,9 +170,9 @@ diff baseline_before.txt baseline_after.txt
 
 **⚠️ CRITICAL: Always check journal before making changes!**
 1. Check docs/PARSER_CHANGE_JOURNAL.md (MANDATORY)
-2. Document baseline: `python3 scripts/testing/check_parsing_results.py > baseline_before.txt`
+2. Document baseline: `source venv/bin/activate && python scripts/testing/check_parsing_results.py > baseline_before.txt`
 3. Make rule changes in lineage_v3/parsers/sql_cleaning_rules.py
-4. Run tests: `pytest tests/unit/test_parser_golden_cases.py -v`
+4. Run tests: `source venv/bin/activate && pytest tests/unit/test_parser_golden_cases.py -v`
 5. Compare: `diff baseline_before.txt baseline_after.txt`
 
 **Acceptance Criteria:**
@@ -190,23 +203,38 @@ See `.github/workflows/README.md` for complete workflow documentation.
 **Local Testing:**
 ```bash
 # Unit tests (73 tests)
-pytest tests/unit/ -v
+source venv/bin/activate && pytest tests/unit/ -v
 
 # Integration tests (64 tests, requires workspace database)
-pytest tests/integration/ -v
+source venv/bin/activate && pytest tests/integration/ -v
 
 # All tests
-pytest tests/ -v  # 137+ tests
+source venv/bin/activate && pytest tests/ -v  # 137+ tests
 
-# Frontend E2E
-cd frontend && npm run test:e2e  # 90+ tests
+# Single unit test file
+source venv/bin/activate && pytest tests/unit/test_parser_golden_cases.py -v
+
+# Single unit test
+source venv/bin/activate && pytest tests/unit/test_parser_golden_cases.py::test_specific_case -v
+
+# Single integration test module
+source venv/bin/activate && pytest tests/integration/test_database_validation.py -v
+
+# Frontend E2E (Playwright)
+cd frontend && npm run test:e2e           # Run all E2E tests
+cd frontend && npm run test:e2e:ui        # Interactive UI mode
+cd frontend && npm run test:e2e:headed    # Watch tests run
+cd frontend && npm run test:e2e:debug     # Debug mode
+
+# Single E2E test
+cd frontend && npx playwright test tests/e2e/smoke.spec.ts
 ```
 
 **Parser Validation Scripts:**
 ```bash
-python3 scripts/testing/check_parsing_results.py  # Full results
-python3 scripts/testing/analyze_lower_confidence_sps.py  # Why not 100%?
-python3 scripts/testing/verify_sp_parsing.py  # Specific SP analysis
+source venv/bin/activate && python scripts/testing/check_parsing_results.py  # Full results
+source venv/bin/activate && python scripts/testing/analyze_lower_confidence_sps.py  # Why not 100%?
+source venv/bin/activate && python scripts/testing/verify_sp_parsing.py  # Specific SP analysis
 ./scripts/testing/test_upload.sh  # API end-to-end
 ```
 
@@ -224,11 +252,18 @@ See `tests/integration/README.md` for complete test documentation.
 
 ## Documentation
 
-**Essential References:**
-- PARSER_CRITICAL_REFERENCE.md - Critical warnings, BEFORE making parser changes
-- PARSER_TECHNICAL_GUIDE.md - Complete technical architecture
-- PARSER_CHANGE_JOURNAL.md - MANDATORY: check before rule/SQLGlot changes
-- PARSER_V4.3.3_SUMMARY.md - Complete v4.3.3 summary
+**🚨 CRITICAL FILES - PROTECTED (DO NOT DELETE):**
+- **docs/PARSER_DEVELOPMENT_PROCESS.md** ⭐ - Main workflow guide (Parse → Test → Fix → Document)
+- **docs/PARSER_CRITICAL_REFERENCE.md** ⭐ - Critical warnings, read BEFORE parser changes
+- **docs/PARSER_CHANGE_JOURNAL.md** ⭐ - MANDATORY: check before rule/SQLGlot changes
+- **docs/PARSER_TECHNICAL_GUIDE.md** ⭐ - Complete technical architecture
+
+**Protection:** Listed in `.claudeignore`. See `docs/README.md` for protection details and recovery procedures.
+
+**Other Essential References:**
+- docs/PARSER_V4.3.3_SUMMARY.md - Complete v4.3.3 summary
+- INVESTIGATION_COMPLETE.md - Latest investigation findings
+- REPARSE_ITERATION_SUMMARY.md - Recent iteration results
 
 **CI/CD & Testing:**
 - .github/workflows/README.md - CI/CD workflows, validation requirements
@@ -326,3 +361,4 @@ See .claude/agents/README.md for complete table, tools, and example workflows.
 - CI/CD Workflows: [.github/workflows/README.md](.github/workflows/README.md)
 - Integration Tests: [tests/integration/README.md](tests/integration/README.md)
 - Configuration Verification: [docs/reports/CONFIGURATION_VERIFICATION_REPORT.md](docs/reports/CONFIGURATION_VERIFICATION_REPORT.md)
+- memorize major development should be done in git branch and the pr must be approved from user

@@ -157,12 +157,15 @@ class TestParserSimplifiedConfidence:
     Ensures confidence is ONLY {0, 75, 85, 100}.
     """
 
-    def test_confidence_is_discrete(self, parser):
+    @pytest.mark.skip(reason="Placeholder test - needs parser fixture implementation")
+    def test_confidence_is_discrete(self):
         """
         Confidence must be one of: 0, 75, 85, 100.
         No other values allowed.
         """
-        pass  # Would test all parsed SPs
+        # TODO: Implement this test with proper parser fixture
+        # Should validate all SPs have confidence in {0, 75, 85, 100}
+        pass
 
     def test_completeness_mapping(self):
         """

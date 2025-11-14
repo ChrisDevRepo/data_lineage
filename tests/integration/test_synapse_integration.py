@@ -33,6 +33,20 @@ class TestSynapseIntegration:
         """Load Synapse objects data from parquet."""
         # Load first parquet file as sample
         df = pd.read_parquet(synapse_parquet_files[0])
+
+        # Check if this is the expected Synapse DMV format
+        # If it's a different format (e.g., command_text only), skip these tests
+        expected_cols = {'object_id', 'schema_name', 'object_name', 'object_type'}
+        actual_cols = set(df.columns)
+
+        if not expected_cols.issubset(actual_cols):
+            pytest.skip(
+                f"Parquet data has different format. "
+                f"Expected columns: {expected_cols}, "
+                f"Actual columns: {actual_cols}. "
+                f"These tests require direct Synapse DMV export format."
+            )
+
         return df
 
     @pytest.fixture

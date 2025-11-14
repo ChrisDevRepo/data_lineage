@@ -43,9 +43,165 @@ This journal is **automatically maintained** through user-verified test cases:
 
 ## Active Cases
 
-> **Status:** 0 cases (infrastructure ready, waiting for first user report)
+> **Status:** 1 investigation documented (not a parser bug, data quality issue)
 
 **When a case is added, entries appear below automatically.**
+
+---
+
+### Investigation 2025-11-14: Empty Lineage for 104 SPs
+
+**Type:** Investigation (not a parser bug)
+**Reported by:** User
+**Date:** 2025-11-14
+**Status:** ✅ Resolved - ROOT CAUSE IDENTIFIED
+
+**Issue:**
+- 104/349 SPs (29.8%) have empty lineage (0 inputs AND 0 outputs)
+- Tests were incorrectly checking `inputs IS NOT NULL` instead of `json_array_length(inputs) > 0`
+- Empty JSON arrays `[]` are NOT NULL but have 0 elements
+- Actual success rate: 70.2% (not 100% as originally reported)
+
+**Investigation Findings:**
+1. **Parser is working correctly** - Regex found 42 tables in test SP
+2. **Tables don't exist in metadata database** - Missing from metadata export
+3. **Parser correctly filters non-existent tables** - `_validate_against_catalog()` working as designed
+4. **Phantom detection correctly skips them** - Schemas not in `PHANTOM_EXTERNAL_SCHEMAS`
+5. **ALL 104 SPs have expected_count = None** - Database populated without these fields
+6. **3 SPs reference valid tables** but still have empty lineage (due to #5)
+
+**Breakdown of 104 Empty SPs:**
+- 94 (90.4%): Wrong schema (tables exist in CONSUMPTION_PRIMA not CONSUMPTION_PRIMA_2)
+- 7 (6.7%): Truly external (sys.dm_pdw_sql_requests, ADMIN.Logs)
+- 3 (2.9%): Valid tables exist but empty lineage (expected_count = None issue)
+
+**Root Cause:**
+1. **Incomplete metadata export** - CONSUMPTION_PRIMA_2 and STAGING_PRIMA schemas have no tables in metadata
+2. **Database populated without expected_count/found_count** - All 349 records have NULL values
+3. **Orchestrator detection failed** - `is_orchestrator = (expected_count == 0 and ...)` evaluates False when expected_count is None
+
+**Resolution:**
+1. ✅ **Updated integration tests** to use `json_array_length()` instead of `IS NOT NULL`
+   - test_database_validation.py: 5 assertions fixed
+   - test_sqlglot_performance.py: 1 assertion fixed
+   - test_confidence_analysis.py: Bulk updated NULL checks
+   - test_failure_analysis.py: Bulk updated NULL checks
+2. ✅ **Created .env file** with `PHANTOM_EXTERNAL_SCHEMAS=CONSUMPTION_POWERBI`
+3. ✅ **Documented findings** in INVESTIGATION_COMPLETE.md, EMPTY_LINEAGE_ROOT_CAUSE.md, PARSING_ISSUES_ACTION_PLAN.md
+
+**Recommended Next Steps:**
+1. Re-parse all 349 SPs with current code to populate expected_count/found_count
+2. Investigate metadata export to include missing schemas (CONSUMPTION_PRIMA_2, STAGING_PRIMA)
+3. Consider adding missing schemas to PHANTOM_EXTERNAL_SCHEMAS if they are truly external
+
+**DO NOT:**
+- ❌ Change `_validate_against_catalog()` logic - it's working correctly
+- ❌ Remove phantom schema filtering - it's preventing incorrect phantom creation
+- ❌ Modify orchestrator detection logic - it works when expected_count is populated
+- ❌ Change regex patterns - they're finding tables correctly
+- ❌ Assume `IS NOT NULL` checks are sufficient for JSON arrays - always use `json_array_length()`
+
+**Key Lesson:**
+- JSON arrays in DuckDB: `[]` is NOT NULL but has length 0
+- Always validate test assertions with actual data queries
+- Parser correctness depends on metadata completeness
+- expected_count and found_count are critical for confidence calculation and orchestrator detection
+
+**Files Modified:**
+- tests/integration/test_database_validation.py
+- tests/integration/test_sqlglot_performance.py
+- tests/integration/test_confidence_analysis.py
+- tests/integration/test_failure_analysis.py
+- .env (created)
+- INVESTIGATION_COMPLETE.md (created)
+- EMPTY_LINEAGE_ROOT_CAUSE.md (created)
+- PARSING_ISSUES_ACTION_PLAN.md (created)
+
+**Reference:** See INVESTIGATION_COMPLETE.md for complete analysis
+
+---
+
+### Fix 2025-11-14: Missing expected_count/found_count in database
+
+**Type:** Bug Fix
+**Reported by:** Investigation
+**Date:** 2025-11-14
+**Status:** ✅ Resolved
+
+**Issue:**
+- Parser calculates `expected_count` and `found_count` (lines 531-534, 573-574 in quality_aware_parser.py)
+- Workspace database has the columns (added in migration)
+- **But all 349 records had NULL values** - fields were never saved
+- This broke orchestrator detection: `is_orchestrator = (expected_count == 0 and ...)` evaluated False when expected_count is None
+
+**Investigation Findings:**
+1. Parser correctly returns `expected_count` and `found_count` in result dict
+2. `DuckDBWorkspace.update_metadata()` has parameters for these fields (lines 728-740)
+3. **`api/background_tasks.py` was NOT passing these parameters** (lines 567-574)
+4. Result: Fields calculated but never saved to database
+
+**Root Cause:**
+api/background_tasks.py line 567-574 was missing parameters:
+```python
+# BEFORE (WRONG):
+db.update_metadata(
+    object_id=sp_dict['object_id'],
+    modify_date=sp_dict['modify_date'],
+    primary_source=result.get('primary_source', 'parser'),
+    confidence=result['confidence'],
+    inputs=result.get('inputs', []),
+    outputs=result.get('outputs', [])
+)
+
+# AFTER (CORRECT):
+db.update_metadata(
+    object_id=sp_dict['object_id'],
+    modify_date=sp_dict['modify_date'],
+    primary_source=result.get('primary_source', 'parser'),
+    confidence=result['confidence'],
+    inputs=result.get('inputs', []),
+    outputs=result.get('outputs', []),
+    confidence_breakdown=result.get('confidence_breakdown'),
+    parse_failure_reason=result.get('parse_failure_reason'),
+    expected_count=result.get('expected_count'),  # ← ADDED
+    found_count=result.get('found_count')          # ← ADDED
+)
+```
+
+**Resolution:**
+1. ✅ **Fixed api/background_tasks.py** (lines 574-577) - Added missing parameters
+2. ✅ **Created scripts/reparse_all_sps.py** - Re-parse all 349 SPs with correct code
+3. ✅ **Re-parsed all 349 SPs** - 100% success rate (349/349 parsed without errors)
+4. ✅ **Verified population** - All 349 SPs now have expected_count and found_count populated
+
+**Result:**
+- **100% technical success** - All 349 SPs parse without errors
+- **70.2% functional success** - 245/349 SPs have dependencies (104 have empty lineage due to metadata incompleteness)
+- **82.5% perfect confidence** - 288/349 SPs have confidence 100
+
+**DO NOT:**
+- ❌ Assume all parser result fields are automatically saved - check background_tasks.py
+- ❌ Skip re-parsing after fixing storage logic - old database still has NULL values
+- ❌ Expect 100% functional success with incomplete metadata - 104 SPs reference non-existent tables
+
+**Key Lesson:**
+- Parser logic (quality_aware_parser.py) and storage logic (background_tasks.py) are separate
+- Always verify that ALL parser result fields are passed to `update_metadata()`
+- Re-parsing is required after fixing storage logic to populate existing records
+- Technical success (100% parse) != Functional success (dependencies present)
+
+**Files Modified:**
+- api/background_tasks.py (lines 574-577) - Added expected_count, found_count parameters
+- scripts/reparse_all_sps.py (created) - Re-parse script
+- docs/PARSER_DEVELOPMENT_PROCESS.md (created) - Complete process documentation
+
+**Impact:**
+- Enables completeness validation (found/expected ratio)
+- Fixes orchestrator detection (None != 0 issue resolved)
+- Allows SQLGlot enhancement tracking (bonus tables beyond regex baseline)
+- Provides diagnostic metrics for parser improvement
+
+**Reference:** See docs/PARSER_DEVELOPMENT_PROCESS.md for complete workflow
 
 ### Example Format (Template)
 
