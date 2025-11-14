@@ -29,8 +29,7 @@
 ```bash
 ✅ Parser confidence_high: 0.85
 ✅ Parser confidence_medium: 0.75
-✅ Phantom include_schemas: CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
-✅ Phantom include list: ['CONSUMPTION*', 'STAGING*', 'TRANSFORMATION*', 'BB', 'B']
+✅ Phantom external_schemas:  (empty = no external dependencies)
 ✅ Phantom exclude dbo: cte,cte_*,CTE*,ParsedData,PartitionedCompany*,#*,@*...
 ```
 
@@ -216,8 +215,10 @@ if not self._is_excluded(schema, name) and self._schema_matches_include_list(sch
 **File:** `.env` (create from `.env.template`)
 
 ```bash
-# Configure phantom object schemas
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
+# v4.3.3: Configure phantom object schemas (EXTERNAL sources ONLY, exact match, no wildcards)
+PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
+# Examples for external sources: power_consumption,external_lakehouse,partner_erp
+
 PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 
 # Configure parser thresholds
@@ -225,14 +226,14 @@ PARSER_CONFIDENCE_HIGH=0.85
 PARSER_CONFIDENCE_MEDIUM=0.75
 ```
 
-**For Oracle:**
+**For Oracle (external schemas only):**
 ```bash
-PHANTOM_INCLUDE_SCHEMAS=HR*,FIN*,OPS*,SYS
+PHANTOM_EXTERNAL_SCHEMAS=external_hr,external_finance,partner_system
 ```
 
-**For Fabric:**
+**For Fabric (external schemas only):**
 ```bash
-PHANTOM_INCLUDE_SCHEMAS=Lakehouse*,Warehouse*,Analytics*
+PHANTOM_EXTERNAL_SCHEMAS=external_lakehouse,partner_warehouse
 ```
 
 ---
@@ -288,10 +289,10 @@ from lineage_v3.config.settings import Settings
 from lineage_v3.config.dialect_config import SQLDialect
 from lineage_v3.parsers.quality_aware_parser import QualityAwareParser
 
-# Configure settings
+# Configure settings (v4.3.3: external schemas only, no wildcards)
 settings = Settings(
     phantom=PhantomSettings(
-        include_schemas="HR*,FIN*,OPS*",
+        external_schemas="external_hr,external_finance,partner_system",
         exclude_dbo_objects="temp_*,#*,@*"
     )
 )
@@ -305,7 +306,7 @@ parser = QualityAwareParser(
 
 # Parser automatically:
 # 1. Loads Oracle + generic YAML rules
-# 2. Uses HR*, FIN*, OPS* for phantom filtering
+# 2. Uses exact match for external schemas (external_hr, external_finance, partner_system)
 # 3. Applies Oracle-specific SQL preprocessing
 ```
 
@@ -390,8 +391,8 @@ replacement: ""
 
 ### Step 4: Configure Environment
 ```bash
-# .env
-PHANTOM_INCLUDE_SCHEMAS=DW_*,STG_*,TMP_*
+# .env (v4.3.3: exact match only, no wildcards)
+PHANTOM_EXTERNAL_SCHEMAS=external_dw,external_staging,partner_data
 ```
 
 ### Step 5: Use It

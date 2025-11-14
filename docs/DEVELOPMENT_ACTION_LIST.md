@@ -85,10 +85,11 @@ rm -rf perfissue/testing/
 **Fix Time:** 30 minutes
 **Fix:** Find/replace:
 ```bash
-# OLD (remove):
+# OLD (v4.3.2 and earlier - REMOVE):
 PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
 
-# NEW (add):
+# NEW (v4.3.3 - ADD):
+# Phantoms = EXTERNAL sources ONLY (no wildcards, exact match)
 PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
 # Examples: power_consumption,external_lakehouse,partner_erp
 ```
@@ -604,8 +605,8 @@ const graph = parse(Graph, serialized);
 **Files:** 6 files with outdated version numbers
 **Fix Time:** 15 minutes
 
-### 38. Fix Phantom Configuration Documentation
-**Files:** 11 files with outdated PHANTOM_INCLUDE_SCHEMAS
+### 38. Fix Phantom Configuration Documentation ✅ COMPLETED
+**Files:** 7 files updated from old PHANTOM_INCLUDE_SCHEMAS to new PHANTOM_EXTERNAL_SCHEMAS
 **Fix Time:** 30 minutes
 
 ### 39. Add WARNING to RULE_DEVELOPMENT.md

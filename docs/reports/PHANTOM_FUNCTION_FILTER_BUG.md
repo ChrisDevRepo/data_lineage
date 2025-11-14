@@ -8,7 +8,9 @@
 
 ## Issue Summary
 
-Phantom functions bypass the `PHANTOM_INCLUDE_SCHEMAS` filter, allowing invalid schemas (AA, TS, U, ra, s) to be stored in the database.
+**Historical Issue (v4.3.2):** Phantom functions bypassed the `PHANTOM_INCLUDE_SCHEMAS` filter, allowing invalid schemas (AA, TS, U, ra, s) to be stored in the database.
+
+**Status:** ✅ Fixed in v4.3.3 with redesigned phantom philosophy (EXTERNAL sources only).
 
 ---
 
@@ -56,15 +58,19 @@ Found **8 phantom functions** with **5 invalid schemas**:
 | **B** | (4 functions) | Function | ✅ Expected (in include list) |
 | **BB** | Date | Function | ✅ Expected (in include list) |
 
-### Include List Configuration
+### Include List Configuration (v4.3.3 - REDESIGNED)
 
 ```env
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
+# v4.3.3: EXTERNAL sources ONLY (exact match, no wildcards)
+PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
+# Examples: power_consumption,external_lakehouse,partner_erp
 ```
 
-**Expected behavior:** Only phantoms from schemas matching these patterns should be created.
+**Philosophy:** Phantoms represent EXTERNAL dependencies NOT in our metadata database.
 
-**Actual behavior:** Phantom functions ignore this filter.
+**Expected behavior:** Only phantoms from exact schema matches should be created.
+
+**Actual behavior (before v4.3.3 fix):** Phantom functions ignored the filter entirely.
 
 ---
 
@@ -177,7 +183,7 @@ AND object_type = 'Function';
 ## Acceptance Criteria
 
 ✅ Phantom functions check `_schema_matches_include_list`
-✅ Only schemas matching `PHANTOM_INCLUDE_SCHEMAS` can create phantoms
+✅ Only schemas matching `PHANTOM_EXTERNAL_SCHEMAS` can create phantoms (v4.3.3)
 ✅ No invalid schemas (AA, TS, U, ra, s) in database
 ✅ All existing parser tests still pass
 ✅ Parser still at 100% success rate

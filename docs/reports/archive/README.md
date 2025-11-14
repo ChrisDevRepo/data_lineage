@@ -4,6 +4,10 @@ This folder contains documentation from the v4.3.3 development session that has 
 
 ## Archived Files
 
+### Consolidated Reports (Superseded by Focused Docs)
+- `COMPLETE_TECHNICAL_REPORT_MASSIVE.md` - v4.3.1 comprehensive report (2302 lines, archived 2025-11-14)
+- `COMPLETE_PARSING_ARCHITECTURE_REPORT.md` - v4.3.1 architecture (superseded by PARSER_TECHNICAL_GUIDE.md, archived 2025-11-14)
+
 ### Session Planning & Analysis
 - `RECOMMENDATION_REVISION.md` - Initial recommendation revision (superseded)
 - `RULE_SIMPLIFICATION_ANALYSIS.md` - Analysis before testing (superseded)

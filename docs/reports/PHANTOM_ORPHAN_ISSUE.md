@@ -12,9 +12,11 @@
 
 **Schemas B and BB appear as phantom objects** but should NOT be allowed.
 
-**Current Configuration:**
+**Current Configuration (v4.3.3 - REDESIGNED):**
 ```bash
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
+# v4.3.3: EXTERNAL sources ONLY (exact match, no wildcards)
+PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
+# Examples: power_consumption,external_lakehouse,partner_erp
 ```
 
 **Found in Database:**
@@ -46,16 +48,18 @@ WHERE BB.Date > ...     -- Regex sees "BB.Date(" as function call
 
 ### Solution
 
-**Remove B and BB from include list:**
+**v4.3.3 Solution: Use EXTERNAL schemas only (exact match, no wildcards):**
 
-**Before:**
+**Before (v4.3.2 and earlier):**
 ```bash
 PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
 ```
 
-**After:**
+**After (v4.3.3):**
 ```bash
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*
+# EXTERNAL sources ONLY (not internal schemas from our metadata DB)
+PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
+# Examples: power_consumption,external_lakehouse,partner_erp
 ```
 
 **Impact:**
@@ -226,12 +230,7 @@ result = parser.parse_object(715842)
 SELECT COUNT(*) FROM phantom_references WHERE referencing_sp_id = 715842;
 ```
 
-**3. Remove B and BB from Include List**
-```bash
-# .env
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*
-# Remove: ,BB,B
-```
+**3. Redesigned in v4.3.3** (see earlier solution section)
 
 **4. Clean Up Invalid Phantoms**
 ```sql
@@ -302,13 +301,15 @@ if orphaned:
     logger.warning(f"Found {len(orphaned)} orphaned phantoms - this should not happen!")
 ```
 
-**3. Stricter Include List**
+**3. Redesigned Phantom Philosophy (v4.3.3)**
 ```bash
-# Only allow multi-character schemas
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*
+# v4.3.3: Phantoms = EXTERNAL sources ONLY
+# For schemas in OUR metadata DB, missing objects = DB quality issues (not phantoms)
+# We are NOT the authority to flag internal missing objects
 
-# Exclude all single-letter schemas (likely aliases)
-PHANTOM_MIN_SCHEMA_LENGTH=3  # New config option
+PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
+# Only list schemas NOT in our metadata database
+# Examples: power_consumption,external_lakehouse,partner_erp
 ```
 
 ---

@@ -252,14 +252,15 @@ def _detect_phantom_tables(self, table_names: Set[str]) -> Set[str]:
 ```python
 class PhantomSettings(BaseSettings):
     """
-    Phantom object configuration (v4.3.0).
+    Phantom object configuration (v4.3.3 - REDESIGNED).
 
-    Controls which schemas are eligible for phantom object creation.
-    Uses INCLUDE list approach with wildcard support.
+    Phantoms = EXTERNAL sources ONLY (not internal missing objects).
+    For schemas in OUR metadata DB, missing objects = DB quality issues.
+    We are NOT the authority to flag internal missing objects.
     """
-    include_schemas: str = Field(
-        default="CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B",
-        description="Comma-separated list of schema patterns for phantom creation (wildcards supported with *)"
+    external_schemas: str = Field(
+        default="",
+        description="Comma-separated list of EXTERNAL schemas (exact match only, NO wildcards)"
     )
     exclude_dbo_objects: str = Field(
         default="cte,cte_*,CTE*,ParsedData,PartitionedCompany*,#*,@*,temp_*,tmp_*,[a-z],[A-Z]",
@@ -267,9 +268,9 @@ class PhantomSettings(BaseSettings):
     )
 
     @property
-    def include_schema_list(self) -> list[str]:
-        """Parse comma-separated include patterns for phantom creation"""
-        return [s.strip() for s in self.include_schemas.split(',') if s.strip()]
+    def external_schema_list(self) -> list[str]:
+        """Parse comma-separated external schemas (exact match only)"""
+        return [s.strip() for s in self.external_schemas.split(',') if s.strip()]
 
     @property
     def exclude_dbo_pattern_list(self) -> list[str]:
@@ -285,8 +286,11 @@ class PhantomSettings(BaseSettings):
 **Configuration Example (`.env`):**
 
 ```bash
-# Phantom Object Configuration
-PHANTOM_INCLUDE_SCHEMAS=CONSUMPTION*,STAGING*,TRANSFORMATION*,BB,B
+# Phantom Object Configuration (v4.3.3 - REDESIGNED)
+# Phantoms = EXTERNAL sources ONLY (exact match, no wildcards)
+PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
+# Examples: power_consumption,external_lakehouse,partner_erp
+
 PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 ```
 
@@ -737,7 +741,7 @@ tables = regex_scan(full_ddl)  # All JOINs preserved
 **Solutions:**
 1. Add comment hints to SP DDL
 2. Check phantom object configuration
-3. Verify schema patterns in PHANTOM_INCLUDE_SCHEMAS
+3. Verify schema patterns in PHANTOM_EXTERNAL_SCHEMAS (v4.3.3)
 
 ---
 

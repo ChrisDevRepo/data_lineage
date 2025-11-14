@@ -1097,7 +1097,8 @@ class DuckDBWorkspace:
                 row[0]: {'count': row[1], 'avg_confidence': row[2]}
                 for row in result
             }
-        except:
+        except Exception as e:
+            logger.warning(f"Failed to calculate source breakdown: {e}")
             stats['source_breakdown'] = {}
 
         return stats

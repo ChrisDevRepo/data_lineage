@@ -6,6 +6,18 @@
 
 ---
 
+## ⚠️ IMPORTANT: YAML Rule System Status
+
+> **Current Status (v4.3.3):** The YAML-based rule system documented in this guide is **implemented but NOT integrated** with the parser.
+>
+> **To add/modify rules today:** Edit `lineage_v3/parsers/sql_cleaning_rules.py` directly.
+>
+> **Future:** YAML rules will replace Python rules in a future version (TBD).
+>
+> **Why this doc exists:** This documents the architectural design for the rule system. The YAML loader works perfectly, but the parser currently uses the Python-based `RuleEngine` class instead.
+
+---
+
 ## Table of Contents
 
 1. [Quick Start](#quick-start)
