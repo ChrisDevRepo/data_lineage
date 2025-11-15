@@ -102,20 +102,10 @@ jobs:
         pip install -r requirements.txt
         pip install pytest
 
-    - name: Check if user-verified cases exist
-      id: check_cases
-      run: |
-        if [ -d "tests/fixtures/user_verified_cases" ] && [ -n "$(ls -A tests/fixtures/user_verified_cases/*.yaml 2>/dev/null)" ]; then
-          echo "has_cases=true" >> $GITHUB_OUTPUT
-          echo "✅ User-verified test cases found"
-        else
-          echo "has_cases=false" >> $GITHUB_OUTPUT
-          echo "⚠️  No user-verified test cases found (this is OK for new projects)"
-        fi
-
     - name: Run user-verified test cases
-      if: steps.check_cases.outputs.has_cases == 'true'
       run: |
+        echo "🧪 Running user-verified test cases..."
+        echo "   (Tests will skip if no cases exist - infrastructure ready)"
         pytest tests/unit/test_user_verified_cases.py -v --tb=short
 
   # Parser Baseline Validation removed from CI - requires production database
