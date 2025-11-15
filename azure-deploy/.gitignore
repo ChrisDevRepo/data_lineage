@@ -65,5 +65,10 @@ dist/
 build/
 *.egg-info/
 
+# Azure deployment package (generated file)
+lineage-visualizer-azure.zip
+package_temp/
+*.log
+
 # Temporary scripts and testing (keep root clean)
 temp/

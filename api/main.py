@@ -25,7 +25,8 @@ from datetime import datetime
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 try:
     # Try absolute import first (for pytest from project root)
@@ -121,6 +122,13 @@ app.add_middleware(
     allow_methods=["GET", "POST", "DELETE"],  # Only methods we use
     allow_headers=["Content-Type", "X-Requested-With"],
 )
+
+# Mount static files for Azure deployment (serves frontend build)
+# In Azure: /home/site/wwwroot/static/ contains the built React app
+STATIC_DIR = Path(__file__).parent.parent / "static"
+if STATIC_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="assets")
+    logger.info(f"✅ Serving static files from: {STATIC_DIR}")
 
 
 # ============================================================================
@@ -693,6 +701,29 @@ async def list_jobs() -> Dict[str, Any]:
                 })
 
     return {"jobs": jobs, "total": len(jobs)}
+
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend():
+    """
+    Serve the frontend React application (for Azure deployment).
+    
+    In Azure, static files are in /home/site/wwwroot/static/
+    Locally, this returns a 404 (use separate Vite dev server).
+    """
+    index_path = STATIC_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    else:
+        # In development, frontend runs separately on port 3000
+        return JSONResponse(
+            content={
+                "message": "Frontend not available",
+                "tip": "In development, run frontend separately: cd frontend && npm run dev",
+                "production": "In Azure, frontend is served from /static directory"
+            },
+            status_code=404
+        )
 
 
 @app.delete("/api/clear-data", tags=["Admin"])

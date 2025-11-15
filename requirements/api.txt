@@ -13,3 +13,4 @@
 fastapi==0.115.0                 # FastAPI web framework
 uvicorn[standard]==0.32.0        # ASGI server with auto-reload
 python-multipart==0.0.12         # For file uploads and form data
+gunicorn==23.0.0                 # WSGI server for production (Azure deployment)
