@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  datalineage:
+    build:
+      context: ../..
+      dockerfile: azure-deploy/docker/Dockerfile
+    container_name: datalineage-app
+    ports:
+      - "8000:8000"
+    environment:
+      - ALLOWED_ORIGINS=*
+      - PATH_OUTPUT_DIR=/app/data
+      - LOG_LEVEL=INFO
+      - DEBUG_MODE=false
+    volumes:
+      # Persist DuckDB database and uploaded files
+      - datalineage-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  datalineage-data:
+    driver: local

@@ -1,6 +1,36 @@
-# Azure Web App Deployment Files
+# Azure Deployment
 
-This directory contains everything needed to deploy the Data Lineage Visualizer as an Azure Web App via browser-based ZIP deployment.
+## 🐳 Docker Deployment to Azure Container Apps
+
+**Status:** ✅ Tested and working locally
+
+### Quick Start - Local Testing
+```powershell
+cd azure-deploy/docker
+.\docker-run.ps1
+```
+Opens container at http://localhost:8000
+
+### Deploy to Azure
+Follow the complete step-by-step GUI guide:
+📖 **`docker/AZURE_CONTAINER_DEPLOYMENT.md`**
+
+---
+
+## 📂 Files
+
+```
+azure-deploy/
+  ├── docker/
+  │   ├── Dockerfile                         # Docker image definition
+  │   ├── docker-compose.yml                 # Local development setup
+  │   ├── .dockerignore                      # Build exclusions
+  │   ├── docker-run.ps1                     # Windows: build & run script
+  │   ├── docker-build.sh                    # Linux/Mac: build script
+  │   └── AZURE_CONTAINER_DEPLOYMENT.md      # Complete deployment guide
+  ├── .env.example                           # Environment variables template
+  └── README.md                              # This file
+```
 
 ## 📁 Files
 
