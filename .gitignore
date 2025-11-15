@@ -62,6 +62,10 @@ data/
 # Log files (should never be committed)
 *.log
 
+# Azure deployment logs (temporary debugging)
+azure-logs.zip
+azure-logs/
+
 # Database files
 *.db
 *.sqlite

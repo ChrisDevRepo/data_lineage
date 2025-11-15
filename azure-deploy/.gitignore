@@ -70,5 +70,9 @@ lineage-visualizer-azure.zip
 package_temp/
 *.log
 
+# Azure log downloads (temporary debugging files)
+azure-logs.zip
+azure-logs/
+
 # Temporary scripts and testing (keep root clean)
 temp/

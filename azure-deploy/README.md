@@ -7,7 +7,9 @@ This directory contains everything needed to deploy the Data Lineage Visualizer 
 | File | Purpose |
 |------|---------|
 | `create-deployment-package.sh` | **Creates deployment ZIP** - Builds frontend, packages all files |
-| `startup.sh` | **Azure startup script** - Runs on container start |
+| `deploy-azure-cli.sh` | **Deploy via Azure CLI** - Recommended automated deployment |
+| `deploy-to-azure.sh` | **Deploy via API** - Alternative deployment with curl |
+| `startup.sh` | **Azure startup script** - Runs on container start (v4.2.1) |
 | `INSTALL.md` | **Complete deployment guide** - Detailed step-by-step instructions |
 | `QUICK_START.md` | **Quick reference** - Cheat sheet for deployment |
 | `.env.example` | **Configuration template** - Shows required settings |
@@ -24,10 +26,27 @@ bash create-deployment-package.sh
 This will:
 - Build the frontend React app (`npm run build`)
 - Copy backend Python code
-- Create `lineage-visualizer-azure.zip` (~650KB)
+- Create `lineage-visualizer-azure.zip` (~500KB)
 
 ### 2. Deploy to Azure
-Follow the step-by-step guide in **INSTALL.md** or the quick reference in **QUICK_START.md**
+
+**Option A: Azure CLI (Recommended)**
+```bash
+bash deploy-azure-cli.sh
+```
+Interactive script that handles login, configuration, and deployment.
+
+**Option B: Manual Azure CLI**
+```bash
+az webapp deploy \
+  --resource-group your-rg \
+  --name your-app-name \
+  --src-path lineage-visualizer-azure.zip \
+  --type zip
+```
+
+**Option C: Detailed Guide**  
+Follow the step-by-step guide in **INSTALL.md** or quick reference in **QUICK_START.md**
 
 ## 📦 Package Contents
 
@@ -145,7 +164,14 @@ https://your-app-name.azurewebsites.net/docs
 ### Deployment succeeds but app won't start
 - Check startup command: `bash startup.sh`
 - View logs: Azure Portal → Log stream
-- Verify Python 3.11 runtime selected
+- Verify Python 3.11 or 3.12 runtime selected
+- Ensure `SCM_DO_BUILD_DURING_DEPLOYMENT=true` is set
+
+### Container exits immediately (exit code 1)
+- Download logs: `az webapp log download --name your-app --resource-group your-rg --log-file logs.zip`
+- Look for "cd: No such file or directory" errors
+- Solution: Redeploy using latest startup.sh (fixed in v4.2.1)
+- Ensure using `az webapp deploy` command, not manual portal upload
 
 ### CORS errors
 - Update `ALLOWED_ORIGINS` to match your exact URL
@@ -174,12 +200,33 @@ To deploy a new version:
 
 1. Pull latest code: `git pull`
 2. Rebuild package: `bash create-deployment-package.sh`
-3. Upload new ZIP via Deployment Center
-4. Restart app
+3. Deploy via Azure CLI:
+   ```bash
+   az webapp deploy \
+     --resource-group your-rg \
+     --name your-app-name \
+     --src-path lineage-visualizer-azure.zip \
+     --type zip
+   ```
+4. Wait for deployment to complete (~2 minutes)
+5. Verify: Test `/health` endpoint
 
 Configuration changes (no code update):
-- Just update Application settings
+- Update Application settings in Azure Portal
 - Restart app
+
+## 📋 Changelog
+
+### v4.2.1 (2025-11-15)
+- **Fixed:** Startup script now handles Azure Oryx dynamic directory extraction
+- **Fixed:** Container exit code 1 issue resolved
+- **Improved:** Better error handling in startup.sh
+- **Updated:** Documentation with troubleshooting for container exits
+
+### v4.2.0
+- Initial Azure deployment support
+- Gunicorn + Uvicorn workers
+- Static file serving
 
 ## 🆘 Getting Help
 
@@ -190,6 +237,7 @@ Configuration changes (no code update):
 
 ---
 
-**Version:** 4.2.0  
-**Target:** Azure App Service (Linux, Python 3.11)  
-**Method:** ZIP Deploy via Azure Portal
+**Version:** 4.2.1  
+**Target:** Azure App Service (Linux, Python 3.11/3.12)  
+**Method:** ZIP Deploy via Azure CLI or Kudu  
+**Last Updated:** 2025-11-15

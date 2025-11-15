@@ -15,6 +15,8 @@ echo "╚═══════════════════════�
 echo ""
 
 # Azure Web App defaults
+# Note: Azure Oryx may extract app to a different location
+# Use current directory if WEBAPP_DIR doesn't exist
 WEBAPP_DIR="${HOME}/site/wwwroot"
 DATA_DIR="${HOME}/site/data"
 
@@ -33,6 +35,17 @@ export PYTHONPATH="${WEBAPP_DIR}:${PYTHONPATH}"
 PORT="${PORT:-8000}"
 echo "🌐 Server Port: $PORT"
 
+# Install dependencies (Oryx build is broken, so we do it here)
+# requirements.txt is renamed to requirements_app.txt to avoid Oryx detection
+if [ -f "requirements_app.txt" ]; then
+    echo "📦 Installing Python dependencies..."
+    python -m pip install --upgrade pip --quiet
+    python -m pip install -r requirements_app.txt --no-cache-dir --quiet
+    echo "✅ Dependencies installed"
+else
+    echo "⚠️  Warning: requirements_app.txt not found"
+fi
+
 # Log environment info
 echo ""
 echo "🔍 Environment Check:"
@@ -45,7 +58,14 @@ echo ""
 echo "🚀 Starting FastAPI application with Gunicorn..."
 echo ""
 
-cd "$WEBAPP_DIR"
+# Don't change directory - Azure Oryx sets up the correct working directory
+# If WEBAPP_DIR exists and is different from PWD, try to cd there
+if [ -d "$WEBAPP_DIR" ] && [ "$PWD" != "$WEBAPP_DIR" ]; then
+    echo "Changing to $WEBAPP_DIR"
+    cd "$WEBAPP_DIR" || echo "Warning: Could not cd to $WEBAPP_DIR, using current directory $(pwd)"
+else
+    echo "Using current directory: $(pwd)"
+fi
 
 # Use Gunicorn with Uvicorn workers for production
 # - 4 workers for parallel request handling

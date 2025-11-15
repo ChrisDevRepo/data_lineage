@@ -289,8 +289,36 @@ curl -X POST \
 
 3. **Common Issues**
    - ❌ Startup command missing → Set `bash startup.sh`
-   - ❌ Python version wrong → Use Python 3.11
+   - ❌ Python version wrong → Use Python 3.11 or 3.12
    - ❌ Dependencies not installed → Redeploy ZIP
+   - ❌ "cd: No such file or directory" → Ensure using latest startup.sh (v4.2.1+)
+
+### **Container exits with code 1**
+
+**Symptom:** Container starts but immediately stops
+
+**Diagnosis:**
+```bash
+az webapp log download --name your-app --resource-group your-rg --log-file logs.zip
+```
+
+Look for:
+- `cd: /root/site/wwwroot: No such file or directory` → Old startup.sh version
+- `ModuleNotFoundError` → Dependencies not installed
+- Python version mismatch
+
+**Solution:**
+1. Ensure `SCM_DO_BUILD_DURING_DEPLOYMENT=true` is set
+2. Redeploy using `az webapp deploy` (not portal upload)
+3. Verify startup.sh is using flexible directory handling
+
+### **Deployment successful but site doesn't respond**
+
+**Check:**
+1. Application Settings correctly configured (especially `ALLOWED_ORIGINS`)
+2. Startup command set to `bash startup.sh`
+3. Port 8000 is being used (Azure default)
+4. Enable logging and check for startup errors
 
 ### **Frontend shows 404**
 

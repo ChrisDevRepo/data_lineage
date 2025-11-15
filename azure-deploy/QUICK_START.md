@@ -110,16 +110,35 @@ Expected: Swagger UI with API endpoints
 
 ---
 
+## 🔄 Deployment & Updates
+
+### Deploy via Azure CLI (Recommended)
+```bash
+az webapp deploy \
+  --resource-group your-rg \
+  --name your-app-name \
+  --src-path lineage-visualizer-azure.zip \
+  --type zip
+```
+
+### Alternative: Kudu Zip Push Deploy
+- Kudu → Tools → Zip Push Deploy → Drag ZIP file
+
+**Note:** Azure CLI deployment is more reliable and provides better logging.
+
+---
+
 ## 🐛 Quick Troubleshooting
 
 | Problem | Solution |
 |---------|----------|
-| uvicorn.workers not found | Dependencies not installed - use curl API method, not drag-and-drop |
+| Container exits (code 1) | Download logs, check for path errors, redeploy with `az webapp deploy` |
+| uvicorn.workers not found | Set `SCM_DO_BUILD_DURING_DEPLOYMENT=true`, redeploy |
 | HTTP 503 | Check startup command: `bash startup.sh` |
 | 404 on frontend | Verify static files in ZIP, redeploy |
 | CORS errors | Fix `ALLOWED_ORIGINS` to match exact URL |
 | Slow first load | Normal - Azure cold start (~30 sec) |
-| Drag-and-drop doesn't work | Use curl API method - drag-and-drop skips pip install |
+| "cd: No such file" error | Update to latest startup.sh (v4.2.1+) |
 
 ---
 
@@ -155,4 +174,4 @@ Expected: Swagger UI with API endpoints
 ---
 
 **Last Updated:** November 15, 2025  
-**For:** Data Lineage Visualizer v4.2.0
+**For:** Data Lineage Visualizer v4.2.1

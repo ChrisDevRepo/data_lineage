@@ -65,12 +65,15 @@ logger = logging.getLogger(__name__)
 # API version (single source of truth)
 API_VERSION = "4.0.3"
 
-# Job storage configuration
+# Job storage configuration (ephemeral - can be lost on restart)
 JOBS_DIR = Path("/tmp/jobs")
 
 # Persistent data storage (survives container restarts if volume mounted)
-# Use /app/data in Docker, or ../data (parent dir) in dev
-DATA_DIR = Path("/app/data") if Path("/app").exists() else Path(__file__).parent.parent / "data"
+# Priority: Environment variable > Azure default > Docker > Local dev
+DATA_DIR = Path(os.getenv("PATH_OUTPUT_DIR", 
+                          "/home/site/data" if Path("/home/site/data").exists() 
+                          else "/app/data" if Path("/app").exists() 
+                          else str(Path(__file__).parent.parent / "data")))
 LATEST_DATA_FILE = DATA_DIR / "latest_frontend_lineage.json"
 
 # API startup time (for uptime calculation)

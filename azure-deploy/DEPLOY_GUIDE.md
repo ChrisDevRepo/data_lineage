@@ -194,12 +194,25 @@ az webapp deploy \
 
 ### ❌ App won't start
 
-**Cause**: Wrong startup command
+**Cause**: Wrong startup command or missing dependencies
 
 **Solution**:
 1. Configuration → General settings
 2. Set Startup Command: `bash startup.sh`
-3. Save and Restart
+3. Verify `SCM_DO_BUILD_DURING_DEPLOYMENT=true` is set
+4. Save and Restart
+
+### ❌ Container exits with code 1
+
+**Cause**: Startup script path error or missing dependencies
+
+**Symptoms**: Container starts then immediately stops
+
+**Solution**:
+1. Download logs: `az webapp log download --name your-app --resource-group your-rg --log-file logs.zip`
+2. Check for "cd: No such file or directory" errors
+3. Ensure using latest startup.sh (v4.2.1+)
+4. Redeploy using `az webapp deploy` command
 
 ### ❌ Can't access Kudu
 
