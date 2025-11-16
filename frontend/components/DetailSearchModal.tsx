@@ -249,7 +249,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
           });
         } else {
           // API SEARCH (parquet mode - DDL in DuckDB)
-          const response = await fetch(`${API_BASE_URL}/api/search-ddl?q=${encodeURIComponent(query)}`);
+          const response = await fetch(`${API_BASE_URL}/api/search-ddl?q=${encodeURIComponent(query)}`, { credentials: 'same-origin' });
 
           if (!response.ok) {
             throw new Error(`Search API failed: ${response.statusText}`);
@@ -318,7 +318,7 @@ export const DetailSearchModal: React.FC<DetailSearchModalProps> = ({
     setError(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/ddl/${result.id}`);
+      const response = await fetch(`${API_BASE_URL}/api/ddl/${result.id}`, { credentials: 'same-origin' });
 
       if (!response.ok) {
         throw new Error('Failed to load DDL');

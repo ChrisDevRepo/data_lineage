@@ -56,7 +56,7 @@ function DataLineageVisualizer() {
 
       try {
         const fetchStart = Date.now();
-        const response = await fetch(`${API_BASE_URL}/api/latest-data`);
+        const response = await fetch(`${API_BASE_URL}/api/latest-data`, { credentials: 'same-origin' });
         logger.perf(`API fetch took ${Date.now() - fetchStart}ms`);
 
         if (!response.ok) {

@@ -23,7 +23,7 @@ from typing import List, Optional, AsyncIterator, Dict, Any
 from contextlib import asynccontextmanager
 from datetime import datetime
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Query
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Query, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -57,6 +57,32 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# ============================================================================
+# Authentication
+# ============================================================================
+
+import base64
+
+async def verify_azure_auth(
+    x_ms_client_principal: Optional[str] = Header(None, alias="X-MS-CLIENT-PRINCIPAL")
+) -> Optional[Dict[str, Any]]:
+    """
+    Trust Azure Container Apps Easy Auth platform-level authentication.
+    Platform blocks unauthenticated requests - never reject in application code.
+    """
+    if not x_ms_client_principal:
+        logger.info("Request authenticated by platform")
+        return None
+    
+    try:
+        principal_json = base64.b64decode(x_ms_client_principal).decode('utf-8')
+        principal_data = json.loads(principal_json)
+        logger.info(f"User: {principal_data.get('userId', 'unknown')}")
+        return principal_data
+    except Exception as e:
+        logger.warning(f"Header decode failed: {e}")
+        return None
 
 # ============================================================================
 # Application Configuration
@@ -132,6 +158,35 @@ STATIC_DIR = Path(__file__).parent.parent / "static"
 if STATIC_DIR.exists():
     app.mount("/assets", StaticFiles(directory=str(STATIC_DIR / "assets")), name="assets")
     logger.info(f"✅ Serving static files from: {STATIC_DIR}")
+    
+    # Serve logo and favicon files from root
+    @app.get("/logo.png")
+    async def get_logo():
+        logo_path = STATIC_DIR / "logo.png"
+        if logo_path.exists():
+            return FileResponse(logo_path, media_type="image/png")
+        raise HTTPException(status_code=404, detail="Logo not found")
+    
+    @app.get("/favicon.ico")
+    async def get_favicon_ico():
+        favicon_path = STATIC_DIR / "favicon.ico"
+        if favicon_path.exists():
+            return FileResponse(favicon_path, media_type="image/x-icon")
+        raise HTTPException(status_code=404, detail="Favicon not found")
+    
+    @app.get("/favicon.png")
+    async def get_favicon_png():
+        favicon_path = STATIC_DIR / "favicon.png"
+        if favicon_path.exists():
+            return FileResponse(favicon_path, media_type="image/png")
+        raise HTTPException(status_code=404, detail="Favicon not found")
+    
+    @app.get("/favicon-32x32.png")
+    async def get_favicon_32():
+        favicon_path = STATIC_DIR / "favicon-32x32.png"
+        if favicon_path.exists():
+            return FileResponse(favicon_path, media_type="image/png")
+        raise HTTPException(status_code=404, detail="Favicon not found")
 
 
 # ============================================================================
@@ -203,7 +258,7 @@ async def health_check() -> HealthResponse:
 
 
 @app.get("/api/latest-data", tags=["Data"])
-async def get_latest_data() -> JSONResponse:
+async def get_latest_data(user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)) -> JSONResponse:
     """
     Get the latest processed lineage data (frontend JSON format).
 
@@ -245,7 +300,7 @@ async def get_latest_data() -> JSONResponse:
 
 
 @app.get("/api/metadata", tags=["Data"])
-async def get_metadata() -> JSONResponse:
+async def get_metadata(user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)) -> JSONResponse:
     """
     Get metadata about the current lineage data.
 
@@ -294,7 +349,7 @@ async def get_metadata() -> JSONResponse:
 
 
 @app.get("/api/ddl/{object_id}", tags=["Data"])
-async def get_ddl(object_id: int) -> JSONResponse:
+async def get_ddl(object_id: int, user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)) -> JSONResponse:
     """
     Get DDL definition for a specific object on demand.
 
@@ -356,7 +411,7 @@ async def get_ddl(object_id: int) -> JSONResponse:
 
 
 @app.get("/api/search-ddl", tags=["Data"])
-async def search_ddl(q: str = Query(..., min_length=1, max_length=200, description="Search query")) -> JSONResponse:
+async def search_ddl(q: str = Query(..., min_length=1, max_length=200, description="Search query"), user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)) -> JSONResponse:
     """
     Full-text search across all DDL definitions using DuckDB FTS.
 
@@ -440,7 +495,8 @@ async def search_ddl(q: str = Query(..., min_length=1, max_length=200, descripti
 async def upload_parquet(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(..., description="Parquet files (any names - will be auto-detected)"),
-    incremental: bool = True
+    incremental: bool = True,
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
 ) -> UploadResponse:
     """
     Upload Parquet files and start lineage processing.
@@ -569,7 +625,7 @@ async def upload_parquet(
 
 
 @app.get("/api/status/{job_id}", response_model=JobStatusResponse, tags=["Lineage"])
-async def get_job_status(job_id: str) -> JobStatusResponse:
+async def get_job_status(job_id: str, user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)) -> JobStatusResponse:
     """
     Poll job status (called every 2 seconds by frontend).
 
@@ -601,7 +657,7 @@ async def get_job_status(job_id: str) -> JobStatusResponse:
 
 
 @app.get("/api/result/{job_id}", response_model=LineageResultResponse, tags=["Lineage"])
-async def get_job_result(job_id: str) -> LineageResultResponse:
+async def get_job_result(job_id: str, user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)) -> LineageResultResponse:
     """
     Get final lineage JSON when job is complete.
 
@@ -645,7 +701,7 @@ async def get_job_result(job_id: str) -> LineageResultResponse:
 
 
 @app.delete("/api/jobs/{job_id}", tags=["Admin"])
-async def delete_job(job_id: str) -> Dict[str, str]:
+async def delete_job(job_id: str, user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)) -> Dict[str, str]:
     """
     Delete job files (cleanup).
 
@@ -674,7 +730,7 @@ async def delete_job(job_id: str) -> Dict[str, str]:
 
 
 @app.get("/api/jobs", tags=["Admin"])
-async def list_jobs() -> Dict[str, Any]:
+async def list_jobs(user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)) -> Dict[str, Any]:
     """
     List all jobs (for debugging/admin).
 
@@ -730,7 +786,7 @@ async def serve_frontend():
 
 
 @app.delete("/api/clear-data", tags=["Admin"])
-async def clear_all_data() -> Dict[str, Any]:
+async def clear_all_data(user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)) -> Dict[str, Any]:
     """
     Clear all lineage data (DuckDB workspace and JSON files).
 

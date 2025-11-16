@@ -171,7 +171,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
 
     const fetchMetadata = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/api/metadata`);
+            const response = await fetch(`${API_BASE_URL}/api/metadata`, { credentials: 'same-origin' });
             const metadata = await response.json();
             if (metadata.available) {
                 setLastUploadDate(metadata.upload_timestamp_human);
@@ -228,7 +228,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
         if (errors.length === 0) {
             // Auto-delete DuckDB workspace before importing JSON
             try {
-                await fetch(`${API_BASE_URL}/api/clear-data`, { method: 'DELETE' });
+                await fetch(`${API_BASE_URL}/api/clear-data`, { method: 'DELETE', credentials: 'same-origin' });
             } catch (err) {
                 console.warn('Failed to clear backend data:', err);
                 // Continue anyway - JSON mode doesn't strictly need backend
@@ -279,7 +279,8 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
 
             const uploadResponse = await fetch(url, {
                 method: 'POST',
-                body: formData
+                body: formData,
+                credentials: 'same-origin'
             });
 
             if (!uploadResponse.ok) {
@@ -312,7 +313,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
 
         const poll = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/status/${job_id}`);
+                const response = await fetch(`${API_BASE_URL}/api/status/${job_id}`, { credentials: 'same-origin' });
                 const status: JobStatus = await response.json();
 
                 // Calculate elapsed time
@@ -327,7 +328,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                 // Check if complete
                 if (status.status === 'completed') {
                     // Fetch result (with cache busting to ensure fresh data)
-                    const resultResponse = await fetch(`${API_BASE_URL}/api/result/${job_id}?_t=${Date.now()}`);
+                    const resultResponse = await fetch(`${API_BASE_URL}/api/result/${job_id}?_t=${Date.now()}`, { credentials: 'same-origin' });
                     const result = await resultResponse.json();
 
                     // Extract data array from response
