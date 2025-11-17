@@ -34,6 +34,24 @@ All Python commands in this document assume the virtual environment is activated
 
 ## Recent Updates
 
+### v4.3.3 - Trace Mode Enhancements + Phantom Handling (2025-11-17) 🎯
+- **Trace Mode UX Improvements:**
+  - Blue border highlights trace start node with distinctive visual indicator
+  - "Trace Mode" badge in navbar with tooltip showing start node, upstream/downstream levels
+  - Extended Filter Schema auto-disables on trace start, disabled during active trace
+  - Extended Filter Schema button triggers fit view after filtering
+  - Schema/type filtering fully functional during trace mode (AND logic with trace results)
+- **Context Menu Improvements:**
+  - "Start Tracing" option hidden when trace filter already applied
+  - Phantom objects have no right-click context menu (cannot trace external dependencies)
+- **Schema Dropdown Fixes:**
+  - "None" button now clears all focus stars (⭐)
+  - Unchecking schema auto-removes focus star if present
+- **Golden Test Case Added:**
+  - `case_001_consumption_powerbi_phantom.yaml` for spLoadFactLaborCostForEarnedValue_Post
+  - Documents CONSUMPTION_POWERBI phantom detection requirements
+- **Result:** Enhanced trace mode usability with clear visual feedback and consistent behavior ✅
+
 ### v4.3.3 - CI/CD Workflows + Integration Tests (2025-11-14) 🚀
 - Parser Validation Workflow: 5 automated jobs validate parser changes
 - 64 pytest integration tests (database validation, confidence analysis, SQLGlot performance)

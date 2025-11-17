@@ -7,6 +7,7 @@ import { getConfidenceLevel } from '../utils/confidenceUtils';
 type CustomNodeData = DataNode & {
     isHighlighted: boolean;
     isDimmed: boolean;
+    isTraceStartNode?: boolean;
     layoutDir: 'LR' | 'TB';
     schemaColor: string;
     sqlViewerOpen?: boolean;
@@ -34,13 +35,20 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
     const phantomBorderStyle = isPhantom ? 'border-dashed !border-orange-500' : '';
     const phantomShadow = isPhantom ? 'shadow-orange-300/50' : '';
 
+    // Trace start node: blue border with ring (takes priority over highlighted)
+    const traceStartNodeStyle = data.isTraceStartNode ? '!border-blue-500 !border-4 ring-4 ring-blue-500/50' : '';
+
+    // Highlighted: yellow border (only if not trace start node)
+    const highlightedStyle = data.isHighlighted && !data.isTraceStartNode ? 'border-yellow-400 !border-4 ring-4 ring-yellow-400/50' : '';
+
     const nodeClasses = `
         w-48 h-12 flex items-center justify-center text-sm font-bold
         border-2 shadow-lg text-gray-800
         ${shapeStyle}
         ${phantomBorderStyle}
         ${phantomShadow}
-        ${data.isHighlighted ? 'border-yellow-400 !border-4 ring-4 ring-yellow-400/50' : ''}
+        ${traceStartNodeStyle}
+        ${highlightedStyle}
         ${data.isDimmed ? 'opacity-20' : ''}
         ${isClickableForSql ? 'cursor-pointer hover:shadow-xl hover:scale-105' : ''}
         transition-transform duration-200
@@ -48,11 +56,16 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
 
     const nodeStyle = {
         backgroundColor: `${schemaColor}30`,
-        borderColor: isPhantom ? '#ff9800' : schemaColor,
+        borderColor: data.isTraceStartNode ? '#3b82f6' : (isPhantom ? '#ff9800' : schemaColor),
     };
 
     // Only show confidence/parsing method for Stored Procedures
     let nodeTitle = `Object: ${data.schema}.${data.name}\nObject Type: ${data.object_type}\nData Model Type: ${data.data_model_type || 'N/A'}`;
+
+    if (data.isTraceStartNode) {
+        nodeTitle += `\n\n🎯 TRACE START NODE`;
+        nodeTitle += `\nThis is the starting point of the current trace`;
+    }
 
     if (isPhantom) {
         nodeTitle += `\n\n⚠️  PHANTOM OBJECT (${data.phantom_reason || 'not in catalog'})`;

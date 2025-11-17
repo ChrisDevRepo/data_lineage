@@ -35,11 +35,13 @@ type ToolbarProps = {
     focusSchemas: Set<string>;
     setFocusSchemas: (schemas: Set<string>) => void;
     isTraceModeActive: boolean;
+    isTraceFilterApplied: boolean; // Track if trace Apply button was clicked
     onStartTrace: () => void;
     onOpenImport: () => void;
     onOpenInfo: () => void;
     onExportSVG: () => void;
     onResetView: () => void;
+    onFitView: () => void;
     sqlViewerOpen: boolean;
     onToggleSqlViewer: () => void;
     sqlViewerEnabled: boolean;
@@ -63,8 +65,8 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         selectedTypes, setSelectedTypes, dataModelTypes,
         layout, setLayout, hideIsolated, setHideIsolated, filterExtended, setFilterExtended,
         focusSchemas, setFocusSchemas,
-        isTraceModeActive, onStartTrace,
-        onOpenImport, onOpenInfo, onExportSVG, onResetView,
+        isTraceModeActive, isTraceFilterApplied, onStartTrace,
+        onOpenImport, onOpenInfo, onExportSVG, onResetView, onFitView,
         sqlViewerOpen, onToggleSqlViewer, sqlViewerEnabled, hasDdlData,
         onOpenDetailSearch,
         notificationHistory, onClearNotificationHistory,
@@ -274,7 +276,10 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                                         All
                                     </button>
                                     <button
-                                        onClick={() => setSelectedSchemas(new Set())}
+                                        onClick={() => {
+                                            setSelectedSchemas(new Set());
+                                            setFocusSchemas(new Set()); // Clear all focus stars when None is clicked
+                                        }}
                                         className="text-xs px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 font-medium transition-colors flex items-center gap-1"
                                         title="Unselect all schemas"
                                     >
@@ -344,8 +349,17 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                                                 checked={selectedSchemas.has(s)}
                                                 onChange={() => {
                                                     const newSet = new Set(selectedSchemas);
-                                                    if (newSet.has(s)) newSet.delete(s);
-                                                    else newSet.add(s);
+                                                    if (newSet.has(s)) {
+                                                        newSet.delete(s);
+                                                        // Also remove from focus schemas when unchecking
+                                                        if (focusSchemas.has(s)) {
+                                                            const newFocus = new Set(focusSchemas);
+                                                            newFocus.delete(s);
+                                                            setFocusSchemas(newFocus);
+                                                        }
+                                                    } else {
+                                                        newSet.add(s);
+                                                    }
                                                     setSelectedSchemas(newSet);
                                                 }}
                                                 label={s}
@@ -491,7 +505,9 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                 {/* Filter Extended Schemas (Focus Schema Reachability) */}
                 <Button onClick={() => {
                     setFilterExtended(!filterExtended);
-                }} variant="icon" className={filterExtended ? 'bg-blue-50 text-blue-600' : ''} title={filterExtended ? `Show All Extended Schemas` : `Filter Extended Schemas (show only if connected to focus ⭐)`} disabled={focusSchemas.size === 0}>
+                    // Trigger fit view after filtering completes
+                    setTimeout(() => onFitView(), 100);
+                }} variant="icon" className={filterExtended ? 'bg-blue-50 text-blue-600' : ''} title={filterExtended ? `Show All Extended Schemas` : `Filter Extended Schemas (show only if connected to focus ⭐)`} disabled={focusSchemas.size === 0 || isTraceFilterApplied}>
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 0 1-.659 1.591l-5.432 5.432a2.25 2.25 0 0 0-.659 1.591v2.927a2.25 2.25 0 0 1-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 0 0-.659-1.591L3.659 7.409A2.25 2.25 0 0 1 3 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0 1 12 3Z" />
                     </svg>

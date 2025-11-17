@@ -8,6 +8,7 @@ interface NodeContextMenuProps {
   onStartTracing: () => void;
   onShowSql?: () => void;
   sqlViewerEnabled?: boolean;
+  isTraceFilterApplied?: boolean;
   onClose: () => void;
 }
 
@@ -19,6 +20,7 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
   onStartTracing,
   onShowSql,
   sqlViewerEnabled,
+  isTraceFilterApplied,
   onClose
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -53,19 +55,21 @@ export const NodeContextMenu: React.FC<NodeContextMenuProps> = ({
       className="fixed bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[60]"
       style={{ left: `${x}px`, top: `${y}px` }}
     >
-      {/* Start Tracing */}
-      <button
-        onClick={() => {
-          onStartTracing();
-          onClose();
-        }}
-        className="w-full px-4 py-2 text-left text-sm hover:bg-primary-50 flex items-center gap-2 transition-colors"
-      >
-        <svg className="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span className="text-gray-700">Start Tracing from <span className="font-semibold text-primary-600">{nodeName}</span></span>
-      </button>
+      {/* Start Tracing - only show if not already in trace mode */}
+      {!isTraceFilterApplied && (
+        <button
+          onClick={() => {
+            onStartTracing();
+            onClose();
+          }}
+          className="w-full px-4 py-2 text-left text-sm hover:bg-primary-50 flex items-center gap-2 transition-colors"
+        >
+          <svg className="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 9l3 3m0 0l-3 3m3-3H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-gray-700">Start Tracing from <span className="font-semibold text-primary-600">{nodeName}</span></span>
+        </button>
+      )}
 
       {/* Show SQL (if enabled) */}
       {sqlViewerEnabled && onShowSql && (

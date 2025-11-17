@@ -317,18 +317,22 @@ function DataLineageVisualizer() {
                              !isHighlighted &&
                              !level1Neighbors.has(n.id);
 
+      // Check if this is the trace start node
+      const isTraceStartNode = isTraceFilterApplied && traceConfig && n.id === traceConfig.startNodeId;
+
       return {
         ...n,
         data: {
           ...n.data,
           isHighlighted: isHighlighted,
           isDimmed: shouldBeDimmed,
+          isTraceStartNode: isTraceStartNode,
           layoutDir: layout,
           ddl_text: originalNode?.ddl_text
         }
       };
     });
-  }, [layoutedElements.nodes, highlightedNodes, layout, allDataMap, lineageGraph]);
+  }, [layoutedElements.nodes, highlightedNodes, layout, allDataMap, lineageGraph, isTraceFilterApplied, traceConfig]);
 
   // --- Effects to Synchronize State with React Flow ---
   useEffect(() => {
@@ -400,6 +404,11 @@ function DataLineageVisualizer() {
     event.preventDefault();
     const originalNode = allDataMap.get(node.id);
     if (originalNode) {
+      // Don't show context menu for phantom objects
+      if (originalNode.is_phantom) {
+        return;
+      }
+
       setContextMenu({
         x: event.clientX,
         y: event.clientY,
@@ -950,7 +959,17 @@ function DataLineageVisualizer() {
     <div className="w-screen h-screen flex flex-col font-sans">
       <header className="flex-shrink-0 z-20">
         <div className="flex items-center justify-between px-4 py-2 bg-white shadow-sm">
-          <img src="/logo.png" alt="Data Lineage Visualizer" className="h-10" />
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Data Lineage Visualizer" className="h-10" />
+            {isTraceFilterApplied && traceConfig && (
+              <span
+                className="text-sm font-semibold text-blue-600 px-3 py-1 bg-blue-50 rounded-md border border-blue-200 cursor-help"
+                title={`Start: ${allData.find(n => n.id === traceConfig.startNodeId)?.name || traceConfig.startNodeId}\nUpstream: ${traceConfig.upstreamLevels} levels\nDownstream: ${traceConfig.downstreamLevels} levels`}
+              >
+                Trace Mode
+              </span>
+            )}
+          </div>
         </div>
         {/* Colorful accent bar matching logo theme */}
         <div className="h-1 bg-gradient-to-r from-blue-500 via-teal-400 to-orange-400"></div>
@@ -986,11 +1005,16 @@ function DataLineageVisualizer() {
             focusSchemas={focusSchemas}
             setFocusSchemas={setFocusSchemas}
             isTraceModeActive={isTraceModeActive}
-            onStartTrace={() => setIsTraceModeActive(true)}
+            isTraceFilterApplied={isTraceFilterApplied}
+            onStartTrace={() => {
+              setIsTraceModeActive(true);
+              setFilterExtended(false); // Disable Extended Filter Schema when starting trace
+            }}
             onOpenImport={() => setIsImportModalOpen(true)}
             onOpenInfo={() => setIsInfoModalOpen(true)}
             onExportSVG={handleExportSVG}
             onResetView={handleResetView}
+            onFitView={() => fitView({ duration: 300 })}
             sqlViewerOpen={sqlViewerOpen}
             onToggleSqlViewer={handleToggleSqlViewer}
             sqlViewerEnabled={sqlViewerEnabled}
@@ -1103,6 +1127,7 @@ function DataLineageVisualizer() {
           onStartTracing={() => handleStartTracing(contextMenu.nodeId)}
           onShowSql={() => handleSwitchToSqlViewer(contextMenu.nodeId)}
           sqlViewerEnabled={sqlViewerEnabled}
+          isTraceFilterApplied={isTraceFilterApplied}
           onClose={() => setContextMenu(null)}
         />
       )}
