@@ -157,82 +157,389 @@ const response = await fetch(`${API_BASE_URL}/api/upload-parquet`, {
 ## 🔄 Deployment Workflow
 
 ### Prerequisites
-- Azure CLI installed and logged in
-- Docker installed locally
+- Azure CLI installed and logged in (`az login`)
+- Docker Desktop installed and running
 - Access to Azure subscription
+- Git repository synced
 
-### 1. Build and Test Locally
+---
+
+## Complete Deployment Guide
+
+### Step 1: Sync with Git Repository
+
+Always pull the latest changes before deploying:
 
 ```powershell
-# Build frontend
-cd frontend
-npm install
-npm run build
+# Navigate to project directory
+cd c:\Users\ChristianWagner\vscode\ws-datalineage\data_lineage
 
-# Build Docker image
-cd ..
-docker build -t datalineage:latest -f azure-deploy/docker/Dockerfile .
-
-# Test locally
-docker run -d --name datalineage-test -p 8000:8000 datalineage:latest
-
-# Verify
-curl http://localhost:8000/health
+# Pull latest changes from GitHub
+git pull origin main
 ```
 
-### 2. Push to Azure Container Registry
+**What to check:**
+- ✅ No merge conflicts
+- ✅ All changes pulled successfully
+- ✅ Working directory clean
+
+---
+
+### Step 2: Build Frontend
+
+Build the React application with latest changes:
 
 ```powershell
-# Login to ACR
+# Navigate to frontend directory
+cd frontend
+
+# Install dependencies (if package.json changed)
+npm install
+
+# Build production bundle
+npm run build
+```
+
+**Expected Output:**
+```
+✓ 555 modules transformed.
+dist/index.html                  3.15 kB │ gzip:   1.20 kB
+dist/assets/index-HqpVsFJX.js  648.68 kB │ gzip: 196.73 kB
+✓ built in 2.76s
+```
+
+**Verify:**
+- ✅ `frontend/dist/` directory created
+- ✅ `dist/index.html` exists
+- ✅ `dist/assets/` contains JavaScript bundle
+- ✅ No build errors
+
+---
+
+### Step 3: Build Docker Image
+
+Create a new Docker image with updated code:
+
+```powershell
+# Return to project root
+cd ..
+
+# Ensure Docker Desktop is running
+docker ps
+
+# Build new image
+docker build -t datalineage:latest -f azure-deploy/docker/Dockerfile .
+```
+
+**Expected Output:**
+```
+[+] Building 5.8s (15/15) FINISHED
+ => [8/9] COPY frontend/dist /app/static
+ => [9/9] RUN mkdir -p /app/data
+ => exporting to image
+ => => naming to docker.io/library/datalineage:latest
+```
+
+**What happens:**
+- ✅ Uses Python 3.12-slim base image
+- ✅ Installs Python dependencies
+- ✅ Copies backend code (`api/`, `lineage_v3/`)
+- ✅ Copies built frontend (`frontend/dist` → `/app/static`)
+- ✅ Sets up data directory
+
+**Optional - Test Locally:**
+```powershell
+# Run container locally
+docker run -d --name datalineage-test -p 8000:8000 datalineage:latest
+
+# Test health endpoint
+curl http://localhost:8000/health
+
+# Clean up
+docker stop datalineage-test
+docker rm datalineage-test
+```
+
+---
+
+### Step 4: Tag Image for Azure Container Registry
+
+Tag the local image for Azure:
+
+```powershell
+docker tag datalineage:latest chwadatalineage.azurecr.io/datalineage:latest
+```
+
+**What this does:**
+- Creates an alias for the image pointing to ACR
+- Prepares image for push to registry
+- Uses registry name: `chwadatalineage.azurecr.io`
+- Image name: `datalineage`
+- Tag: `latest`
+
+---
+
+### Step 5: Push to Azure Container Registry
+
+Upload the image to Azure:
+
+```powershell
+# Login to ACR (uses Azure CLI credentials)
 az acr login --name chwadatalineage
 
-# Tag image
-docker tag datalineage:latest chwadatalineage.azurecr.io/datalineage:latest
-
-# Push to registry
+# Push image to registry
 docker push chwadatalineage.azurecr.io/datalineage:latest
 ```
 
 **Expected Output:**
 ```
 The push refers to repository [chwadatalineage.azurecr.io/datalineage]
-latest: digest: sha256:69622959a78b4e04c70c728b959155765b653faa06bd245eb6a3de46670bb3e2 size: 3884
+99e84f338f83: Pushed
+a4f564a4a58f: Layer already exists
+...
+latest: digest: sha256:db5d84a44d70af9b4863a43e0ed882dca08d581916dac1918a5791de5b99dcbe size: 856
 ```
 
-### 3. Update Container App
+**What happens:**
+- ✅ Authenticates with ACR using managed identity
+- ✅ Uploads changed layers only (fast subsequent pushes)
+- ✅ Assigns new digest (unique identifier for this version)
+- ✅ Updates `latest` tag to point to new digest
+
+**Time estimate:** 1-3 minutes (first push), 10-30 seconds (subsequent pushes)
+
+---
+
+### Step 6: Update Container App
+
+Deploy the new image to Azure Container Apps:
 
 ```powershell
-# Update to latest image
+# Update container app with new image
 az containerapp update \
   --name chwa-datalineage \
   --resource-group rg-chwa-container \
   --image chwadatalineage.azurecr.io/datalineage:latest
+```
 
-# Restart container
+**Expected Output:**
+```json
+{
+  "properties": {
+    "latestRevisionName": "chwa-datalineage--auth-v2",
+    "provisioningState": "Succeeded",
+    "runningStatus": "Running",
+    ...
+  }
+}
+```
+
+**What happens:**
+- ✅ Container App pulls new image from ACR
+- ✅ Creates new revision (or updates existing)
+- ✅ Updates configuration
+- ✅ **Note:** Old containers may still run until manually restarted
+
+---
+
+### Step 7: Restart Container (Force New Deployment)
+
+Force the container to restart with the new image:
+
+```powershell
+# Restart the active revision
 az containerapp revision restart \
   --name chwa-datalineage \
   --resource-group rg-chwa-container \
   --revision chwa-datalineage--auth-v2
 ```
 
-### 4. Verify Deployment
+**Expected Output:**
+```
+"Restart succeeded"
+```
+
+**What happens:**
+- ✅ Terminates existing container replicas
+- ✅ Pulls latest image from ACR
+- ✅ Starts new container instances
+- ✅ Takes 20-30 seconds to fully restart
+
+---
+
+### Step 8: Verify Deployment
+
+Check that the new version is running:
 
 ```powershell
-# Check logs (wait 20-30 seconds after restart)
+# Wait for container to start
+Start-Sleep -Seconds 25
+
+# View logs (last 30 lines)
 az containerapp logs show \
   --name chwa-datalineage \
   --resource-group rg-chwa-container \
   --follow false \
-  --tail 50
+  --tail 30
 ```
 
 **Expected Log Output:**
 ```
-2025-11-16 17:12:10 - 🚀 Data Lineage Visualizer API v4.0.3
-2025-11-16 17:12:10 - Running as: production
-2025-11-16 17:12:10 - Log level: INFO
-2025-11-16 17:12:10 - ✅ API ready on http://0.0.0.0:8000
+Successfully Connected to container: 'chwa-datalineage' [Revision: 'chwa-datalineage--auth-v2', Replica: 'chwa-datalineage--auth-v2-6bcb89844d-vqvjw']
+2025-11-17 14:47:23 - 🚀 Data Lineage Visualizer API v4.0.3
+2025-11-17 14:47:23 - 📁 Jobs directory: /tmp/jobs
+2025-11-17 14:47:23 - 💾 Data directory: /app/data
+2025-11-17 14:47:23 - ✅ API ready
+[2025-11-17 14:47:23 +0000] [8] [INFO] Application startup complete.
 ```
+
+**Verify checklist:**
+- ✅ New replica ID in logs (different from previous)
+- ✅ Recent timestamp (within last minute)
+- ✅ "API ready" message appears
+- ✅ No error messages
+- ✅ Application version correct (v4.0.3)
+
+**Test in browser:**
+1. Navigate to: https://chwa-datalineage.agreeablesky-46763c91.westeurope.azurecontainerapps.io/
+2. Should redirect to Azure AD login
+3. After authentication, app should load with new changes
+
+---
+
+## Quick Reference - Full Deployment Command Sequence
+
+```powershell
+# 1. Sync code
+git pull origin main
+
+# 2. Build frontend
+cd frontend; npm run build; cd ..
+
+# 3. Build Docker image
+docker build -t datalineage:latest -f azure-deploy/docker/Dockerfile .
+
+# 4. Tag for ACR
+docker tag datalineage:latest chwadatalineage.azurecr.io/datalineage:latest
+
+# 5. Login and push
+az acr login --name chwadatalineage
+docker push chwadatalineage.azurecr.io/datalineage:latest
+
+# 6. Update container app
+az containerapp update --name chwa-datalineage --resource-group rg-chwa-container --image chwadatalineage.azurecr.io/datalineage:latest
+
+# 7. Restart container
+az containerapp revision restart --name chwa-datalineage --resource-group rg-chwa-container --revision chwa-datalineage--auth-v2
+
+# 8. Verify (wait 25 seconds)
+Start-Sleep -Seconds 25
+az containerapp logs show --name chwa-datalineage --resource-group rg-chwa-container --follow false --tail 30
+```
+
+**Total time:** 5-10 minutes
+
+---
+
+## Troubleshooting Deployment Issues
+
+### Issue: Docker build fails
+
+**Check:**
+```powershell
+# Verify Docker is running
+docker ps
+
+# Check if frontend was built
+Test-Path frontend/dist/index.html
+```
+
+**Solution:** Ensure Docker Desktop is running and frontend build completed
+
+---
+
+### Issue: ACR login fails
+
+**Error:** `unauthorized: authentication required`
+
+**Solution:**
+```powershell
+# Re-login to Azure
+az login
+
+# Login to ACR again
+az acr login --name chwadatalineage
+```
+
+---
+
+### Issue: Push fails with "denied: requested access to the resource is denied"
+
+**Cause:** Insufficient permissions on Container Registry
+
+**Solution:**
+```powershell
+# Verify you have AcrPush role
+az role assignment list --assignee $(az account show --query user.name -o tsv) --scope /subscriptions/6009a250-7363-474d-85b6-2fba12522cf0/resourceGroups/rg-chwa-container/providers/Microsoft.ContainerRegistry/registries/chwadatalineage
+```
+
+---
+
+### Issue: Container app update succeeds but old version still running
+
+**Cause:** Container App cached old image or didn't restart
+
+**Solution:**
+```powershell
+# Force restart
+az containerapp revision restart --name chwa-datalineage --resource-group rg-chwa-container --revision chwa-datalineage--auth-v2
+
+# If still not working, create new revision
+az containerapp revision copy --name chwa-datalineage --resource-group rg-chwa-container
+```
+
+---
+
+### Issue: Container won't start after deployment
+
+**Check logs:**
+```powershell
+az containerapp logs show --name chwa-datalineage --resource-group rg-chwa-container --follow --tail 100
+```
+
+**Common causes:**
+- Missing environment variables
+- Port 8000 not exposed
+- Frontend dist directory missing
+- Python dependencies failed to install
+
+**Solution:** Check Dockerfile and rebuild image
+
+---
+
+## Rollback to Previous Version
+
+If new deployment has issues:
+
+```powershell
+# List all revisions
+az containerapp revision list --name chwa-datalineage --resource-group rg-chwa-container
+
+# Activate previous revision
+az containerapp revision activate --name chwa-datalineage --resource-group rg-chwa-container --revision <previous-revision-name>
+```
+
+---
+
+## Deployment Best Practices
+
+1. **Always test locally first** - Run Docker container on localhost before pushing
+2. **Build frontend before Docker** - Ensure `frontend/dist/` exists and is current
+3. **Sync with Git** - Pull latest changes to avoid conflicts
+4. **Check logs after deployment** - Verify new container started successfully
+5. **Keep notes of working digests** - Save digest hashes of stable versions
+6. **Test authentication** - Verify Azure AD login still works after deployment
+7. **Monitor for 5 minutes** - Watch logs for any startup errors
 
 ### 5. Test Authenticated Access
 
