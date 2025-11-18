@@ -419,8 +419,8 @@ Successfully Connected to container: 'chwa-datalineage' [Revision: 'chwa-datalin
 # 1. Sync code
 git pull origin main
 
-# 2. Build frontend
-cd frontend; npm run build; cd ..
+# 2. Build frontend (includes Tailwind CSS)
+cd frontend; npm install; npm run build; cd ..
 
 # 3. Build Docker image
 docker build -t datalineage:latest -f azure-deploy/docker/Dockerfile .
@@ -503,6 +503,32 @@ az containerapp revision restart --name chwa-datalineage --resource-group rg-chw
 # If still not working, create new revision
 az containerapp revision copy --name chwa-datalineage --resource-group rg-chwa-container
 ```
+
+---
+
+### Issue: UI Styling Not Appearing (Buttons Empty, No Colors)
+
+**Cause:** Frontend built without Tailwind CSS dependencies or using outdated build
+
+**Solution:**
+1. Ensure `npm install` runs before `npm run build`:
+   ```powershell
+   cd frontend
+   npm install  # Must install tailwindcss, postcss, autoprefixer
+   npm run build
+   ```
+2. Verify Tailwind CSS is in devDependencies:
+   ```powershell
+   cat frontend/package.json | findstr tailwindcss
+   # Should show: "tailwindcss": "^3.4.x"
+   ```
+3. Check build output includes CSS files:
+   ```powershell
+   ls frontend/dist/assets/*.css
+   # Should show compiled CSS bundle
+   ```
+4. Rebuild Docker image with proper frontend build
+5. Clear browser cache after redeployment
 
 ---
 
