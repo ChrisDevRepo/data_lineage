@@ -11,7 +11,7 @@ export const generateSampleData = (): DataNode[] => {
         "Weekly reporting table.", "Geographical dimension data.", "HR employee records.",
         "Temporary IT support tickets."
     ];
-    const numNodes = 40;
+    const numNodes = 200; // Doubled to 200 nodes for comprehensive testing
     let nodes: DataNode[] = Array.from({ length: numNodes }, (_, i) => {
         const objectType = types[Math.floor(Math.random() * types.length)];
         const nodeName = `${names[i % names.length]}_${i}`;
