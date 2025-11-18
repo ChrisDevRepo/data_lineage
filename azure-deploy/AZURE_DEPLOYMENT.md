@@ -193,12 +193,18 @@ Build the React application with latest changes:
 # Navigate to frontend directory
 cd frontend
 
-# Install dependencies (if package.json changed)
+# Install dependencies (includes Tailwind CSS v3.4.x, PostCSS, autoprefixer)
 npm install
 
-# Build production bundle
+# Build production bundle (Vite processes Tailwind CSS → dist/assets/)
 npm run build
 ```
+
+**Frontend Build Requirements:**
+- **Tailwind CSS v3.4.x** - Utility-first CSS framework (npm, not CDN)
+- **PostCSS** - CSS processing pipeline with autoprefixer
+- **Vite** - Build tool that processes `index.css` with Tailwind directives
+- **Output:** Processed CSS bundle in `dist/assets/*.css`
 
 **Expected Output:**
 ```
@@ -693,6 +699,25 @@ az containerapp logs show --name chwa-datalineage --resource-group rg-chwa-conta
 2. Increase memory: `--memory 2.0Gi`
 3. Enable multiple replicas: `--min-replicas 2 --max-replicas 5`
 
+### Issue: UI Styling Not Appearing (Buttons Empty, No Colors)
+
+**Cause:** Frontend built without Tailwind CSS dependencies or using outdated build
+
+**Solution:**
+1. Ensure `npm install` runs before `npm run build`
+2. Verify Tailwind CSS is in devDependencies:
+   ```bash
+   cat frontend/package.json | grep tailwindcss
+   # Should show: "tailwindcss": "^3.4.x"
+   ```
+3. Check build output includes CSS files:
+   ```bash
+   ls frontend/dist/assets/*.css
+   # Should show compiled CSS bundle
+   ```
+4. Rebuild Docker image with proper frontend build
+5. Clear browser cache after redeployment
+
 ---
 
 ## 🔐 Security Checklist
@@ -719,6 +744,13 @@ az containerapp logs show --name chwa-datalineage --resource-group rg-chwa-conta
 ---
 
 ## 📝 Deployment History
+
+### 2025-11-18
+- ✅ Migrated Tailwind CSS from CDN to npm-based installation (v3.4.x)
+- ✅ Fixed visual rendering issues caused by unreliable CDN
+- ✅ Added PostCSS processing pipeline with autoprefixer
+- ✅ Updated build process to include Tailwind CSS compilation
+- **Action Required:** Rebuild Docker image with `npm install` before `npm run build`
 
 ### 2025-11-16
 - ✅ Initial deployment to Azure Container Apps

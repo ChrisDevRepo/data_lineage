@@ -257,10 +257,21 @@ When you make changes to your code and want to update Azure:
 ```powershell
 cd c:\Users\ChristianWagner\vscode\ws-datalineage\data_lineage
 cd frontend
+
+# Install dependencies (including Tailwind CSS)
+npm install
+
+# Build frontend with Vite (includes Tailwind CSS processing)
 npm run build
+
 cd ..
 docker build -t datalineage:latest .
 ```
+
+**Note:** The frontend now uses Tailwind CSS v3 installed via npm (not CDN). The build process includes:
+- `tailwindcss` (v3.4.x) - CSS utility framework
+- `postcss` & `autoprefixer` - CSS processing pipeline
+- Build output includes processed CSS in `dist/assets/`
 
 ### 2. Test Locally (Optional but Recommended)
 ```powershell
