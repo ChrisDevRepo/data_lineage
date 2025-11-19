@@ -1,0 +1,71 @@
+# ==============================================================================
+# PostgreSQL Rule: Remove RAISE Statements
+# ==============================================================================
+# RAISE is PostgreSQL's error/notice reporting mechanism.
+# Equivalent to T-SQL's RAISERROR but with different syntax.
+#
+# Priority: 30 (same as T-SQL raiserror for consistency)
+# Category: Error Handling
+# ==============================================================================
+
+name: remove_raise_statement
+description: |
+  Remove PostgreSQL RAISE statements that don't affect data lineage.
+  RAISE is for error handling/notifications, not data transformation.
+
+  Covers: RAISE EXCEPTION, RAISE NOTICE, RAISE WARNING, RAISE INFO, RAISE DEBUG
+
+# Dialect applicability
+dialect: postgres
+category: error_handling
+enabled: true
+priority: 30
+
+# -----------------------------------------------------------------------------
+# Pattern Configuration
+# -----------------------------------------------------------------------------
+pattern_type: regex
+pattern: 'RAISE\s+(?:EXCEPTION|NOTICE|WARNING|INFO|DEBUG|LOG)\s+[^;]+;?'
+replacement: ''
+
+# -----------------------------------------------------------------------------
+# Test Cases
+# -----------------------------------------------------------------------------
+test_cases:
+  - name: raise_exception
+    description: "Remove RAISE EXCEPTION"
+    input: |
+      INSERT INTO target SELECT * FROM source;
+      RAISE EXCEPTION 'Error occurred';
+      UPDATE target SET status = 1;
+    expected: |
+      INSERT INTO target SELECT * FROM source;
+
+      UPDATE target SET status = 1;
+
+  - name: raise_notice
+    description: "Remove RAISE NOTICE"
+    input: |
+      RAISE NOTICE 'Processing started';
+      INSERT INTO logs SELECT * FROM events;
+    expected: |
+
+      INSERT INTO logs SELECT * FROM events;
+
+# -----------------------------------------------------------------------------
+# Debug Configuration
+# -----------------------------------------------------------------------------
+debug:
+  log_matches: false
+  log_replacements: false
+  show_context_lines: 0
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  tested_with: "Multi-dialect rule engine v0.9.0"
+  affects_lineage: false
+  impact: "Removes PostgreSQL error handling statements for cleaner lineage"

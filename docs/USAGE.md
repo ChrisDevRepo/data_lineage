@@ -8,10 +8,10 @@ How to use the Data Lineage Visualizer for parsing SQL and viewing lineage.
 
 ```bash
 # Parse Parquet files
-python lineage_v3/main.py run --parquet parquet_snapshots/
+python engine/main.py run --parquet parquet_snapshots/
 
 # Incremental mode (faster, recommended)
-python lineage_v3/main.py run --parquet parquet_snapshots/ --incremental
+python engine/main.py run --parquet parquet_snapshots/ --incremental
 ```
 
 ### Required Files
@@ -188,7 +188,7 @@ Parser remembers previous runs in DuckDB:
 - 50-90% faster than full refresh
 
 ```bash
-python lineage_v3/main.py run --parquet data/ --incremental
+python engine/main.py run --parquet data/ --incremental
 ```
 
 ### Trace Mode

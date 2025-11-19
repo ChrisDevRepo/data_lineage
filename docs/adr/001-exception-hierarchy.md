@@ -108,18 +108,18 @@ LineageError (base)
 
 ### Implementation
 
-**File:** `lineage_v3/exceptions.py` (300+ lines)
+**File:** `engine/exceptions.py` (300+ lines)
 
 **Key features:**
 1. All exceptions inherit from `LineageError` (allows catching all lineage errors)
 2. Hierarchical organization (parsing, catalog, workspace, config, rules, jobs, validation)
 3. Full documentation with purpose and usage examples
-4. Exported from `lineage_v3/__init__.py` for easy imports
+4. Exported from `engine/__init__.py` for easy imports
 5. Helper function `get_exception_for_error_type()` for dynamic exception creation
 
 **Example usage:**
 ```python
-from lineage_v3 import DDLNotFoundError, WorkspaceNotConnectedError
+from engine import DDLNotFoundError, WorkspaceNotConnectedError
 
 # Clear, specific exceptions
 if not ddl_text:
@@ -176,7 +176,7 @@ except Exception as e:
    - Estimated 2-3 hours to replace all generic exceptions
 
 2. **⚠️ More files to maintain**
-   - Added `lineage_v3/exceptions.py` (300+ lines)
+   - Added `engine/exceptions.py` (300+ lines)
    - Need to update `__init__.py` when adding new exceptions
 
 3. **⚠️ Learning curve**
@@ -187,7 +187,7 @@ except Exception as e:
 
 - **Migration:** Adopt incrementally (new code uses custom exceptions, old code gradually updated)
 - **Documentation:** All exceptions documented with examples in `exceptions.py`
-- **Discoverability:** All exceptions exported from `lineage_v3` for easy imports
+- **Discoverability:** All exceptions exported from `engine` for easy imports
 
 ## Validation
 
@@ -209,16 +209,16 @@ raise WorkspaceFileNotFoundError(f"Required file not found: {file_path}")
 
 ### Impact Metrics
 
-- **File created:** `lineage_v3/exceptions.py` (300+ lines)
-- **File updated:** `lineage_v3/__init__.py` (exports all exceptions)
+- **File created:** `engine/exceptions.py` (300+ lines)
+- **File updated:** `engine/__init__.py` (exports all exceptions)
 - **Exceptions defined:** 20 custom exceptions across 6 categories
 - **Code changes:** None initially (additive, backward compatible)
 - **Breaking changes:** None (existing code still works)
 
 ## Links
 
-- **Implementation:** `lineage_v3/exceptions.py`
-- **Export:** `lineage_v3/__init__.py`
+- **Implementation:** `engine/exceptions.py`
+- **Export:** `engine/__init__.py`
 - **Related Commit:** e9757f2 (Sprint 4 - Cleanup & Exception Hierarchy)
 - **Related ADR:** ADR 002 (YAML Rules Deletion) - shows use of `RuleEngineError` hierarchy
 

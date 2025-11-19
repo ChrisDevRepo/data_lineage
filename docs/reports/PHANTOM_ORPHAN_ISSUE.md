@@ -151,8 +151,8 @@ SELECT COUNT(*) FROM phantom_references;
 **Test phantom tracking:**
 
 ```python
-from lineage_v3.parsers.quality_aware_parser import QualityAwareParser
-from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
+from engine.parsers.quality_aware_parser import QualityAwareParser
+from engine.core.duckdb_workspace import DuckDBWorkspace
 
 workspace = DuckDBWorkspace('data/lineage_workspace.duckdb')
 parser = QualityAwareParser(workspace=workspace)

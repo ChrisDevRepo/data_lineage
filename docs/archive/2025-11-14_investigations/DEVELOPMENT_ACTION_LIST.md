@@ -68,7 +68,7 @@ PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
 - ✅ docs/DEVELOPMENT_ACTION_LIST.md (this file)
 
 ### 5. Bare Exception Blocks 🐛 ✅ COMPLETED
-**Files:** `lineage_v3/main.py`, `lineage_v3/core/duckdb_workspace.py`
+**Files:** `engine/main.py`, `engine/core/duckdb_workspace.py`
 **Issue:** Catches KeyboardInterrupt, SystemExit
 **Status:** ✅ ALREADY FIXED - No bare except: blocks found in codebase
 **Verified:** 2025-11-14 (grep search found 0 matches)
@@ -165,7 +165,7 @@ def parse_object(self, object_id: int) -> ParseResult:
 ```
 
 ### 13. Create Custom Exception Hierarchy 🎯 ✅ COMPLETED
-**File:** `lineage_v3/exceptions.py` (10,782 bytes)
+**File:** `engine/exceptions.py` (10,782 bytes)
 **Status:** ✅ IMPLEMENTED - Complete hierarchy with ADR documentation
 **Completed:** Before 2025-11-14
 **Implementation:**
@@ -180,7 +180,7 @@ def parse_object(self, object_id: int) -> ParseResult:
 **Status:** ✅ COMPLETED - YAML rules deleted, Python rules documented
 **Completed:** Before 2025-11-14
 **Implementation:**
-- lineage_v3/rules/ directory deleted
+- engine/rules/ directory deleted
 - docs/RULE_DEVELOPMENT.md deleted
 - Decision documented in docs/adr/002-yaml-rules-deletion.md
 - Python rules fully documented in docs/PYTHON_RULES.md (20,796 bytes)
@@ -238,11 +238,11 @@ tests/fixtures/
 
 ### 20. Remove Duplicate synapse_query_helper.py 🗑️ ✅ NO ACTION NEEDED
 **Status:** ✅ NO DUPLICATES FOUND - Only 1 file exists
-**File:** `lineage_v3/utils/synapse_query_helper.py`
+**File:** `engine/utils/synapse_query_helper.py`
 **Verified:** 2025-11-14 (find command found only 1 match)
 
 ### 21. Convert print() to logger in synapse_dmv_extractor.py 📊
-**File:** `lineage_v3/extractor/synapse_dmv_extractor.py`
+**File:** `engine/extractor/synapse_dmv_extractor.py`
 **Issue:** 30+ print statements instead of logger
 **Fix Time:** 30 minutes
 **Fix:**
@@ -342,7 +342,7 @@ tests/performance/test_graph_rendering.py
 ```
 
 ### 31. Add YAML Schema Validation 📋
-**File:** `lineage_v3/rules/schema.json`
+**File:** `engine/rules/schema.json`
 **Purpose:** Editor autocompletion for YAML rules
 **Fix Time:** 1 hour
 
@@ -355,7 +355,7 @@ tests/performance/test_graph_rendering.py
 **Fix Time:** 30 minutes
 **Command:**
 ```bash
-pytest --cov=lineage_v3 --cov=api --cov-report=html --cov-report=term
+pytest --cov=engine --cov=api --cov-report=html --cov-report=term
 ```
 
 ### 34. Create Parser Interfaces (IParser, IFormatter) 🎯

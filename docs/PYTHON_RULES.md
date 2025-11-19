@@ -2,7 +2,7 @@
 
 **Version:** v4.3.3
 **Status:** ✅ Production (17 rules)
-**Location:** `lineage_v3/parsers/sql_cleaning_rules.py`
+**Location:** `engine/parsers/sql_cleaning_rules.py`
 
 ---
 
@@ -12,7 +12,7 @@
 >
 > **NOT YAML:** The YAML rule system documented in [RULE_DEVELOPMENT.md](RULE_DEVELOPMENT.md) is implemented but NOT integrated with the parser.
 >
-> **To modify rules:** Edit `lineage_v3/parsers/sql_cleaning_rules.py` directly.
+> **To modify rules:** Edit `engine/parsers/sql_cleaning_rules.py` directly.
 
 ## 🚨 MANDATORY: Check Journal Before Making Changes
 
@@ -540,7 +540,7 @@ SELECT 2
 ### Apply All Rules
 
 ```python
-from lineage_v3.parsers.sql_cleaning_rules import RuleEngine
+from engine.parsers.sql_cleaning_rules import RuleEngine
 
 # Create engine with default rules
 engine = RuleEngine()
@@ -595,7 +595,7 @@ engine.enable_rule("RemoveEXEC")
 ### Get Rules by Category
 
 ```python
-from lineage_v3.parsers.sql_cleaning_rules import RuleCategory
+from engine.parsers.sql_cleaning_rules import RuleCategory
 
 engine = RuleEngine()
 var_rules = engine.get_rules_by_category(RuleCategory.VARIABLE_DECLARATION)
@@ -672,7 +672,7 @@ def _load_default_rules() -> List[CleaningRule]:
 ### Step 3: Test Your Rule
 
 ```python
-from lineage_v3.parsers.sql_cleaning_rules import RuleEngine
+from engine.parsers.sql_cleaning_rules import RuleEngine
 
 engine = RuleEngine()
 engine.test_all_rules()  # Should pass for your new rule

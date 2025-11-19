@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copy application code
 COPY api /app/api
-COPY lineage_v3 /app/lineage_v3
+COPY engine /app/engine
 
 # Copy frontend build (must be built before Docker build)
 COPY frontend/dist /app/static

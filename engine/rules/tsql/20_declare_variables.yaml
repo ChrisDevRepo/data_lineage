@@ -1,0 +1,104 @@
+# ==============================================================================
+# T-SQL Rule: Remove DECLARE Variable Statements (MULTI-STEP)
+# ==============================================================================
+# DECLARE is T-SQL specific for variable declarations.
+# SQLGlot has limited support, especially for complex declarations.
+#
+# This is a MULTI-STEP rule demonstrating how to handle complex logic in YAML
+# without Python coding. Each step runs sequentially.
+#
+# Note: No Python required - power users can create complex rules!
+# ==============================================================================
+
+name: remove_declare
+description: |
+  Remove DECLARE variable declarations (multi-step approach).
+  Step 1: Remove DECLARE with semicolon or double newline
+  Step 2: Remove comma-separated multi-line DECLARE statements
+
+dialect: tsql
+category: variable_decl
+enabled: true
+priority: 20
+
+# -----------------------------------------------------------------------------
+# Pattern Configuration (MULTI-STEP)
+# -----------------------------------------------------------------------------
+pattern_type: regex
+
+# Multiple patterns run sequentially
+pattern:
+  # Step 1: Match DECLARE until semicolon or double newline
+  - 'DECLARE\s+@\w+[^;]*?(?:;|\n\s*\n)'
+
+  # Step 2: Match comma-separated DECLARE (single or multi-line)
+  - 'DECLARE\s+@\w+[^\n]*(?:\n\s*,@\w+[^\n]*)*'
+
+# Corresponding replacements for each step
+replacement:
+  - ''  # Step 1: remove completely
+  - ''  # Step 2: remove completely
+
+# -----------------------------------------------------------------------------
+# Test Cases
+# -----------------------------------------------------------------------------
+test_cases:
+  - name: simple_declare
+    description: "Remove simple DECLARE with semicolon"
+    input: |
+      DECLARE @var VARCHAR(100);
+      SELECT * FROM table1
+    expected: |
+
+      SELECT * FROM table1
+
+  - name: multi_line_declare
+    description: "Remove DECLARE with subquery"
+    input: |
+      DECLARE @count INT = (
+        SELECT COUNT(*)
+        FROM table1
+      );
+
+      INSERT INTO table2 SELECT * FROM table1
+    expected: |
+
+      INSERT INTO table2 SELECT * FROM table1
+
+  - name: comma_separated
+    description: "Remove comma-separated DECLARE"
+    input: |
+      DECLARE @var1 INT,
+              @var2 VARCHAR(50),
+              @var3 DATETIME
+
+      SELECT * FROM table1
+    expected: |
+
+      SELECT * FROM table1
+
+# -----------------------------------------------------------------------------
+# Debug Configuration
+# -----------------------------------------------------------------------------
+debug:
+  log_matches: true
+  log_replacements: true
+  show_context_lines: 2
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  rule_type: "multi-step"
+  tested_with: "349 stored procedures"
+  affects_lineage: false
+  impact: |
+    Handles complex DECLARE patterns that single regex can't match.
+    Demonstrates how YAML rules can handle complex logic without Python!
+
+  example_for_other_dialects: |
+    Snowflake users: Copy this pattern for LANGUAGE JAVASCRIPT removal
+    Oracle users: Copy for PRAGMA AUTONOMOUS_TRANSACTION
+    BigQuery users: Copy for OPTIONS clause removal

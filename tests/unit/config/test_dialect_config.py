@@ -5,7 +5,7 @@ Tests dialect validation, metadata retrieval, and enum functionality.
 """
 
 import pytest
-from lineage_v3.config.dialect_config import (
+from engine.config.dialect_config import (
     SQLDialect,
     DialectMetadata,
     get_dialect_metadata,

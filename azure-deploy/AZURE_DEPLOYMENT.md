@@ -249,7 +249,7 @@ docker build -t datalineage:latest -f azure-deploy/docker/Dockerfile .
 **What happens:**
 - ✅ Uses Python 3.12-slim base image
 - ✅ Installs Python dependencies
-- ✅ Copies backend code (`api/`, `lineage_v3/`)
+- ✅ Copies backend code (`api/`, `engine/`)
 - ✅ Copies built frontend (`frontend/dist` → `/app/static`)
 - ✅ Sets up data directory
 

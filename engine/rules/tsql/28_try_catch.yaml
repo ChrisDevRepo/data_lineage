@@ -1,0 +1,89 @@
+# ==============================================================================
+# T-SQL Rule: Extract TRY Content, Remove CATCH Blocks (MULTI-STEP)
+# ==============================================================================
+# TRY/CATCH is T-SQL error handling. SQLGlot doesn't support it.
+# Strategy: Keep the TRY content (business logic), remove CATCH blocks.
+#
+# Multi-step approach:
+# Step 1: Remove all CATCH blocks
+# Step 2: Extract content from TRY blocks (remove BEGIN TRY / END TRY wrapper)
+# ==============================================================================
+
+name: extract_try_content
+description: |
+  Extract content from BEGIN TRY...END TRY blocks, remove CATCH blocks.
+
+  TRY/CATCH is T-SQL error handling that SQLGlot doesn't support.
+  We keep the TRY content (business logic) and remove error handling.
+
+dialect: tsql
+category: error_handling
+enabled: true
+priority: 28  # Before raiserror removal
+
+# -----------------------------------------------------------------------------
+# Pattern Configuration (MULTI-STEP)
+# -----------------------------------------------------------------------------
+pattern_type: regex
+
+# Multiple patterns run sequentially
+pattern:
+  # Step 1: Remove all CATCH blocks first
+  - 'BEGIN\s+CATCH\s+.*?\s+END\s+CATCH'
+
+  # Step 2: Extract TRY content (remove BEGIN TRY / END TRY wrapper)
+  - 'BEGIN\s+TRY\s+(.*?)\s+END\s+TRY'
+
+# Corresponding replacements for each step
+replacement:
+  - ''       # Step 1: remove CATCH blocks entirely
+  - '\1'     # Step 2: replace with just the TRY content (capture group 1)
+
+# -----------------------------------------------------------------------------
+# Test Cases
+# -----------------------------------------------------------------------------
+test_cases:
+  - name: simple_try_catch
+    description: "Extract INSERT from TRY, remove CATCH"
+    input: |
+      BEGIN TRY
+          INSERT INTO Table1 SELECT * FROM Table2
+      END TRY
+      BEGIN CATCH
+          RAISERROR('Error', 16, 1)
+      END CATCH
+    expected: |
+
+          INSERT INTO Table1 SELECT * FROM Table2
+
+  - name: try_only
+    description: "Extract content from TRY without CATCH"
+    input: |
+      BEGIN TRY
+      SELECT 1
+      END TRY
+    expected: |
+
+      SELECT 1
+
+# -----------------------------------------------------------------------------
+# Debug Configuration
+# -----------------------------------------------------------------------------
+debug:
+  log_matches: true
+  log_replacements: true
+  show_context_lines: 3
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  migrated_from: "sql_cleaning_rules.py::extract_try_content"
+  rule_type: "multi-step"
+  tested_with: "349 stored procedures"
+  affects_lineage: false
+  impact: |
+    Keeps business logic from TRY blocks, removes error handling code.
+    Makes SQL parseable by removing T-SQL specific error handling syntax.

@@ -378,14 +378,14 @@ Cleaning logic is working as designed:
 ## File References
 
 **Implementation:**
-- `lineage_v3/parsers/quality_aware_parser.py`
+- `engine/parsers/quality_aware_parser.py`
   - `_regex_scan()` (lines 864-1045)
   - `_sqlglot_parse()` (lines 743-821)
   - `_post_process_dependencies()` (lines 558-646)
   - `_validate_against_catalog()` (lines 647-685)
 
 **Utilities:**
-- `lineage_v3/utils/confidence_calculator.py`
+- `engine/utils/confidence_calculator.py`
 
 **Testing:**
 - `scripts/testing/check_parsing_results.py`

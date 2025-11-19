@@ -4,6 +4,7 @@ import { Button } from './ui/Button';
 type InfoModalProps = {
     isOpen: boolean;
     onClose: () => void;
+    onOpenDeveloperPanel?: () => void;
 };
 
 // Simple icon components with subtle styling
@@ -37,6 +38,11 @@ const ImportExportIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-600"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" /></svg>
     </div>
 );
+const DeveloperIcon = () => (
+    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-600"><path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75 22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3-4.5 16.5" /></svg>
+    </div>
+);
 
 const Feature = ({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) => (
     <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-gray-50 transition-colors">
@@ -48,7 +54,7 @@ const Feature = ({ icon, title, children }: { icon: React.ReactNode, title: stri
     </div>
 );
 
-export const InfoModal = ({ isOpen, onClose }: InfoModalProps) => {
+export const InfoModal = ({ isOpen, onClose, onOpenDeveloperPanel }: InfoModalProps) => {
     if (!isOpen) return null;
 
     return (
@@ -109,6 +115,42 @@ export const InfoModal = ({ isOpen, onClose }: InfoModalProps) => {
                             <Feature icon={<ImportExportIcon />} title="Import & Export">
                                 Load your own lineage data from JSON files or Parquet snapshots. Export your current view as SVG for presentations and documentation. All data stays local in your browser.
                             </Feature>
+
+                            <div className="pt-4 mt-4 border-t border-gray-200">
+                                <div className="flex items-start gap-4 p-4 rounded-lg bg-gray-50">
+                                    <div className="flex-shrink-0"><DeveloperIcon /></div>
+                                    <div className="flex-1">
+                                        <h3 className="text-base font-semibold text-gray-800 mb-2">For Developers</h3>
+                                        <div className="text-sm text-gray-600 leading-relaxed space-y-2">
+                                            <p>
+                                                <strong>Parsing Process:</strong> The application extracts data lineage from stored procedures using a two-phase approach. First, <strong>regex patterns</strong> provide a guaranteed baseline by scanning DDL for table references. Then, <strong>SQLGlot</strong> (a SQL abstract syntax tree parser) enhances coverage by parsing DML statements when possible.
+                                            </p>
+                                            <p>
+                                                <strong>YAML Rule Engine:</strong> Database-specific syntax that prevents SQLGlot parsing is preprocessed using <strong>YAML-based cleaning rules</strong>. These declarative rules remove dialect-specific constructs (like T-SQL's GO statements or Snowflake's LANGUAGE JAVASCRIPT) while preserving the core lineage information. Power users can extend support to new databases by creating custom YAML rules without writing Python code.
+                                            </p>
+                                            {onOpenDeveloperPanel && (
+                                                <div className="mt-3 pt-3 border-t border-gray-300">
+                                                    <button
+                                                        onClick={() => {
+                                                            onOpenDeveloperPanel();
+                                                            onClose();
+                                                        }}
+                                                        className="inline-flex items-center gap-2 px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-800 transition-colors text-sm font-medium"
+                                                    >
+                                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
+                                                        </svg>
+                                                        <span>Open Developer Panel</span>
+                                                    </button>
+                                                    <p className="mt-2 text-xs text-gray-500">
+                                                        View debug logs, browse YAML rules, and reset rules to defaults
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </main>
 

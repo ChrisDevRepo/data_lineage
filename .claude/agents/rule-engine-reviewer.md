@@ -21,7 +21,7 @@ Prevent repeating past mistakes when modifying SQL cleaning rules.
    ```
 
 2. **Review proposed changes**
-   - Read the modified `lineage_v3/parsers/sql_cleaning_rules.py`
+   - Read the modified `engine/parsers/sql_cleaning_rules.py`
    - Identify what patterns are being added/changed/removed
 
 3. **Check against journal**

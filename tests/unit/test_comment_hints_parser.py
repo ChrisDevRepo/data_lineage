@@ -9,7 +9,7 @@ Date: 2025-11-06
 """
 
 import pytest
-from lineage_v3.parsers.comment_hints_parser import CommentHintsParser
+from engine.parsers.comment_hints_parser import CommentHintsParser
 
 
 class TestCommentHintsParser:

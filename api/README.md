@@ -22,7 +22,7 @@ python3 main.py
 
 ## Architecture
 
-FastAPI backend that wraps the `lineage_v3` Python parser for web-based lineage analysis.
+FastAPI backend that wraps the `engine` Python parser for web-based lineage analysis.
 
 **Key Principle:** Existing Python code runs **unchanged** - this is just a web API wrapper.
 
@@ -38,7 +38,7 @@ FastAPI Main Thread
        ↓
 Background Thread (LineageProcessor)
   ├── Load Parquet → DuckDB
-  ├── Parse with lineage_v3 modules
+  ├── Parse with engine modules
   ├── Update status.json every few seconds
   └── Save result.json when complete
        ↓
@@ -73,9 +73,9 @@ curl -X POST "http://localhost:8000/api/upload-parquet?incremental=false" -F "fi
 
 **Implementation:**
 ```python
-from lineage_v3.core import DuckDBWorkspace
-from lineage_v3.parsers import QualityAwareParser, AIDisambiguator
-from lineage_v3.output import InternalFormatter, FrontendFormatter
+from engine.core import DuckDBWorkspace
+from engine.parsers import QualityAwareParser, AIDisambiguator
+from engine.output import InternalFormatter, FrontendFormatter
 
 # Run existing pipeline unchanged
 with DuckDBWorkspace(workspace_path=workspace_file) as db:

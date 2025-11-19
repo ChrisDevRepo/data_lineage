@@ -1,0 +1,64 @@
+# ==============================================================================
+# T-SQL Rule: Remove DROP TABLE Statements
+# ==============================================================================
+# DROP TABLE is DDL cleanup, doesn't show data flow.
+# Often used before CREATE TABLE in ETL procs.
+# ==============================================================================
+
+name: remove_drop_table
+description: |
+  Remove DROP TABLE statements and IF EXISTS checks.
+  DDL operations don't contribute to lineage analysis.
+
+dialect: tsql
+category: table_mgmt
+enabled: true
+priority: 60
+
+# -----------------------------------------------------------------------------
+# Pattern Configuration
+# -----------------------------------------------------------------------------
+pattern_type: regex
+pattern: 'DROP\s+TABLE\s+(?:IF\s+EXISTS\s+)?[\w.\[\]]+(?:\s*;\s*)?'
+replacement: ''
+
+# -----------------------------------------------------------------------------
+# Test Cases
+# -----------------------------------------------------------------------------
+test_cases:
+  - name: simple_drop
+    description: "Remove DROP TABLE"
+    input: "DROP TABLE #temp"
+    expected: ""
+
+  - name: drop_if_exists
+    description: "Remove DROP TABLE IF EXISTS"
+    input: "DROP TABLE IF EXISTS dbo.staging_table"
+    expected: ""
+
+  - name: preserve_create_after_drop
+    description: "Keep CREATE TABLE after DROP"
+    input: |
+      DROP TABLE IF EXISTS #temp
+      CREATE TABLE #temp (id INT)
+    expected: |
+
+      CREATE TABLE #temp (id INT)
+
+# -----------------------------------------------------------------------------
+# Debug Configuration
+# -----------------------------------------------------------------------------
+debug:
+  log_matches: true
+  log_replacements: false
+  show_context_lines: 1
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  created: "2025-11-06"
+  tested_with: "349 stored procedures"
+  affects_lineage: false
+  impact: "DDL cleanup doesn't affect data flow"

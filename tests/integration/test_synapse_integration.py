@@ -13,8 +13,8 @@ import pytest
 import pandas as pd
 import glob
 from pathlib import Path
-from lineage_v3.config.dialect_config import SQLDialect
-from lineage_v3.dialects import get_dialect
+from engine.config.dialect_config import SQLDialect
+from engine.dialects import get_dialect
 
 
 class TestSynapseIntegration:

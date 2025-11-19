@@ -55,7 +55,7 @@ Parser v4.3.3 includes **two major improvements**:
 
 **Problem:** Phantom functions bypassed include list
 
-**File:** `lineage_v3/parsers/quality_aware_parser.py:445`
+**File:** `engine/parsers/quality_aware_parser.py:445`
 
 **Before:**
 ```python
@@ -147,7 +147,7 @@ PARSER_CONFIDENCE_MEDIUM=0.75
 
 ### 3. YAML Rule System ✅
 ```
-lineage_v3/rules/
+engine/rules/
 ├── generic/          # All databases
 │   └── 01_whitespace.yaml
 └── tsql/             # SQL Server specific
@@ -165,7 +165,7 @@ lineage_v3/rules/
 
 ### Modified Files
 
-**1. lineage_v3/parsers/quality_aware_parser.py**
+**1. engine/parsers/quality_aware_parser.py**
 
 **Line 225-236:** Simplified ENHANCED_REMOVAL_PATTERNS
 ```python

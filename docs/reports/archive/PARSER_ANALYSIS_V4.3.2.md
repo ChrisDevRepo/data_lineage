@@ -108,7 +108,7 @@
 
 #### Change 1: Empty Command Node Check
 
-**File:** `lineage_v3/parsers/quality_aware_parser.py:752-762`
+**File:** `engine/parsers/quality_aware_parser.py:752-762`
 
 ```python
 parsed = parse_one(stmt, dialect='tsql', error_level=ErrorLevel.RAISE)
@@ -127,7 +127,7 @@ else:
 
 #### Change 2: Performance Tracking
 
-**File:** `lineage_v3/parsers/quality_aware_parser.py:344-346, 508-515, 553-556`
+**File:** `engine/parsers/quality_aware_parser.py:344-346, 508-515, 553-556`
 
 ```python
 parse_start = time.time()
@@ -141,7 +141,7 @@ if parse_time > 1.0:
 
 #### Change 3: SELECT Simplification
 
-**File:** `lineage_v3/parsers/quality_aware_parser.py:1083-1128`
+**File:** `engine/parsers/quality_aware_parser.py:1083-1128`
 
 ```python
 def _simplify_select_clauses(self, sql: str) -> str:
@@ -162,7 +162,7 @@ def _simplify_select_clauses(self, sql: str) -> str:
 
 #### Change 4: SQLGlot Statistics
 
-**File:** `lineage_v3/parsers/quality_aware_parser.py:747-790`
+**File:** `engine/parsers/quality_aware_parser.py:747-790`
 
 ```python
 sqlglot_total_stmts = 0

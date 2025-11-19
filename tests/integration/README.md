@@ -311,10 +311,10 @@ pytest tests/integration/test_database_validation.py::TestOverallStatistics::tes
 
 ```bash
 # Coverage for parser code
-pytest tests/integration/ -v --cov=lineage_v3/parsers --cov-report=term
+pytest tests/integration/ -v --cov=engine/parsers --cov-report=term
 
 # HTML coverage report
-pytest tests/integration/ -v --cov=lineage_v3/parsers --cov-report=html
+pytest tests/integration/ -v --cov=engine/parsers --cov-report=html
 open htmlcov/index.html
 ```
 
@@ -438,7 +438,7 @@ Reason: Workspace database not found
 1. This is **expected** in CI without real data
 2. To run locally, first parse real data:
    ```bash
-   python -m lineage_v3.cli parse --input data/
+   python -m engine.cli parse --input data/
    pytest tests/integration/ -v
    ```
 

@@ -5,9 +5,9 @@ Provides detailed breakdown of parsing success, SQLGlot performance, and externa
 """
 
 import glob
-from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
-from lineage_v3.parsers.quality_aware_parser import QualityAwareParser
-from lineage_v3.config.settings import Settings
+from engine.core.duckdb_workspace import DuckDBWorkspace
+from engine.parsers.quality_aware_parser import QualityAwareParser
+from engine.config.settings import Settings
 
 def main():
     settings = Settings()

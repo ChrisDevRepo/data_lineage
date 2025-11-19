@@ -1,0 +1,60 @@
+# ==============================================================================
+# T-SQL Rule: Cleanup Excessive Whitespace
+# ==============================================================================
+# After removing T-SQL constructs, we may have multiple blank lines.
+# Clean these up for readability and parser efficiency.
+# ==============================================================================
+
+name: cleanup_whitespace
+description: |
+  Remove excessive blank lines.
+
+  After removing T-SQL constructs, multiple consecutive blank lines remain.
+  Collapse them to single blank lines for cleaner output.
+
+dialect: generic
+category: comment
+enabled: true
+priority: 99  # Run last
+
+# -----------------------------------------------------------------------------
+# Pattern Configuration
+# -----------------------------------------------------------------------------
+pattern_type: regex
+pattern: '\n\s*\n\s*\n+'
+replacement: '\n\n'
+
+# -----------------------------------------------------------------------------
+# Test Cases
+# -----------------------------------------------------------------------------
+test_cases:
+  - name: multiple_blank_lines
+    description: "Collapse 4 blank lines to 1"
+    input: "SELECT 1\n\n\n\nSELECT 2"
+    expected: "SELECT 1\n\nSELECT 2"
+
+  - name: triple_blank
+    description: "Collapse 3 blank lines to 1"
+    input: "INSERT INTO T1 VALUES (1)\n\n\nUPDATE T2 SET X = 1"
+    expected: "INSERT INTO T1 VALUES (1)\n\nUPDATE T2 SET X = 1"
+
+# -----------------------------------------------------------------------------
+# Debug Configuration
+# -----------------------------------------------------------------------------
+debug:
+  log_matches: false  # Too noisy
+  log_replacements: false
+  show_context_lines: 0
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  migrated_from: "sql_cleaning_rules.py::cleanup_whitespace"
+  tested_with: "349 stored procedures"
+  affects_lineage: false
+  impact: |
+    Cosmetic cleanup - makes cleaned SQL more readable.
+    Reduces whitespace noise for parser.

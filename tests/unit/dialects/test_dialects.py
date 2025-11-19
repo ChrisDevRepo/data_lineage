@@ -13,8 +13,8 @@ Date: 2025-11-11
 """
 
 import pytest
-from lineage_v3.config.dialect_config import SQLDialect
-from lineage_v3.dialects import (
+from engine.config.dialect_config import SQLDialect
+from engine.dialects import (
     get_dialect,
     is_dialect_implemented,
     list_implemented_dialects,

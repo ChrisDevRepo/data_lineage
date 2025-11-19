@@ -57,14 +57,14 @@
 ```
 ## SQL Cleaning Rules (Python-based)
 
-**Active System:** 17 Python rules in `lineage_v3/parsers/sql_cleaning_rules.py`
+**Active System:** 17 Python rules in `engine/parsers/sql_cleaning_rules.py`
 
 ### 🚨 MANDATORY Process for Rule Engine Changes
 
 **⚠️ CRITICAL: Always check journal before making changes!**
 1. Check docs/PARSER_CHANGE_JOURNAL.md (MANDATORY)
 2. Document baseline: `python3 scripts/testing/check_parsing_results.py > baseline_before.txt`
-3. Make rule changes in lineage_v3/parsers/sql_cleaning_rules.py
+3. Make rule changes in engine/parsers/sql_cleaning_rules.py
 4. Run tests: `pytest tests/unit/test_parser_golden_cases.py -v`
 5. Compare: `diff baseline_before.txt baseline_after.txt`
 

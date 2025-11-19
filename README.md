@@ -90,9 +90,9 @@ curl -X POST "http://localhost:8000/api/upload-parquet?incremental=true" \
 
 ## Tech Stack
 
-**Frontend:** React 19 + TypeScript + React Flow + Monaco Editor + Tailwind (v2.9.1 - Performance Optimized)
-**Backend:** FastAPI + DuckDB + SQLGlot + Regex + Rule Engine (v4.0.0)
-**Parser:** Dataflow-focused mode showing DML only (v4.1.3 - No Circular Dependencies)
+**Frontend:** React 19 + TypeScript + React Flow + Monaco Editor + Tailwind (v0.9.0)
+**Backend:** FastAPI + DuckDB + SQLGlot + Regex + YAML Rule Engine (v0.9.0)
+**Parser:** v4.3.3 - 100% success rate (349/349 SPs) + YAML rules + Developer Mode
 
 **Architecture:**
 ```
@@ -111,7 +111,7 @@ Synapse DMVs → PySpark Extractor → Parquet Files
 sandbox/
 ├── api/                        # FastAPI backend
 ├── frontend/                   # React visualization
-├── lineage_v3/                 # Core parser
+├── engine/                 # Core parser
 │   └── config/                 # Configuration (Pydantic settings)
 ├── requirements/               # Modular dependencies (NEW)
 │   ├── base.txt               # Shared dependencies
@@ -138,28 +138,28 @@ sandbox/
 
 ## Performance
 
-**Parser (v4.1.3):**
-- **97.0% SP confidence** (196/202 at high confidence)
-- **95.5% overall** (729/763 objects at high confidence)
-- **Zero circular dependencies** (IF EXISTS filtering)
-- **99.3% coverage** (758/763 objects parsed)
-- Dataflow mode with global target exclusion
+**Parser (v4.3.3):**
+- ✅ **100% success rate** (349/349 stored procedures)
+- ✅ **82.5% perfect** (288 SPs at confidence 100)
+- ✅ **7.4% good** (26 SPs at confidence 85)
+- ✅ **10.0% acceptable** (35 SPs at confidence 75)
+- ✅ **Zero parse failures** (YAML-based SQL cleaning)
+- Regex-first baseline + SQLGlot enhancement strategy
 
-**Frontend (v2.9.1 - Performance Optimized):**
+**Frontend (v0.9.0):**
 - ✅ **5,000+ nodes** supported smoothly
-- ✅ **100x faster** schema toggling (freezing eliminated)
+- ✅ **Developer Mode** (logs viewer + YAML rules browser)
 - ✅ Debounced filters (150ms) for large datasets
-- ✅ Layout caching (95%+ hit rate)
+- ✅ Interactive trace mode with BFS graph traversal
 - ✅ Smooth 60fps pan/zoom
-- See [frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md](frontend/docs/PERFORMANCE_OPTIMIZATIONS_V2.9.1.md)
 
-**Confidence Model:**
-| Source | Confidence | Applied To |
-|--------|-----------|------------|
-| DMV | 1.0 | Views, Functions |
-| Query Log | 0.95 | Validated SPs |
-| SQLGlot Parser | 0.85 | Successfully parsed SPs |
-| Regex Fallback | 0.50 | Failed parses |
+**Confidence Model v2.1.0 (Simplified):**
+| Completeness | Confidence | Description |
+|-------------|-----------|-------------|
+| ≥ 90% | 100 | Perfect - All expected tables found |
+| ≥ 70% | 85 | Good - Most tables found |
+| ≥ 50% | 75 | Acceptable - Partial coverage |
+| < 50% | 0 | Poor - Needs hints or investigation |
 
 ---
 
@@ -232,6 +232,14 @@ See [ENV_SETUP.md](docs/archive/ENV_SETUP.md) for details.
 **Known Issues:** See [BUGS.md](BUGS.md) for tracked bugs and feature requests
 **Developer Guide:** See [CLAUDE.md](CLAUDE.md) for setup, workflows, and troubleshooting
 **GitHub Issues:** Use GitHub issue tracker for new bugs or questions
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2025 Christian Wagner
 
 ---
 

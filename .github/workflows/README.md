@@ -114,9 +114,9 @@ When parser files modified, shows:
 - Push to `claude/**` branches with parser changes
 
 **Monitored Files:**
-- `lineage_v3/parsers/quality_aware_parser.py`
-- `lineage_v3/parsers/sql_cleaning_rules.py`
-- `lineage_v3/rules/**/*.yaml`
+- `engine/parsers/quality_aware_parser.py`
+- `engine/parsers/sql_cleaning_rules.py`
+- `engine/rules/**/*.yaml`
 - `tests/unit/test_parser_golden_cases.py`
 
 **Jobs:**
@@ -282,7 +282,7 @@ pytest tests/integration/ -v
 pytest tests/integration/test_database_validation.py -v
 
 # With coverage
-pytest tests/ -v --cov=lineage_v3 --cov=api --cov-report=term
+pytest tests/ -v --cov=engine --cov=api --cov-report=term
 ```
 
 ### Run Parser Validation Steps Locally
