@@ -364,6 +364,12 @@ See `tests/integration/README.md` for complete test documentation.
 
 ## Documentation
 
+**📖 NEW: GitHub-Optimized Documentation (v0.10.0)**
+- **README.md** - Scannable landing page with badges, Mermaid diagrams, tables (GitHub optimized)
+- **QUICKSTART.md** - 5-10 min setup guide for power users & DBAs
+- **docs/ARCHITECTURE.md** - Complete system architecture, data flow, parser details
+- **docs/GITHUB_DOCUMENTATION_GUIDE.md** - Maintenance guide for documentation
+
 **🚨 CRITICAL FILES - PROTECTED (DO NOT DELETE):**
 - **docs/PARSER_DEVELOPMENT_PROCESS.md** ⭐ - Main workflow guide (Parse → Test → Fix → Document)
 - **docs/PARSER_CRITICAL_REFERENCE.md** ⭐ - Critical warnings, read BEFORE parser changes
@@ -374,6 +380,7 @@ See `tests/integration/README.md` for complete test documentation.
 
 **Other Essential References:**
 - docs/PARSER_V4.3.3_SUMMARY.md - Complete v4.3.3 summary
+- docs/DATABASE_CONNECTOR_SPECIFICATION.md - DBA guide for direct database connection
 - INVESTIGATION_COMPLETE.md - Latest investigation findings
 - REPARSE_ITERATION_SUMMARY.md - Recent iteration results
 
@@ -383,7 +390,7 @@ See `tests/integration/README.md` for complete test documentation.
 - tests/fixtures/user_verified_cases/README.md - User-verified test cases
 
 **Quick Access:**
-- Setup: docs/SETUP.md | Usage: docs/USAGE.md | API: docs/REFERENCE.md
+- Setup: docs/SETUP.md | Usage: docs/USAGE.md | Architecture: docs/ARCHITECTURE.md
 - Configuration: docs/reports/CONFIGURATION_VERIFICATION_REPORT.md
 
 ## Phantom Objects (v4.3.3)
@@ -467,13 +474,15 @@ See .claude/agents/README.md for complete table, tools, and example workflows.
 **Version:** v0.10.0 ✅ Direct database connection + Parser 100% success rate (349/349 SPs)
 
 **Quick Links:**
+- **NEW:** Quick Start: [QUICKSTART.md](QUICKSTART.md) (5-10 min setup for power users & DBAs)
+- **NEW:** Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (complete system documentation)
+- **NEW:** GitHub Guide: [docs/GITHUB_DOCUMENTATION_GUIDE.md](docs/GITHUB_DOCUMENTATION_GUIDE.md)
 - License: [LICENSE](LICENSE) (MIT)
-- Database Connector Specification: [docs/DATABASE_CONNECTOR_SPECIFICATION.md](docs/DATABASE_CONNECTOR_SPECIFICATION.md)
-- YAML Rules Guide: [engine/rules/README.md](engine/rules/README.md)
-- Complete Summary: [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md)
+- Database Connector: [docs/DATABASE_CONNECTOR_SPECIFICATION.md](docs/DATABASE_CONNECTOR_SPECIFICATION.md)
+- YAML Rules: [engine/rules/README.md](engine/rules/README.md)
+- Parser Summary: [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md)
 - Critical Reference: [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md)
 - Technical Guide: [docs/PARSER_TECHNICAL_GUIDE.md](docs/PARSER_TECHNICAL_GUIDE.md)
 - CI/CD Workflows: [.github/workflows/README.md](.github/workflows/README.md)
 - Integration Tests: [tests/integration/README.md](tests/integration/README.md)
-- Configuration Verification: [docs/reports/CONFIGURATION_VERIFICATION_REPORT.md](docs/reports/CONFIGURATION_VERIFICATION_REPORT.md)
 - **Note:** Major development should be done in git branch and PR must be approved by user
