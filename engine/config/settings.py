@@ -86,6 +86,41 @@ class PathSettings(BaseSettings):
     )
 
 
+class DatabaseConnectorSettings(BaseSettings):
+    """
+    Database connection settings for direct metadata extraction (v0.10.0).
+
+    When enabled, allows users to refresh stored procedure metadata
+    directly from the database instead of uploading files.
+
+    Security: Connection strings should be stored in environment variables,
+    preferably using Azure Key Vault or Docker secrets in production.
+    """
+    enabled: bool = Field(
+        default=False,
+        description="Enable direct database connection for metadata refresh"
+    )
+    connection_string: str = Field(
+        default="",
+        description="Database connection string (format varies by dialect)"
+    )
+    timeout: int = Field(
+        default=30,
+        ge=5,
+        le=300,
+        description="Query timeout in seconds"
+    )
+    ssl_enabled: bool = Field(
+        default=True,
+        description="Require SSL/TLS for database connections"
+    )
+
+    model_config = SettingsConfigDict(
+        env_prefix='DB_',
+        case_sensitive=False
+    )
+
+
 class PhantomSettings(BaseSettings):
     """
     Phantom object configuration (v4.3.3 - REDESIGNED).
@@ -155,6 +190,10 @@ class Settings(BaseSettings):
     phantom: PhantomSettings = Field(
         default_factory=PhantomSettings,
         description="Phantom object configuration (v4.3.0)"
+    )
+    db: DatabaseConnectorSettings = Field(
+        default_factory=DatabaseConnectorSettings,
+        description="Database connection settings for direct metadata refresh (v0.10.0)"
     )
 
     # Top-level application settings

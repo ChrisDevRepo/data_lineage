@@ -1,0 +1,78 @@
+# ==============================================================================
+# T-SQL Database Metadata Extraction Queries
+# ==============================================================================
+# Database: SQL Server / Azure Synapse Analytics / Microsoft Fabric DWH
+# Dialect: tsql
+# Version: 1.0
+#
+# Compatibility:
+#   - ✅ SQL Server 2016+
+#   - ✅ Azure Synapse Analytics (Dedicated/Serverless SQL Pools)
+#   - ✅ Microsoft Fabric Data Warehouse
+#
+# Note: These queries only access system catalog views (sys.procedures,
+#       sys.sql_modules) and do not join with user tables, so they work
+#       in Fabric DWH despite distributed processing mode limitations.
+# ==============================================================================
+
+dialect: tsql
+version: "1.0"
+
+# Queries for extracting stored procedure metadata from system tables
+queries:
+  # List all stored procedures with metadata
+  list_stored_procedures:
+    description: "Get list of all user stored procedures with metadata"
+    sql: |
+      SELECT
+        OBJECT_SCHEMA_NAME(p.object_id) as schema_name,
+        p.name as procedure_name,
+        p.object_id as object_id,
+        p.create_date,
+        p.modify_date,
+        CAST(HASHBYTES('SHA2_256', m.definition) AS VARBINARY(32)) as definition_hash
+      FROM sys.procedures p
+      INNER JOIN sys.sql_modules m ON p.object_id = m.object_id
+      WHERE OBJECT_SCHEMA_NAME(p.object_id) NOT IN (
+        'sys', 'information_schema', 'tempdb', 'master', 'msdb', 'model'
+      )
+      ORDER BY schema_name, procedure_name
+
+    columns:
+      schema_name: STRING
+      procedure_name: STRING
+      object_id: INTEGER
+      create_date: TIMESTAMP
+      modify_date: TIMESTAMP
+      definition_hash: BINARY
+
+  # Get source code for a specific stored procedure
+  get_procedure_source:
+    description: "Get full SQL source code for a stored procedure by object_id"
+    sql: |
+      SELECT
+        OBJECT_SCHEMA_NAME(m.object_id) as schema_name,
+        p.name as procedure_name,
+        m.definition as source_code,
+        p.modify_date
+      FROM sys.sql_modules m
+      INNER JOIN sys.procedures p ON m.object_id = p.object_id
+      WHERE m.object_id = ?
+
+    parameters:
+      - name: object_id
+        type: integer
+        required: true
+
+    columns:
+      schema_name: STRING
+      procedure_name: STRING
+      source_code: TEXT
+      modify_date: TIMESTAMP
+
+# Incremental refresh support
+incremental:
+  enabled: true
+  hash_column: definition_hash
+  modified_column: modify_date
+  description: "Use definition_hash to detect changed procedures, modify_date for ordering"

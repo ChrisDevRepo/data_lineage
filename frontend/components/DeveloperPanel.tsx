@@ -42,6 +42,7 @@ export function DeveloperPanel({ isOpen, onClose, dialect }: DeveloperPanelProps
   const [ruleContent, setRuleContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   // Filtering state
   const [logFilter, setLogFilter] = useState<string>('');
   const [logLevelFilter, setLogLevelFilter] = useState<string>('ALL');
@@ -126,10 +127,8 @@ export function DeveloperPanel({ isOpen, onClose, dialect }: DeveloperPanelProps
   };
 
   // Clear backend log file
-  const clearLogs = async () => {
-    if (!confirm('Are you sure you want to clear the backend log file? This cannot be undone.')) {
-      return;
-    }
+  const confirmClearLogs = async () => {
+    setShowClearConfirm(false);
 
     try {
       setLoading(true);
@@ -190,20 +189,21 @@ export function DeveloperPanel({ isOpen, onClose, dialect }: DeveloperPanelProps
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-white shadow-2xl z-50 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-3">
-          <Terminal className="w-5 h-5 text-blue-600" />
-          <h2 className="text-lg font-semibold">Developer Panel</h2>
+    <>
+      <div className="fixed inset-0 bg-white shadow-2xl z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center gap-3">
+            <Terminal className="w-5 h-5 text-blue-600" />
+            <h2 className="text-lg font-semibold">Developer Panel</h2>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 hover:bg-gray-100 rounded"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
 
       {/* Tabs */}
       <div className="flex border-b">
@@ -261,7 +261,7 @@ export function DeveloperPanel({ isOpen, onClose, dialect }: DeveloperPanelProps
                 </span>
                 <div className="flex gap-2">
                   <button
-                    onClick={clearLogs}
+                    onClick={() => setShowClearConfirm(true)}
                     disabled={loading}
                     className="flex items-center gap-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 text-sm"
                   >
@@ -387,6 +387,50 @@ export function DeveloperPanel({ isOpen, onClose, dialect }: DeveloperPanelProps
           </div>
         )}
       </div>
-    </div>
+      </div>
+
+      {/* Confirmation Modal for Clear Logs */}
+      {showClearConfirm && (
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/50 z-[60]" onClick={() => setShowClearConfirm(false)} />
+
+          {/* Modal */}
+          <div className="fixed inset-0 z-[61] flex items-center justify-center p-4 pointer-events-none">
+            <div className="bg-white rounded-lg shadow-2xl max-w-md w-full pointer-events-auto" onClick={(e) => e.stopPropagation()}>
+              {/* Header */}
+              <div className="flex items-center gap-3 px-6 py-4 border-b">
+                <AlertCircle className="w-6 h-6 text-red-600" />
+                <h3 className="text-lg font-semibold text-gray-900">Clear Log File</h3>
+              </div>
+
+              {/* Content */}
+              <div className="px-6 py-4">
+                <p className="text-gray-700">
+                  Are you sure you want to clear the backend log file? This action cannot be undone.
+                </p>
+              </div>
+
+              {/* Footer with buttons */}
+              <div className="flex items-center justify-end gap-3 px-6 py-4 bg-gray-50 rounded-b-lg">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  autoFocus
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 font-medium focus:outline-none focus:ring-2 focus:ring-gray-400"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmClearLogs}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 font-medium focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </>
   );
 }

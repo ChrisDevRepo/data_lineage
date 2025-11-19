@@ -14,7 +14,8 @@ Visualize tables, views, and stored procedures with their dependencies. Built fo
 - **Path Tracing** - Find upstream/downstream dependencies between objects
 - **SQL Viewer** - Monaco Editor (VS Code) with syntax highlighting
 - **Smart Filtering** - Schema, type, pattern-based filtering
-- **No Database Required** - Works with pre-exported Parquet files
+- **Flexible Data Sources** - Parquet files (default) OR direct database connection (optional v0.10.0)
+- **Incremental Refresh** - Only process changed procedures for faster updates
 
 ---
 

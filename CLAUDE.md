@@ -17,12 +17,13 @@ All Python commands in this document assume the virtual environment is activated
 - Use TodoWrite tool; update immediately after completion
 - Use subagents for specialized validation tasks (see Subagents section)
 
-## Project: Data Lineage Visualizer v0.9.0
+## Project: Data Lineage Visualizer v0.10.0
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **Database:** Azure Synapse Analytics (T-SQL) - extensible to 7 data warehouses
+- **Data Sources:** Parquet files (default) OR Direct database connection (optional v0.10.0)
 - **Parser:** v4.3.3 ✅ **100% success rate** (349/349 SPs) + YAML rules + phantom fix
 - **Confidence:** 82.5% perfect (100), 7.4% good (85), 10.0% acceptable (75)
-- **Frontend:** v0.9.0 | **API:** v0.9.0 | **License:** MIT
+- **Frontend:** v0.10.0 | **API:** v0.10.0 | **License:** MIT
 ## ⚠️ BEFORE CHANGING PARSER - READ THIS
 **Critical Reference:** [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md)
 - WARN mode regression → empty lineage disaster
@@ -33,6 +34,34 @@ All Python commands in this document assume the virtual environment is activated
 **Complete Summary:** [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md)
 
 ## Recent Updates
+
+### v0.10.0 - Database Direct Connection (2025-11-19) 🔌
+- **Direct Database Metadata Refresh:**
+  - Optional feature for automated metadata extraction (disabled by default)
+  - Connect directly to SQL Server/Synapse/Fabric without Parquet file generation
+  - "Refresh from Database" button in Import modal (only shown when DB_ENABLED=true)
+  - Same processing pipeline as Parquet upload (database → Parquet → lineage)
+- **Incremental Refresh:**
+  - Hash-based change detection (SHA2_256 of procedure definitions)
+  - Only fetches and processes modified procedures
+  - Metadata cache tracks previous hashes
+  - Significant performance improvement for large databases
+- **Connector Framework:**
+  - Abstract base class + factory pattern for multi-database support
+  - YAML-based query configuration (`engine/connectors/queries/{dialect}/metadata.yaml`)
+  - T-SQL connector as reference implementation (pyodbc-based)
+  - Extensible to PostgreSQL, Snowflake, Oracle, BigQuery, etc.
+- **Security:**
+  - Azure Key Vault integration for production secrets
+  - Docker secrets support for containerized deployments
+  - SSL/TLS enforcement, connection timeout configuration
+  - Environment variables: `DB_ENABLED`, `DB_CONNECTION_STRING`, `DB_TIMEOUT`, `DB_SSL_ENABLED`
+- **Documentation:**
+  - Complete specification: [docs/DATABASE_CONNECTOR_SPECIFICATION.md](docs/DATABASE_CONNECTOR_SPECIFICATION.md)
+  - Metadata contract for DBAs
+  - Step-by-step connector implementation guide
+  - Connection string examples for 5 databases
+- **Result:** Enterprise-ready automated metadata extraction ✅
 
 ### v0.9.0 - Production-Ready Open Source Release (2025-11-19) 🚀
 - **Developer Mode:**
@@ -434,11 +463,12 @@ See .claude/agents/README.md for complete table, tools, and example workflows.
 ---
 
 **Last Updated:** 2025-11-19
-**Last Verified:** 2025-11-19 (v0.9.0)
-**Version:** v0.9.0 ✅ Production-ready open source release | Parser 100% success rate (349/349 SPs)
+**Last Verified:** 2025-11-19 (v0.10.0)
+**Version:** v0.10.0 ✅ Direct database connection + Parser 100% success rate (349/349 SPs)
 
 **Quick Links:**
 - License: [LICENSE](LICENSE) (MIT)
+- Database Connector Specification: [docs/DATABASE_CONNECTOR_SPECIFICATION.md](docs/DATABASE_CONNECTOR_SPECIFICATION.md)
 - YAML Rules Guide: [engine/rules/README.md](engine/rules/README.md)
 - Complete Summary: [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md)
 - Critical Reference: [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md)

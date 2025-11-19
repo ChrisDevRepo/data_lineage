@@ -17,7 +17,7 @@ type ValidationResult = {
     warnings: string[];
 };
 
-type UploadMode = 'json' | 'parquet';
+type UploadMode = 'json' | 'parquet' | 'database';
 
 type JobStatus = {
     job_id: string;
@@ -140,6 +140,11 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
 
     const [isClearing, setIsClearing] = useState(false);
 
+    // Database refresh state
+    const [dbEnabled, setDbEnabled] = useState(false);
+    const [dbConnectionStatus, setDbConnectionStatus] = useState<'checking' | 'success' | 'error' | 'disabled'>('disabled');
+    const [dbConnectionMessage, setDbConnectionMessage] = useState<string>('');
+
     // Incremental parsing state
     const [useIncremental, setUseIncremental] = useState(true);
     const [incrementalAvailable, setIncrementalAvailable] = useState(false);
@@ -189,6 +194,33 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
             console.error('Failed to fetch metadata:', error);
             setLastUploadDate(null);
             setIncrementalAvailable(false);
+        }
+
+        // Test database connection
+        try {
+            setDbConnectionStatus('checking');
+            const dbResponse = await fetch(`${API_BASE_URL}/api/database/test-connection`, { credentials: 'same-origin' });
+            const dbResult = await dbResponse.json();
+
+            if (dbResult.enabled) {
+                setDbEnabled(true);
+                if (dbResult.success) {
+                    setDbConnectionStatus('success');
+                    setDbConnectionMessage(dbResult.message || 'Database connection successful');
+                } else {
+                    setDbConnectionStatus('error');
+                    setDbConnectionMessage(dbResult.message || 'Database not reachable');
+                }
+            } else {
+                setDbEnabled(false);
+                setDbConnectionStatus('disabled');
+                setDbConnectionMessage('Database connection not enabled (set DB_ENABLED=true in .env)');
+            }
+        } catch (error) {
+            console.error('Failed to test database connection:', error);
+            setDbEnabled(false);
+            setDbConnectionStatus('error');
+            setDbConnectionMessage('Failed to check database connection');
         }
     };
 
@@ -302,6 +334,52 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
             });
             setIsProcessing(false);
             // Cache already cleared above - user sees empty graph on error
+        }
+    };
+
+    // Database refresh handler
+    const handleDatabaseRefresh = async () => {
+        setIsProcessing(true);
+        setJobStatus({
+            job_id: '',
+            status: 'processing',
+            progress: 0,
+            message: 'Connecting to database...'
+        });
+
+        // CRITICAL: Clear frontend cache before starting new refresh
+        onImport([]);
+
+        try {
+            // Call database refresh endpoint with incremental flag
+            const url = useIncremental
+                ? `${API_BASE_URL}/api/database/refresh?incremental=true`
+                : `${API_BASE_URL}/api/database/refresh?incremental=false`;
+
+            const refreshResponse = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin'
+            });
+
+            if (!refreshResponse.ok) {
+                const errorData = await refreshResponse.json();
+                throw new Error(errorData.detail || `Database refresh failed: ${refreshResponse.statusText}`);
+            }
+
+            const { job_id } = await refreshResponse.json();
+
+            // Start polling for status (same mechanism as Parquet upload)
+            await pollJobStatus(job_id);
+
+        } catch (error) {
+            setJobStatus({
+                job_id: '',
+                status: 'error',
+                progress: 0,
+                message: `Database refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                errors: [error instanceof Error ? error.message : 'Unknown error']
+            });
+            setIsProcessing(false);
         }
     };
 
@@ -482,6 +560,16 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                             >
                                 Upload Parquet Files
                             </Button>
+                            {dbEnabled && (
+                                <Button
+                                    variant={uploadMode === 'database' ? 'primary' : 'secondary'}
+                                    onClick={() => setUploadMode('database')}
+                                    disabled={isProcessing || dbConnectionStatus === 'error'}
+                                    title={dbConnectionStatus === 'error' ? dbConnectionMessage : 'Refresh metadata from database'}
+                                >
+                                    Refresh from Database
+                                </Button>
+                            )}
                         </div>
                     </header>
 
@@ -525,7 +613,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                             </div>
                         </div>
                     </main>
-                ) : (
+                ) : uploadMode === 'parquet' ? (
                     <main className="flex-grow p-4 overflow-y-auto">
                         <div className="max-w-2xl mx-auto space-y-4">
                             {/* Last upload info banner */}
@@ -707,6 +795,249 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                                 <div className="border border-green-200 rounded-lg p-4 bg-green-50">
                                     <div className="flex items-center justify-between">
                                         <h4 className="font-semibold text-green-900">✅ PARSING COMPLETE</h4>
+                                        <Button
+                                            onClick={() => setShowSummary(!showSummary)}
+                                            variant="ghost"
+                                            size="sm"
+                                            className="text-green-600 hover:bg-green-100"
+                                        >
+                                            {showSummary ? 'Hide Summary' : 'Show Summary'}
+                                        </Button>
+                                    </div>
+
+                                    {showSummary && (
+                                        <div className="mt-3 space-y-2 text-sm font-mono">
+                                            <div className="border-t border-green-300 pt-2"></div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-green-800">📦 Objects:</span>
+                                                <span className="font-bold text-green-900">
+                                                    {parseSummary.total_objects}
+                                                    <span className="text-xs text-green-700 ml-2">
+                                                        ({parseSummary.by_object_type['View']?.total || 0} views, {parseSummary.by_object_type['Stored Procedure']?.total || 0} SPs, {parseSummary.by_object_type['Table']?.total || 0} tables)
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-green-800">🎯 Confidence:</span>
+                                                <span className="font-bold text-green-900">
+                                                    {parseSummary.confidence_statistics.high_confidence_count} high
+                                                    <span className="text-xs text-green-700 ml-1">
+                                                        ({((parseSummary.confidence_statistics.high_confidence_count / parseSummary.total_objects) * 100).toFixed(1)}% ≥0.75)
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-green-800">📊 Coverage:</span>
+                                                <span className="font-bold text-green-900">
+                                                    {parseSummary.parsed_objects}/{parseSummary.total_objects}
+                                                    <span className="text-xs text-green-700 ml-1">
+                                                        ({parseSummary.coverage.toFixed(1)}%)
+                                                    </span>
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-green-800">⏱️ Mode:</span>
+                                                <span className="font-bold text-green-900">
+                                                    {useIncremental ? 'Incremental' : 'Full Refresh'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Close button when summary is shown */}
+                                    {showSummary && (
+                                        <div className="mt-4 pt-3 border-t border-green-300">
+                                            <Button
+                                                onClick={onClose}
+                                                variant="primary"
+                                                fullWidth
+                                                className="py-2 bg-green-600 hover:bg-green-700"
+                                            >
+                                                Close & View Lineage
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                ) : (
+                    <main className="flex-grow p-4 overflow-y-auto">
+                        <div className="max-w-2xl mx-auto space-y-4">
+                            {/* Database connection status banner */}
+                            {dbConnectionStatus === 'success' ? (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div>
+                                            <p className="text-sm font-semibold text-green-900">Database Connected</p>
+                                            <p className="text-xs text-green-700">{dbConnectionMessage}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : dbConnectionStatus === 'error' ? (
+                                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        <div>
+                                            <p className="text-sm font-semibold text-red-900">Database Connection Error</p>
+                                            <p className="text-xs text-red-700">{dbConnectionMessage}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : dbConnectionStatus === 'checking' ? (
+                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <div className="flex items-center gap-2">
+                                        <svg className="w-5 h-5 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        <p className="text-sm text-blue-700">Checking database connection...</p>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {/* Last upload info banner (same as parquet) */}
+                            {lastUploadDate && (
+                                <div className="bg-green-50 border border-green-200 rounded-lg p-3 flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-semibold text-green-900">Data Available</p>
+                                        <p className="text-xs text-green-700">Last upload: {lastUploadDate}</p>
+                                    </div>
+                                    <Button
+                                        onClick={handleClearData}
+                                        disabled={isClearing || isProcessing}
+                                        variant="danger"
+                                        size="sm"
+                                    >
+                                        {isClearing ? 'Clearing...' : 'Clear All Data'}
+                                    </Button>
+                                </div>
+                            )}
+
+                            {/* Database refresh instructions */}
+                            <div className="border border-gray-300 rounded-lg p-3">
+                                <p className="text-sm font-medium text-gray-700 mb-2">📊 Database Refresh</p>
+                                <p className="text-sm text-gray-600">
+                                    This feature fetches stored procedure metadata directly from your configured database.
+                                    It uses the same processing pipeline as Parquet file uploads.
+                                </p>
+                            </div>
+
+                            {/* Incremental parsing option */}
+                            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                                <label className="flex items-start gap-3 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={useIncremental}
+                                        onChange={(e) => setUseIncremental(e.target.checked)}
+                                        disabled={isProcessing || !incrementalAvailable}
+                                        className="mt-0.5 w-4 h-4 flex-shrink-0 border-2 border-gray-300 text-green-600 rounded focus:ring-2 focus:ring-green-500 checked:border-green-600 transition-colors cursor-pointer disabled:opacity-50"
+                                    />
+                                    <div className="flex-1">
+                                        <span className="text-sm font-medium text-green-900">
+                                            Incremental Refresh (Recommended)
+                                        </span>
+                                        <span className="text-sm text-green-700 ml-2">
+                                            - Only fetch and process modified procedures
+                                        </span>
+                                        {!incrementalAvailable && (
+                                            <div className="text-xs text-yellow-700 mt-1">
+                                                ℹ️ Not available - no existing data to compare against. First refresh will always be full.
+                                            </div>
+                                        )}
+                                    </div>
+                                </label>
+                            </div>
+
+                            {/* Note about mode */}
+                            {!useIncremental && incrementalAvailable && (
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                                    <p className="text-sm text-yellow-900">
+                                        <strong>Full Refresh Mode:</strong> All stored procedures will be fetched and re-parsed regardless of modification status.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Refresh button */}
+                            <Button
+                                onClick={handleDatabaseRefresh}
+                                disabled={isProcessing || dbConnectionStatus !== 'success'}
+                                variant="primary"
+                                fullWidth
+                                className="py-3"
+                            >
+                                {isProcessing ? 'Refreshing...' : 'Refresh from Database'}
+                            </Button>
+
+                            {/* Processing status (reused from Parquet) */}
+                            {isProcessing && jobStatus && (
+                                <div className="border rounded-lg p-4 bg-gray-50">
+                                    <div className="mb-3">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="font-semibold">Progress</span>
+                                            <span className="text-sm font-mono">{jobStatus.progress}%</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                            <div
+                                                className="bg-blue-600 h-3 transition-all duration-300 rounded-full"
+                                                style={{ width: `${jobStatus.progress}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-sm text-gray-700">{jobStatus.message}</p>
+                                    {jobStatus.stats && (
+                                        <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                                            <div className="bg-green-100 rounded p-2 text-center">
+                                                <div className="font-bold text-green-800">{jobStatus.stats.high_confidence}</div>
+                                                <div className="text-green-700">High Confidence</div>
+                                            </div>
+                                            <div className="bg-yellow-100 rounded p-2 text-center">
+                                                <div className="font-bold text-yellow-800">{jobStatus.stats.medium_confidence}</div>
+                                                <div className="text-yellow-700">Medium</div>
+                                            </div>
+                                            <div className="bg-orange-100 rounded p-2 text-center">
+                                                <div className="font-bold text-orange-800">{jobStatus.stats.low_confidence}</div>
+                                                <div className="text-orange-700">Low</div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Errors (reused from Parquet) */}
+                            {jobStatus && jobStatus.errors && jobStatus.errors.length > 0 && (
+                                <div className="border border-red-200 rounded-lg p-4 bg-red-50">
+                                    <h4 className="font-semibold text-red-900 mb-2">❌ Errors:</h4>
+                                    <ul className="list-disc list-inside text-sm text-red-800 space-y-1">
+                                        {jobStatus.errors.map((err, i) => (
+                                            <li key={i}>{err}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* Warnings (reused from Parquet) */}
+                            {jobStatus && jobStatus.warnings && jobStatus.warnings.length > 0 && (
+                                <div className="border border-yellow-200 rounded-lg p-4 bg-yellow-50">
+                                    <h4 className="font-semibold text-yellow-900 mb-2">⚠️ Warnings:</h4>
+                                    <ul className="list-disc list-inside text-sm text-yellow-800 space-y-1">
+                                        {jobStatus.warnings.map((warn, i) => (
+                                            <li key={i}>{warn}</li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+
+                            {/* Parse Summary (reused from Parquet) */}
+                            {parseSummary && (
+                                <div className="border border-green-200 rounded-lg p-4 bg-green-50">
+                                    <div className="flex items-center justify-between">
+                                        <h4 className="font-semibold text-green-900">✅ REFRESH COMPLETE</h4>
                                         <Button
                                             onClick={() => setShowSummary(!showSummary)}
                                             variant="ghost"

@@ -897,6 +897,165 @@ async def clear_debug_logs(
         raise HTTPException(status_code=500, detail=f"Failed to clear logs: {str(e)}")
 
 
+# ==============================================================================
+# Database Direct Connection Endpoints (v0.10.0)
+# ==============================================================================
+
+@app.get("/api/database/test-connection", tags=["Database"])
+async def test_database_connection(
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> Dict[str, Any]:
+    """
+    Test if database is reachable.
+
+    Returns:
+        Dictionary with success status and message
+
+    Example responses:
+        Success: {"success": true, "message": "Database connection successful"}
+        Disabled: {"success": false, "message": "Database connection not enabled (DB_ENABLED=false)"}
+        Error: {"success": false, "message": "Database not reachable: connection refused"}
+    """
+    try:
+        from engine.services import DatabaseRefreshService
+
+        service = DatabaseRefreshService(settings)
+        success, message = service.test_connection()
+
+        logger.info(f"Database connection test: {'✅ SUCCESS' if success else '❌ FAILED'} - {message}")
+
+        return {
+            "success": success,
+            "message": message,
+            "dialect": settings.sql_dialect,
+            "enabled": settings.db.enabled
+        }
+
+    except Exception as e:
+        logger.error(f"Database connection test failed: {e}", exc_info=settings.is_debug_mode)
+        return {
+            "success": False,
+            "message": f"Connection test error: {str(e)}",
+            "dialect": settings.sql_dialect,
+            "enabled": settings.db.enabled
+        }
+
+
+@app.post("/api/database/refresh", tags=["Database"])
+async def refresh_from_database(
+    background_tasks: BackgroundTasks,
+    incremental: bool = True,
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> UploadResponse:
+    """
+    Refresh metadata from database and start lineage processing.
+
+    This endpoint fetches stored procedures from the database, converts them
+    to Parquet files, and triggers the SAME processing pipeline as file upload.
+
+    Args:
+        incremental: If True, only fetch changed procedures (faster, default)
+
+    Returns:
+        Job ID for status polling (same as upload-parquet endpoint)
+
+    Example response:
+        {
+            "job_id": "20250119_083045_abc123",
+            "message": "Database refresh started (incremental mode). Fetched 349 procedures (5 new, 3 updated).",
+            "files_received": ["objects.parquet", "dependencies.parquet", "definitions.parquet"]
+        }
+    """
+    # Check if another upload/refresh is in progress
+    if not upload_lock.acquire(blocking=False):
+        other_job_id = current_upload_info.get("job_id")
+        elapsed = time.time() - current_upload_info.get("started_at", time.time())
+        raise HTTPException(
+            status_code=409,
+            detail=f"Another import is in progress (job {other_job_id}, running for {elapsed:.0f}s). Please wait."
+        )
+
+    # Generate job ID
+    job_id = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+    job_dir = Path("uploads") / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+
+    # Track upload info
+    current_upload_info["job_id"] = job_id
+    current_upload_info["started_at"] = time.time()
+
+    try:
+        logger.info(f"🔄 Starting database metadata refresh (job_id={job_id}, incremental={incremental})")
+
+        # Fetch metadata from database and convert to Parquet files
+        from engine.services import DatabaseRefreshService
+
+        service = DatabaseRefreshService(settings)
+        result = service.refresh_and_convert_to_parquet(
+            job_dir=job_dir,
+            incremental=incremental
+        )
+
+        if not result.success:
+            # Database fetch failed - release lock and return error
+            upload_lock.release()
+            current_upload_info["job_id"] = None
+            current_upload_info["started_at"] = None
+
+            raise HTTPException(
+                status_code=500,
+                detail=result.message + (f" Errors: {', '.join(result.errors)}" if result.errors else "")
+            )
+
+        # Initialize status file
+        status_data = {
+            "status": "pending",
+            "progress": 0.0,
+            "current_step": "Queued",
+            "message": "Metadata fetched from database, starting lineage processing...",
+            "elapsed_seconds": 0.0
+        }
+        with open(job_dir / "status.json", 'w') as f:
+            json.dump(status_data, f, indent=2)
+
+        # Start background processing (SAME as Parquet upload!)
+        thread = threading.Thread(
+            target=run_processing_thread,
+            args=(job_id, job_dir, incremental),
+            daemon=True
+        )
+        thread.start()
+
+        # Track job
+        active_jobs[job_id] = {
+            "status": "processing",
+            "thread": thread,
+            "created_at": time.time(),
+            "incremental": incremental
+        }
+
+        mode_text = "incremental" if incremental else "full refresh"
+        stats = f"{result.new_procedures} new, {result.updated_procedures} updated" if incremental else f"{result.total_procedures} total"
+
+        return UploadResponse(
+            job_id=job_id,
+            message=f"Database refresh started ({mode_text} mode). Fetched {result.total_procedures} procedures ({stats}).",
+            files_received=["objects.parquet", "dependencies.parquet", "definitions.parquet"]
+        )
+
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
+
+    except Exception as e:
+        # Release lock on error
+        upload_lock.release()
+        current_upload_info["job_id"] = None
+        current_upload_info["started_at"] = None
+
+        logger.error(f"❌ Database refresh failed: {e}", exc_info=settings.is_debug_mode)
+        raise HTTPException(status_code=500, detail=f"Database refresh failed: {str(e)}")
+
+
 @app.get("/api/rules/{dialect}", tags=["Developer"])
 async def list_rules(
     dialect: str,
