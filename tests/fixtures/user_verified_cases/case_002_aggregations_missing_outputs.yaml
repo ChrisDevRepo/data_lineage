@@ -1,0 +1,60 @@
+# User-Verified Test Case: Missing Outputs in Aggregation SP
+
+sp_name: "spLoadFactLaborCostForEarnedValue_Aggregations"
+reported_date: "2025-11-19"
+reported_by: "chris@company.com"
+issue: "Parser found 8 inputs but 0 outputs - missing 2 SELECT...INTO statements"
+root_cause: "Simplified parser only handled INSERT/UPDATE/DELETE/MERGE targets, missing SELECT...INTO statements"
+fix_version: "v4.3.5"
+fix_description: "Added SELECT...INTO target extraction to simplified_parser.py line 261-272. Handles exp.Into, exp.Table, and exp.Schema node types for INTO clauses."
+
+# Expected parsing results (verified by user as correct)
+expected_inputs:
+  - "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_Post"
+  - "CONSUMPTION_ClinOpsFinance.CadenceBudget_LaborCost_PrimaContractUtilization_Junc"
+  - "CONSUMPTION_ClinOpsFinance.DateRanges_PM"
+  - "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankAggregation"
+  - "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_BillableEfficiency"
+
+expected_outputs:
+  - "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankAggregation"
+  - "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_Aggregation"
+
+expected_confidence: 100
+
+# DDL snippet (first 3000 chars of actual definition)
+ddl_snippet: |
+  CREATE PROC [CONSUMPTION_ClinOpsFinance].[spLoadFactLaborCostForEarnedValue_Aggregations] AS
+  BEGIN
+  
+  -- Pattern 1: SELECT...INTO with DROP TABLE IF EXISTS
+  IF OBJECT_ID('CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankAggregation') IS NOT NULL
+    DROP TABLE  [CONSUMPTION_ClinOpsFinance].[FactLaborCostForEarnedValue_RankAggregation];
+  
+  WITH BudgetJuncDates AS (...)
+  SELECT LC.[AccountName], ...
+  INTO  [CONSUMPTION_ClinOpsFinance].[FactLaborCostForEarnedValue_RankAggregation]
+  FROM [CONSUMPTION_ClinOpsFinance].[FactLaborCostForEarnedValue_Post] LC
+  JOIN BudgetJuncDates BJD ON ...
+  
+  -- Pattern 2: Second SELECT...INTO (similar pattern)
+  -- Creates BillableEfficiency_Productivity_Aggregation
+  
+  END
+
+# What NOT to change (prevents regression)
+do_not_change:
+  - "Catalog validation - both output tables exist in catalog and should be found"
+  - "Input detection - 8 inputs correctly identified"
+  - "Confidence should remain 100 (perfect parse)"
+
+# Related cases
+related_cases:
+  - "case_001_consumption_powerbi_phantom.yaml"
+
+# Tags for categorization
+tags:
+  - "SELECT_INTO"
+  - "missing_outputs"
+  - "aggregation"
+  - "v4.3.4"

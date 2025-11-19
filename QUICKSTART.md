@@ -58,9 +58,6 @@ LOG_RETENTION_DAYS=7 # Auto-cleanup old logs
 ```bash
 # Schemas to exclude from all processing
 EXCLUDED_SCHEMAS=sys,information_schema,tempdb,master,msdb,model
-
-# External dependencies (phantoms) - exact schema match only
-PHANTOM_EXTERNAL_SCHEMAS=power_consumption,external_lakehouse
 ```
 
 #### 4. Database Direct Connection (v0.10.0 - OPTIONAL)

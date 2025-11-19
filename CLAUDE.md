@@ -21,7 +21,7 @@ All Python commands in this document assume the virtual environment is activated
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **Database:** Azure Synapse Analytics (T-SQL) - extensible to 7 data warehouses
 - **Data Sources:** Parquet files (default) OR Direct database connection (optional v0.10.0)
-- **Parser:** v4.3.3 ✅ **100% success rate** (349/349 SPs) + YAML rules + phantom fix
+- **Parser:** v4.3.4 ✅ **100% parsing success** (349/349 SPs) | **71.3% catalog coverage** (249/349 with real dependencies)
 - **Confidence:** 82.5% perfect (100), 7.4% good (85), 10.0% acceptable (75)
 - **Frontend:** v0.10.0 | **API:** v0.10.0 | **License:** MIT
 ## ⚠️ BEFORE CHANGING PARSER - READ THIS
@@ -84,6 +84,45 @@ All Python commands in this document assume the virtual environment is activated
   - Open source under MIT license
   - Copyright (c) 2025 Christian Wagner
 - **Result:** Production-ready for open source distribution ✅
+
+### v4.3.5 (2024-11-19) - SELECT INTO Support + Cleanup
+
+**Bug Fix:** Added SELECT INTO target detection to simplified parser.
+
+**Changes:**
+- Fixed missing output detection for aggregation SPs using `SELECT...INTO`
+- Removed AI placeholder code (unused columns and tracking)
+- Fixed imports: `sql_cleaning_rules` → `simplified_rule_engine`
+- Fixed DuckDB API calls: `execute_query()` → `connection.execute().fetchall()`
+
+**Golden Record:**
+- `case_002_aggregations_missing_outputs.yaml` - Documents SELECT INTO bug
+- Will pass after database reparse with fix
+
+**Validation:**
+- ✅ Parser only uses catalog objects (no CTEs/temp tables/non-catalog)
+- ✅ 855 unique object IDs in lineage, all validated against catalog
+- ✅ 4 stale IDs found (objects deleted after parsing - expected)
+
+### v4.3.4 (2024-11-19) - Complete Phantom Removal
+
+**Major simplification:** Removed ~2000 lines of phantom object tracking code.
+
+**Philosophy Change:**
+- **Old:** Track external dependencies as "phantom" objects with negative IDs
+- **New:** If not in catalog → filtered out (cleaner, simpler)
+
+**What Was Removed:**
+- Phantom detection, creation, and tracking logic
+- `phantom_objects` and `phantom_references` tables
+- `PhantomSettings` configuration
+- Phantom promotion utility
+
+**Impact:**
+- Simpler architecture (no special cases)
+- Better data quality signals (missing = incomplete metadata export)
+- 71.3% catalog coverage (correct filtering of deleted tables)
+- 100% parsing success maintained
 
 ### v4.3.3 - Trace Mode Enhancements + Phantom Handling (2025-11-17) 🎯
 - **Trace Mode UX Improvements:**
@@ -181,12 +220,6 @@ LOG_RETENTION_DAYS=7 # Auto-cleanup old logs on import
 # Database configuration
 SQL_DIALECT=tsql  # Default (Synapse/SQL Server)
 EXCLUDED_SCHEMAS=sys,dummy,information_schema,tempdb,master,msdb,model
-
-# v4.3.3: Phantoms = EXTERNAL sources ONLY
-PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
-# Examples: power_consumption,external_lakehouse,partner_erp
-
-PHANTOM_EXCLUDE_DBO_OBJECTS=cte,cte_*,CTE*,ParsedData,#*,@*,temp_*,tmp_*
 ```
 
 **Supported Dialects:**
@@ -392,20 +425,6 @@ See `tests/integration/README.md` for complete test documentation.
 **Quick Access:**
 - Setup: docs/SETUP.md | Usage: docs/USAGE.md | Architecture: docs/ARCHITECTURE.md
 - Configuration: docs/reports/CONFIGURATION_VERIFICATION_REPORT.md
-
-## Phantom Objects (v4.3.3)
-
-**What:** External dependencies (data lakes, partner DBs) NOT in our metadata database
-
-**Features:**
-- Automatic detection from SP dependencies, negative IDs (-1 to -∞)
-- Visual: 🔗 link icon, dashed borders
-- Exact schema matching (no wildcards), only external schemas
-
-**Configuration:**
-PHANTOM_EXTERNAL_SCHEMAS=power_consumption,external_lakehouse,partner_erp
-
-**Status:** ✅ Redesigned v4.3.3
 
 ## Performance
 

@@ -46,32 +46,37 @@ def test_all_sps_have_dependencies(self, db_connection):
 
 ---
 
-### 2. test_sp_parsing_details.py (8 tests)
+### 2. test_sp_parsing_details.py (5 tests)
 
-**Purpose:** Detailed SP parsing with table names and phantom detection
+**Purpose:** Detailed SP parsing with table name validation
 
 **Test Classes:**
 - `TestSPDetailedParsing` - Confidence scores, table name validation
-- `TestPhantomObjectDetection` - Negative IDs, phantom tracking
 - `TestExpectedDependencies` - Expected sources/targets validation
 
 **Key Validations:**
 - ✅ All input/output tables have valid schema and names
-- ✅ Phantom objects use negative IDs (< 0)
-- ✅ Phantoms properly tracked in phantom_objects table
 - ✅ Expected dependencies found for known test SPs
 
 **Example:**
 ```python
-def test_phantom_objects_have_negative_ids(self, db_connection):
-    """Test that phantom objects use negative IDs (< 0)."""
-    phantom_objects = db_connection.execute("""
-        SELECT object_id, schema_name, object_name
-        FROM phantom_objects
+def test_sp_inputs_have_schema_and_name(self, db_connection):
+    """Test that all SP inputs have valid schema and object names."""
+    results = db_connection.execute("""
+        SELECT o.object_name, o.schema_name, lm.inputs
+        FROM objects o
+        JOIN lineage_metadata lm ON o.object_id = lm.object_id
+        WHERE o.object_type = 'Stored Procedure'
     """).fetchall()
-
-    for obj_id, schema, name in phantom_objects:
-        assert obj_id < 0, f"Phantom {schema}.{name} should have negative ID"
+    
+    for sp_name, schema, inputs_json in results:
+        input_ids = json.loads(inputs_json) if inputs_json else []
+        for obj_id in input_ids:
+            obj = db_connection.execute(
+                "SELECT schema_name, object_name FROM objects WHERE object_id = ?",
+                [obj_id]
+            ).fetchone()
+            assert obj is not None
 ```
 
 ---
@@ -107,7 +112,7 @@ def test_confidence_85_completeness_range(self, conf_85_sps):
 
 ---
 
-### 4. test_sqlglot_performance.py (14 tests)
+### 4. test_sqlglot_performance.py (11 tests)
 
 **Purpose:** SQLGlot enhancement impact and completeness analysis
 
@@ -116,7 +121,6 @@ def test_confidence_85_completeness_range(self, conf_85_sps):
 - `TestConfidenceDistribution` - Valid distribution
 - `TestCompletenessAnalysis` - Found vs expected tables
 - `TestSQLGlotEnhancementImpact` - Tables added by SQLGlot
-- `TestPhantomObjectDetection` - Phantom tracking
 - `TestKeyInsights` - Architectural validation
 
 **Key Validations:**

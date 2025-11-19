@@ -78,8 +78,7 @@ class TableReference(TypedDict):
     schema: str
     table: str
     full_name: str  # "schema.table"
-    object_id: Optional[int]  # None if not in catalog (phantom)
-    is_phantom: bool
+    object_id: Optional[int]  # None if not in catalog
 
 
 # ============================================================================
@@ -277,4 +276,4 @@ class UserVerifiedCase(TypedDict):
 
 ObjectID = int
 ConfidenceScore = Literal[0, 75, 85, 100]
-ObjectType = Literal["Table", "View", "Stored Procedure", "Function", "Phantom"]
+ObjectType = Literal["Table", "View", "Stored Procedure", "Function"]

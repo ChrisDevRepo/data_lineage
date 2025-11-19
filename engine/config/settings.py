@@ -121,51 +121,6 @@ class DatabaseConnectorSettings(BaseSettings):
     )
 
 
-class PhantomSettings(BaseSettings):
-    """
-    Phantom object configuration (v4.3.3 - REDESIGNED).
-
-    NEW PHILOSOPHY:
-    - Phantoms = EXTERNAL dependencies only (schemas NOT in our metadata database)
-    - For schemas in our metadata DB, missing objects = DB quality issues (not our concern)
-    - We are NOT the authority to flag missing objects in schemas we manage
-
-    Configuration:
-    - PHANTOM_EXTERNAL_SCHEMAS: External schema names (exact match, no wildcards)
-    - Leave empty if no external dependencies
-    """
-    external_schemas: str = Field(
-        default="",
-        description="Comma-separated list of EXTERNAL schema names (exact match, case-insensitive, NO wildcards)",
-        validation_alias='PHANTOM_EXTERNAL_SCHEMAS'
-    )
-
-    exclude_dbo_objects: str = Field(
-        default="",
-        description="Comma-separated list of persistent object name patterns to exclude in dbo schema (transient objects like #temp, CTEs handled by SQL cleaning)"
-    )
-
-    @property
-    def include_schema_list(self) -> list[str]:
-        """
-        Parse external schema list (v4.3.3).
-
-        Returns exact schema names (no wildcards).
-        """
-        return [s.strip() for s in self.external_schemas.split(',') if s.strip()]
-
-    @property
-    def exclude_dbo_pattern_list(self) -> list[str]:
-        """Parse comma-separated dbo object patterns"""
-        return [s.strip() for s in self.exclude_dbo_objects.split(',') if s.strip()]
-
-    model_config = SettingsConfigDict(
-        env_prefix='PHANTOM_',
-        case_sensitive=False,
-        populate_by_name=True
-    )
-
-
 class Settings(BaseSettings):
     """
     Main application settings.
@@ -186,10 +141,6 @@ class Settings(BaseSettings):
     )
     paths: PathSettings = Field(
         default_factory=PathSettings
-    )
-    phantom: PhantomSettings = Field(
-        default_factory=PhantomSettings,
-        description="Phantom object configuration (v4.3.0)"
     )
     db: DatabaseConnectorSettings = Field(
         default_factory=DatabaseConnectorSettings,
@@ -244,7 +195,7 @@ class Settings(BaseSettings):
     # Global Schema Exclusion (v4.3.0 - Universal filter)
     excluded_schemas: str = Field(
         default="sys,dummy,information_schema,tempdb,master,msdb,model",
-        description="Comma-separated list of schemas to ALWAYS exclude from ALL processing (metadata, objects, phantoms)"
+        description="Comma-separated list of schemas to ALWAYS exclude from ALL processing (metadata, objects)"
     )
 
     @field_validator('sql_dialect')

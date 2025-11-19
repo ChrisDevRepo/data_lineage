@@ -237,7 +237,5 @@ def mock_settings() -> Dict[str, Any]:
     """
     return {
         "sql_dialect": "tsql",
-        "excluded_schemas": ["sys", "tempdb", "information_schema"],
-        "phantom_external_schemas": [],
-        "phantom_exclude_dbo_objects": ["cte", "#*", "@*"],
+        "excluded_schemas": ["sys", "tempdb", "information_schema"]
     }

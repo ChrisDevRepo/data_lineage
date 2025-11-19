@@ -135,34 +135,6 @@ else:
     print("(None - SQLGlot didn't add any tables beyond regex baseline)")
 print()
 
-# Phantom objects
-print("👻 PHANTOM OBJECTS DETECTED")
-print("-" * 80)
-
-result = conn.execute("""
-    SELECT COUNT(*)
-    FROM phantom_objects
-""").fetchone()
-
-phantom_count = result[0] if result else 0
-print(f"Total phantom objects: {phantom_count}")
-
-if phantom_count > 0:
-    results = conn.execute("""
-        SELECT
-            schema_name,
-            object_name,
-            object_type
-        FROM phantom_objects
-        ORDER BY schema_name, object_name
-        LIMIT 10
-    """).fetchall()
-
-    print("\nTop 10 phantom objects:")
-    for schema, name, obj_type in results:
-        print(f"  - {schema}.{name} ({obj_type})")
-
-print()
 print("=" * 80)
 print("✅ Analysis complete!")
 print()

@@ -36,13 +36,11 @@ python3 scripts/testing/verify_sp_parsing.py
 
 **Output:**
 - Actual table names (not just object IDs)
-- Phantom object detection (negative IDs)
 - Expected vs actual sources/targets validation
 - Type information for each dependency
 
 **When to use:**
 - To debug why specific SP has unexpected results
-- To verify phantom object detection is working
 - To validate expected dependencies are found
 
 **Example output:**
@@ -52,7 +50,7 @@ python3 scripts/testing/verify_sp_parsing.py
 
 📥 INPUTS (6 tables):
   [dbo].[DimDate]
-  [CONSUMPTION_POWERBI].[FactLaborCostForEarnedValue] (👻 PHANTOM)
+  [CONSUMPTION_POWERBI].[FactLaborCostForEarnedValue]
   [CONSUMPTION_ClinOpsFinance].[CadenceBudget_LaborCost_PrimaContractUtilization_Junc]
 ```
 
@@ -186,7 +184,6 @@ python3 scripts/testing/analyze_sp.py
 - Regex-first baseline (guaranteed, no context loss)
 - SQLGlot RAISE mode enhancement (optional bonus)
 - Full DDL scanning (no statement splitting)
-- Phantom object detection working perfectly
 
 ---
 

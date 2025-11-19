@@ -105,56 +105,10 @@ class DuckDBWorkspace:
             final_sources_count INTEGER,
             final_targets_count INTEGER,
             final_confidence REAL,
-            final_source TEXT,  -- 'sqlglot', 'regex', 'ai', 'query_log'
-
-            -- AI disambiguation (if used)
-            ai_used BOOLEAN DEFAULT FALSE,
-            ai_sources_found INTEGER,
-            ai_targets_found INTEGER,
-            ai_confidence REAL,
+            final_source TEXT,  -- 'sqlglot', 'regex', 'query_log'
 
             PRIMARY KEY (object_id, parse_timestamp)
         )
-    """
-
-    # Schema for phantom objects (v4.3.0 - Phantom Objects Feature)
-    SCHEMA_PHANTOM_OBJECTS = """
-        CREATE SEQUENCE IF NOT EXISTS phantom_id_seq START -1 INCREMENT -1;
-
-        CREATE TABLE IF NOT EXISTS phantom_objects (
-            object_id BIGINT PRIMARY KEY DEFAULT nextval('phantom_id_seq'),
-            schema_name VARCHAR NOT NULL,
-            object_name VARCHAR NOT NULL,
-            object_type VARCHAR DEFAULT 'Table',
-            phantom_reason VARCHAR DEFAULT 'not_in_catalog',
-            first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            is_promoted BOOLEAN DEFAULT FALSE,
-            promoted_to_id BIGINT,
-            UNIQUE(schema_name, object_name)
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_phantom_objects_schema_name
-            ON phantom_objects(schema_name, object_name);
-        CREATE INDEX IF NOT EXISTS idx_phantom_objects_promoted
-            ON phantom_objects(is_promoted);
-    """
-
-    # Schema for phantom references tracking (v4.3.0)
-    SCHEMA_PHANTOM_REFERENCES = """
-        CREATE TABLE IF NOT EXISTS phantom_references (
-            phantom_id BIGINT NOT NULL,
-            referencing_sp_id BIGINT NOT NULL,
-            dependency_type VARCHAR,
-            first_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (phantom_id, referencing_sp_id, dependency_type)
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_phantom_refs_phantom
-            ON phantom_references(phantom_id);
-        CREATE INDEX IF NOT EXISTS idx_phantom_refs_sp
-            ON phantom_references(referencing_sp_id);
     """
 
     def __init__(self, workspace_path: Optional[str] = None, read_only: bool = False):
@@ -277,12 +231,6 @@ class DuckDBWorkspace:
         # Create parser_comparison_log table
         self.connection.execute(self.SCHEMA_PARSER_COMPARISON)
 
-        # Create phantom_objects table (v4.3.0)
-        self.connection.execute(self.SCHEMA_PHANTOM_OBJECTS)
-
-        # Create phantom_references table (v4.3.0)
-        self.connection.execute(self.SCHEMA_PHANTOM_REFERENCES)
-
         # Migration: Add referenced_id column to dependencies table (v4.3.0)
         try:
             # Check if dependencies table exists
@@ -384,29 +332,30 @@ class DuckDBWorkspace:
 
         return row_counts
 
-    def load_parquet(
+    def load_parquet_files(
         self,
-        parquet_dir: Path,
+        parquet_dir: Path | str,
         full_refresh: bool = False
     ) -> Dict[str, int]:
         """
-        Load Parquet files into DuckDB tables (legacy method for CLI).
+        Load Parquet files into DuckDB tables by auto-detecting schemas.
 
-        Loads the 4 required Parquet files by fixed names:
-        1. objects.parquet → objects table
-        2. dependencies.parquet → dependencies table
-        3. definitions.parquet → definitions table
-        4. query_logs.parquet → query_logs table (optional)
+        Automatically detects table type by inspecting column names (no fixed filenames required):
+        - objects: object_id, schema_name, object_name, object_type, create_date
+        - dependencies: referencing_object_id, referenced_object_id, referenced_schema_name
+        - definitions: object_id, object_name, schema_name, definition
+        - query_logs: command_text (optional)
+        - table_columns: object_id, schema_name, table_name, column_name (optional)
 
         Args:
-            parquet_dir: Directory containing Parquet files
+            parquet_dir: Directory containing Parquet files (any filenames accepted)
             full_refresh: If True, drop existing tables before loading
 
         Returns:
             Dictionary mapping table name to row count
 
         Raises:
-            FileNotFoundError: If required Parquet files missing
+            FileNotFoundError: If required tables (objects, dependencies, definitions) not found
             RuntimeError: If loading fails
         """
         if not self.connection:
@@ -416,27 +365,37 @@ class DuckDBWorkspace:
         if not parquet_dir.exists():
             raise FileNotFoundError(f"Parquet directory not found: {parquet_dir}")
 
+        # Find all Parquet files and detect their table types
+        parquet_files = list(parquet_dir.glob("*.parquet"))
+        if not parquet_files:
+            raise FileNotFoundError(f"No Parquet files found in {parquet_dir}")
+
+        logger.info(f"Found {len(parquet_files)} Parquet files, detecting schemas...")
+
+        # Map files to table types by schema detection
+        file_mapping = {}
+        for file_path in parquet_files:
+            table_name = self._detect_table_type(file_path)
+            if table_name:
+                file_mapping[table_name] = file_path
+                logger.info(f"✓ {file_path.name} → {table_name} table")
+            else:
+                logger.warning(f"✗ {file_path.name} → unknown schema (skipped)")
+
+        # Verify required tables are present
+        required_tables = ['objects', 'dependencies', 'definitions']
+        missing = [t for t in required_tables if t not in file_mapping]
+        if missing:
+            raise FileNotFoundError(
+                f"Required tables missing: {missing}. "
+                f"Found: {list(file_mapping.keys())}"
+            )
+
         row_counts = {}
 
-        # Required Parquet files
-        required_files = {
-            'objects': 'objects.parquet',
-            'dependencies': 'dependencies.parquet',
-            'definitions': 'definitions.parquet'
-        }
-
-        # Optional files
-        optional_files = {
-            'query_logs': 'query_logs.parquet',
-            'table_columns': 'table_columns.parquet'
-        }
-
-        # Load required files
-        for table_name, filename in required_files.items():
-            file_path = parquet_dir / filename
-            if not file_path.exists():
-                raise FileNotFoundError(f"Required file not found: {file_path}")
-
+        # Load required files first (order matters for table_columns FK)
+        for table_name in required_tables:
+            file_path = file_mapping[table_name]
             row_count = self._load_parquet_file(
                 file_path,
                 table_name,
@@ -445,9 +404,10 @@ class DuckDBWorkspace:
             row_counts[table_name] = row_count
 
         # Load optional files
-        for table_name, filename in optional_files.items():
-            file_path = parquet_dir / filename
-            if file_path.exists():
+        optional_tables = ['query_logs', 'table_columns']
+        for table_name in optional_tables:
+            if table_name in file_mapping:
+                file_path = file_mapping[table_name]
                 row_count = self._load_parquet_file(
                     file_path,
                     table_name,
@@ -470,6 +430,46 @@ class DuckDBWorkspace:
             logger.info(f"Cache cleanup: Removed {deleted} orphaned metadata entries")
 
         return row_counts
+
+    def _detect_table_type(self, file_path: Path) -> str | None:
+        """
+        Detect table type by inspecting Parquet file schema.
+
+        Args:
+            file_path: Path to Parquet file
+
+        Returns:
+            Table name ('objects', 'dependencies', 'definitions', 'query_logs', 'table_columns')
+            or None if schema doesn't match any known table
+        """
+        if not self.connection:
+            raise RuntimeError("Not connected to DuckDB workspace")
+
+        try:
+            # Get column names from Parquet file
+            result = self.connection.execute(
+                f"DESCRIBE SELECT * FROM read_parquet('{file_path}')"
+            ).fetchall()
+            columns = {row[0].lower() for row in result}
+
+            # Match against known table schemas
+            if {'object_id', 'schema_name', 'object_name', 'object_type', 'create_date'}.issubset(columns):
+                return 'objects'
+            elif {'referencing_object_id', 'referenced_object_id', 'referenced_schema_name', 'referenced_entity_name'}.issubset(columns):
+                return 'dependencies'
+            elif {'object_id', 'object_name', 'schema_name', 'definition'}.issubset(columns):
+                return 'definitions'
+            elif 'command_text' in columns and len(columns) == 1:
+                return 'query_logs'
+            elif {'object_id', 'schema_name', 'table_name', 'column_name', 'data_type'}.issubset(columns):
+                return 'table_columns'
+            else:
+                logger.warning(f"Unknown Parquet schema in {file_path.name}: {columns}")
+                return None
+
+        except Exception as e:
+            logger.error(f"Failed to detect table type for {file_path.name}: {e}")
+            return None
 
     def _load_parquet_file(
         self,

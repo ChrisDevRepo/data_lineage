@@ -151,7 +151,7 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
 
         with DuckDBWorkspace(workspace_path=workspace) as db:
             # Load Parquet files
-            row_counts = db.load_parquet(parquet, full_refresh=full_refresh)
+            row_counts = db.load_parquet_files(parquet, full_refresh=full_refresh)
 
             click.echo(f"✅ Loaded Parquet files:")
             for table, count in row_counts.items():
@@ -284,7 +284,7 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
                 ORDER BY schema_name, object_name
             """)
 
-            click.echo(f"🔄 Parsing {len(all_sps):,} stored procedures with AI-enhanced parser...")
+            click.echo(f"🔄 Parsing {len(all_sps):,} stored procedures...")
             click.echo()
 
             if all_sps:
@@ -296,16 +296,10 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
                 high_confidence_count = 0
                 medium_confidence_count = 0
                 low_confidence_count = 0
-                ai_used_count = 0
 
                 for i, sp in enumerate(all_sps):
                     try:
-                        # Parse with quality-aware parser (includes AI fallback)
                         result = parser.parse_object(sp[0])  # sp[0] = object_id
-
-                        # Track AI usage
-                        if result.get('quality_check', {}).get('ai_used', False):
-                            ai_used_count += 1
 
                         # Persist result to lineage_metadata
                         db.update_metadata(
@@ -347,8 +341,6 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
                 click.echo(f"     • Medium confidence (0.75-0.84): {medium_confidence_count:,}")
                 click.echo(f"     • Low confidence (0.50-0.74): {low_confidence_count:,}")
                 click.echo(f"   - Failed: {failed_count:,} ({failed_count/len(all_sps)*100:.1f}%)")
-                if ai_used_count > 0:
-                    click.echo(f"   - AI disambiguations used: {ai_used_count:,} SPs ({ai_used_count/len(all_sps)*100:.1f}%)")
                 click.echo()
             else:
                 click.echo("⚠️  No stored procedures found to parse")

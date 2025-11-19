@@ -28,7 +28,7 @@ import logging
 import re
 
 from engine.core.duckdb_workspace import DuckDBWorkspace
-from engine.parsers.sql_cleaning_rules import RuleEngine
+from engine.parsers.simplified_rule_engine import SimplifiedRuleEngine
 from engine.parsers.comment_hints_parser import CommentHintsParser
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ class SimplifiedParser:
         # SQL Cleaning Engine (17 rules)
         self.enable_sql_cleaning = enable_sql_cleaning
         if self.enable_sql_cleaning:
-            self.cleaning_engine = RuleEngine()  # 17-rule engine
+            self.cleaning_engine = SimplifiedRuleEngine()  # Rule engine for preprocessing
             logger.info("SQL Cleaning Engine enabled: WARN-only primary, 17-rule cleaning fallback")
 
         # Manual override support (comment hints)
@@ -240,6 +240,9 @@ class SimplifiedParser:
         """
         Extract sources, targets, and SP calls from parsed statements.
 
+        Note: CTEs and temp tables are automatically filtered out later by
+        _validate_against_catalog() - they won't exist in the metadata catalog.
+
         Returns:
             (sources, targets, sp_calls)
         """
@@ -254,6 +257,26 @@ class SimplifiedParser:
             # Skip Command nodes (unparseable sections)
             if type(stmt).__name__ == 'Command':
                 continue
+
+            # Extract SELECT INTO targets
+            if isinstance(stmt, exp.Select) and stmt.args.get('into'):
+                into_node = stmt.args['into']
+                into_table = None
+                
+                # Handle different INTO node types
+                if isinstance(into_node, exp.Into):
+                    into_table = into_node.this
+                elif isinstance(into_node, exp.Table):
+                    into_table = into_node
+                elif isinstance(into_node, exp.Schema):
+                    into_table = into_node.this if isinstance(into_node.this, exp.Table) else None
+                
+                # Extract schema.table from INTO target
+                if into_table and isinstance(into_table, exp.Table):
+                    if into_table.db:
+                        full_name = f"{into_table.db.lower()}.{into_table.name.lower()}"
+                        if not self._is_excluded(into_table.db.lower(), into_table.name.lower()):
+                            targets.add(full_name)
 
             # Extract INSERT/UPDATE/DELETE/MERGE targets
             if isinstance(stmt, (exp.Insert, exp.Update, exp.Delete, exp.Merge)):
@@ -353,10 +376,10 @@ class SimplifiedParser:
 
     def _fetch_ddl(self, object_id: int) -> Optional[str]:
         """Fetch DDL definition for object"""
-        result = self.workspace.execute_query(
+        result = self.workspace.connection.execute(
             "SELECT definition FROM definitions WHERE object_id = ?",
-            params=(object_id,)
-        )
+            (object_id,)
+        ).fetchall()
         if result and len(result) > 0:
             return result[0][0]
         return None
@@ -387,9 +410,9 @@ class SimplifiedParser:
 
     def _get_catalog_objects(self) -> Set[str]:
         """Get all object names from catalog (schema.object format)"""
-        result = self.workspace.execute_query(
+        result = self.workspace.connection.execute(
             "SELECT LOWER(schema_name || '.' || object_name) FROM objects"
-        )
+        ).fetchall()
         return set(row[0] for row in result)
 
     def _resolve_table_names(self, table_names: Set[str]) -> List[int]:
@@ -404,7 +427,7 @@ class SimplifiedParser:
             FROM objects
             WHERE LOWER(schema_name || '.' || object_name) IN ({placeholders})
         """
-        result = self.workspace.execute_query(query, params=tuple(table_names))
+        result = self.workspace.connection.execute(query, tuple(table_names)).fetchall()
         return [row[0] for row in result]
 
     def _resolve_sp_names(self, sp_names: Set[str]) -> List[int]:
@@ -420,7 +443,7 @@ class SimplifiedParser:
             WHERE LOWER(schema_name || '.' || object_name) IN ({placeholders})
               AND object_type = 'Stored Procedure'
         """
-        result = self.workspace.execute_query(query, params=tuple(sp_names))
+        result = self.workspace.connection.execute(query, tuple(sp_names)).fetchall()
         return [row[0] for row in result]
 
     def _is_excluded(self, schema: str, table: str) -> bool:

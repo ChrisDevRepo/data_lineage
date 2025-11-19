@@ -48,8 +48,7 @@ if result:
 
         if obj:
             obj_schema, obj_name, obj_type = obj
-            phantom_marker = " (👻 PHANTOM)" if obj_id < 0 else ""
-            print(f"  [{obj_schema}].[{obj_name}]{phantom_marker}")
+            print(f"  [{obj_schema}].[{obj_name}]")
             print(f"    Type: {obj_type}, ID: {obj_id}")
         else:
             print(f"  ❌ Object ID {obj_id} not found in catalog")
@@ -68,8 +67,7 @@ if result:
 
         if obj:
             obj_schema, obj_name, obj_type = obj
-            phantom_marker = " (👻 PHANTOM)" if obj_id < 0 else ""
-            print(f"  [{obj_schema}].[{obj_name}]{phantom_marker}")
+            print(f"  [{obj_schema}].[{obj_name}]")
             print(f"    Type: {obj_type}, ID: {obj_id}")
         else:
             print(f"  ❌ Object ID {obj_id} not found in catalog")

@@ -191,9 +191,7 @@ class QualityAwareParser:
     THRESHOLD_GOOD = 0.10     # ±10% difference
     THRESHOLD_FAIR = 0.25     # ±25% difference
 
-    # Phantom schema configuration (v4.3.0)
-    # Loaded from phantom_schema_config.yaml - INCLUDE list approach with wildcards
-    PHANTOM_CONFIG_FILE = 'phantom_schema_config.yaml'
+
 
     # Default configuration if file not found
     DEFAULT_INCLUDE_SCHEMAS = [
@@ -320,95 +318,9 @@ class QualityAwareParser:
                 logger.error(f"Failed to load YAML rules: {e}, SQL cleaning disabled")
                 self.cleaning_engine = None
 
-        # Load phantom schema configuration (v4.3.0)
-        self._load_phantom_config()
-
-    def _load_phantom_config(self) -> None:
-        """
-        Load phantom schema configuration from centralized settings (v4.3.3).
-
-        NEW PHILOSOPHY (v4.3.3):
-        - Phantoms = EXTERNAL dependencies ONLY (schemas not in our metadata DB)
-        - For schemas in our metadata DB, missing objects = DB quality issues (not phantoms)
-        - We are NOT the authority to flag missing objects in schemas we manage
-        """
-        import re
+        # Load excluded schemas from settings
         from engine.config.settings import settings
-
-        # Load from centralized Pydantic settings (configured via .env or defaults)
-        self.include_schemas = settings.phantom.include_schema_list
-        self.excluded_schemas = settings.excluded_schema_set  # Global universal exclusion
-        self.excluded_dbo_patterns = settings.phantom.exclude_dbo_pattern_list
-
-        # v4.3.3: Get all schemas from our metadata database
-        self.database_schemas = self._get_database_schemas()
-
-        logger.info(f"Loaded phantom config from settings.py: {len(self.include_schemas)} external schema patterns")
-        logger.info(f"Found {len(self.database_schemas)} schemas in metadata database")
-        logger.debug(f"External schema patterns: {self.include_schemas}")
-        logger.debug(f"Universal excluded schemas: {self.excluded_schemas}")
-
-    def _get_database_schemas(self) -> Set[str]:
-        """
-        Get all schemas that exist in our metadata database (v4.3.3).
-
-        Used to distinguish:
-        - Internal schemas (in our DB) → missing objects = DB issues, NOT phantoms
-        - External schemas (not in our DB) → missing objects = phantoms
-
-        Returns:
-            Set of schema names (lowercase) from our metadata database
-        """
-        query = """
-            SELECT DISTINCT LOWER(schema_name)
-            FROM objects
-        """
-        try:
-            results = self.workspace.query(query)
-            schemas = {row[0] for row in results if row[0]}
-            logger.debug(f"Database schemas: {sorted(schemas)[:10]}...")  # Show first 10
-            return schemas
-        except Exception as e:
-            logger.warning(f"Could not load database schemas: {e}")
-            return set()
-
-    def _schema_matches_include_list(self, schema: str) -> bool:
-        """
-        Check if schema should have phantoms created (v4.3.3).
-
-        NEW LOGIC:
-        1. Schema must NOT exist in our metadata database (external only)
-        2. Schema must match external schema list (exact match, case-insensitive)
-        3. Schema must not be globally excluded
-
-        Philosophy:
-        - Phantoms = external sources we don't manage
-        - If schema exists in our DB, missing objects are DB team's responsibility
-
-        Returns:
-            True if schema is external and should have phantoms created
-        """
-        schema_lower = schema.lower()
-
-        # First check if it's in the global excluded_schemas (universal filter)
-        if schema_lower in [s.lower() for s in self.excluded_schemas]:
-            logger.debug(f"Schema excluded (global): {schema}")
-            return False
-
-        # v4.3.3 NEW: Check if schema exists in our metadata database
-        if schema_lower in self.database_schemas:
-            logger.debug(f"Schema exists in metadata DB (skip phantom): {schema}")
-            return False  # Internal schema → DB quality issue, not phantom
-
-        # Check if schema matches external include list (exact match, case-insensitive)
-        # Note: Wildcards removed in v4.3.3, now exact match only
-        for pattern in self.include_schemas:
-            if schema_lower == pattern.lower():
-                logger.debug(f"External schema matched (create phantom): {schema}")
-                return True
-
-        logger.debug(f"Schema not in external list (skip phantom): {schema}")
-        return False
+        self.excluded_schemas = settings.excluded_schema_set
 
     def parse_object(self, object_id: int) -> Dict[str, Any]:
         """
@@ -488,15 +400,6 @@ class QualityAwareParser:
             parser_sources_with_hints = parser_sources_valid | hint_inputs
             parser_targets_with_hints = parser_targets_valid | hint_outputs
 
-            # STEP 2c: Detect phantom objects (v4.3.0 - Phantom Objects Feature)
-            # Phantoms are tables NOT in catalog (missing metadata)
-            phantom_sources = self._detect_phantom_tables(parser_sources | hint_inputs)
-            phantom_targets = self._detect_phantom_tables(parser_targets | hint_outputs)
-            all_phantoms = phantom_sources | phantom_targets
-
-            if all_phantoms:
-                logger.info(f"Detected {len(all_phantoms)} phantom objects: {all_phantoms}")
-
             # STEP 3: Calculate catalog validation rate (for diagnostics)
             # Get all objects from catalog for validation
             all_extracted = parser_sources_with_hints | parser_targets_with_hints
@@ -526,78 +429,11 @@ class QualityAwareParser:
             func_ids = self._resolve_function_names(regex_function_calls_valid)
             input_ids.extend(func_ids)
 
-            # STEP 5c: Handle phantom objects (v4.3.0)
-            # Create/get phantom objects and their negative IDs
-            # Add to inputs/outputs for visualization, but DON'T count in confidence
-            phantom_ids_map = self._create_or_get_phantom_objects(all_phantoms, object_type='Table')
-
-            # Add phantom IDs to inputs/outputs
-            phantom_input_ids = [phantom_ids_map[name] for name in phantom_sources if name in phantom_ids_map]
-            phantom_output_ids = [phantom_ids_map[name] for name in phantom_targets if name in phantom_ids_map]
-            input_ids.extend(phantom_input_ids)
-            output_ids.extend(phantom_output_ids)
-
-            # Track phantom references for impact analysis (used during promotion)
-            if phantom_ids_map:
-                dependency_types = {}
-                for name in phantom_sources:
-                    dependency_types[name] = 'input'
-                for name in phantom_targets:
-                    dependency_types[name] = 'output'
-                self._track_phantom_references(object_id, phantom_ids_map, dependency_types)
-
-            # STEP 5d: Handle phantom functions (v4.3.0 - UDF support)
-            # Detect functions not in catalog
-            phantom_functions = set()
-            catalog = self._get_object_catalog()  # All objects (tables, views, SPs, functions)
-
-            for func_name in regex_function_calls:
-                if func_name not in regex_function_calls_valid:
-                    # v4.3.3 BUG FIX: Check if object exists as ANY type before creating phantom
-                    # Issue: FactGLCognos exists as TABLE but was created as phantom FUNCTION
-                    # because it wasn't in function catalog (only checked function catalog, not all objects)
-
-                    # Check if object exists anywhere in catalog (case-insensitive)
-                    exists_in_catalog = func_name in catalog
-                    if not exists_in_catalog:
-                        func_name_lower = func_name.lower()
-                        for catalog_name in catalog:
-                            if catalog_name.lower() == func_name_lower:
-                                exists_in_catalog = True
-                                break
-
-                    if exists_in_catalog:
-                        # Object exists as table/view/SP, don't create phantom function
-                        logger.debug(f"Skipping phantom function (exists as table/view/SP): {func_name}")
-                        continue
-
-                    # Function not in catalog, check if it's excluded
-                    parts = func_name.split('.')
-                    if len(parts) == 2:
-                        schema, name = parts
-                        # v4.3.3: Apply same include list filtering as phantom tables
-                        if not self._is_excluded(schema, name) and self._schema_matches_include_list(schema):
-                            phantom_functions.add(func_name)
-
-            if phantom_functions:
-                logger.info(f"Detected {len(phantom_functions)} phantom functions: {phantom_functions}")
-                phantom_func_ids_map = self._create_or_get_phantom_objects(phantom_functions, object_type='Function')
-
-                # Add phantom function IDs to inputs
-                phantom_func_ids = [phantom_func_ids_map[name] for name in phantom_functions if name in phantom_func_ids_map]
-                input_ids.extend(phantom_func_ids)
-
-                # Track phantom function references
-                if phantom_func_ids_map:
-                    func_dependency_types = {name: 'input' for name in phantom_functions}
-                    self._track_phantom_references(object_id, phantom_func_ids_map, func_dependency_types)
-
             # STEP 6: Calculate expected vs found counts for confidence calculation (v2.1.0)
-            # IMPORTANT: Phantoms and functions do NOT count in found_count (confidence based on real catalog table matches only)
+            # v4.3.4: Removed phantom tracking - objects not in catalog are simply filtered out
             expected_count = len(regex_sources_valid) + len(regex_targets_valid)
-            # Exclude: SP IDs, function IDs, and all phantom IDs
-            phantom_func_ids_count = len(phantom_func_ids) if phantom_functions else 0
-            found_count = len(input_ids) + len(output_ids) - len(sp_ids) - len(func_ids) - len(phantom_input_ids) - len(phantom_output_ids) - phantom_func_ids_count
+            # Exclude: SP IDs and function IDs from found_count (confidence based on real catalog table matches only)
+            found_count = len(input_ids) + len(output_ids) - len(sp_ids) - len(func_ids)
 
             # Detect orchestrator SPs (only calls other SPs, no table access)
             is_orchestrator = (expected_count == 0 and len(regex_sp_calls_valid) > 0)
@@ -1572,195 +1408,7 @@ class QualityAwareParser:
 
         return validated
 
-    def _detect_phantom_tables(self, table_names: Set[str]) -> Set[str]:
-        """
-        Detect phantom tables (not in catalog, but not excluded).
 
-        v4.3.0: Phantom Objects Feature
-        Returns tables that are:
-        - NOT in catalog (real metadata)
-        - NOT dummy.* (temp table placeholders)
-        - NOT sys.* or information_schema.* (system schemas)
-
-        These are likely missing metadata or external references.
-        """
-        catalog = self._get_object_catalog()
-        phantoms = set()
-
-        for name in table_names:
-            # Parse schema.object format
-            parts = name.split('.')
-            if len(parts) != 2:
-                continue
-
-            schema, table = parts
-
-            # v4.3.0: INCLUDE LIST APPROACH - Only create phantoms for schemas matching include patterns
-            if not self._schema_matches_include_list(schema):
-                logger.debug(f"Skipping phantom (schema not in include list): {name}")
-                continue
-
-            # Additional filtering for dbo schema CTEs and temp objects
-            if schema.lower() == 'dbo':
-                table_lower = table.lower()
-
-                # Check if table name matches any exclusion pattern
-                skip = False
-                for pattern in self.excluded_dbo_patterns:
-                    pattern_lower = pattern.lower()
-                    # Handle different pattern types
-                    if '*' in pattern:
-                        # Wildcard pattern
-                        prefix = pattern_lower.replace('*', '')
-                        if table_lower.startswith(prefix):
-                            logger.debug(f"Excluding dbo object (wildcard match '{pattern}'): {name}")
-                            skip = True
-                            break
-                    elif table_lower == pattern_lower:
-                        # Exact match
-                        logger.debug(f"Excluding dbo object (exact match): {name}")
-                        skip = True
-                        break
-                    elif table_lower.startswith(pattern_lower):
-                        # Prefix match
-                        logger.debug(f"Excluding dbo object (prefix match '{pattern}'): {name}")
-                        skip = True
-                        break
-
-                if skip:
-                    continue
-
-                # Also exclude objects starting with # or @
-                if table.startswith('#') or table.startswith('@'):
-                    logger.debug(f"Excluding temp table/variable: {name}")
-                    continue
-
-            # If not in catalog (case-insensitive), it's a phantom
-            if name not in catalog:
-                name_lower = name.lower()
-                found = False
-                for catalog_name in catalog:
-                    if catalog_name.lower() == name_lower:
-                        found = True
-                        break
-
-                if not found:
-                    phantoms.add(name)
-                    logger.debug(f"Phantom detected: {name}")
-
-        # Only log at INFO level if phantoms were actually found
-        if len(phantoms) > 0:
-            logger.info(f"Identified {len(phantoms)} phantom objects (include-list filtered)")
-        else:
-            logger.debug(f"Identified {len(phantoms)} phantom objects (include-list filtered)")
-        return phantoms
-
-    def _create_or_get_phantom_objects(self, phantom_names: Set[str], object_type: str = 'Table') -> Dict[str, int]:
-        """
-        Create or get phantom objects in database.
-
-        v4.3.0: Phantom Objects Feature
-        Uses UPSERT logic to avoid duplicates.
-        Returns mapping of table/function_name -> phantom_id (negative).
-
-        Args:
-            phantom_names: Set of schema.object names
-            object_type: 'Table' or 'Function' (default: 'Table')
-
-        Returns:
-            Dict mapping "schema.object" -> phantom_id (negative int)
-        """
-        if not phantom_names:
-            return {}
-
-        phantom_map = {}
-
-        for name in phantom_names:
-            parts = name.split('.')
-            if len(parts) != 2:
-                logger.warning(f"Skipping invalid phantom name: {name}")
-                continue
-
-            schema, obj_name = parts
-
-            # Check if phantom already exists
-            check_query = """
-                SELECT object_id
-                FROM phantom_objects
-                WHERE LOWER(schema_name) = LOWER(?)
-                  AND LOWER(object_name) = LOWER(?)
-                  AND is_promoted = FALSE
-            """
-            results = self.workspace.query(check_query, params=[schema, obj_name])
-
-            if results:
-                # Phantom exists, update last_seen
-                phantom_id = results[0][0]
-                update_query = """
-                    UPDATE phantom_objects
-                    SET last_seen = CURRENT_TIMESTAMP
-                    WHERE object_id = ?
-                """
-                self.workspace.query(update_query, params=[phantom_id])
-                phantom_map[name] = phantom_id
-                logger.debug(f"Updated existing phantom: {name} (ID: {phantom_id})")
-            else:
-                # Create new phantom
-                insert_query = """
-                    INSERT INTO phantom_objects (schema_name, object_name, object_type, phantom_reason)
-                    VALUES (?, ?, ?, 'not_in_catalog')
-                """
-                self.workspace.query(insert_query, params=[schema, obj_name, object_type])
-
-                # Get the auto-generated negative ID
-                get_id_query = """
-                    SELECT object_id
-                    FROM phantom_objects
-                    WHERE LOWER(schema_name) = LOWER(?)
-                      AND LOWER(object_name) = LOWER(?)
-                    ORDER BY first_seen DESC
-                    LIMIT 1
-                """
-                results = self.workspace.query(get_id_query, params=[schema, obj_name])
-                if results:
-                    phantom_id = results[0][0]
-                    phantom_map[name] = phantom_id
-                    logger.info(f"Created phantom: {name} (ID: {phantom_id})")
-                else:
-                    logger.error(f"Failed to get phantom ID for {name}")
-
-        return phantom_map
-
-    def _track_phantom_references(self, sp_id: int, phantom_ids: Dict[str, int], dependency_types: Dict[str, str]) -> None:
-        """
-        Track which SPs reference which phantoms.
-
-        v4.3.0: Phantom Objects Feature
-        Used for impact analysis when phantom is promoted.
-
-        Args:
-            sp_id: Stored procedure object_id
-            phantom_ids: Dict mapping table_name -> phantom_id
-            dependency_types: Dict mapping table_name -> 'input' or 'output'
-        """
-        if not phantom_ids:
-            return
-
-        for table_name, phantom_id in phantom_ids.items():
-            dep_type = dependency_types.get(table_name, 'unknown')
-
-            # UPSERT phantom reference
-            upsert_query = """
-                INSERT INTO phantom_references (phantom_id, referencing_sp_id, dependency_type, last_seen)
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-                ON CONFLICT (phantom_id, referencing_sp_id, dependency_type)
-                DO UPDATE SET last_seen = CURRENT_TIMESTAMP
-            """
-            try:
-                self.workspace.query(upsert_query, params=[phantom_id, sp_id, dep_type])
-                logger.debug(f"Tracked phantom reference: SP {sp_id} -> Phantom {phantom_id} ({dep_type})")
-            except Exception as e:
-                logger.warning(f"Failed to track phantom reference: {e}")
 
     def _fetch_ddl(self, object_id: int) -> Optional[str]:
         """Fetch DDL from workspace."""

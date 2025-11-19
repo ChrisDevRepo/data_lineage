@@ -139,45 +139,7 @@ def main():
         print("  Cannot determine SQLGlot enhancement impact.")
         print("  To enable: Set LOG_LEVEL=DEBUG in .env")
 
-    # 5. Phantom Objects
-    print("\n🔗 PHANTOM/EXTERNAL OBJECTS")
-    print("-" * 80)
 
-    tables = workspace.conn.execute("SHOW TABLES").fetchall()
-    table_names = [row[0] for row in tables]
-
-    if 'phantom_objects' in table_names:
-        count = workspace.conn.execute("SELECT COUNT(*) FROM phantom_objects").fetchone()[0]
-
-        if count > 0:
-            print(f"Total phantom objects found: {count}")
-
-            # By schema
-            results = workspace.conn.execute("""
-                SELECT schema_name, COUNT(*) as cnt
-                FROM phantom_objects
-                GROUP BY schema_name
-                ORDER BY cnt DESC
-            """).fetchall()
-
-            print("\nPhantom objects by schema:")
-            for schema, cnt in results:
-                print(f"  {schema}: {cnt} objects")
-
-            # Sample
-            results = workspace.conn.execute("""
-                SELECT schema_name, object_name, object_type
-                FROM phantom_objects
-                LIMIT 10
-            """).fetchall()
-
-            print("\nSample phantom objects:")
-            for schema, name, obj_type in results:
-                print(f"  🔗 {schema}.{name} ({obj_type})")
-        else:
-            print("✅ No phantom objects (all dependencies resolved)")
-    else:
-        print("No phantom_objects table (external dependency tracking disabled)")
 
     # 6. Problem SPs
     print("\n⚠️  STORED PROCEDURES WITH ISSUES")
