@@ -14,8 +14,8 @@ If these tests fail, the parser has regressed!
 """
 
 import pytest
-from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
-from lineage_v3.parsers.quality_aware_parser import QualityAwareParser
+from engine.core.duckdb_workspace import DuckDBWorkspace
+from engine.parsers.quality_aware_parser import QualityAwareParser
 
 
 class TestParserGoldenCases:
@@ -177,7 +177,7 @@ class TestParserSimplifiedConfidence:
         - Parse failed → 0
         - Orchestrator (no tables) → 100
         """
-        from lineage_v3.utils.confidence_calculator import ConfidenceCalculator
+        from engine.utils.confidence_calculator import ConfidenceCalculator
 
         # Perfect match
         result = ConfidenceCalculator.calculate_simple(

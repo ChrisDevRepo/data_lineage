@@ -6,8 +6,8 @@ Tests that settings properly validate and expose SQL dialect configuration.
 
 import pytest
 import os
-from lineage_v3.config.settings import Settings
-from lineage_v3.config.dialect_config import SQLDialect
+from engine.config.settings import Settings
+from engine.config.dialect_config import SQLDialect
 
 
 class TestSettingsDialectConfiguration:

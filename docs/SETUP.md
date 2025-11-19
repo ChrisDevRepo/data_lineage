@@ -27,7 +27,7 @@ cd frontend && npm install
 pip install -r requirements.txt
 
 # Verify installation
-python lineage_v3/main.py --help
+python engine/main.py --help
 ```
 
 ### Frontend Setup

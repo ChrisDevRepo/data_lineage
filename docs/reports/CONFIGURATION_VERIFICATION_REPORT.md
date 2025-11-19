@@ -39,7 +39,7 @@
 
 ### 2. Multi-Database Support ✅
 
-**File:** `lineage_v3/config/dialect_config.py`
+**File:** `engine/config/dialect_config.py`
 
 **Supported Databases (7):**
 
@@ -64,7 +64,7 @@
 
 **Directory Structure:**
 ```
-lineage_v3/rules/
+engine/rules/
 ├── generic/          # Rules for ALL databases
 │   └── 01_whitespace.yaml
 ├── tsql/             # SQL Server / Synapse specific
@@ -79,7 +79,7 @@ lineage_v3/rules/
 
 #### Generic Rules (Apply to ALL Databases)
 ```yaml
-# lineage_v3/rules/generic/01_whitespace.yaml
+# engine/rules/generic/01_whitespace.yaml
 dialect: generic
 enabled: true
 priority: 1
@@ -87,7 +87,7 @@ priority: 1
 
 #### Dialect-Specific Rules
 ```yaml
-# lineage_v3/rules/tsql/01_raiserror.yaml
+# engine/rules/tsql/01_raiserror.yaml
 dialect: tsql
 enabled: true
 priority: 10
@@ -104,8 +104,8 @@ priority: 10
 
 **Test Results:**
 ```python
-from lineage_v3.rules.rule_loader import RuleLoader
-from lineage_v3.config.dialect_config import SQLDialect
+from engine.rules.rule_loader import RuleLoader
+from engine.config.dialect_config import SQLDialect
 
 loader = RuleLoader()
 
@@ -122,7 +122,7 @@ oracle_rules = loader.load_for_dialect(SQLDialect.ORACLE)
 
 ### 4. Database Initialization ✅
 
-**File:** `lineage_v3/core/duckdb_workspace.py`
+**File:** `engine/core/duckdb_workspace.py`
 
 **Tested:**
 - Workspace creation
@@ -167,7 +167,7 @@ CREATE TABLE phantom_objects (
 
 ### 5. Parser Integration ✅
 
-**File:** `lineage_v3/parsers/quality_aware_parser.py`
+**File:** `engine/parsers/quality_aware_parser.py`
 
 **Configuration Usage:**
 
@@ -242,7 +242,7 @@ PHANTOM_EXTERNAL_SCHEMAS=external_lakehouse,partner_warehouse
 
 **Add Oracle-specific rules:**
 
-**File:** `lineage_v3/rules/oracle/01_remove_dbms_output.yaml`
+**File:** `engine/rules/oracle/01_remove_dbms_output.yaml`
 ```yaml
 name: remove_dbms_output
 description: Remove Oracle DBMS_OUTPUT statements
@@ -264,7 +264,7 @@ test_cases:
 
 **Add Fabric-specific rules:**
 
-**File:** `lineage_v3/rules/fabric/01_remove_lakehouse_hints.yaml`
+**File:** `engine/rules/fabric/01_remove_lakehouse_hints.yaml`
 ```yaml
 name: remove_lakehouse_hints
 description: Remove Fabric lakehouse optimization hints
@@ -285,9 +285,9 @@ replacement: ""
 
 **Python API:**
 ```python
-from lineage_v3.config.settings import Settings
-from lineage_v3.config.dialect_config import SQLDialect
-from lineage_v3.parsers.quality_aware_parser import QualityAwareParser
+from engine.config.settings import Settings
+from engine.config.dialect_config import SQLDialect
+from engine.parsers.quality_aware_parser import QualityAwareParser
 
 # Configure settings (v4.3.3: external schemas only, no wildcards)
 settings = Settings(
@@ -332,17 +332,17 @@ After parser changes, verify:
 
 ### Core Files
 - ✅ `.env.template` - Environment variable template
-- ✅ `lineage_v3/config/settings.py` - Settings class (Pydantic)
-- ✅ `lineage_v3/config/dialect_config.py` - Database dialect registry
-- ✅ `lineage_v3/rules/rule_loader.py` - YAML rule loader
-- ✅ `lineage_v3/core/duckdb_workspace.py` - Database initialization
+- ✅ `engine/config/settings.py` - Settings class (Pydantic)
+- ✅ `engine/config/dialect_config.py` - Database dialect registry
+- ✅ `engine/rules/rule_loader.py` - YAML rule loader
+- ✅ `engine/core/duckdb_workspace.py` - Database initialization
 
 ### Rule Directories
-- ✅ `lineage_v3/rules/generic/` - Universal rules
-- ✅ `lineage_v3/rules/tsql/` - SQL Server / Synapse rules
-- 📦 `lineage_v3/rules/fabric/` - Fabric rules (future)
-- 📦 `lineage_v3/rules/oracle/` - Oracle rules (future)
-- 📦 `lineage_v3/rules/postgres/` - PostgreSQL rules (future)
+- ✅ `engine/rules/generic/` - Universal rules
+- ✅ `engine/rules/tsql/` - SQL Server / Synapse rules
+- 📦 `engine/rules/fabric/` - Fabric rules (future)
+- 📦 `engine/rules/oracle/` - Oracle rules (future)
+- 📦 `engine/rules/postgres/` - PostgreSQL rules (future)
 
 ---
 
@@ -352,7 +352,7 @@ After parser changes, verify:
 
 ### Step 1: Add Dialect
 ```python
-# lineage_v3/config/dialect_config.py
+# engine/config/dialect_config.py
 class SQLDialect(str, Enum):
     # ... existing dialects ...
     TERADATA = "teradata"
@@ -370,12 +370,12 @@ DIALECT_METADATA[SQLDialect.TERADATA] = DialectMetadata(
 
 ### Step 2: Create Rule Directory
 ```bash
-mkdir -p lineage_v3/rules/teradata
+mkdir -p engine/rules/teradata
 ```
 
 ### Step 3: Add Teradata-Specific Rules
 ```yaml
-# lineage_v3/rules/teradata/01_remove_collect_stats.yaml
+# engine/rules/teradata/01_remove_collect_stats.yaml
 name: remove_collect_stats
 description: Remove Teradata COLLECT STATISTICS statements
 dialect: teradata
@@ -397,7 +397,7 @@ PHANTOM_EXTERNAL_SCHEMAS=external_dw,external_staging,partner_data
 
 ### Step 5: Use It
 ```python
-from lineage_v3.config.dialect_config import SQLDialect
+from engine.config.dialect_config import SQLDialect
 
 parser = QualityAwareParser(
     dialect=SQLDialect.TERADATA,

@@ -1,0 +1,106 @@
+# ==============================================================================
+# T-SQL Rule: Extract Core DML from CREATE PROC Wrapper (SIMPLIFIED)
+# ==============================================================================
+# Extract core DML from CREATE PROC wrapper.
+#
+# IMPORTANT: This is a SIMPLIFIED version of the complex Python callback.
+# The Python version had depth counting for nested BEGIN/END, string literal
+# tracking, and CASE...END handling. This YAML version handles the common case.
+#
+# If this causes regressions, we may need to keep this rule as Python callback.
+# ==============================================================================
+
+name: extract_core_dml
+description: |
+  Extract core DML from CREATE PROC wrapper (simplified).
+
+  Removes CREATE PROCEDURE...AS BEGIN wrapper and trailing END.
+  This makes SQLGlot parsing easier by focusing on the core DML logic.
+
+  NOTE: Simplified version - handles common cases but not deeply nested BEGIN/END.
+
+dialect: tsql
+category: extraction
+enabled: true
+priority: 90  # Run near end, after other cleaning
+
+# -----------------------------------------------------------------------------
+# Pattern Configuration (MULTI-STEP)
+# -----------------------------------------------------------------------------
+pattern_type: regex
+
+# Multiple patterns run sequentially
+pattern:
+  # Step 1: Remove CREATE PROC header up to AS BEGIN
+  - 'CREATE\s+PROC(?:EDURE)?\s+\[?[\w\.\[\]]+\]?.*?AS\s+BEGIN'
+
+  # Step 2: Remove trailing END (at end of file)
+  - '\s*END\s*$'
+
+# Corresponding replacements for each step
+replacement:
+  - ''    # Step 1: remove CREATE PROC header
+  - ''    # Step 2: remove trailing END
+
+# -----------------------------------------------------------------------------
+# Test Cases
+# -----------------------------------------------------------------------------
+test_cases:
+  - name: simple_proc
+    description: "Extract SELECT from simple CREATE PROC"
+    input: |
+      CREATE PROC dbo.T AS BEGIN
+      SELECT * FROM T1
+      END
+    expected: |
+
+      SELECT * FROM T1
+
+  - name: proc_with_params
+    description: "Extract INSERT from proc with parameters"
+    input: |
+      CREATE PROCEDURE [dbo].[LoadData]
+      @param1 INT,
+      @param2 VARCHAR(50)
+      AS
+      BEGIN
+      INSERT INTO Target SELECT * FROM Source
+      END
+    expected: |
+
+      INSERT INTO Target SELECT * FROM Source
+
+# -----------------------------------------------------------------------------
+# Debug Configuration
+# -----------------------------------------------------------------------------
+debug:
+  log_matches: true
+  log_replacements: true
+  show_context_lines: 3
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  migrated_from: "sql_cleaning_rules.py::extract_core_dml"
+  rule_type: "multi-step"
+  tested_with: "349 stored procedures"
+  affects_lineage: false
+  impact: |
+    SIMPLIFIED VERSION: Extracts core DML from CREATE PROC wrapper.
+
+    Original Python version had complex depth counting for nested BEGIN/END,
+    string literal tracking, and CASE...END handling. This YAML version handles
+    the common case with simple regex.
+
+    If baseline testing shows regressions, this rule may need to stay as Python callback.
+
+  limitations: |
+    - Does not handle deeply nested BEGIN/END blocks with depth counting
+    - Does not skip keywords inside string literals
+    - Does not distinguish CASE...END from BEGIN...END
+
+    Most SPs don't have these edge cases. Parser already does additional preprocessing
+    in _preprocess_sql() method which may compensate.

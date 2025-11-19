@@ -69,8 +69,8 @@ venv/lib/python3.12/site-packages/_pytest/pathlib.py:587: in import_path
 venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module
     exec(co, module.__dict__)
 tests/integration/test_postgres_mock.py:14: in <module>
-    from lineage_v3.config.dialect_config import SQLDialect
-E   ModuleNotFoundError: No module named 'lineage_v3'[0m
+    from engine.config.dialect_config import SQLDialect
+E   ModuleNotFoundError: No module named 'engine'[0m
 [31m[1m________ ERROR collecting tests/integration/test_sp_parsing_details.py _________[0m
 [31mImportError while importing test module '/home/chris/data_lineage/tests/integration/test_sp_parsing_details.py'.
 Hint: make sure your test modules/packages have valid Python names.
@@ -117,8 +117,8 @@ venv/lib/python3.12/site-packages/_pytest/pathlib.py:587: in import_path
 venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module
     exec(co, module.__dict__)
 tests/integration/test_synapse_integration.py:16: in <module>
-    from lineage_v3.config.dialect_config import SQLDialect
-E   ModuleNotFoundError: No module named 'lineage_v3'[0m
+    from engine.config.dialect_config import SQLDialect
+E   ModuleNotFoundError: No module named 'engine'[0m
 [31m[1m__________ ERROR collecting tests/unit/config/test_dialect_config.py ___________[0m
 [31mImportError while importing test module '/home/chris/data_lineage/tests/unit/config/test_dialect_config.py'.
 Hint: make sure your test modules/packages have valid Python names.
@@ -141,8 +141,8 @@ venv/lib/python3.12/site-packages/_pytest/pathlib.py:587: in import_path
 venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module
     exec(co, module.__dict__)
 tests/unit/config/test_dialect_config.py:8: in <module>
-    from lineage_v3.config.dialect_config import (
-E   ModuleNotFoundError: No module named 'lineage_v3'[0m
+    from engine.config.dialect_config import (
+E   ModuleNotFoundError: No module named 'engine'[0m
 [31m[1m_____________ ERROR collecting tests/unit/config/test_settings.py ______________[0m
 [31mImportError while importing test module '/home/chris/data_lineage/tests/unit/config/test_settings.py'.
 Hint: make sure your test modules/packages have valid Python names.
@@ -165,8 +165,8 @@ venv/lib/python3.12/site-packages/_pytest/pathlib.py:587: in import_path
 venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module
     exec(co, module.__dict__)
 tests/unit/config/test_settings.py:9: in <module>
-    from lineage_v3.config.settings import Settings
-E   ModuleNotFoundError: No module named 'lineage_v3'[0m
+    from engine.config.settings import Settings
+E   ModuleNotFoundError: No module named 'engine'[0m
 [31m[1m____________ ERROR collecting tests/unit/dialects/test_dialects.py _____________[0m
 [31mImportError while importing test module '/home/chris/data_lineage/tests/unit/dialects/test_dialects.py'.
 Hint: make sure your test modules/packages have valid Python names.
@@ -189,8 +189,8 @@ venv/lib/python3.12/site-packages/_pytest/pathlib.py:587: in import_path
 venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module
     exec(co, module.__dict__)
 tests/unit/dialects/test_dialects.py:16: in <module>
-    from lineage_v3.config.dialect_config import SQLDialect
-E   ModuleNotFoundError: No module named 'lineage_v3'[0m
+    from engine.config.dialect_config import SQLDialect
+E   ModuleNotFoundError: No module named 'engine'[0m
 [31m[1m___________ ERROR collecting tests/unit/test_comment_hints_parser.py ___________[0m
 [31mImportError while importing test module '/home/chris/data_lineage/tests/unit/test_comment_hints_parser.py'.
 Hint: make sure your test modules/packages have valid Python names.
@@ -213,8 +213,8 @@ venv/lib/python3.12/site-packages/_pytest/pathlib.py:587: in import_path
 venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module
     exec(co, module.__dict__)
 tests/unit/test_comment_hints_parser.py:12: in <module>
-    from lineage_v3.parsers.comment_hints_parser import CommentHintsParser
-E   ModuleNotFoundError: No module named 'lineage_v3'[0m
+    from engine.parsers.comment_hints_parser import CommentHintsParser
+E   ModuleNotFoundError: No module named 'engine'[0m
 [31m[1m___________ ERROR collecting tests/unit/test_parser_golden_cases.py ____________[0m
 [31mImportError while importing test module '/home/chris/data_lineage/tests/unit/test_parser_golden_cases.py'.
 Hint: make sure your test modules/packages have valid Python names.
@@ -237,8 +237,8 @@ venv/lib/python3.12/site-packages/_pytest/pathlib.py:587: in import_path
 venv/lib/python3.12/site-packages/_pytest/assertion/rewrite.py:197: in exec_module
     exec(co, module.__dict__)
 tests/unit/test_parser_golden_cases.py:17: in <module>
-    from lineage_v3.core.duckdb_workspace import DuckDBWorkspace
-E   ModuleNotFoundError: No module named 'lineage_v3'[0m
+    from engine.core.duckdb_workspace import DuckDBWorkspace
+E   ModuleNotFoundError: No module named 'engine'[0m
 [36m[1m=========================== short test summary info ============================[0m
 [31mERROR[0m tests/api/test_main_api.py - RuntimeError: The starlette.testclient module requires the httpx package to be installed.
 You can install this with:

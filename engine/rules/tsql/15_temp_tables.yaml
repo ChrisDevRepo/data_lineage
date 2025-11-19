@@ -1,0 +1,71 @@
+# ==============================================================================
+# T-SQL Rule: Replace Temp Tables (#table → dummy.table)
+# ==============================================================================
+# Temp tables (#table) are not valid SQL syntax - they're T-SQL specific.
+# This rule replaces # with dummy. schema, making it parseable by SQLGlot.
+#
+# Benefits:
+# - Valid SQL syntax (SQLGlot can parse it)
+# - Simple regex replacement
+# - Filter out dummy.* objects later in catalog validation
+# ==============================================================================
+
+name: replace_temp_tables
+description: |
+  Replace #table with dummy.table for parseability.
+
+  Temp tables (#table) are T-SQL specific and not valid standard SQL.
+  By replacing # with dummy. schema, we make the SQL parseable by SQLGlot.
+  The dummy.* objects are filtered out later in catalog validation.
+
+dialect: tsql
+category: table_mgmt
+enabled: true
+priority: 15  # Early - before DECLARE removal
+
+# -----------------------------------------------------------------------------
+# Pattern Configuration
+# -----------------------------------------------------------------------------
+pattern_type: regex
+pattern: '#(\w+)'
+replacement: 'dummy.\1'
+
+# -----------------------------------------------------------------------------
+# Test Cases
+# -----------------------------------------------------------------------------
+test_cases:
+  - name: select_into_temp
+    description: "SELECT INTO #temp should become dummy.temp"
+    input: "SELECT * INTO #temp FROM Table1"
+    expected: "SELECT * INTO dummy.temp FROM Table1"
+
+  - name: insert_into_temp
+    description: "INSERT INTO #staging should become dummy.staging"
+    input: "INSERT INTO #staging SELECT * FROM Table2"
+    expected: "INSERT INTO dummy.staging SELECT * FROM Table2"
+
+  - name: join_with_temp
+    description: "JOIN with #temp alias should become dummy.temp"
+    input: "SELECT a.ID FROM #temp a JOIN Table3 b ON a.ID = b.ID"
+    expected: "SELECT a.ID FROM dummy.temp a JOIN Table3 b ON a.ID = b.ID"
+
+# -----------------------------------------------------------------------------
+# Debug Configuration
+# -----------------------------------------------------------------------------
+debug:
+  log_matches: true
+  log_replacements: true
+  show_context_lines: 1
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  migrated_from: "sql_cleaning_rules.py::replace_temp_tables"
+  tested_with: "349 stored procedures"
+  affects_lineage: false
+  impact: |
+    Makes temp tables parseable by SQLGlot without special handling.
+    The dummy.* objects are filtered out during catalog validation.

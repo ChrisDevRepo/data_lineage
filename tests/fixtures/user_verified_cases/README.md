@@ -156,7 +156,7 @@ tests/fixtures/user_verified_cases/
 import pytest
 import yaml
 from pathlib import Path
-from lineage_v3.parsers import QualityAwareParser
+from engine.parsers import QualityAwareParser
 
 @pytest.fixture
 def load_verified_cases():

@@ -202,7 +202,7 @@ If you **really** want to reduce, here's how (but I don't recommend it):
 
 ### Remove Fabric, Oracle (Keep 5 Core)
 
-**File:** `lineage_v3/config/dialect_config.py`
+**File:** `engine/config/dialect_config.py`
 
 ```python
 class SQLDialect(str, Enum):
@@ -294,7 +294,7 @@ Remove corresponding entries from `DIALECT_METADATA` dict.
 
 ### Step 1: Update Dialect Config (5 min)
 ```bash
-# Edit: lineage_v3/config/dialect_config.py
+# Edit: engine/config/dialect_config.py
 # Comment out FABRIC and ORACLE from SQLDialect enum
 # Comment out their DIALECT_METADATA entries
 ```
@@ -310,7 +310,7 @@ Remove corresponding entries from `DIALECT_METADATA` dict.
 
 ### Step 3: Test (2 min)
 ```bash
-python3 -c "from lineage_v3.config.dialect_config import list_supported_dialects; print(list_supported_dialects())"
+python3 -c "from engine.config.dialect_config import list_supported_dialects; print(list_supported_dialects())"
 ```
 
 ### Step 4: Commit (1 min)

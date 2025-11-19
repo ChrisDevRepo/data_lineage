@@ -17,12 +17,13 @@ All Python commands in this document assume the virtual environment is activated
 - Use TodoWrite tool; update immediately after completion
 - Use subagents for specialized validation tasks (see Subagents section)
 
-## Project: Data Lineage Visualizer v4.3.3
+## Project: Data Lineage Visualizer v0.10.0
 - **Stack:** FastAPI + DuckDB + SQLGlot + Regex | React + React Flow
 - **Database:** Azure Synapse Analytics (T-SQL) - extensible to 7 data warehouses
-- **Parser:** v4.3.3 ✅ **100% success rate** (349/349 SPs) + simplified rules + phantom fix
+- **Data Sources:** Parquet files (default) OR Direct database connection (optional v0.10.0)
+- **Parser:** v4.3.3 ✅ **100% success rate** (349/349 SPs) + YAML rules + phantom fix
 - **Confidence:** 82.5% perfect (100), 7.4% good (85), 10.0% acceptable (75)
-- **Frontend:** v1.0.0 | **API:** v4.0.3
+- **Frontend:** v0.10.0 | **API:** v0.10.0 | **License:** MIT
 ## ⚠️ BEFORE CHANGING PARSER - READ THIS
 **Critical Reference:** [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md)
 - WARN mode regression → empty lineage disaster
@@ -33,6 +34,56 @@ All Python commands in this document assume the virtual environment is activated
 **Complete Summary:** [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md)
 
 ## Recent Updates
+
+### v0.10.0 - Database Direct Connection (2025-11-19) 🔌
+- **Direct Database Metadata Refresh:**
+  - Optional feature for automated metadata extraction (disabled by default)
+  - Connect directly to SQL Server/Synapse/Fabric without Parquet file generation
+  - "Refresh from Database" button in Import modal (only shown when DB_ENABLED=true)
+  - Same processing pipeline as Parquet upload (database → Parquet → lineage)
+- **Incremental Refresh:**
+  - Hash-based change detection (SHA2_256 of procedure definitions)
+  - Only fetches and processes modified procedures
+  - Metadata cache tracks previous hashes
+  - Significant performance improvement for large databases
+- **Connector Framework:**
+  - Abstract base class + factory pattern for multi-database support
+  - YAML-based query configuration (`engine/connectors/queries/{dialect}/metadata.yaml`)
+  - T-SQL connector as reference implementation (pyodbc-based)
+  - Extensible to PostgreSQL, Snowflake, Oracle, BigQuery, etc.
+- **Security:**
+  - Azure Key Vault integration for production secrets
+  - Docker secrets support for containerized deployments
+  - SSL/TLS enforcement, connection timeout configuration
+  - Environment variables: `DB_ENABLED`, `DB_CONNECTION_STRING`, `DB_TIMEOUT`, `DB_SSL_ENABLED`
+- **Documentation:**
+  - Complete specification: [docs/DATABASE_CONNECTOR_SPECIFICATION.md](docs/DATABASE_CONNECTOR_SPECIFICATION.md)
+  - Metadata contract for DBAs
+  - Step-by-step connector implementation guide
+  - Connection string examples for 5 databases
+- **Result:** Enterprise-ready automated metadata extraction ✅
+
+### v0.9.0 - Production-Ready Open Source Release (2025-11-19) 🚀
+- **Developer Mode:**
+  - Read-only panel with Logs viewer and YAML Rules browser
+  - Access via Help → "For Developers" section (hidden by design)
+  - Backend APIs: `/api/debug/logs`, `/api/rules/{dialect}`, `/api/rules/{dialect}/{filename}`, `/api/rules/reset/{dialect}`
+  - Reset rules to defaults from pristine copies in `engine/rules/defaults/`
+- **Enhanced DEBUG Logging:**
+  - Per-object parsing logs show SQLGlot vs Regex fallback vs Hardcoded hints
+  - Format: `[PARSE] schema.object: Path=[...] Regex=[...] SQLGlot=[...] Hints=[...] Final=[...] Confidence=X`
+  - Only visible at DEBUG level (set `LOG_LEVEL=DEBUG` in `.env`)
+- **Log File Cleanup:**
+  - Auto-cleanup old logs based on retention policy (default: 7 days)
+  - Triggered on data import/upload
+  - Configurable via `LOG_RETENTION_DAYS` in `.env`
+- **Runtime Modes:**
+  - `RUN_MODE` environment variable: demo | debug | production
+  - Helper properties: `settings.is_demo_mode`, `settings.is_debug_mode`, `settings.is_production_mode`
+- **MIT License:**
+  - Open source under MIT license
+  - Copyright (c) 2025 Christian Wagner
+- **Result:** Production-ready for open source distribution ✅
 
 ### v4.3.3 - Trace Mode Enhancements + Phantom Handling (2025-11-17) 🎯
 - **Trace Mode UX Improvements:**
@@ -87,7 +138,7 @@ See .github/workflows/README.md and tests/integration/README.md for details.
 ├── .github/workflows/      # CI/CD pipelines (parser validation, PR checks)
 ├── api/                    # FastAPI backend
 ├── frontend/               # React + React Flow UI
-├── lineage_v3/             # Core parsing engine
+├── engine/             # Core parsing engine
 │   ├── parsers/            # quality_aware_parser.py, SQL cleaning rules
 │   └── config/             # Pydantic settings
 ├── scripts/testing/        # Validation tools
@@ -122,10 +173,16 @@ See frontend/test_*.mjs for correctness validation.
 
 **.env File:**
 ```bash
+# Runtime mode (v0.9.0)
+RUN_MODE=production  # demo | debug | production
+LOG_LEVEL=INFO       # DEBUG shows per-object parsing details
+LOG_RETENTION_DAYS=7 # Auto-cleanup old logs on import
+
+# Database configuration
 SQL_DIALECT=tsql  # Default (Synapse/SQL Server)
 EXCLUDED_SCHEMAS=sys,dummy,information_schema,tempdb,master,msdb,model
 
-# v4.3.3: REDESIGNED - Phantoms = EXTERNAL sources ONLY
+# v4.3.3: Phantoms = EXTERNAL sources ONLY
 PHANTOM_EXTERNAL_SCHEMAS=  # Empty = no external dependencies
 # Examples: power_consumption,external_lakehouse,partner_erp
 
@@ -180,16 +237,23 @@ diff baseline_before.txt baseline_after.txt
 # - All tests pass: source venv/bin/activate && pytest tests/ -v
 ```
 
-## SQL Cleaning Rules (Python-based)
+## SQL Cleaning Rules (YAML-based v0.9.0)
 
-**Active System:** 17 Python rules in `lineage_v3/parsers/sql_cleaning_rules.py`
+**Active System:** 17 YAML rules in `engine/rules/tsql/` + multi-dialect support
+
+**Key Features:**
+- **Declarative YAML rules** - Power users can extend without Python
+- **Pristine defaults** in `engine/rules/defaults/` for reset functionality
+- **Multi-step patterns** for complex transformations
+- **Developer Mode** - View, browse, and reset rules via GUI
+- **Comprehensive testing** - Each rule has test cases
 
 ### 🚨 MANDATORY Process for Rule Engine Changes
 
 **⚠️ CRITICAL: Always check journal before making changes!**
 1. Check docs/PARSER_CHANGE_JOURNAL.md (MANDATORY)
 2. Document baseline: `source venv/bin/activate && python scripts/testing/check_parsing_results.py > baseline_before.txt`
-3. Make rule changes in lineage_v3/parsers/sql_cleaning_rules.py
+3. Make rule changes in `engine/rules/tsql/*.yaml` (or create new dialect directory)
 4. Run tests: `source venv/bin/activate && pytest tests/unit/test_parser_golden_cases.py -v`
 5. Compare: `diff baseline_before.txt baseline_after.txt`
 
@@ -198,7 +262,7 @@ diff baseline_before.txt baseline_after.txt
 - ✅ NO regressions in confidence distribution
 - ✅ All user-verified tests pass
 
-See docs/PYTHON_RULES.md for rule examples and complete documentation.
+See `engine/rules/README.md` for complete YAML rule documentation and examples.
 
 ### 🚨 MANDATORY Process for SQLGlot Settings Changes
 
@@ -208,6 +272,36 @@ See docs/PYTHON_RULES.md for rule examples and complete documentation.
 - If ANY test fails → ROLLBACK IMMEDIATELY
 
 See docs/PARSER_CHANGE_JOURNAL.md for past regressions and what NOT to change.
+
+## Developer Mode (v0.9.0)
+
+**Access:** Help (?) → "For Developers" section → "Open Developer Panel" button
+
+**Features:**
+- **Logs Tab:**
+  - Last 500 log entries with color-coding (ERROR=red, WARNING=yellow, DEBUG=blue)
+  - Refresh button for real-time updates
+  - Useful for debugging parsing issues and rule application
+
+- **YAML Rules Tab:**
+  - Browse all rules for current dialect
+  - View YAML content (read-only)
+  - Shows: priority, enabled status, category
+  - "Reset to Defaults" button (copies from `engine/rules/defaults/`)
+
+**API Endpoints:**
+```
+GET  /api/debug/logs?lines=500&level=DEBUG
+GET  /api/rules/{dialect}
+GET  /api/rules/{dialect}/{filename}
+POST /api/rules/reset/{dialect}
+```
+
+**Enhanced DEBUG Logging:**
+Set `LOG_LEVEL=DEBUG` in `.env` to see per-object parsing details:
+```
+[PARSE] dbo.spMyProc: Path=[SQLGlot] Regex=[5S + 3T + 2SP] SQLGlot=[2S + 1T] Hints=[0In + 0Out] Final=[7S + 4T] Confidence=100
+```
 
 ## Testing & Validation
 
@@ -270,6 +364,12 @@ See `tests/integration/README.md` for complete test documentation.
 
 ## Documentation
 
+**📖 NEW: GitHub-Optimized Documentation (v0.10.0)**
+- **README.md** - Scannable landing page with badges, Mermaid diagrams, tables (GitHub optimized)
+- **QUICKSTART.md** - 5-10 min setup guide for power users & DBAs
+- **docs/ARCHITECTURE.md** - Complete system architecture, data flow, parser details
+- **docs/GITHUB_DOCUMENTATION_GUIDE.md** - Maintenance guide for documentation
+
 **🚨 CRITICAL FILES - PROTECTED (DO NOT DELETE):**
 - **docs/PARSER_DEVELOPMENT_PROCESS.md** ⭐ - Main workflow guide (Parse → Test → Fix → Document)
 - **docs/PARSER_CRITICAL_REFERENCE.md** ⭐ - Critical warnings, read BEFORE parser changes
@@ -280,6 +380,7 @@ See `tests/integration/README.md` for complete test documentation.
 
 **Other Essential References:**
 - docs/PARSER_V4.3.3_SUMMARY.md - Complete v4.3.3 summary
+- docs/DATABASE_CONNECTOR_SPECIFICATION.md - DBA guide for direct database connection
 - INVESTIGATION_COMPLETE.md - Latest investigation findings
 - REPARSE_ITERATION_SUMMARY.md - Recent iteration results
 
@@ -289,7 +390,7 @@ See `tests/integration/README.md` for complete test documentation.
 - tests/fixtures/user_verified_cases/README.md - User-verified test cases
 
 **Quick Access:**
-- Setup: docs/SETUP.md | Usage: docs/USAGE.md | API: docs/REFERENCE.md
+- Setup: docs/SETUP.md | Usage: docs/USAGE.md | Architecture: docs/ARCHITECTURE.md
 - Configuration: docs/reports/CONFIGURATION_VERIFICATION_REPORT.md
 
 ## Phantom Objects (v4.3.3)
@@ -368,15 +469,20 @@ See .claude/agents/README.md for complete table, tools, and example workflows.
 
 ---
 
-**Last Updated:** 2025-11-14
-**Last Verified:** 2025-11-14 (v4.3.3)
-**Version:** v4.3.3 ✅ Parser 100% success rate (349/349 SPs)
+**Last Updated:** 2025-11-19
+**Last Verified:** 2025-11-19 (v0.10.0)
+**Version:** v0.10.0 ✅ Direct database connection + Parser 100% success rate (349/349 SPs)
 
 **Quick Links:**
-- Complete Summary: [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md)
+- **NEW:** Quick Start: [QUICKSTART.md](QUICKSTART.md) (5-10 min setup for power users & DBAs)
+- **NEW:** Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) (complete system documentation)
+- **NEW:** GitHub Guide: [docs/GITHUB_DOCUMENTATION_GUIDE.md](docs/GITHUB_DOCUMENTATION_GUIDE.md)
+- License: [LICENSE](LICENSE) (MIT)
+- Database Connector: [docs/DATABASE_CONNECTOR_SPECIFICATION.md](docs/DATABASE_CONNECTOR_SPECIFICATION.md)
+- YAML Rules: [engine/rules/README.md](engine/rules/README.md)
+- Parser Summary: [docs/PARSER_V4.3.3_SUMMARY.md](docs/PARSER_V4.3.3_SUMMARY.md)
 - Critical Reference: [docs/PARSER_CRITICAL_REFERENCE.md](docs/PARSER_CRITICAL_REFERENCE.md)
 - Technical Guide: [docs/PARSER_TECHNICAL_GUIDE.md](docs/PARSER_TECHNICAL_GUIDE.md)
 - CI/CD Workflows: [.github/workflows/README.md](.github/workflows/README.md)
 - Integration Tests: [tests/integration/README.md](tests/integration/README.md)
-- Configuration Verification: [docs/reports/CONFIGURATION_VERIFICATION_REPORT.md](docs/reports/CONFIGURATION_VERIFICATION_REPORT.md)
-- memorize major development should be done in git branch and the pr must be approved from user
+- **Note:** Major development should be done in git branch and PR must be approved by user

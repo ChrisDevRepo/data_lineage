@@ -16,7 +16,7 @@
 
 ## Root Cause
 
-**File:** `lineage_v3/parsers/quality_aware_parser.py`
+**File:** `engine/parsers/quality_aware_parser.py`
 
 ### Phantom Tables (Lines 1406-1409) ✅ CORRECT
 ```python
@@ -101,7 +101,7 @@ The include list filter would have caught and rejected the false positives.
 
 ### Code Changes
 
-**File:** `lineage_v3/parsers/quality_aware_parser.py`
+**File:** `engine/parsers/quality_aware_parser.py`
 **Lines:** 441-445
 
 **Before:**
@@ -192,7 +192,7 @@ AND object_type = 'Function';
 
 ## Files to Update
 
-1. ✅ `lineage_v3/parsers/quality_aware_parser.py` - Add include list check
+1. ✅ `engine/parsers/quality_aware_parser.py` - Add include list check
 2. ✅ Clean up existing invalid phantoms in database
 3. ✅ Test on full SP set (349 SPs)
 4. ✅ Update documentation

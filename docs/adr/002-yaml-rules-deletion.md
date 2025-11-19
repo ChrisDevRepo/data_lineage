@@ -9,13 +9,13 @@
 
 The codebase contained two parallel rule systems for SQL cleaning:
 
-1. **Python Rules** (`lineage_v3/parsers/sql_cleaning_rules.py`)
+1. **Python Rules** (`engine/parsers/sql_cleaning_rules.py`)
    - 17 active rules in production
    - 100% success rate (349/349 SPs)
    - Well-tested, well-documented
    - Integrated with parser
 
-2. **YAML Rules** (`lineage_v3/rules/`)
+2. **YAML Rules** (`engine/rules/`)
    - Complete implementation (rule loader, validation, execution)
    - 711 lines of documentation (`docs/RULE_DEVELOPMENT.md`)
    - **NOT integrated with parser**
@@ -40,7 +40,7 @@ Having two rule systems created confusion:
 **Implementation approach:**
 ```python
 # Replace Python rules with YAML rules in quality_aware_parser.py
-from lineage_v3.rules import load_rules
+from engine.rules import load_rules
 rules = load_rules(settings.dialect)
 cleaned_sql = apply_rules(sql, rules)
 ```
@@ -64,7 +64,7 @@ cleaned_sql = apply_rules(sql, rules)
 ### Option 2: Delete YAML Rules System (CHOSEN)
 **Implementation approach:**
 ```bash
-rm -rf lineage_v3/rules/
+rm -rf engine/rules/
 rm docs/RULE_DEVELOPMENT.md
 # Update CLAUDE.md to reference PYTHON_RULES.md
 ```
@@ -133,7 +133,7 @@ rm docs/RULE_DEVELOPMENT.md
 ### Implementation
 
 **Deleted:**
-- `lineage_v3/rules/` directory (30KB, 4 files)
+- `engine/rules/` directory (30KB, 4 files)
   - `__init__.py`
   - `rule_loader.py` (10KB)
   - `generic/01_whitespace.yaml`
@@ -146,7 +146,7 @@ rm docs/RULE_DEVELOPMENT.md
   - References `PYTHON_RULES.md` instead of `RULE_DEVELOPMENT.md`
 
 **Preserved:**
-- `lineage_v3/parsers/sql_cleaning_rules.py` (17 Python rules)
+- `engine/parsers/sql_cleaning_rules.py` (17 Python rules)
 - `docs/PYTHON_RULES.md` (900+ lines documenting active system)
 
 ## Consequences
@@ -195,7 +195,7 @@ rm docs/RULE_DEVELOPMENT.md
 
 ### Before Deletion
 ```
-lineage_v3/
+engine/
 ├── parsers/
 │   └── sql_cleaning_rules.py    # 17 Python rules (ACTIVE)
 ├── rules/                        # YAML system (NOT INTEGRATED)
@@ -212,7 +212,7 @@ docs/
 
 ### After Deletion
 ```
-lineage_v3/
+engine/
 ├── parsers/
 │   └── sql_cleaning_rules.py    # 17 Python rules (ACTIVE)
 docs/
@@ -234,7 +234,7 @@ docs/
 
 **Option A: Restore from git**
 ```bash
-git checkout e9757f2 -- lineage_v3/rules/
+git checkout e9757f2 -- engine/rules/
 git checkout e9757f2 -- docs/RULE_DEVELOPMENT.md
 # Then integrate with parser
 ```
@@ -260,7 +260,7 @@ def remove_go(sql: str) -> str:
 ## Links
 
 - **Related Commit:** e9757f2 (Sprint 4 - Cleanup & Exception Hierarchy)
-- **Active System:** `lineage_v3/parsers/sql_cleaning_rules.py`
+- **Active System:** `engine/parsers/sql_cleaning_rules.py`
 - **Documentation:** `docs/PYTHON_RULES.md`
 - **Related ADR:** ADR 001 (Exception Hierarchy) - includes `RuleEngineError` for future use
 - **Git History:** YAML system preserved in commit history before e9757f2

@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lineage_v3.core import DuckDBWorkspace
-from lineage_v3.parsers import QualityAwareParser
+from engine.core import DuckDBWorkspace
+from engine.parsers import QualityAwareParser
 
 def reparse_all_sps():
     """Re-parse all stored procedures to populate expected_count/found_count."""

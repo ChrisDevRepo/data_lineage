@@ -1,0 +1,63 @@
+# ==============================================================================
+# T-SQL Rule: Remove Empty IF Blocks
+# ==============================================================================
+# After removing DROP TABLE statements, we may have empty IF blocks.
+# These are typically conditional drops that leave behind empty IF...BEGIN END.
+# ==============================================================================
+
+name: remove_empty_if
+description: |
+  Remove empty IF blocks (typically from DROP TABLE removal).
+
+  After removing DROP TABLE statements, empty IF blocks remain:
+    IF OBJECT_ID(...) IS NOT NULL
+    BEGIN END
+
+  These serve no purpose and confuse the parser.
+
+dialect: tsql
+category: wrapper
+enabled: true
+priority: 41  # After ExtractIFBlockDML
+
+# -----------------------------------------------------------------------------
+# Pattern Configuration
+# -----------------------------------------------------------------------------
+pattern_type: regex
+pattern: 'if\s+[^\n]+\s+begin\s+end'
+replacement: ''
+
+# -----------------------------------------------------------------------------
+# Test Cases
+# -----------------------------------------------------------------------------
+test_cases:
+  - name: empty_object_id_check
+    description: "Remove empty IF OBJECT_ID block"
+    input: |
+      if object_id(N'tempdb..#t') is not null
+      begin  end
+      SELECT * FROM Table1
+    expected: |
+
+      SELECT * FROM Table1
+
+# -----------------------------------------------------------------------------
+# Debug Configuration
+# -----------------------------------------------------------------------------
+debug:
+  log_matches: true
+  log_replacements: true
+  show_context_lines: 1
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  migrated_from: "sql_cleaning_rules.py::remove_empty_if_blocks"
+  tested_with: "349 stored procedures"
+  affects_lineage: false
+  impact: |
+    Cleans up empty IF blocks left behind after DROP TABLE removal.
+    Reduces parser confusion from meaningless control structures.

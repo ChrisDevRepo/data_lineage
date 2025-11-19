@@ -97,8 +97,8 @@ def test_user_verified_case(case: Dict[str, Any]):
     # For now, this is a placeholder that validates case file format
     # Once parser integration is complete, uncomment below:
 
-    # from lineage_v3.parsers import QualityAwareParser
-    # from lineage_v3.core import DuckDBWorkspace
+    # from engine.parsers import QualityAwareParser
+    # from engine.core import DuckDBWorkspace
 
     # with DuckDBWorkspace() as db:
     #     parser = QualityAwareParser(db)

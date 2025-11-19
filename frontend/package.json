@@ -1,10 +1,11 @@
 {
   "name": "data-object-lineage",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.9.0",
   "type": "module",
   "description": "Interactive data lineage visualizer for Azure Synapse",
   "author": "Vibecoding",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -25,6 +26,7 @@
     "dagre": "0.8.5",
     "graphology": "^0.26.0",
     "graphology-traversal": "^0.3.1",
+    "lucide-react": "^0.554.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "reactflow": "^11.11.4"

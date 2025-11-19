@@ -78,8 +78,8 @@ cat docs/PARSER_CRITICAL_REFERENCE.md
 ```
 
 **Key Files:**
-- `lineage_v3/parsers/quality_aware_parser.py` - Main parser logic
-- `lineage_v3/parsers/sql_cleaning_rules.py` - SQL preprocessing rules
+- `engine/parsers/quality_aware_parser.py` - Main parser logic
+- `engine/parsers/sql_cleaning_rules.py` - SQL preprocessing rules
 - `api/background_tasks.py` - Parser invocation and result storage
 
 **What NOT to Change:**
@@ -213,8 +213,8 @@ source venv/bin/activate && python scripts/testing/verify_sp_parsing.py --sp-nam
    ```
 
 2. **Make fix** in appropriate file
-   - Parser logic: `lineage_v3/parsers/quality_aware_parser.py`
-   - SQL rules: `lineage_v3/parsers/sql_cleaning_rules.py`
+   - Parser logic: `engine/parsers/quality_aware_parser.py`
+   - SQL rules: `engine/parsers/sql_cleaning_rules.py`
    - Storage: `api/background_tasks.py`
 
 3. **Test fix**

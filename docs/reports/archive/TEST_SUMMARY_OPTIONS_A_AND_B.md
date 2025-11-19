@@ -169,7 +169,7 @@ SELECT @@ROWCOUNT  # Already removed by existing rules
 **Commit simplified rules to production:**
 
 ```bash
-git add lineage_v3/parsers/quality_aware_parser.py
+git add engine/parsers/quality_aware_parser.py
 git commit -m "refactor: simplify preprocessing rules (11 → 5 patterns)
 
 Eliminates conflicts:

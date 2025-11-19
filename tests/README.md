@@ -45,7 +45,7 @@ pytest tests/unit/
 pytest tests/unit/test_comment_hints_parser.py
 
 # Run with coverage
-pytest tests/unit/ --cov=lineage_v3/parsers
+pytest tests/unit/ --cov=engine/parsers
 ```
 
 ### Current Tests

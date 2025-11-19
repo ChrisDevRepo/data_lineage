@@ -21,7 +21,7 @@
 ## What Was Fixed
 
 ### 1. Python Module Imports ✅
-**Problem:** `ModuleNotFoundError: No module named 'lineage_v3'`
+**Problem:** `ModuleNotFoundError: No module named 'engine'`
 **Solution:** Added `pythonpath = .` to `pytest.ini`
 **Result:** All 196 tests can be collected (was 46)
 

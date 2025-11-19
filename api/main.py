@@ -51,9 +51,13 @@ except ImportError:
     )
     from background_tasks import process_lineage_job
 
-# Configure logging
+# Import settings first (needed for logging configuration)
+from engine.config.settings import settings
+from engine.utils.log_cleanup import cleanup_old_logs
+
+# Configure logging based on settings (v0.9.0)
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, settings.log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
@@ -72,7 +76,7 @@ async def verify_azure_auth(
     Platform blocks unauthenticated requests - never reject in application code.
     """
     if not x_ms_client_principal:
-        logger.info("Request authenticated by platform")
+        logger.debug("Request authenticated by platform")
         return None
     
     try:
@@ -89,7 +93,7 @@ async def verify_azure_auth(
 # ============================================================================
 
 # API version (single source of truth)
-API_VERSION = "4.0.3"
+API_VERSION = "0.9.0"
 
 # Job storage configuration (ephemeral - can be lost on restart)
 JOBS_DIR = Path("/tmp/jobs")
@@ -121,6 +125,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     JOBS_DIR.mkdir(exist_ok=True)
     DATA_DIR.mkdir(parents=True, exist_ok=True)  # Create parent directories if needed
     logger.info(f"🚀 Data Lineage Visualizer API v{API_VERSION}")
+    logger.info(f"🔧 Run mode: {settings.run_mode.upper()}")
     logger.info(f"📁 Jobs directory: {JOBS_DIR}")
     logger.info(f"💾 Data directory: {DATA_DIR}")
     if LATEST_DATA_FILE.exists():
@@ -315,7 +320,10 @@ async def get_metadata(user: Optional[Dict[str, Any]] = Depends(verify_azure_aut
     """
     if not LATEST_DATA_FILE.exists():
         return JSONResponse(
-            content={"available": False},
+            content={
+                "available": False,
+                "run_mode": settings.run_mode
+            },
             status_code=200
         )
 
@@ -334,6 +342,7 @@ async def get_metadata(user: Optional[Dict[str, Any]] = Depends(verify_azure_aut
         return JSONResponse(
             content={
                 "available": True,
+                "run_mode": settings.run_mode,
                 "upload_timestamp": upload_timestamp,
                 "upload_timestamp_human": datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S"),
                 "node_count": node_count,
@@ -372,7 +381,7 @@ async def get_ddl(object_id: int, user: Optional[Dict[str, Any]] = Depends(verif
         # Import here to avoid startup dependency
         import sys
         sys.path.insert(0, str(Path(__file__).parent.parent))
-        from lineage_v3.core import DuckDBWorkspace
+        from engine.core import DuckDBWorkspace
 
         with DuckDBWorkspace(workspace_path=str(workspace_file)) as db:
             # Query unified_ddl view (combines real DDL + generated table DDL)
@@ -457,7 +466,7 @@ async def search_ddl(q: str = Query(..., min_length=1, max_length=200, descripti
         # Import here to avoid startup dependency
         import sys
         sys.path.insert(0, str(Path(__file__).parent.parent))
-        from lineage_v3.core import DuckDBWorkspace
+        from engine.core import DuckDBWorkspace
 
         with DuckDBWorkspace(workspace_path=str(workspace_file)) as db:
             # Query FTS index for matching objects
@@ -541,6 +550,15 @@ async def upload_parquet(
     # Track current upload
     current_upload_info["job_id"] = job_id
     current_upload_info["started_at"] = datetime.now().isoformat()
+
+    # Clean up old log files (v0.9.0)
+    # Triggered on import as requested by user
+    try:
+        cleanup_stats = cleanup_old_logs(settings.log_retention_days)
+        if cleanup_stats['deleted'] > 0:
+            logger.info(f"Log cleanup: {cleanup_stats['deleted']} file(s) deleted, {cleanup_stats['total_size_freed_mb']:.2f} MB freed")
+    except Exception as e:
+        logger.warning(f"Log cleanup failed (non-critical): {e}")
 
     # Track received files
     files_received = []
@@ -760,6 +778,458 @@ async def list_jobs(user: Optional[Dict[str, Any]] = Depends(verify_azure_auth))
                 })
 
     return {"jobs": jobs, "total": len(jobs)}
+
+
+# ============================================================================
+# Developer Mode Endpoints (v0.9.0)
+# ============================================================================
+
+@app.get("/api/debug/logs", tags=["Developer"])
+async def get_debug_logs(
+    lines: int = Query(1000, ge=1, le=10000),
+    level: Optional[str] = Query(None),
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> Dict[str, Any]:
+    """
+    Get recent log entries for debugging (Developer Mode).
+
+    Args:
+        lines: Number of recent log lines to return (default: 1000, max: 10000)
+        level: Filter by log level (INFO, WARNING, ERROR, DEBUG)
+
+    Returns:
+        Dictionary with logs array and metadata
+    """
+    # Try multiple log locations
+    log_paths = [
+        Path("/tmp/backend.log"),  # Created by start-app.sh
+        Path("/tmp/data_lineage.log"),
+        Path("logs/data_lineage.log"),
+        Path("/home/site/data/logs/app.log"),
+    ]
+
+    log_file = None
+    for path in log_paths:
+        if path.exists():
+            log_file = path
+            break
+
+    if not log_file:
+        return {
+            "logs": [],
+            "total": 0,
+            "source": "No log file found",
+            "searched_paths": [str(p) for p in log_paths]
+        }
+
+    try:
+        with open(log_file, 'r') as f:
+            all_lines = f.readlines()
+
+        # Get last N lines
+        recent_lines = all_lines[-lines:]
+
+        # Filter by level if specified
+        if level:
+            filtered_lines = [
+                line for line in recent_lines
+                if f" {level.upper()} " in line
+            ]
+        else:
+            filtered_lines = recent_lines
+
+        return {
+            "logs": filtered_lines,
+            "total": len(filtered_lines),
+            "source": str(log_file),
+            "level_filter": level
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to read log file: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to read logs: {str(e)}")
+
+
+@app.delete("/api/debug/logs/clear", tags=["Developer"])
+async def clear_debug_logs(
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> Dict[str, Any]:
+    """
+    Clear the backend log file (Developer Mode).
+
+    Returns:
+        Dictionary with success status and message
+    """
+    # Try multiple log locations (same as get_debug_logs)
+    log_paths = [
+        Path("/tmp/backend.log"),  # Created by start-app.sh
+        Path("/tmp/data_lineage.log"),
+        Path("logs/data_lineage.log"),
+        Path("/home/site/data/logs/app.log"),
+    ]
+
+    log_file = None
+    for path in log_paths:
+        if path.exists():
+            log_file = path
+            break
+
+    if not log_file:
+        return {
+            "success": False,
+            "message": "No log file found",
+            "searched_paths": [str(p) for p in log_paths]
+        }
+
+    try:
+        # Truncate the log file (clear all contents)
+        log_file.write_text("")
+        logger.info(f"Log file cleared: {log_file}")
+
+        return {
+            "success": True,
+            "message": f"Log file cleared: {log_file}",
+            "file": str(log_file)
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to clear log file: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to clear logs: {str(e)}")
+
+
+@app.get("/api/debug/log-level", tags=["Developer"])
+async def get_log_level(
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> Dict[str, Any]:
+    """
+    Get current logging level (Developer Mode).
+
+    Returns:
+        Dictionary with current log level
+    """
+    return {
+        "log_level": settings.log_level,
+        "run_mode": settings.run_mode
+    }
+
+
+# ==============================================================================
+# Database Direct Connection Endpoints (v0.10.0)
+# ==============================================================================
+
+@app.get("/api/database/test-connection", tags=["Database"])
+async def test_database_connection(
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> Dict[str, Any]:
+    """
+    Test if database is reachable.
+
+    Returns:
+        Dictionary with success status and message
+
+    Example responses:
+        Success: {"success": true, "message": "Database connection successful"}
+        Disabled: {"success": false, "message": "Database connection not enabled (DB_ENABLED=false)"}
+        Error: {"success": false, "message": "Database not reachable: connection refused"}
+    """
+    try:
+        from engine.services import DatabaseRefreshService
+
+        service = DatabaseRefreshService(settings)
+        success, message = service.test_connection()
+
+        logger.info(f"Database connection test: {'✅ SUCCESS' if success else '❌ FAILED'} - {message}")
+
+        return {
+            "success": success,
+            "message": message,
+            "dialect": settings.sql_dialect,
+            "enabled": settings.db.enabled
+        }
+
+    except Exception as e:
+        logger.error(f"Database connection test failed: {e}", exc_info=settings.is_debug_mode)
+        return {
+            "success": False,
+            "message": f"Connection test error: {str(e)}",
+            "dialect": settings.sql_dialect,
+            "enabled": settings.db.enabled
+        }
+
+
+@app.post("/api/database/refresh", tags=["Database"])
+async def refresh_from_database(
+    background_tasks: BackgroundTasks,
+    incremental: bool = True,
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> UploadResponse:
+    """
+    Refresh metadata from database and start lineage processing.
+
+    This endpoint fetches stored procedures from the database, converts them
+    to Parquet files, and triggers the SAME processing pipeline as file upload.
+
+    Args:
+        incremental: If True, only fetch changed procedures (faster, default)
+
+    Returns:
+        Job ID for status polling (same as upload-parquet endpoint)
+
+    Example response:
+        {
+            "job_id": "20250119_083045_abc123",
+            "message": "Database refresh started (incremental mode). Fetched 349 procedures (5 new, 3 updated).",
+            "files_received": ["objects.parquet", "dependencies.parquet", "definitions.parquet"]
+        }
+    """
+    # Check if another upload/refresh is in progress
+    if not upload_lock.acquire(blocking=False):
+        other_job_id = current_upload_info.get("job_id")
+        elapsed = time.time() - current_upload_info.get("started_at", time.time())
+        raise HTTPException(
+            status_code=409,
+            detail=f"Another import is in progress (job {other_job_id}, running for {elapsed:.0f}s). Please wait."
+        )
+
+    # Generate job ID
+    job_id = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
+    job_dir = Path("uploads") / job_id
+    job_dir.mkdir(parents=True, exist_ok=True)
+
+    # Track upload info
+    current_upload_info["job_id"] = job_id
+    current_upload_info["started_at"] = time.time()
+
+    try:
+        logger.info(f"🔄 Starting database metadata refresh (job_id={job_id}, incremental={incremental})")
+
+        # Fetch metadata from database and convert to Parquet files
+        from engine.services import DatabaseRefreshService
+
+        service = DatabaseRefreshService(settings)
+        result = service.refresh_and_convert_to_parquet(
+            job_dir=job_dir,
+            incremental=incremental
+        )
+
+        if not result.success:
+            # Database fetch failed - release lock and return error
+            upload_lock.release()
+            current_upload_info["job_id"] = None
+            current_upload_info["started_at"] = None
+
+            raise HTTPException(
+                status_code=500,
+                detail=result.message + (f" Errors: {', '.join(result.errors)}" if result.errors else "")
+            )
+
+        # Initialize status file
+        status_data = {
+            "status": "pending",
+            "progress": 0.0,
+            "current_step": "Queued",
+            "message": "Metadata fetched from database, starting lineage processing...",
+            "elapsed_seconds": 0.0
+        }
+        with open(job_dir / "status.json", 'w') as f:
+            json.dump(status_data, f, indent=2)
+
+        # Start background processing (SAME as Parquet upload!)
+        thread = threading.Thread(
+            target=run_processing_thread,
+            args=(job_id, job_dir, incremental),
+            daemon=True
+        )
+        thread.start()
+
+        # Track job
+        active_jobs[job_id] = {
+            "status": "processing",
+            "thread": thread,
+            "created_at": time.time(),
+            "incremental": incremental
+        }
+
+        mode_text = "incremental" if incremental else "full refresh"
+        stats = f"{result.new_procedures} new, {result.updated_procedures} updated" if incremental else f"{result.total_procedures} total"
+
+        return UploadResponse(
+            job_id=job_id,
+            message=f"Database refresh started ({mode_text} mode). Fetched {result.total_procedures} procedures ({stats}).",
+            files_received=["objects.parquet", "dependencies.parquet", "definitions.parquet"]
+        )
+
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
+
+    except Exception as e:
+        # Release lock on error
+        upload_lock.release()
+        current_upload_info["job_id"] = None
+        current_upload_info["started_at"] = None
+
+        logger.error(f"❌ Database refresh failed: {e}", exc_info=settings.is_debug_mode)
+        raise HTTPException(status_code=500, detail=f"Database refresh failed: {str(e)}")
+
+
+@app.get("/api/rules/{dialect}", tags=["Developer"])
+async def list_rules(
+    dialect: str,
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> Dict[str, Any]:
+    """
+    List all YAML rules for a specific dialect (Developer Mode).
+
+    Args:
+        dialect: SQL dialect (tsql, snowflake, bigquery, etc.)
+
+    Returns:
+        List of rule files with metadata
+    """
+    # API runs from /api directory, so go up one level to find engine/
+    rules_dir = Path(__file__).parent.parent / "engine" / "rules" / dialect
+
+    if not rules_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"No rules found for dialect: {dialect}"
+        )
+
+    rules = []
+    for yaml_file in sorted(rules_dir.glob("*.yaml")):
+        try:
+            import yaml
+            with open(yaml_file, 'r') as f:
+                content = yaml.safe_load(f)
+
+            rules.append({
+                "filename": yaml_file.name,
+                "name": content.get("name", "unknown"),
+                "description": content.get("description", ""),
+                "priority": content.get("priority", 999),
+                "enabled": content.get("enabled", True),
+                "category": content.get("category", "general"),
+                "size_bytes": yaml_file.stat().st_size
+            })
+        except Exception as e:
+            logger.warning(f"Failed to parse {yaml_file.name}: {e}")
+            rules.append({
+                "filename": yaml_file.name,
+                "name": "error",
+                "description": f"Failed to parse: {str(e)}",
+                "priority": 999,
+                "enabled": False,
+                "category": "error",
+                "size_bytes": yaml_file.stat().st_size
+            })
+
+    # Sort by priority
+    rules.sort(key=lambda r: r["priority"])
+
+    return {
+        "dialect": dialect,
+        "rules": rules,
+        "total": len(rules)
+    }
+
+
+@app.get("/api/rules/{dialect}/{filename}", tags=["Developer"])
+async def get_rule_content(
+    dialect: str,
+    filename: str,
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> Dict[str, Any]:
+    """
+    Get full content of a specific YAML rule file (Developer Mode).
+
+    Args:
+        dialect: SQL dialect (tsql, snowflake, bigquery, etc.)
+        filename: Rule filename (e.g., 10_batch_separator.yaml)
+
+    Returns:
+        Rule content as text
+    """
+    # Security: validate filename (prevent path traversal)
+    if ".." in filename or "/" in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    rule_file = Path(__file__).parent.parent / "engine" / "rules" / dialect / filename
+
+    if not rule_file.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Rule file not found: {dialect}/{filename}"
+        )
+
+    try:
+        with open(rule_file, 'r') as f:
+            content = f.read()
+
+        return {
+            "dialect": dialect,
+            "filename": filename,
+            "content": content,
+            "size_bytes": rule_file.stat().st_size,
+            "path": str(rule_file)
+        }
+    except Exception as e:
+        logger.error(f"Failed to read rule file: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to read rule: {str(e)}")
+
+
+@app.post("/api/rules/reset/{dialect}", tags=["Developer"])
+async def reset_rules_to_defaults(
+    dialect: str,
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> Dict[str, Any]:
+    """
+    Reset YAML rules to defaults for a specific dialect (Developer Mode).
+
+    Copies pristine rules from engine/rules/defaults/{dialect}/ to engine/rules/{dialect}/.
+
+    Args:
+        dialect: SQL dialect (tsql, snowflake, bigquery, etc.)
+
+    Returns:
+        Status message with number of files reset
+    """
+    import shutil
+
+    base_dir = Path(__file__).parent.parent / "engine" / "rules"
+    defaults_dir = base_dir / "defaults" / dialect
+    active_dir = base_dir / dialect
+
+    if not defaults_dir.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"No default rules available for dialect: {dialect}"
+        )
+
+    try:
+        # Count files before reset
+        before_count = len(list(active_dir.glob("*.yaml"))) if active_dir.exists() else 0
+
+        # Remove current rules and copy defaults
+        if active_dir.exists():
+            shutil.rmtree(active_dir)
+        shutil.copytree(defaults_dir, active_dir)
+
+        # Count files after reset
+        after_count = len(list(active_dir.glob("*.yaml")))
+
+        logger.info(f"Reset {dialect} rules: {before_count} → {after_count} files")
+
+        return {
+            "status": "success",
+            "dialect": dialect,
+            "files_before": before_count,
+            "files_after": after_count,
+            "message": f"Reset {after_count} rule files to defaults"
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to reset rules: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to reset rules: {str(e)}")
 
 
 @app.get("/", include_in_schema=False)

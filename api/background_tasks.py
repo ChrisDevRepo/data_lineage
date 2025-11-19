@@ -1,7 +1,7 @@
 """
 Background task processing for lineage parser.
 
-Wraps existing lineage_v3 pipeline for web-based execution.
+Wraps existing engine pipeline for web-based execution.
 """
 
 import sys
@@ -20,17 +20,17 @@ logger = logging.getLogger(__name__)
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from lineage_v3.core import DuckDBWorkspace, GapDetector
-from lineage_v3.parsers import QualityAwareParser
-from lineage_v3.output import InternalFormatter, FrontendFormatter, SummaryFormatter
-from lineage_v3.utils.confidence_calculator import ConfidenceCalculator
+from engine.core import DuckDBWorkspace, GapDetector
+from engine.parsers import QualityAwareParser
+from engine.output import InternalFormatter, FrontendFormatter, SummaryFormatter
+from engine.utils.confidence_calculator import ConfidenceCalculator
 
 
 class LineageProcessor:
     """
     Processes lineage from uploaded Parquet files.
 
-    Wraps the existing lineage_v3 pipeline without modifications.
+    Wraps the existing engine pipeline without modifications.
     """
 
     def __init__(self, job_dir: Path, data_dir: Optional[Path] = None, incremental: bool = True):

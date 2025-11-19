@@ -1,0 +1,71 @@
+# ==============================================================================
+# T-SQL Rule: Remove IF OBJECT_ID Checks
+# ==============================================================================
+# IF OBJECT_ID(...) checks are administrative existence checks before dropping
+# temp tables. These are not actual data lineage, just cleanup code.
+# ==============================================================================
+
+name: remove_if_object_id
+description: |
+  Remove IF OBJECT_ID(...) administrative checks.
+
+  These are existence checks before dropping temp tables:
+    IF OBJECT_ID('tempdb..#temp') IS NOT NULL
+    BEGIN DROP TABLE #temp; END
+
+  Not actual data lineage - just administrative cleanup.
+
+dialect: tsql
+category: table_mgmt
+enabled: true
+priority: 25  # After temp table replacement
+
+# -----------------------------------------------------------------------------
+# Pattern Configuration
+# -----------------------------------------------------------------------------
+pattern_type: regex
+pattern: 'if\s+object_id\s*\(\s*N?[''"]tempdb\.\.[#\w]+[''"]\\s*\)\s+is\s+not\s+null\s+begin\s+drop\s+table\s+[#\w\.]+\s*;?\s*end\s*;?'
+replacement: ''
+
+# -----------------------------------------------------------------------------
+# Test Cases
+# -----------------------------------------------------------------------------
+test_cases:
+  - name: simple_check
+    description: "Remove IF OBJECT_ID check for #temp"
+    input: |
+      if object_id(N'tempdb..#temp') is not null
+      begin drop table #temp; end;
+      SELECT * FROM Table1
+    expected: |
+
+      SELECT * FROM Table1
+
+  - name: staging_check
+    description: "Remove IF OBJECT_ID check for #staging"
+    input: |
+      IF OBJECT_ID(N'tempdb..#staging') IS NOT NULL BEGIN DROP TABLE #staging END
+      INSERT INTO Table2 SELECT * FROM Table1
+    expected: |
+
+      INSERT INTO Table2 SELECT * FROM Table1
+
+# -----------------------------------------------------------------------------
+# Debug Configuration
+# -----------------------------------------------------------------------------
+debug:
+  log_matches: true
+  log_replacements: true
+  show_context_lines: 1
+
+# -----------------------------------------------------------------------------
+# Metadata
+# -----------------------------------------------------------------------------
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  migrated_from: "sql_cleaning_rules.py::remove_if_object_id_checks"
+  tested_with: "349 stored procedures"
+  affects_lineage: false
+  impact: |
+    Removes administrative cleanup code that doesn't affect data lineage.

@@ -124,7 +124,7 @@ Average outputs per SP: 1.87
 
 ## Code Changes
 
-**File:** `lineage_v3/parsers/quality_aware_parser.py`
+**File:** `engine/parsers/quality_aware_parser.py`
 
 **Changed:** `ENHANCED_REMOVAL_PATTERNS` list (lines 192-237)
 
@@ -237,7 +237,7 @@ Changes should maintain or improve:
 ## Files
 
 **Baseline File:** `evaluation/baselines/baseline_v4.3.3_simplified_rules.txt`
-**Parser Code:** `lineage_v3/parsers/quality_aware_parser.py`
+**Parser Code:** `engine/parsers/quality_aware_parser.py`
 **Test Results:** `docs/reports/OPTION_A_TEST_RESULTS.md`
 **Documentation:** `docs/reports/TEST_SUMMARY_OPTIONS_A_AND_B.md`
 

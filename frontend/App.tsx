@@ -21,6 +21,8 @@ import { DetailSearchModal } from './components/DetailSearchModal';
 import { NodeContextMenu } from './components/NodeContextMenu';
 import { InlineTraceControls } from './components/InlineTraceControls';
 import { TracedFilterBanner } from './components/TracedFilterBanner';
+import { DemoModeBanner } from './components/DemoModeBanner';
+import { DeveloperPanel } from './components/DeveloperPanel';
 import { useGraphology } from './hooks/useGraphology';
 import { useNotifications } from './hooks/useNotifications';
 import { useInteractiveTrace } from './hooks/useInteractiveTrace';
@@ -48,6 +50,25 @@ function DataLineageVisualizer() {
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [sampleData] = useState<DataNode[]>(() => generateSampleData());
   const [closeDropdownsTrigger, setCloseDropdownsTrigger] = useState(0);
+  const [runMode, setRunMode] = useState<string>('production'); // Track backend run mode (demo/debug/production)
+
+  // Fetch metadata on mount to get run_mode
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/metadata`, { credentials: 'same-origin' });
+        if (response.ok) {
+          const metadata = await response.json();
+          if (metadata.run_mode) {
+            setRunMode(metadata.run_mode);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch metadata:', error);
+      }
+    };
+    fetchMetadata();
+  }, []);
 
   // Load data from API on mount (async to avoid blocking UI)
   useEffect(() => {
@@ -109,6 +130,8 @@ function DataLineageVisualizer() {
     totalNodes: number;
   } | null>(null);
 
+  // Developer mode panel (v0.9.0)
+  const [isDeveloperPanelOpen, setIsDeveloperPanelOpen] = useState(false);
 
   const {
     finalVisibleData,
@@ -475,7 +498,7 @@ function DataLineageVisualizer() {
     setSearchTerm('');
     hasInitiallyFittedRef.current = false; // Allow fitView on new data
 
-    addNotification('Data imported successfully! Note: JSON imports are temporary. Upload parquet files to persist data.', 'info');
+    addNotification('Data imported successfully!', 'info');
     // Don't auto-close modal - let user close it after viewing summary
     // setIsImportModalOpen(false);
   }, [addNotification]);
@@ -1025,6 +1048,7 @@ function DataLineageVisualizer() {
             isInTraceExitMode={isInTraceExitMode}
             closeDropdownsTrigger={closeDropdownsTrigger}
             nodes={nodes.map(n => n.data).filter((data): data is DataNode => data != null)}
+            isDemoMode={runMode === 'demo'}
           />
           {isTraceModeActive && traceConfig && (
             <InlineTraceControls
@@ -1035,6 +1059,8 @@ function DataLineageVisualizer() {
               onEnd={handleEndTracing}
             />
           )}
+          {/* Demo Mode Banner - shown when RUN_MODE=demo */}
+          {runMode === 'demo' && <DemoModeBanner />}
           {/* Traced Filter Banner - shown after End Trace */}
           {isInTracedFilterMode && tracedFilterConfig && (
             <TracedFilterBanner
@@ -1108,6 +1134,7 @@ function DataLineageVisualizer() {
       <InfoModal
         isOpen={isInfoModalOpen}
         onClose={() => setIsInfoModalOpen(false)}
+        onOpenDeveloperPanel={() => setIsDeveloperPanelOpen(true)}
       />
       <DetailSearchModal
         isOpen={isDetailSearchOpen}
@@ -1131,6 +1158,11 @@ function DataLineageVisualizer() {
           onClose={() => setContextMenu(null)}
         />
       )}
+      <DeveloperPanel
+        isOpen={isDeveloperPanelOpen}
+        onClose={() => setIsDeveloperPanelOpen(false)}
+        dialect="tsql"
+      />
     </div>
   );
 }

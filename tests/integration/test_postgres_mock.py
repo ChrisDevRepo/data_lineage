@@ -11,8 +11,8 @@ Date: 2025-11-11
 
 import pytest
 import pandas as pd
-from lineage_v3.config.dialect_config import SQLDialect
-from lineage_v3.dialects import get_dialect
+from engine.config.dialect_config import SQLDialect
+from engine.dialects import get_dialect
 
 
 @pytest.fixture
@@ -363,7 +363,7 @@ class TestPostgresVsTSQL:
         assert postgres.batch_separator is None
 
         # Metadata source
-        from lineage_v3.dialects.base import MetadataSource
+        from engine.dialects.base import MetadataSource
         assert tsql.metadata_source == MetadataSource.DMV
         assert postgres.metadata_source == MetadataSource.INFORMATION_SCHEMA
 
