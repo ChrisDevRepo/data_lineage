@@ -43,10 +43,28 @@ export function DeveloperPanel({ isOpen, onClose, dialect }: DeveloperPanelProps
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [currentLogLevel, setCurrentLogLevel] = useState<string>('');
   // Filtering state
   const [logFilter, setLogFilter] = useState<string>('');
   const [logLevelFilter, setLogLevelFilter] = useState<string>('ALL');
   const [ruleFilter, setRuleFilter] = useState<string>('');
+
+  // Fetch current log level
+  const fetchLogLevel = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/debug/log-level`, { credentials: 'same-origin' });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      setCurrentLogLevel(data.log_level);
+    } catch (err) {
+      console.error('Failed to fetch log level:', err);
+      // Don't show error to user, just log it
+    }
+  };
 
   // Fetch logs
   const fetchLogs = async () => {
@@ -165,6 +183,9 @@ export function DeveloperPanel({ isOpen, onClose, dialect }: DeveloperPanelProps
   useEffect(() => {
     if (!isOpen) return;
 
+    // Always fetch log level when panel opens
+    fetchLogLevel();
+
     if (activeTab === 'logs') {
       fetchLogs();
     } else if (activeTab === 'rules') {
@@ -196,6 +217,15 @@ export function DeveloperPanel({ isOpen, onClose, dialect }: DeveloperPanelProps
           <div className="flex items-center gap-3">
             <Terminal className="w-5 h-5 text-blue-600" />
             <h2 className="text-lg font-semibold">Developer Panel</h2>
+            {currentLogLevel && (
+              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                currentLogLevel === 'DEBUG'
+                  ? 'bg-blue-100 text-blue-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}>
+                {currentLogLevel} Mode
+              </span>
+            )}
           </div>
           <button
             onClick={onClose}
@@ -269,7 +299,10 @@ export function DeveloperPanel({ isOpen, onClose, dialect }: DeveloperPanelProps
                     <span>Clear</span>
                   </button>
                   <button
-                    onClick={fetchLogs}
+                    onClick={() => {
+                      fetchLogs();
+                      fetchLogLevel();
+                    }}
                     disabled={loading}
                     className="flex items-center gap-2 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
                   >

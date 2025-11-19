@@ -246,7 +246,7 @@ class SummaryFormatter:
 
         try:
             query = """
-            SELECT confidence_breakdown
+            SELECT confidence_breakdown, object_name
             FROM lineage_metadata
             WHERE confidence_breakdown IS NOT NULL
               AND confidence_breakdown != ''
@@ -269,6 +269,8 @@ class SummaryFormatter:
 
             for row in results:
                 breakdown_json = row[0]
+                object_name = row[1] if len(row) > 1 else 'unknown'
+
                 if not breakdown_json:
                     continue
 
@@ -282,8 +284,11 @@ class SummaryFormatter:
                     sum_comment_hints += breakdown['comment_hints']['contribution']
                     sum_uat_validation += breakdown['uat_validation']['contribution']
 
-                except (json.JSONDecodeError, KeyError) as e:
-                    logger.debug(f"Failed to parse breakdown: {e}")
+                except json.JSONDecodeError as e:
+                    logger.debug(f"{object_name}: Invalid JSON in confidence_breakdown - {e}")
+                    continue
+                except KeyError as e:
+                    logger.debug(f"{object_name}: Missing required field in confidence_breakdown - {e}")
                     continue
 
             if total_count == 0:

@@ -470,7 +470,7 @@ class QualityAwareParser:
 
             # STEP 2: Preprocess and parse with SQLGlot
             cleaned_ddl = self._preprocess_ddl(ddl)
-            parser_sources, parser_targets = self._sqlglot_parse(cleaned_ddl, ddl)
+            parser_sources, parser_targets = self._sqlglot_parse(cleaned_ddl, ddl, object_id)
             parser_sources_valid = self._validate_against_catalog(parser_sources)
             parser_targets_valid = self._validate_against_catalog(parser_targets)
 
@@ -631,7 +631,7 @@ class QualityAwareParser:
                     path_description.append("+ Hardcoded hints")
 
                 logger.debug(
-                    f"[PARSE] {obj_name}: "
+                    f"[APP] {obj_name}: "
                     f"Path=[{' '.join(path_description)}] "
                     f"Regex=[{len(regex_sources_valid)}S + {len(regex_targets_valid)}T + {len(regex_sp_calls_valid)}SP] "
                     f"SQLGlot=[{len(parser_sources_valid)}S + {len(parser_targets_valid)}T] "
@@ -872,9 +872,14 @@ class QualityAwareParser:
         logger.debug(f"Regex baseline: {len(sources)} sources, {len(targets)} targets, {len(sp_calls)} SP calls, {len(function_calls)} function calls (after filtering)")
         return sources, targets, sp_calls, function_calls
 
-    def _sqlglot_parse(self, cleaned_ddl: str, original_ddl: str) -> Tuple[Set[str], Set[str]]:
+    def _sqlglot_parse(self, cleaned_ddl: str, original_ddl: str, object_id: Optional[int] = None) -> Tuple[Set[str], Set[str]]:
         """
         Parse with SQLGlot after preprocessing.
+
+        Args:
+            cleaned_ddl: Preprocessed DDL (with control flow removed)
+            original_ddl: Original DDL (for regex baseline)
+            object_id: Optional object ID for logging context
 
         v4.1.2 CRITICAL FIX: Exclude targets from sources GLOBALLY
         ----------------------------------------------------------
@@ -889,68 +894,92 @@ class QualityAwareParser:
 
         Solution: Collect all targets first, then remove from final sources.
         """
-        # REGEX-FIRST BASELINE ARCHITECTURE (v4.0.0 - proven 95% success rate)
-        # STEP 1: Apply regex to FULL DDL (guaranteed baseline - no context loss)
-        sources, targets, _, _ = self._regex_scan(original_ddl)
+        # Get object name for logging context
+        obj_name = f"ID:{object_id}"
+        if object_id:
+            try:
+                obj_info = self._get_object_info(object_id)
+                if obj_info:
+                    obj_name = f"{obj_info['schema']}.{obj_info['name']}"
+            except:
+                pass  # Fallback to ID if lookup fails
 
-        # Store regex baseline
-        regex_sources = sources.copy()
-        regex_targets = targets.copy()
-
-        # STEP 2: Try SQLGlot as enhancement (optional bonus)
-        # Use RAISE mode (strict) so failures are explicit, not silent
-        # Track SQLGlot success/failure for diagnostics (v4.3.2)
-        sqlglot_total_stmts = 0
-        sqlglot_success_count = 0
-        sqlglot_failed_count = 0
-        sqlglot_empty_command_count = 0
+        # Suppress SQLGlot's own logger - we handle all logging ourselves
+        # SQLGlot warnings are too noisy and don't provide actionable info
+        # Our app logs will show any real parsing issues with full object context
+        sqlglot_logger = logging.getLogger('sqlglot')
+        original_level = sqlglot_logger.level
+        sqlglot_logger.setLevel(logging.ERROR)  # Only show actual errors, not warnings
 
         try:
-            statements = self._split_statements(cleaned_ddl)
-            sqlglot_total_stmts = len(statements)
+            # REGEX-FIRST BASELINE ARCHITECTURE (v4.0.0 - proven 95% success rate)
+            # STEP 1: Apply regex to FULL DDL (guaranteed baseline - no context loss)
+            sources, targets, _, _ = self._regex_scan(original_ddl)
 
-            for stmt in statements:
-                try:
-                    # RAISE mode: fails fast with exception if SQL is invalid
-                    parsed = parse_one(stmt, dialect='tsql', error_level=ErrorLevel.RAISE)
-                    # Defensive: Skip empty Command nodes (can occur even with RAISE mode)
-                    # Empty Command nodes have no .expression attribute and yield zero tables
-                    # Root cause: SQLGlot WARN mode bug (documented in v4.3.1), but defensive check kept
-                    if parsed and not (isinstance(parsed, exp.Command) and not parsed.expression):
-                        stmt_sources, stmt_targets = self._extract_from_ast(parsed)
-                        # Add any additional tables SQLGlot found
-                        sources.update(stmt_sources)
-                        targets.update(stmt_targets)
-                        sqlglot_success_count += 1
-                    else:
-                        # Empty parse, regex baseline already captured tables
-                        sqlglot_empty_command_count += 1
-                        logger.debug("Skipped empty Command node, using regex baseline")
-                except Exception as e:
-                    # SQLGlot failed on this statement, regex baseline already has it
-                    sqlglot_failed_count += 1
-                    logger.debug(f"SQLGlot parse failed: {str(e)[:100]}")
-                    continue
-        except Exception as e:
-            # Any failure in splitting/parsing, use regex baseline
-            logger.debug(f"SQLGlot statement splitting failed: {str(e)[:100]}")
-            pass
+            # Store regex baseline
+            regex_sources = sources.copy()
+            regex_targets = targets.copy()
 
-        # Log SQLGlot statistics (v4.3.2)
-        if sqlglot_total_stmts > 0:
-            sqlglot_success_rate = (sqlglot_success_count / sqlglot_total_stmts) * 100
-            logger.debug(
-                f"SQLGlot stats: {sqlglot_success_count}/{sqlglot_total_stmts} statements parsed "
-                f"({sqlglot_success_rate:.1f}% success), "
-                f"{sqlglot_failed_count} failed, {sqlglot_empty_command_count} empty"
-            )
+            # STEP 2: Try SQLGlot as enhancement (optional bonus)
+            # Use RAISE mode (strict) so failures are explicit, not silent
+            # Track SQLGlot success/failure for diagnostics (v4.3.2)
+            sqlglot_total_stmts = 0
+            sqlglot_success_count = 0
+            sqlglot_failed_count = 0
+            sqlglot_empty_command_count = 0
 
-        # v4.1.2 FIX: Remove all targets from sources AFTER parsing all statements
-        # This prevents false positives where a table is a target in one statement
-        # but appears as a source in another statement (e.g., CTEs, temp tables)
-        sources_final = sources - targets
+            try:
+                statements = self._split_statements(cleaned_ddl)
+                sqlglot_total_stmts = len(statements)
 
-        return sources_final, targets
+                for stmt in statements:
+                    try:
+                        # RAISE mode: fails fast with exception if SQL is invalid
+                        parsed = parse_one(stmt, dialect='tsql', error_level=ErrorLevel.RAISE)
+                        # Defensive: Skip empty Command nodes (can occur even with RAISE mode)
+                        # Empty Command nodes have no .expression attribute and yield zero tables
+                        # Root cause: SQLGlot WARN mode bug (documented in v4.3.1), but defensive check kept
+                        if parsed and not (isinstance(parsed, exp.Command) and not parsed.expression):
+                            stmt_sources, stmt_targets = self._extract_from_ast(parsed)
+                            # Add any additional tables SQLGlot found
+                            sources.update(stmt_sources)
+                            targets.update(stmt_targets)
+                            sqlglot_success_count += 1
+                        else:
+                            # Empty parse, regex baseline already captured tables
+                            sqlglot_empty_command_count += 1
+                            logger.debug("Skipped empty Command node, using regex baseline")
+                    except Exception as e:
+                        # SQLGlot failed on this statement, regex baseline already has it
+                        sqlglot_failed_count += 1
+                        # Only log if it's a real parsing error (not T-SQL syntax that we clean with rules)
+                        error_msg = str(e)[:200]
+                        if "unsupported syntax" not in error_msg.lower():
+                            logger.debug(f"[SQLGlot] {obj_name}: Parse failed (fallback to regex) - {error_msg}")
+                        continue
+            except Exception as e:
+                # Any failure in splitting/parsing, use regex baseline
+                logger.debug(f"[SQLGlot] {obj_name}: Statement splitting failed - {str(e)[:100]}")
+                pass
+
+            # Log SQLGlot statistics (v4.3.2)
+            if sqlglot_total_stmts > 0:
+                sqlglot_success_rate = (sqlglot_success_count / sqlglot_total_stmts) * 100
+                logger.debug(
+                    f"[SQLGlot] {obj_name}: {sqlglot_success_count}/{sqlglot_total_stmts} statements parsed "
+                    f"({sqlglot_success_rate:.1f}% success), "
+                    f"{sqlglot_failed_count} failed, {sqlglot_empty_command_count} empty"
+                )
+
+            # v4.1.2 FIX: Remove all targets from sources AFTER parsing all statements
+            # This prevents false positives where a table is a target in one statement
+            # but appears as a source in another statement (e.g., CTEs, temp tables)
+            sources_final = sources - targets
+
+            return sources_final, targets
+        finally:
+            # Restore SQLGlot logger level
+            sqlglot_logger.setLevel(original_level)
 
     def _calculate_quality(
         self,
@@ -1619,7 +1648,11 @@ class QualityAwareParser:
                     phantoms.add(name)
                     logger.debug(f"Phantom detected: {name}")
 
-        logger.info(f"Identified {len(phantoms)} phantom objects (include-list filtered)")
+        # Only log at INFO level if phantoms were actually found
+        if len(phantoms) > 0:
+            logger.info(f"Identified {len(phantoms)} phantom objects (include-list filtered)")
+        else:
+            logger.debug(f"Identified {len(phantoms)} phantom objects (include-list filtered)")
         return phantoms
 
     def _create_or_get_phantom_objects(self, phantom_names: Set[str], object_type: str = 'Table') -> Dict[str, int]:

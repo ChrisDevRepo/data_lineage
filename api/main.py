@@ -51,16 +51,16 @@ except ImportError:
     )
     from background_tasks import process_lineage_job
 
-# Configure logging
+# Import settings first (needed for logging configuration)
+from engine.config.settings import settings
+from engine.utils.log_cleanup import cleanup_old_logs
+
+# Configure logging based on settings (v0.9.0)
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, settings.log_level),
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-
-# Import settings and utilities (v0.9.0)
-from engine.config.settings import settings
-from engine.utils.log_cleanup import cleanup_old_logs
 
 # ============================================================================
 # Authentication
@@ -76,7 +76,7 @@ async def verify_azure_auth(
     Platform blocks unauthenticated requests - never reject in application code.
     """
     if not x_ms_client_principal:
-        logger.info("Request authenticated by platform")
+        logger.debug("Request authenticated by platform")
         return None
     
     try:
@@ -895,6 +895,22 @@ async def clear_debug_logs(
     except Exception as e:
         logger.error(f"Failed to clear log file: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to clear logs: {str(e)}")
+
+
+@app.get("/api/debug/log-level", tags=["Developer"])
+async def get_log_level(
+    user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
+) -> Dict[str, Any]:
+    """
+    Get current logging level (Developer Mode).
+
+    Returns:
+        Dictionary with current log level
+    """
+    return {
+        "log_level": settings.log_level,
+        "run_mode": settings.run_mode
+    }
 
 
 # ==============================================================================
