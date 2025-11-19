@@ -161,7 +161,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
 
     const handleAutocompleteSelect = (suggestion: DataNode) => {
         setSearchTerm(suggestion.name);
-        executeSearch(suggestion.name);
+        executeSearch(suggestion.name, suggestion.schema);
         setIsAutocompleteOpen(false);
         setAutocompleteSuggestions([]);
     };

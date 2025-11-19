@@ -24,6 +24,19 @@ services:
       retries: 3
       start_period: 40s
 
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+    container_name: datalineage-frontend
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - datalineage
+
 volumes:
   datalineage-data:
     driver: local

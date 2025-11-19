@@ -503,7 +503,7 @@ function DataLineageVisualizer() {
     // setIsImportModalOpen(false);
   }, [addNotification]);
 
-  const executeSearch = useCallback((query: string) => {
+  const executeSearch = useCallback((query: string, schema?: string) => {
     try {
       if (isTraceModeActive) return;
       setFocusedNodeId(null);
@@ -520,16 +520,24 @@ function DataLineageVisualizer() {
         return;
       }
 
-      const foundNodeData = allData.find(d => d.name && d.name.toLowerCase() === query.toLowerCase());
+      // Search by name AND schema if schema is provided (from autocomplete)
+      // Otherwise just search by name (manual search)
+      const foundNodeData = schema
+        ? allData.find(d => d.name && d.name.toLowerCase() === query.toLowerCase() && d.schema === schema)
+        : allData.find(d => d.name && d.name.toLowerCase() === query.toLowerCase());
+      
       if (!foundNodeData) {
         addNotification('No object found with that name.', 'error');
         return;
       }
+      
       const reactFlowNode = nodes.find(n => n.id === foundNodeData.id);
+      
       if (!reactFlowNode) {
         addNotification('Object found, but it is not visible with the current filters.', 'error');
         return;
       }
+      
       setHighlightedNodes(new Set([foundNodeData.id]));
       setCenter(
         reactFlowNode.position.x + (reactFlowNode.width || 192) / 2,
@@ -541,7 +549,7 @@ function DataLineageVisualizer() {
       console.error('[Search] Error during search:', error);
       addNotification('An error occurred while searching. Please try again.', 'error');
     }
-  }, [isTraceModeActive, allData, nodes, fitView, setCenter, addNotification, setHighlightedNodes]);
+  }, [isTraceModeActive, allData, nodes, fitView, setCenter, addNotification, setHighlightedNodes, setSearchTerm]);
 
   const handlePaneClick = useCallback(() => {
     // Close any open dropdowns in toolbar
