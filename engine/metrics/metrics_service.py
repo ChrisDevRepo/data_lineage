@@ -78,12 +78,10 @@ class MetricsService:
         SELECT
             -- Counts
             COUNT(*) as total,
-            COUNT(CASE WHEN lm.confidence IS NOT NULL THEN 1 END) as parsed,
+            COUNT(CASE WHEN lm.parse_success IS NOT NULL THEN 1 END) as parsed,
 
-            -- Confidence distribution
-            COUNT(CASE WHEN lm.confidence >= 0.75 THEN 1 END) as high_confidence,
-            COUNT(CASE WHEN lm.confidence >= 0.65 AND lm.confidence < 0.75 THEN 1 END) as medium_confidence,
-            COUNT(CASE WHEN lm.confidence < 0.65 THEN 1 END) as low_confidence,
+            -- Parse success distribution (v4.3.6: replaced confidence with parse_success)
+            COUNT(CASE WHEN lm.parse_success = true THEN 1 END) as parse_success_count,
 
             -- Source distribution
             COUNT(CASE WHEN lm.primary_source = 'parser' THEN 1 END) as source_parser,
@@ -104,40 +102,24 @@ class MetricsService:
 
         total = row[0] or 0
         parsed = row[1] or 0
-        high_conf = row[2] or 0
-        medium_conf = row[3] or 0
-        low_conf = row[4] or 0
-        source_parser = row[5] or 0
-        source_dmv = row[6] or 0
-        source_metadata = row[7] or 0
+        parse_success = row[2] or 0
+        source_parser = row[3] or 0
+        source_dmv = row[4] or 0
+        source_metadata = row[5] or 0
 
         # Calculate percentages
         parse_rate = (parsed / total * 100) if total > 0 else 0.0
-        high_pct = (high_conf / total * 100) if total > 0 else 0.0
-        medium_pct = (medium_conf / total * 100) if total > 0 else 0.0
-        low_pct = (low_conf / total * 100) if total > 0 else 0.0
+        success_pct = (parse_success / total * 100) if total > 0 else 0.0
 
         return {
             'scope': object_type or 'ALL',
             'total': total,
             'parsed': parsed,
             'parse_rate': round(parse_rate, 1),
-            'confidence': {
-                'high': {
-                    'count': high_conf,
-                    'pct': round(high_pct, 1),
-                    'threshold': '≥0.75'
-                },
-                'medium': {
-                    'count': medium_conf,
-                    'pct': round(medium_pct, 1),
-                    'threshold': '0.65-0.74'
-                },
-                'low': {
-                    'count': low_conf,
-                    'pct': round(low_pct, 1),
-                    'threshold': '<0.65'
-                }
+            'parse_success': {
+                'count': parse_success,
+                'pct': round(success_pct, 1),
+                'note': 'v4.3.6: Replaced multi-level confidence with boolean parse_success'
             },
             'by_source': {
                 'parser': source_parser,

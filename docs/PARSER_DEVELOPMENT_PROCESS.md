@@ -520,3 +520,18 @@ git commit -m "parser: [description]"
 - [PARSER_CHANGE_JOURNAL.md](PARSER_CHANGE_JOURNAL.md) - Change history
 - [INVESTIGATION_COMPLETE.md](../INVESTIGATION_COMPLETE.md) - Latest investigation
 - [CLAUDE.md](../CLAUDE.md) - Project overview
+
+---
+
+## Updates for v4.3.5
+
+### SELECT INTO Support
+- Ensure `SELECT INTO` statements are properly detected and included in lineage.
+
+### Phantom Feature Removal
+- Simplified architecture by removing phantom object tracking.
+- Updated process to rely solely on catalog validation.
+
+### Multi-Dialect Rule Support
+- Added support for generic and dialect-specific rules.
+- Verified PostgreSQL as a proof of concept.

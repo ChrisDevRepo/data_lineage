@@ -15,12 +15,6 @@ pyarrow>=22.0.0                  # Latest: 22.0.0 - Apache Arrow for Parquet I/O
 pandas>=2.3.3                    # Latest: 2.3.3 (Sep 2025) - Data manipulation
 
 # ------------------------------------------------------------------------------
-# SQL Parsing
-# ------------------------------------------------------------------------------
-sqlglot>=27.28.1                 # Latest: 27.28.1 (Oct 2025) - Supports 31 SQL dialects
-                                 # Used for T-SQL AST traversal and dependency extraction
-
-# ------------------------------------------------------------------------------
 # CLI Framework
 # ------------------------------------------------------------------------------
 click>=8.3.0                     # Latest: 8.3.0 (Sep 2025) - CLI framework (requires Python >=3.10)

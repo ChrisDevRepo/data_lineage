@@ -1,0 +1,21 @@
+# ==============================================================================
+# Redshift Specific - LATERAL JOIN Source Extraction
+# ==============================================================================
+name: extract_sources_redshift_lateral
+description: Extract source table references from Redshift LATERAL joins.
+dialect: redshift
+category: extraction
+enabled: true
+priority: 20
+rule_type: extraction
+extraction_target: source
+pattern_type: regex
+pattern: (?i)\bLATERAL\b\s+([^\s,;()]+)
+debug:
+  log_matches: true
+  log_replacements: false
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  updated: "2025-11-19"
+  affects_lineage: true

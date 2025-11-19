@@ -23,7 +23,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from engine.core import DuckDBWorkspace, GapDetector
 from engine.parsers import QualityAwareParser
 from engine.output import InternalFormatter, FrontendFormatter, SummaryFormatter
-from engine.utils.confidence_calculator import ConfidenceCalculator
 
 
 class LineageProcessor:
@@ -182,14 +181,13 @@ class LineageProcessor:
 
     def _get_current_confidence_stats(self) -> Optional[Dict[str, int]]:
         """
-        Get current confidence statistics from DuckDB.
+        Get current parsing statistics from DuckDB.
 
         Returns:
             {
                 'total_objects': int,
-                'high_confidence': int,
-                'medium_confidence': int,
-                'low_confidence': int
+                'successful_parses': int,
+                'failed_parses': int
             } or None if lineage_metadata doesn't exist
         """
         if not hasattr(self, 'db') or not self.db:
@@ -201,13 +199,12 @@ class LineageProcessor:
             if 'lineage_metadata' not in tables:
                 return None
 
-            # Query confidence distribution
+            # Query parse success distribution
             query = """
             SELECT
                 COUNT(*) as total,
-                COUNT(CASE WHEN confidence >= 0.85 THEN 1 END) as high_conf,
-                COUNT(CASE WHEN confidence >= 0.75 AND confidence < 0.85 THEN 1 END) as med_conf,
-                COUNT(CASE WHEN confidence < 0.75 THEN 1 END) as low_conf
+                COUNT(CASE WHEN parse_success THEN 1 END) as successful,
+                COUNT(CASE WHEN NOT parse_success THEN 1 END) as failed
             FROM lineage_metadata
             """
 
@@ -216,12 +213,11 @@ class LineageProcessor:
                 row = result[0]
                 return {
                     'total_objects': row[0],
-                    'high_confidence': row[1],
-                    'medium_confidence': row[2],
-                    'low_confidence': row[3]
+                    'successful_parses': row[1],
+                    'failed_parses': row[2]
                 }
         except Exception as e:
-            logger.error(f"Error querying confidence stats: {e}")
+            logger.error(f"Error querying parse stats: {e}")
             return None
 
         return None
@@ -332,9 +328,9 @@ class LineageProcessor:
                     object_id=view_id,
                     modify_date=modify_date,
                     primary_source='dmv',
-                    confidence=1.0,
                     inputs=inputs,
-                    outputs=outputs
+                    outputs=outputs,
+                    parse_success=True
                 )
 
         return total_objects
@@ -362,7 +358,7 @@ class LineageProcessor:
 
         Side effects:
             - Updates lineage_metadata for Tables and Views with reverse dependencies
-            - Ensures all tables/views have metadata entries with confidence=1.0
+            - Ensures all tables/views have metadata entries with parse_success=True
         """
         self.update_status("processing", 85, "Building graph relationships",
                          "Establishing bidirectional connections...", include_stats=True)
@@ -418,9 +414,9 @@ class LineageProcessor:
                     object_id=table_id,
                     modify_date=None,
                     primary_source='metadata',
-                    confidence=1.0,
                     inputs=reverse_outputs.get(table_id, []),
-                    outputs=readers
+                    outputs=readers,
+                    parse_success=True
                 )
 
         # Ensure ALL tables/views have metadata entries
@@ -435,14 +431,14 @@ class LineageProcessor:
         for row in all_tables_views:
             table_id = row[0]
             if table_id not in tables_in_metadata:
-                # Unreferenced table/view - add with confidence=1.0
+                # Unreferenced table/view - add with parse_success=True
                 db.update_metadata(
                     object_id=table_id,
                     modify_date=None,
                     primary_source='metadata',
-                    confidence=1.0,
                     inputs=[],
-                    outputs=[]
+                    outputs=[],
+                    parse_success=True
                 )
 
     def _generate_output_files(self, db: 'DuckDBWorkspace') -> Dict:
@@ -568,10 +564,9 @@ class LineageProcessor:
                     object_id=sp_dict['object_id'],
                     modify_date=sp_dict['modify_date'],
                     primary_source=result.get('primary_source', 'parser'),
-                    confidence=result['confidence'],
                     inputs=result.get('inputs', []),
                     outputs=result.get('outputs', []),
-                    confidence_breakdown=result.get('confidence_breakdown'),
+                    parse_success=result.get('parse_success', True),
                     parse_failure_reason=result.get('parse_failure_reason'),
                     expected_count=result.get('expected_count'),
                     found_count=result.get('found_count')
@@ -589,9 +584,9 @@ class LineageProcessor:
                         object_id=sp_dict['object_id'],
                         modify_date=sp_dict['modify_date'],
                         primary_source='parser',
-                        confidence=0.0,
                         inputs=[],
                         outputs=[],
+                        parse_success=False,
                         parse_failure_reason=f"Parser error: {str(e)[:200]}"
                     )
                 except Exception as meta_error:

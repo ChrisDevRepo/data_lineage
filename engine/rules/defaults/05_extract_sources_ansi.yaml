@@ -1,0 +1,39 @@
+# ==============================================================================
+# ANSI SQL Source Object Extraction (FROM, JOIN patterns)
+# ==============================================================================
+# Extracts table references that are READ (sources) using standard ANSI SQL.
+# Works across all SQL dialects.
+#
+# Priority: 5 (Run after comment removal)
+# Category: extraction
+# ==============================================================================
+
+name: extract_sources_ansi
+description: |
+  Extract source table references from ANSI SQL patterns (FROM, JOIN).
+  Captures schema.table format with optional brackets.
+
+dialect: generic
+category: extraction
+enabled: true
+priority: 5
+
+rule_type: extraction
+extraction_target: source
+
+pattern_type: regex
+
+# Pattern captures: (keyword, identifier)
+# Group 2 = full identifier (will be parsed for schema.table or just table)
+pattern: (?i)\b(FROM|JOIN|INNER\s+JOIN|LEFT\s+(?:OUTER\s+)?JOIN|RIGHT\s+(?:OUTER\s+)?JOIN|FULL\s+(?:OUTER\s+)?JOIN|CROSS\s+JOIN|OUTER\s+JOIN)\b\s+([^\s,;()]+)
+
+debug:
+  log_matches: true
+  log_replacements: false
+  show_context_lines: 2
+
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  affects_lineage: true
+  impact: "Extracts all source table references from standard SQL patterns."

@@ -1,0 +1,41 @@
+# ==============================================================================
+# Snowflake Specific - TABLE() Function Source Extraction
+# ==============================================================================
+# Snowflake uses TABLE(table_name) for dynamic table references in FROM clause.
+# Example: SELECT * FROM TABLE('MY_DATABASE.MY_SCHEMA.MY_TABLE')
+# Example: SELECT * FROM TABLE(table_var)
+#
+# Priority: 20 (Run after ANSI rules)
+# Category: extraction
+# ==============================================================================
+
+name: extract_sources_snowflake_table_function
+description: |
+  Extract source table references from Snowflake TABLE() function.
+  TABLE() is used for dynamic table references and variables.
+
+dialect: snowflake
+category: extraction
+enabled: true
+priority: 20
+
+rule_type: extraction
+extraction_target: source
+
+pattern_type: regex
+
+# Pattern captures: TABLE(identifier)
+# Group 1 = table reference inside TABLE()
+pattern: (?i)\\bTABLE\\s*\\(\\s*['\"]?([A-Za-z_][\\w.$#-]*(?:\\.[A-Za-z_][\\w.$#-]*)?)['\"]?
+
+debug:
+  log_matches: true
+  log_replacements: false
+  show_context_lines: 2
+
+metadata:
+  author: vibecoding
+  created: \"2025-11-19\"
+  updated: \"2025-11-19\"
+  affects_lineage: true
+  impact: \"Extracts table references from Snowflake TABLE() function.\"

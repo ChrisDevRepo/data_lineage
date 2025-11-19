@@ -143,6 +143,20 @@ These document specific investigations and should be preserved for historical re
 
 ---
 
+## Archived Reports
+
+The following reports have been moved to the archive for historical reference:
+
+1. **DATABASE_SUPPORT_ASSESSMENT.md**
+   - Provides historical context for database support decisions.
+   - Key insights have been integrated into the main documentation.
+
+2. **PHANTOM_FUNCTION_FILTER_BUG.md**
+   - Highlights a resolved bug related to phantom function schema filtering.
+   - Key lessons have been incorporated into the main documentation.
+
+---
+
 ## File Hierarchy
 
 ```
@@ -232,3 +246,4 @@ git checkout docs/PARSER_DEVELOPMENT_PROCESS.md
 **Change Log:**
 - 2025-11-14: Created README and .claudeignore for file protection
 - 2025-11-14: Documented all 4 critical parser files
+- 2025-11-14: Updated the documentation index to reflect the movement of `DATABASE_SUPPORT_ASSESSMENT.md` and `PHANTOM_FUNCTION_FILTER_BUG.md` to the archive directory

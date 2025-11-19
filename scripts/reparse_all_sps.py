@@ -71,10 +71,9 @@ def reparse_all_sps():
                     object_id=object_id,
                     modify_date=modify_date,
                     primary_source=result.get('primary_source', 'parser'),
-                    confidence=result['confidence'],
                     inputs=result.get('inputs', []),
                     outputs=result.get('outputs', []),
-                    confidence_breakdown=result.get('confidence_breakdown'),
+                    parse_success=result.get('parse_success', True),
                     parse_failure_reason=result.get('parse_failure_reason'),
                     expected_count=result.get('expected_count'),
                     found_count=result.get('found_count')
@@ -85,12 +84,12 @@ def reparse_all_sps():
                 # Log key metrics
                 expected = result.get('expected_count', 'None')
                 found = result.get('found_count', 'None')
-                conf = result['confidence']
+                success = result.get('parse_success', True)
                 inputs_len = len(result.get('inputs', []))
                 outputs_len = len(result.get('outputs', []))
 
                 logger.info(
-                    f"  ✅ {sp_name}: conf={conf}, "
+                    f"  ✅ {sp_name}: success={success}, "
                     f"expected={expected}, found={found}, "
                     f"inputs={inputs_len}, outputs={outputs_len}"
                 )
@@ -105,9 +104,9 @@ def reparse_all_sps():
                         object_id=object_id,
                         modify_date=modify_date,
                         primary_source='parser',
-                        confidence=0.0,
                         inputs=[],
                         outputs=[],
+                        parse_success=False,
                         parse_failure_reason=f"Parser error: {str(e)[:200]}"
                     )
                 except Exception as meta_error:

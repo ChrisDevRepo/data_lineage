@@ -1,14 +1,14 @@
 """
-Vibecoding Lineage Parser v3
+Vibecoding Lineage Parser v4.3.5
 
 A DMV-first data lineage extraction system for Azure Synapse Dedicated SQL Pool.
-Uses DuckDB, SQLGlot, and Microsoft Agent Framework for high-accuracy lineage analysis.
+Uses DuckDB and YAML-based regex extraction for high-accuracy lineage analysis.
 
 Architecture:
     1. Helper Extractor: Synapse DMVs → Parquet snapshots
     2. Core Engine: DuckDB workspace for relational queries
-    3. Parser: SQLGlot AST traversal for gap-filling
-    4. AI Fallback: Microsoft Agent Framework multi-agent pipeline
+    3. Parser: YAML regex extraction (business-user maintainable)
+    4. AI Fallback: Microsoft Agent Framework multi-agent pipeline (future)
     5. Output: Internal (int) + Frontend (string) JSON formats
 
 Author: Vibecoding Team
@@ -24,7 +24,6 @@ from engine.exceptions import (
     LineageError,
     ParsingError,
     DDLNotFoundError,
-    SQLGlotParsingError,
     InvalidSQLError,
     CatalogError,
     InvalidSchemaError,
@@ -57,7 +56,6 @@ __all__ = [
     "LineageError",
     "ParsingError",
     "DDLNotFoundError",
-    "SQLGlotParsingError",
     "InvalidSQLError",
     "CatalogError",
     "InvalidSchemaError",

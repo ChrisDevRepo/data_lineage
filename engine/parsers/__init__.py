@@ -5,7 +5,7 @@ This module provides SQL parsing capabilities for extracting table-level
 lineage from stored procedures, views, and functions.
 
 Active Components:
-    - quality_aware_parser: Main production parser with SQLGlot + regex baseline
+    - quality_aware_parser: Main production parser with YAML regex extraction
     - YAML rule engine: Dialect-specific preprocessing rules (engine/rules/)
     - query_log_validator: Cross-validates parsed SPs with query log evidence
     - comment_hints_parser: Extracts @LINEAGE_INPUTS/@LINEAGE_OUTPUTS hints
@@ -13,7 +13,7 @@ Active Components:
 Architecture (4 Phases):
     1. Regex Baseline: Pattern-based table extraction (fast, quality check)
     2. YAML Rules: Dialect-specific SQL preprocessing (17 TSQL rules)
-    3. SQLGlot AST: Abstract syntax tree parsing (handles complex SQL)
+    3. YAML Rules: Business-maintainable extraction patterns
     4. Confidence Calc: Score based on completeness (0, 75, 85, 100)
 
 YAML Rule Engine (v0.9.0 - New!):
@@ -29,8 +29,8 @@ Performance:
     - Speed: ~350 SPs in <30 seconds
 
 Deprecated Parsers:
-    - sqlglot_parser: Moved to deprecated/ (replaced by quality_aware_parser)
-    - enhanced_sqlglot_parser: Moved to deprecated/ (replaced by quality_aware_parser)
+    - sqlglot_parser: Removed in v4.3.5 (SQLGlot deprecated)
+    - enhanced_sqlglot_parser: Removed in v4.3.5 (SQLGlot deprecated)
     - dual_parser: Moved to deprecated/ (replaced by quality_aware_parser)
     - ai_disambiguator: Removed in v4.0.0 (focusing on slim architecture)
     - sql_cleaning_rules: Removed in v0.9.0 (migrated to YAML)

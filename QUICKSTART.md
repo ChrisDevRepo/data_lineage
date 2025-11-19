@@ -80,11 +80,11 @@ DB_SSL_ENABLED=true
 - **Docker:** Use Docker secrets
 - **Never commit** connection strings to git!
 
-**Connection String Examples:**
+**Connection String Example (MSSQL):**
 
 | Database | Example |
 |----------|---------|
-| SQL Server/Synapse | `DRIVER={ODBC Driver 18 for SQL Server};SERVER=myserver;DATABASE=mydb;UID=user;PWD=pass;Encrypt=yes` |
+| **SQL Server/Synapse (MSSQL)** | `DRIVER={ODBC Driver 18 for SQL Server};SERVER=myserver;DATABASE=mydb;UID=user;PWD=pass;Encrypt=yes` |
 | PostgreSQL | `postgresql://user:password@host:5432/database?sslmode=require` |
 | Snowflake | `snowflake://user:password@account.region.snowflakecomputing.com/database/schema` |
 
@@ -178,15 +178,31 @@ curl http://localhost:8000/api/latest-data > my_lineage.json
 
 **Location:** `engine/rules/{dialect}/`
 
-**Example Rule (7 lines):**
+
+**Example Rule (T-SQL Target Extraction):**
 ```yaml
-name: remove_go
-description: Remove GO batch separators
+# Extracts T-SQL specific target patterns (SELECT INTO, CTAS)
+name: extract_targets_tsql
+description: |
+  Extract T-SQL specific target table references.
+  Handles SELECT INTO and CREATE TABLE AS SELECT patterns.
 dialect: tsql
+category: extraction
 enabled: true
 priority: 10
-pattern: '^\s*GO\s*$'
-replacement: ''
+rule_type: extraction
+extraction_target: target
+pattern_type: regex
+pattern: (?i)(?:\bINTO\s+([^\s,;()]+(?:\s+FROM)?)|\bCREATE\s+TABLE\s+([^\s,;()]+)\s+AS\s+SELECT)
+debug:
+  log_matches: true
+  log_replacements: false
+  show_context_lines: 2
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  affects_lineage: true
+  impact: "Extracts T-SQL specific target patterns (SELECT INTO, CTAS)."
 ```
 
 **Add Custom Rules:**
@@ -216,7 +232,7 @@ LOG_LEVEL=DEBUG
 
 **DEBUG Output Format:**
 ```
-[PARSE] dbo.spMyProc: Path=[SQLGlot] Regex=[5S + 3T] SQLGlot=[2S + 1T] Final=[7S + 4T] Confidence=100
+[PARSE] dbo.spMyProc: Path=[Regex-only] Regex=[7S + 4T] Final=[7S + 4T] Confidence=100
 ```
 
 ---
@@ -232,7 +248,7 @@ LOG_LEVEL=DEBUG
 
 **Architecture:**
 1. **Regex-First Baseline** - Full DDL scan (100% coverage)
-2. **SQLGlot Enhancement** - Adds bonus tables (50-80% of statements)
+2. **YAML Regex Extraction** - Business users can maintain patterns
 3. **UNION Strategy** - Keeps all findings from both methods
 4. **Post-Processing** - Removes system objects, temp tables
 5. **Confidence Scoring** - (found / expected) * 100

@@ -1,0 +1,40 @@
+# ==============================================================================
+# PostgreSQL Specific - LATERAL JOIN Source Extraction
+# ==============================================================================
+# PostgreSQL supports LATERAL joins for correlated subqueries.
+# Example: SELECT * FROM table1 t1, LATERAL (SELECT * FROM table2 WHERE ...) t2
+#
+# Priority: 20 (Run after ANSI rules, before generic extraction)
+# Category: extraction
+# ==============================================================================
+
+name: extract_sources_postgresql_lateral
+description: |
+  Extract source table references from PostgreSQL LATERAL joins.
+  LATERAL allows subqueries to reference columns from preceding FROM items.
+
+dialect: postgres
+category: extraction
+enabled: true
+priority: 20
+
+rule_type: extraction
+extraction_target: source
+
+pattern_type: regex
+
+# Pattern captures: (keyword, identifier)
+# Group 2 = table/function after LATERAL keyword
+pattern: (?i)\bLATERAL\b\s+([^\s,;()]+)
+
+debug:
+  log_matches: true
+  log_replacements: false
+  show_context_lines: 2
+
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  updated: "2025-11-19"
+  affects_lineage: true
+  impact: "Extracts table/function references from PostgreSQL LATERAL joins."

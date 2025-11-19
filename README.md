@@ -22,7 +22,7 @@ Built for data engineers and DBAs working with complex data pipelines.
 
 ## Why Data Lineage Visualizer?
 
-- ✅ **100% Parse Success Rate** - Hybrid parser (Regex + SQLGlot) never fails
+- ✅ **100% Parse Success Rate** - Pure YAML regex parser never fails
 - ⚡ **5-Minute Setup** - One command to install and run
 - 🔧 **Customizable** - YAML rules engine, no Python coding required
 - 🔌 **Flexible Inputs** - Parquet files OR direct database connection
@@ -97,7 +97,7 @@ graph LR
 **Processing Pipeline:**
 1. **Ingest** - Parquet files or database connection → DuckDB
 2. **Preprocess** - YAML rules remove dialect-specific syntax
-3. **Parse** - Regex baseline + SQLGlot enhancement (100% success)
+3. **Parse** - YAML regex extraction (100% success, business-user maintainable)
 4. **Score** - Confidence calculation (0, 75, 85, 100)
 5. **Export** - JSON format for visualization
 
@@ -139,7 +139,7 @@ graph LR
 ### Backend
 - **FastAPI** - REST API with async support
 - **DuckDB** - In-memory analytics database
-- **SQLGlot** - SQL parser and transpiler
+- **PyYAML** - For YAML-based extraction rules
 - **Python 3.10+** - Application runtime
 
 ### Frontend
@@ -149,7 +149,7 @@ graph LR
 - **Tailwind CSS** - Utility-first styling
 
 ### Parser Engine (v4.3.3)
-- **Dual Strategy** - Regex baseline + SQLGlot enhancement
+- **YAML-Based Extraction** - Business users can edit patterns without Python
 - **YAML Rules** - Dialect-specific preprocessing
 - **Confidence Model** - (found / expected) * 100
 

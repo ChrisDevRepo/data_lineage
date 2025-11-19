@@ -84,12 +84,11 @@ class QueryLogValidator:
         logger.info(f"Loaded {len(dml_queries)} DML queries from logs")
 
         validated_objects = []
-        confidence_boosted = []
         total_matching_queries = 0
 
         for sp in parsed_sps:
             object_id = sp['object_id']
-            old_confidence = sp['confidence']
+            parse_success = sp.get('parse_success', True)
             inputs = sp['inputs']
             outputs = sp['outputs']
 
@@ -102,16 +101,9 @@ class QueryLogValidator:
             )
 
             if matching_queries:
-                # Boost confidence: 0.85 → 0.95
-                new_confidence = 0.95
-
-                # Update lineage_metadata
-                self._update_confidence(
-                    object_id=object_id,
-                    confidence=new_confidence,
-                    validated_queries=len(matching_queries)
-                )
-
+                # Query log validation found matching queries
+                # In v4.3.6, we don't update parse_success (informational only)
+                
                 validated_objects.append(object_id)
                 confidence_boosted.append((object_id, old_confidence, new_confidence))
                 total_matching_queries += len(matching_queries)
@@ -148,19 +140,19 @@ class QueryLogValidator:
         return self._query_logs_available
 
     def _get_high_confidence_sps(self) -> List[Dict]:
-        """Get all high-confidence parsed stored procedures (≥0.85)."""
+        """Get all successfully parsed stored procedures (parse_success = true)."""
         query = """
             SELECT
                 lm.object_id,
-                lm.confidence,
+                lm.parse_success,
                 lm.inputs,
                 lm.outputs
             FROM lineage_metadata lm
             JOIN objects o ON lm.object_id = o.object_id
             WHERE o.object_type = 'Stored Procedure'
-              AND lm.confidence >= 0.85
+              AND lm.parse_success = true
               AND lm.primary_source IN ('parser', 'dual_parser')
-            ORDER BY lm.confidence DESC
+            ORDER BY lm.object_id DESC
         """
 
         results = self.workspace.query(query)
@@ -173,7 +165,7 @@ class QueryLogValidator:
 
             sps.append({
                 'object_id': row[0],
-                'confidence': row[1],
+                'parse_success': row[1],
                 'inputs': inputs,
                 'outputs': outputs
             })
@@ -330,17 +322,11 @@ class QueryLogValidator:
             validated_queries: Number of matching queries found
         """
         # Note: We don't have a validation_source or validated_queries column yet
-        # For now, just update the confidence
-        # TODO: Add these columns in future schema enhancement
+        # For now, query logs don't update parse_success (v4.3.6: confidence removed)
+        # TODO: Add parse_success_boosted column in future schema enhancement
 
-        update_query = """
-            UPDATE lineage_metadata
-            SET confidence = ?
-            WHERE object_id = ?
-        """
-
-        self.workspace.query(update_query, [confidence, object_id])
-        logger.debug(f"Updated object {object_id} confidence to {confidence:.2f}")
+        # Query log validation is informational only (no update to parse_success)
+        logger.debug(f"Query log validated object {object_id} (no parse_success update in v4.3.6)")
 
 
 # Module-level convenience function

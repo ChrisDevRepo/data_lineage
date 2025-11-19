@@ -35,6 +35,6 @@
 #      pip install -r requirements.txt
 #
 #   3. Verify installation:
-#      python -c "import duckdb, sqlglot, fastapi; print('✅ All imports successful')"
+#      python -c "import duckdb, fastapi; print('✅ All imports successful')"
 #
 # ==============================================================================

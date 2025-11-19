@@ -11,8 +11,7 @@ export type DataNode = {
   node_symbol?: 'circle' | 'diamond' | 'square' | 'question_mark';  // v4.3.0 Phantom Objects
   is_phantom?: boolean;  // v4.3.0 Phantom Objects
   phantom_reason?: string;  // v4.3.0 Phantom Objects
-  confidence?: number | null;  // Confidence score for Stored Procedures
-  confidence_breakdown?: object;  // Confidence breakdown details
+  // Note: confidence scoring removed in v4.3.6 (was circular logic with regex-only parsing)
 };
 
 export type TraceConfig = {

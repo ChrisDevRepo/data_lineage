@@ -59,10 +59,11 @@ class DuckDBWorkspace:
             last_parsed_modify_date TIMESTAMP,
             last_parsed_at TIMESTAMP,
             primary_source TEXT,
-            confidence REAL,
             inputs TEXT,  -- JSON array of integer object_ids
             outputs TEXT,  -- JSON array of integer object_ids
-            confidence_breakdown TEXT  -- JSON object with multi-factor breakdown (v2.0.0)
+            parse_success BOOLEAN,  -- v4.3.6: Replaced confidence with simple boolean
+            expected_tables INTEGER,  -- v4.3.6: Diagnostic count
+            found_tables INTEGER  -- v4.3.6: Diagnostic count
         )
     """
 
@@ -76,13 +77,13 @@ class DuckDBWorkspace:
             inputs TEXT,  -- JSON array of integer object_ids
             outputs TEXT,  -- JSON array of integer object_ids
             primary_source TEXT,
-            confidence REAL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """
 
-    # Schema for parser comparison logs
+    # Schema for parser comparison logs (deprecated in v4.3.6)
+    # This table is no longer used since SQLGlot was removed
     SCHEMA_PARSER_COMPARISON = """
         CREATE TABLE IF NOT EXISTS parser_comparison_log (
             object_id INTEGER,
@@ -91,21 +92,12 @@ class DuckDBWorkspace:
             object_type TEXT,
             parse_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-            -- Regex baseline (expected counts)
+            -- Regex extraction (only method as of v4.3.6)
             regex_sources_expected INTEGER,
             regex_targets_expected INTEGER,
-
-            -- SQLGlot parser results
-            sqlglot_sources_found INTEGER,
-            sqlglot_targets_found INTEGER,
-            sqlglot_confidence REAL,
-            sqlglot_quality_match REAL,
-
-            -- Final result
-            final_sources_count INTEGER,
-            final_targets_count INTEGER,
-            final_confidence REAL,
-            final_source TEXT,  -- 'sqlglot', 'regex', 'query_log'
+            found_sources_count INTEGER,
+            found_targets_count INTEGER,
+            final_source TEXT,  -- 'regex', 'query_log'
 
             PRIMARY KEY (object_id, parse_timestamp)
         )
@@ -164,9 +156,14 @@ class DuckDBWorkspace:
         # Create lineage_metadata table
         self.connection.execute(self.SCHEMA_LINEAGE_METADATA)
 
-        # Migration: Add confidence_breakdown column if it doesn't exist (v2.0.0)
+                # Migration v4.3.6: Drop confidence columns (replaced with parse_success boolean)
         try:
-            # Check if column exists
+            # Check if lineage_metadata exists first
+            tables = [row[0] for row in self.query("SHOW TABLES")]
+            if 'lineage_metadata' not in tables:
+                return
+
+            # Check which columns exist
             columns = self.connection.execute("""
                 SELECT column_name
                 FROM information_schema.columns
@@ -175,15 +172,45 @@ class DuckDBWorkspace:
 
             column_names = [col[0] for col in columns]
 
-            if 'confidence_breakdown' not in column_names:
-                logger.info("Migrating lineage_metadata: adding confidence_breakdown column...")
+            # Drop confidence columns if they exist (v4.3.6)
+            if 'confidence' in column_names:
+                logger.info("Migrating lineage_metadata: dropping confidence column (v4.3.6)...")
                 self.connection.execute("""
-                    ALTER TABLE lineage_metadata
-                    ADD COLUMN confidence_breakdown TEXT
+                    ALTER TABLE lineage_metadata DROP COLUMN confidence
                 """)
-                logger.info("✓ Migration complete: confidence_breakdown column added")
+                logger.info("✓ Migration complete: confidence column dropped")
+
+            if 'confidence_breakdown' in column_names:
+                logger.info("Migrating lineage_metadata: dropping confidence_breakdown column (v4.3.6)...")
+                self.connection.execute("""
+                    ALTER TABLE lineage_metadata DROP COLUMN confidence_breakdown
+                """)
+                logger.info("✓ Migration complete: confidence_breakdown column dropped")
+
+            # Add new columns for v4.3.6
+            if 'parse_success' not in column_names:
+                logger.info("Migrating lineage_metadata: adding parse_success column (v4.3.6)...")
+                self.connection.execute("""
+                    ALTER TABLE lineage_metadata ADD COLUMN parse_success BOOLEAN DEFAULT TRUE
+                """)
+                logger.info("✓ Migration complete: parse_success column added")
+
+            if 'expected_tables' not in column_names:
+                logger.info("Migrating lineage_metadata: adding expected_tables column (v4.3.6)...")
+                self.connection.execute("""
+                    ALTER TABLE lineage_metadata ADD COLUMN expected_tables INTEGER DEFAULT 0
+                """)
+                logger.info("✓ Migration complete: expected_tables column added")
+
+            if 'found_tables' not in column_names:
+                logger.info("Migrating lineage_metadata: adding found_tables column (v4.3.6)...")
+                self.connection.execute("""
+                    ALTER TABLE lineage_metadata ADD COLUMN found_tables INTEGER DEFAULT 0
+                """)
+                logger.info("✓ Migration complete: found_tables column added")
+
         except Exception as e:
-            logger.warning(f"Could not check/add confidence_breakdown column: {e}")
+            logger.warning(f"Could not migrate lineage_metadata columns: {e}")
 
         # Migration: Add parse failure fields if they don't exist (v2.1.0 / BUG-002)
         try:
@@ -540,11 +567,11 @@ class DuckDBWorkspace:
         - Otherwise, return only objects that:
           1. Don't exist in lineage_metadata, OR
           2. Have been modified since last parse, OR
-          3. Have confidence < threshold
+          3. Have parse_success = False (failed parsing)
 
         Args:
             full_refresh: If True, ignore metadata and return all objects
-            confidence_threshold: Skip objects with confidence >= this value
+            confidence_threshold: Legacy parameter (ignored in v4.3.6+)
 
         Returns:
             List of object dictionaries with fields:
@@ -588,7 +615,7 @@ class DuckDBWorkspace:
                 """
             else:
                 # Return only objects needing update
-                query = f"""
+                query = """
                     SELECT
                         o.object_id,
                         o.schema_name,
@@ -603,8 +630,8 @@ class DuckDBWorkspace:
                         m.object_id IS NULL
                         -- OR object modified since last parse
                         OR o.modify_date > m.last_parsed_modify_date
-                        -- OR confidence below threshold (needs re-parsing)
-                        OR m.confidence < {confidence_threshold}
+                        -- OR parsing failed (parse_success = False)
+                        OR m.parse_success = FALSE
                     ORDER BY o.schema_name, o.object_name
                 """
 
@@ -616,14 +643,13 @@ class DuckDBWorkspace:
 
     def get_dmv_dependencies(self) -> List[Dict[str, Any]]:
         """
-        Get all DMV dependencies (baseline - confidence 1.0).
+        Get all DMV dependencies (baseline - parse_success true).
 
         Returns:
             List of dependency dictionaries with fields:
             - referencing_object_id
             - referenced_object_id
             - source: 'dmv'
-            - confidence: 1.0
         """
         if not self.connection:
             raise RuntimeError("Not connected to DuckDB workspace")
@@ -632,8 +658,7 @@ class DuckDBWorkspace:
             SELECT
                 referencing_object_id,
                 referenced_object_id,
-                'dmv' AS source,
-                1.0 AS confidence
+                'dmv' AS source
             FROM dependencies
             WHERE referencing_object_id IS NOT NULL
                 AND referenced_object_id IS NOT NULL
@@ -641,7 +666,7 @@ class DuckDBWorkspace:
 
         results = self.connection.execute(query).fetchall()
 
-        columns = ['referencing_object_id', 'referenced_object_id', 'source', 'confidence']
+        columns = ['referencing_object_id', 'referenced_object_id', 'source']
         return [dict(zip(columns, row)) for row in results]
 
     def get_object_definition(self, object_id: int) -> Optional[str]:
@@ -730,13 +755,12 @@ class DuckDBWorkspace:
         object_id: int,
         modify_date: datetime,
         primary_source: str,
-        confidence: float,
         inputs: List[int],
         outputs: List[int],
-        confidence_breakdown: Dict[str, Any] = None,
         parse_failure_reason: str = None,
         expected_count: int = None,
-        found_count: int = None
+        found_count: int = None,
+        parse_success: bool = True
     ):
         """
         Update lineage_metadata for an object using UNION merge strategy.
@@ -748,13 +772,12 @@ class DuckDBWorkspace:
             object_id: Object ID
             modify_date: Modification date from objects.parquet
             primary_source: Source with highest confidence (dmv, query_log, parser, ai)
-            confidence: Confidence score (0.0-1.0)
             inputs: List of input object_ids
             outputs: List of output object_ids
-            confidence_breakdown: Multi-factor confidence breakdown (v2.0.0)
-            parse_failure_reason: Reason for parse failure (v2.1.0 / BUG-002)
-            expected_count: Expected number of tables (v2.1.0 / BUG-002)
-            found_count: Number of tables actually found (v2.1.0 / BUG-002)
+            parse_failure_reason: Reason for parse failure (v4.3.6)
+            expected_count: Expected number of tables (v4.3.6)
+            found_count: Number of tables actually found (v4.3.6)
+            parse_success: Whether parsing succeeded (v4.3.6)
         """
         if not self.connection:
             raise RuntimeError("Not connected to DuckDB workspace")
@@ -763,14 +786,14 @@ class DuckDBWorkspace:
 
         # Read existing metadata if it exists
         existing = self.connection.execute("""
-            SELECT inputs, outputs, primary_source, confidence
+            SELECT inputs, outputs, primary_source, parse_success
             FROM lineage_metadata
             WHERE object_id = ?
         """, [object_id]).fetchall()
 
         if existing and len(existing) > 0:
             # Existing record found - merge with UNION strategy
-            old_inputs_json, old_outputs_json, old_source, old_confidence = existing[0]
+            old_inputs_json, old_outputs_json, old_source, old_parse_success = existing[0]
 
             # Parse existing JSON arrays
             old_inputs = json.loads(old_inputs_json) if old_inputs_json else []
@@ -785,32 +808,35 @@ class DuckDBWorkspace:
                 merged_inputs = inputs
                 merged_outputs = outputs
                 final_source = primary_source
-                final_confidence = confidence
+                final_parse_success = parse_success
                 logger.debug(f"  REPLACE strategy for parser source (object_id={object_id})")
             else:
                 # UNION strategy: Merge inputs/outputs from multiple sources
                 merged_inputs = list(set(old_inputs + inputs))
                 merged_outputs = list(set(old_outputs + outputs))
 
-                # Keep highest confidence source
-                if confidence > old_confidence:
+                # Keep source with successful parsing, prefer new if both successful
+                if parse_success and not old_parse_success:
                     final_source = primary_source
-                    final_confidence = confidence
-                else:
+                    final_parse_success = parse_success
+                elif old_parse_success and not parse_success:
                     final_source = old_source
-                    final_confidence = old_confidence
+                    final_parse_success = old_parse_success
+                else:
+                    # Both same success status, keep existing
+                    final_source = old_source
+                    final_parse_success = old_parse_success
                 logger.debug(f"  UNION strategy for non-parser source (object_id={object_id})")
         else:
             # No existing record - use new values directly
             merged_inputs = inputs
             merged_outputs = outputs
             final_source = primary_source
-            final_confidence = confidence
+            final_parse_success = parse_success
 
         # Convert to JSON
         inputs_json = json.dumps(merged_inputs)
         outputs_json = json.dumps(merged_outputs)
-        breakdown_json = json.dumps(confidence_breakdown) if confidence_breakdown else None
 
         # Write merged result
         query = """
@@ -819,14 +845,13 @@ class DuckDBWorkspace:
                 last_parsed_modify_date,
                 last_parsed_at,
                 primary_source,
-                confidence,
+                parse_success,
                 inputs,
                 outputs,
-                confidence_breakdown,
                 parse_failure_reason,
                 expected_count,
                 found_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
         self.connection.execute(query, [
@@ -834,10 +859,9 @@ class DuckDBWorkspace:
             modify_date,
             datetime.now(),
             final_source,
-            final_confidence,
+            final_parse_success,
             inputs_json,
             outputs_json,
-            breakdown_json,
             parse_failure_reason,
             expected_count,
             found_count
@@ -1088,13 +1112,13 @@ class DuckDBWorkspace:
                 SELECT
                     primary_source,
                     COUNT(*) as count,
-                    AVG(confidence) as avg_confidence
+                    AVG(CASE WHEN parse_success THEN 1.0 ELSE 0.0 END) as avg_success_rate
                 FROM lineage_metadata
                 GROUP BY primary_source
             """).fetchall()
 
             stats['source_breakdown'] = {
-                row[0]: {'count': row[1], 'avg_confidence': row[2]}
+                row[0]: {'count': row[1], 'avg_success_rate': row[2]}
                 for row in result
             }
         except Exception as e:

@@ -1,0 +1,40 @@
+# ==============================================================================
+# T-SQL Target Object Extraction (SELECT INTO, CTAS)
+# ==============================================================================
+# Extracts T-SQL specific target patterns:
+# - SELECT INTO (creates new table)
+# - CREATE TABLE AS SELECT (CTAS)
+#
+# Priority: 10 (Run after generic target extraction)
+# Category: extraction
+# ==============================================================================
+
+name: extract_targets_tsql
+description: |
+  Extract T-SQL specific target table references.
+  Handles SELECT INTO and CREATE TABLE AS SELECT patterns.
+
+dialect: tsql
+category: extraction
+enabled: true
+priority: 10
+
+rule_type: extraction
+extraction_target: target
+
+pattern_type: regex
+
+# Pattern captures target table from SELECT INTO or CTAS
+# Groups capture the table name from different patterns
+pattern: (?i)(?:\bINTO\s+([^\s,;()]+(?:\s+FROM)?)|\bCREATE\s+TABLE\s+([^\s,;()]+)\s+AS\s+SELECT)
+
+debug:
+  log_matches: true
+  log_replacements: false
+  show_context_lines: 2
+
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  affects_lineage: true
+  impact: "Extracts T-SQL specific target patterns (SELECT INTO, CTAS)."

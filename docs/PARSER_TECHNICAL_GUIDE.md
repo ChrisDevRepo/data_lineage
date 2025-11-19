@@ -1,4 +1,4 @@
-# Parser Technical Guide - v4.3.3
+# Parser Technical Guide - v4.3.5
 
 **Complete technical reference for the quality-aware parser**
 
@@ -375,6 +375,26 @@ Cleaning logic is working as designed:
 
 ---
 
+## Updates for v4.3.5
+
+### SELECT INTO Support
+- Added detection for `SELECT INTO` statements in `_extract_lineage_from_sqlglot()`.
+- Improved output detection for aggregation stored procedures.
+
+### Phantom Feature Removal
+- Removed phantom object tracking, simplifying the architecture.
+- Objects not in the catalog are now filtered out instead of being tracked as phantoms.
+
+### AI Reference Cleanup
+- Removed unused AI tracking columns and code.
+- Simplified database schema and parsing loop.
+
+### Multi-Dialect Rule Support
+- Introduced generic vs dialect-specific rule categorization.
+- Added PostgreSQL support as a proof of concept.
+
+---
+
 ## File References
 
 **Implementation:**
@@ -394,4 +414,70 @@ Cleaning logic is working as designed:
 
 ---
 
-**Last Verified:** 2025-11-14 (v4.3.3)
+**Last Verified:** 2025-11-14 (v4.3.5)
+
+---
+
+## Empty Lineage Analysis
+
+**Note:** For analyzing and documenting empty lineage scenarios, use `EMPTY_LINEAGE_ROOT_CAUSE.md`.
+
+### Common Causes of Empty Lineage
+
+1. **No Data Movement Statements:**
+   - SPs with only control-of-flow statements (IF, WHILE) and no data access or modification.
+
+2. **Commented-Out Code:**
+   - Legacy code or debugging statements that are commented out, leading to no active DDL statements.
+
+3. **Dynamic SQL:**
+   - SQL statements constructed and executed at runtime, not visible in static analysis.
+
+4. **Insufficient Permissions:**
+   - The parser's database user lacks permissions to view certain objects, leading to incomplete lineage.
+
+5. **Non-Deterministic Objects:**
+   - Use of objects like `OPENROWSET`, `EXECUTE AS`, or linked server queries that are not resolvable at parse time.
+
+### Recommendations
+
+- **Review SP Logic:**
+  Ensure the stored procedure contains valid and active data movement statements.
+
+- **Uncomment Code:**
+  If applicable, uncomment and validate any legacy or debugging code.
+
+- **Static Analysis Limitations:**
+  Understand the limitations of static analysis and consider dynamic analysis for complex cases.
+
+- **Permission Checks:**
+  Verify that the parser has sufficient permissions to access all relevant database objects.
+
+- **Documentation:**
+  Document any known issues or limitations in the lineage extraction for specific stored procedures.
+
+---
+
+## File References
+
+**Empty Lineage Analysis:**
+- `EMPTY_LINEAGE_ROOT_CAUSE.md`
+
+**Implementation:**
+- `engine/parsers/quality_aware_parser.py`
+  - `_regex_scan()` (lines 864-1045)
+  - `_sqlglot_parse()` (lines 743-821)
+  - `_post_process_dependencies()` (lines 558-646)
+  - `_validate_against_catalog()` (lines 647-685)
+
+**Utilities:**
+- `engine/utils/confidence_calculator.py`
+
+**Testing:**
+- `scripts/testing/check_parsing_results.py`
+- `scripts/testing/analyze_lower_confidence_sps.py`
+- `tests/unit/test_parser_golden_cases.py`
+
+---
+
+**Last Verified:** 2025-11-14 (v4.3.5)

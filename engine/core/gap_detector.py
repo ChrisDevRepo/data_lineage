@@ -122,13 +122,13 @@ class GapDetector:
             o.object_name,
             o.object_type,
             o.modify_date,
-            m.confidence,
+            m.parse_success,
             m.primary_source
         FROM objects o
         INNER JOIN lineage_metadata m ON o.object_id = m.object_id
         WHERE
-            m.confidence < {confidence_threshold}
-        ORDER BY m.confidence ASC, o.schema_name, o.object_name
+            m.parse_success = false
+        ORDER BY o.schema_name, o.object_name
         """
 
         results = self.workspace.query(query)
@@ -141,7 +141,7 @@ class GapDetector:
                 'object_name': row[2],
                 'object_type': row[3],
                 'modify_date': row[4],
-                'confidence': row[5],
+                'parse_success': row[5],
                 'primary_source': row[6]
             }
             for row in results

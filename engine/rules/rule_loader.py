@@ -32,7 +32,7 @@ class RuleTestCase:
 
 @dataclass
 class Rule:
-    """A SQL cleaning rule loaded from YAML."""
+    """A SQL rule loaded from YAML (cleaning or extraction)."""
 
     name: str
     description: str
@@ -44,7 +44,7 @@ class Rule:
     # Pattern configuration
     pattern_type: str  # 'regex' | 'sqlglot_transform'
     pattern: Any  # str for single pattern, List[str] for multi-step
-    replacement: Any  # str for single replacement, List[str] for multi-step
+    replacement: Any  # str for single replacement, List[str] for multi-step (only for cleaning)
 
     # Testing
     test_cases: List[RuleTestCase]
@@ -59,6 +59,10 @@ class Rule:
 
     # File source
     source_file: Path
+    
+    # Rule type configuration (v4.3.5) - must be after non-default fields
+    rule_type: str = 'cleaning'  # 'cleaning' | 'extraction'
+    extraction_target: Optional[str] = None  # 'source' | 'target' | 'sp_call' | 'function' (for extraction rules)
 
     # Compiled regex (cached)
     _compiled_pattern: Optional[re.Pattern] = None
@@ -68,6 +72,98 @@ class Rule:
         if self.dialect == 'generic':
             return True
         return self.dialect == dialect.value
+
+    def extract(self, sql: str, verbose: bool = False) -> List[str]:
+        """
+        Extract object names from SQL using this extraction rule.
+        
+        Returns list of object names in format: "schema.table" or "schema.sp_name"
+        
+        Args:
+            sql: SQL code to extract from
+            verbose: Enable verbose logging
+            
+        Returns:
+            List of extracted object names
+        """
+        if not self.enabled:
+            if verbose:
+                logger.debug(f"Rule '{self.name}' is disabled, skipping")
+            return []
+        
+        if self.rule_type != 'extraction':
+            logger.warning(f"Rule '{self.name}' is not an extraction rule (type={self.rule_type})")
+            return []
+        
+        if self.pattern_type != 'regex':
+            logger.warning(f"Rule '{self.name}' has unsupported pattern_type: {self.pattern_type}")
+            return []
+        
+        # Compile pattern if not cached
+        if self._compiled_pattern is None:
+            try:
+                self._compiled_pattern = re.compile(self.pattern, re.IGNORECASE | re.MULTILINE | re.DOTALL)
+            except re.error as e:
+                logger.error(f"❌ Rule '{self.name}' has invalid regex pattern: {e}")
+                logger.error(f"   Rule skipped during execution. Fix the pattern in: {self.source_file}")
+                return []
+        
+        # Find all matches
+        try:
+            matches = self._compiled_pattern.findall(sql)
+        except Exception as e:
+            logger.error(f"❌ Rule '{self.name}' failed during pattern matching: {e}")
+            if verbose:
+                logger.debug(f"Pattern match error details:", exc_info=True)
+            return []
+        
+        # Extract object names from matches
+        # Pattern now has 2 capture groups: (keyword, identifier)
+        # We parse the identifier to extract schema.table
+        objects = []
+        for match in matches:
+            if isinstance(match, tuple):
+                # Extract the identifier (last group)
+                identifier = match[-1] if len(match) >= 2 else match[0] if len(match) == 1 else None
+                if not identifier:
+                    continue
+                
+                # Clean brackets: [schema].[table] -> schema.table
+                identifier = identifier.replace('[', '').replace(']', '')
+                
+                # Remove common SQL noise
+                identifier = identifier.rstrip(',;')
+                
+                # Handle aliases: "schema.table alias" -> "schema.table"
+                identifier = identifier.split()[0]
+                
+                # Split on dot to get schema.table
+                if '.' in identifier:
+                    parts = identifier.split('.')
+                    if len(parts) == 2 and parts[0] and parts[1]:
+                        objects.append(f"{parts[0]}.{parts[1]}")
+                    elif len(parts) > 2:
+                        # Handle multi-part names: take last 2 parts
+                        objects.append(f"{parts[-2]}.{parts[-1]}")
+                else:
+                    # No dot: single-name table, use (unknown).table format
+                    if identifier:
+                        objects.append(f"(unknown).{identifier}")
+            elif isinstance(match, str):
+                # Single string match - parse it
+                if match:
+                    match = match.replace('[', '').replace(']', '').rstrip(',;').split()[0]
+                    if '.' in match:
+                        parts = match.split('.')
+                        if len(parts) >= 2:
+                            objects.append(f"{parts[-2]}.{parts[-1]}")
+                    else:
+                        objects.append(f"(unknown).{match}")
+        
+        if verbose and self.debug_log_matches and objects:
+            logger.debug(f"Rule '{self.name}' extracted {len(objects)} object(s): {objects[:5]}")
+        
+        return objects
 
     def apply(self, sql: str, verbose: bool = False) -> str:
         """
@@ -245,7 +341,7 @@ class RuleLoader:
 
         # Standard directories to scan
         directories = [
-            self.rules_dir / 'generic',  # Always load generic rules
+            self.rules_dir / 'defaults',  # Always load default rules
             self.rules_dir / dialect.value  # Dialect-specific rules
         ]
 
@@ -372,27 +468,44 @@ class RuleLoader:
         if not isinstance(raw, dict):
             raise ValueError(f"YAML file must contain a dictionary, got {type(raw)}")
 
-        # Validate required fields
-        required = ['name', 'description', 'dialect', 'enabled', 'pattern', 'replacement']
+        # Validate required fields (v4.3.5: replacement optional for extraction rules)
+        required = ['name', 'description', 'dialect', 'enabled', 'pattern']
         missing = [f for f in required if f not in raw]
         if missing:
             raise ValueError(f"Missing required fields: {', '.join(missing)}")
+        
+        # Check rule_type and validate accordingly
+        rule_type = raw.get('rule_type', 'cleaning')
+        if rule_type not in ['cleaning', 'extraction']:
+            raise ValueError(f"Invalid rule_type: {rule_type}. Must be 'cleaning' or 'extraction'")
+        
+        # For cleaning rules, replacement is required
+        if rule_type == 'cleaning' and 'replacement' not in raw:
+            raise ValueError(f"Cleaning rules must have 'replacement' field")
+        
+        # For extraction rules, extraction_target is required
+        if rule_type == 'extraction':
+            if 'extraction_target' not in raw:
+                raise ValueError(f"Extraction rules must have 'extraction_target' field")
+            if raw['extraction_target'] not in ['source', 'target', 'sp_call', 'function']:
+                raise ValueError(f"Invalid extraction_target: {raw['extraction_target']}. Must be source/target/sp_call/function")
 
-        # Validate pattern/replacement types match
+        # Validate pattern/replacement types match (only for cleaning rules)
         pattern = raw['pattern']
-        replacement = raw['replacement']
+        replacement = raw.get('replacement')
+        
+        if rule_type == 'cleaning' and replacement is not None:
+            if isinstance(pattern, list) != isinstance(replacement, list):
+                raise ValueError(
+                    f"Pattern and replacement must both be strings or both be lists. "
+                    f"Got pattern={type(pattern).__name__}, replacement={type(replacement).__name__}"
+                )
 
-        if isinstance(pattern, list) != isinstance(replacement, list):
-            raise ValueError(
-                f"Pattern and replacement must both be strings or both be lists. "
-                f"Got pattern={type(pattern).__name__}, replacement={type(replacement).__name__}"
-            )
-
-        if isinstance(pattern, list) and len(pattern) != len(replacement):
-            raise ValueError(
-                f"Pattern list has {len(pattern)} items but replacement list has {len(replacement)} items. "
-                f"They must have the same length for multi-step rules."
-            )
+            if isinstance(pattern, list) and len(pattern) != len(replacement):
+                raise ValueError(
+                    f"Pattern list has {len(pattern)} items but replacement list has {len(replacement)} items. "
+                    f"They must have the same length for multi-step rules."
+                )
 
         # Validate regex patterns (compile to check syntax)
         self._validate_regex_patterns(pattern, raw['name'])
@@ -420,7 +533,10 @@ class RuleLoader:
 
             pattern_type=raw.get('pattern_type', 'regex'),
             pattern=raw['pattern'],
-            replacement=raw['replacement'],
+            replacement=raw.get('replacement', ''),  # Default to empty string for extraction rules
+            
+            rule_type=rule_type,
+            extraction_target=raw.get('extraction_target'),
 
             test_cases=test_cases,
 

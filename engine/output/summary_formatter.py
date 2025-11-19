@@ -193,131 +193,38 @@ class SummaryFormatter:
         # Get metrics for ALL objects
         all_metrics = metrics_service.get_all_metrics()
 
-        # Build response compatible with old format but with clear scope
+        # Build response compatible with parse_success model (v4.3.6)
         return {
             'scope': 'ALL objects (note: use by_object_type for specific scopes)',
-            'average': (all_metrics['overall']['confidence']['high']['count'] * 0.85 +
-                       all_metrics['overall']['confidence']['medium']['count'] * 0.80 +
-                       all_metrics['overall']['confidence']['low']['count'] * 0.65) /
-                       max(all_metrics['overall']['total'], 1),  # Weighted average approximation
-            'min': 0.5,  # Known minimum
-            'max': 1.0,  # Known maximum
-            'high_confidence_count': all_metrics['overall']['confidence']['high']['count'],
-            'medium_confidence_count': all_metrics['overall']['confidence']['medium']['count'],
-            'low_confidence_count': all_metrics['overall']['confidence']['low']['count'],
+            'parse_success_count': all_metrics['overall']['parse_success']['count'],
+            'parse_success_pct': all_metrics['overall']['parse_success']['pct'],
+            'min': 0.0,  # False
+            'max': 1.0,  # True
             # NEW: Add detailed breakdown by object type
             'by_object_type': {
                 'stored_procedures': {
                     'total': all_metrics['by_object_type']['stored_procedures']['total'],
-                    'high': all_metrics['by_object_type']['stored_procedures']['confidence']['high']['count'],
-                    'medium': all_metrics['by_object_type']['stored_procedures']['confidence']['medium']['count'],
-                    'low': all_metrics['by_object_type']['stored_procedures']['confidence']['low']['count']
+                    'parse_success': all_metrics['by_object_type']['stored_procedures']['parse_success']['count']
                 },
                 'views': {
                     'total': all_metrics['by_object_type']['views']['total'],
-                    'high': all_metrics['by_object_type']['views']['confidence']['high']['count'],
-                    'medium': all_metrics['by_object_type']['views']['confidence']['medium']['count'],
-                    'low': all_metrics['by_object_type']['views']['confidence']['low']['count']
+                    'parse_success': all_metrics['by_object_type']['views']['parse_success']['count']
                 },
                 'tables': {
                     'total': all_metrics['by_object_type']['tables']['total'],
-                    'high': all_metrics['by_object_type']['tables']['confidence']['high']['count'],
-                    'medium': all_metrics['by_object_type']['tables']['confidence']['medium']['count'],
-                    'low': all_metrics['by_object_type']['tables']['confidence']['low']['count']
+                    'parse_success': all_metrics['by_object_type']['tables']['parse_success']['count']
                 }
             }
         }
-    
     def _get_breakdown_stats(self) -> Dict[str, Any]:
         """
-        Get statistics about confidence breakdown factors (v2.0.0).
-
-        Analyzes stored procedures with multi-factor breakdowns to show
-        average contribution of each factor.
+        Get statistics about confidence breakdown factors (deprecated in v4.3.6).
 
         Returns:
-            Dict with average factor contributions and counts
+            Dict indicating breakdowns are no longer available
         """
-        # Check if lineage_metadata exists and has breakdown column
-        tables = [row[0] for row in self.workspace.query("SHOW TABLES")]
-
-        if 'lineage_metadata' not in tables:
-            return {'available': False, 'note': 'No breakdowns available'}
-
-        try:
-            query = """
-            SELECT confidence_breakdown, object_name
-            FROM lineage_metadata
-            WHERE confidence_breakdown IS NOT NULL
-              AND confidence_breakdown != ''
-            """
-
-            results = self.workspace.query(query)
-
-            if not results or len(results) == 0:
-                return {'available': False, 'note': 'No breakdowns stored yet'}
-
-            import json
-
-            # Aggregate breakdown statistics
-            total_count = 0
-            sum_parse_success = 0.0
-            sum_method_agreement = 0.0
-            sum_catalog_validation = 0.0
-            sum_comment_hints = 0.0
-            sum_uat_validation = 0.0
-
-            for row in results:
-                breakdown_json = row[0]
-                object_name = row[1] if len(row) > 1 else 'unknown'
-
-                if not breakdown_json:
-                    continue
-
-                try:
-                    breakdown = json.loads(breakdown_json)
-                    total_count += 1
-
-                    sum_parse_success += breakdown['parse_success']['contribution']
-                    sum_method_agreement += breakdown['method_agreement']['contribution']
-                    sum_catalog_validation += breakdown['catalog_validation']['contribution']
-                    sum_comment_hints += breakdown['comment_hints']['contribution']
-                    sum_uat_validation += breakdown['uat_validation']['contribution']
-
-                except json.JSONDecodeError as e:
-                    logger.debug(f"{object_name}: Invalid JSON in confidence_breakdown - {e}")
-                    continue
-                except KeyError as e:
-                    logger.debug(f"{object_name}: Missing required field in confidence_breakdown - {e}")
-                    continue
-
-            if total_count == 0:
-                return {'available': False, 'note': 'No valid breakdowns found'}
-
-            # Calculate averages
-            return {
-                'available': True,
-                'total_objects_with_breakdown': total_count,
-                'average_contributions': {
-                    'parse_success': round(sum_parse_success / total_count, 4),
-                    'method_agreement': round(sum_method_agreement / total_count, 4),
-                    'catalog_validation': round(sum_catalog_validation / total_count, 4),
-                    'comment_hints': round(sum_comment_hints / total_count, 4),
-                    'uat_validation': round(sum_uat_validation / total_count, 4)
-                },
-                'factor_weights': {
-                    'parse_success': 0.30,
-                    'method_agreement': 0.25,
-                    'catalog_validation': 0.20,
-                    'comment_hints': 0.10,
-                    'uat_validation': 0.15
-                },
-                'note': 'Multi-factor confidence model (v2.0.0)'
-            }
-
-        except Exception as e:
-            logger.error(f"Failed to calculate breakdown stats: {e}")
-            return {'available': False, 'error': str(e)}
+        # Breakdowns were removed in v4.3.6 as part of confidence scoring removal
+        return {'available': False, 'note': 'Confidence breakdowns deprecated in v4.3.6'}
 
     def _build_summary(
         self,

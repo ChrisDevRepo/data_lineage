@@ -131,10 +131,9 @@ class InternalFormatter:
             SELECT
                 object_id,
                 primary_source,
-                confidence,
+                parse_success,
                 inputs,
                 outputs,
-                confidence_breakdown,
                 parse_failure_reason,
                 expected_count,
                 found_count
@@ -150,19 +149,17 @@ class InternalFormatter:
                 # Parse JSON arrays for inputs/outputs
                 inputs = json.loads(row[3]) if row[3] else []
                 outputs = json.loads(row[4]) if row[4] else []
-                breakdown = json.loads(row[5]) if row[5] else None
-                parse_failure_reason = row[6]  # v2.1.0 / BUG-002
-                expected_count = row[7]  # v2.1.0 / BUG-002
-                found_count = row[8]  # v2.1.0 / BUG-002
+                parse_failure_reason = row[5]  # v4.3.6
+                expected_count = row[6]  # v4.3.6
+                found_count = row[7]  # v4.3.6
 
                 deps[row[0]] = {
                     'primary_source': row[1] or 'unknown',
-                    'confidence': row[2] or 0.0,
+                    'parse_success': row[2] if row[2] is not None else True,
                     'inputs': inputs,
                     'outputs': outputs,
-                    'confidence_breakdown': breakdown,  # v2.0.0
-                    'parse_failure_reason': parse_failure_reason,  # v2.1.0 / BUG-002
-                    'expected_count': expected_count,  # v2.1.0 / BUG-002
+                    'parse_failure_reason': parse_failure_reason,  # v4.3.6
+                    'expected_count': expected_count,  # v4.3.6
                     'found_count': found_count  # v2.1.0 / BUG-002
                 }
 
@@ -228,11 +225,10 @@ class InternalFormatter:
                 'outputs': dep_meta['outputs'],  # Use actual outputs from lineage_metadata
                 'provenance': {
                     'primary_source': dep_meta['primary_source'],
-                    'confidence': float(dep_meta['confidence']),
-                    'confidence_breakdown': dep_meta.get('confidence_breakdown'),  # v2.0.0
-                    'parse_failure_reason': dep_meta.get('parse_failure_reason'),  # v2.1.0 / BUG-002
-                    'expected_count': dep_meta.get('expected_count'),  # v2.1.0 / BUG-002
-                    'found_count': dep_meta.get('found_count')  # v2.1.0 / BUG-002
+                    'parse_success': dep_meta.get('parse_success', True),  # v4.3.6
+                    'parse_failure_reason': dep_meta.get('parse_failure_reason'),  # v4.3.6
+                    'expected_count': dep_meta.get('expected_count'),  # v4.3.6
+                    'found_count': dep_meta.get('found_count')  # v4.3.6
                 }
             }
 

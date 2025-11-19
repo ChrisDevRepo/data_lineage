@@ -1,21 +1,24 @@
-# SQLGlot Parser Module
 
-**Version:** 3.0.0
+# Regex-Only SQL Parser Module
+
+**Version:** 4.3.5
 **Author:** Vibecoding
-**Date:** 2025-10-26
-**Status:** ✅ Complete (Phase 4)
+**Date:** 2025-11-19
+**Status:** ✅ Complete (Regex-Only Parsing)
 
 ---
+
 
 ## Overview
 
-The SQLGlot Parser module provides SQL parsing capabilities using SQLGlot Abstract Syntax Tree (AST) traversal to extract table-level lineage from DDL definitions. This is Step 5 in the 8-step lineage construction pipeline.
+The Regex Parser module provides SQL parsing capabilities using regex-based extraction to extract table-level lineage from DDL definitions. This is Step 5 in the 8-step lineage construction pipeline.
 
 **Purpose:** Fill gaps where DMV dependencies are missing or incomplete by parsing stored procedure DDL to extract source and target table references.
 
-**Confidence Score:** 0.85 (static AST analysis)
+**Confidence Score:** 0.85 (regex extraction)
 
 ---
+
 
 ## Architecture
 
@@ -27,11 +30,11 @@ The SQLGlot Parser module provides SQL parsing capabilities using SQLGlot Abstra
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
-│ SQLGlot Parser (Step 5)                                     │
+│ Regex Parser (Step 5)                                       │
 │ For each gap:                                               │
 │ 1. Fetch DDL from definitions table                         │
-│ 2. Parse with SQLGlot (T-SQL dialect)                       │
-│ 3. Traverse AST to extract:                                 │
+│ 2. Parse with regex-based extraction                        │
+│ 3. Extract:                                                 │
 │    • Source tables: FROM, JOIN clauses                      │
 │    • Target tables: INSERT INTO, UPDATE, MERGE, DELETE      │
 │ 4. Resolve table names → object_ids (via workspace)         │
@@ -51,11 +54,12 @@ The SQLGlot Parser module provides SQL parsing capabilities using SQLGlot Abstra
 
 ## Components
 
-### 1. SQLGlotParser Class
 
-**File:** [sqlglot_parser.py](sqlglot_parser.py)
+### 1. RegexParser Class
 
-Main parser class that extracts lineage from SQL DDL.
+**File:** [regex_parser.py](regex_parser.py)
+
+Main parser class that extracts lineage from SQL DDL using regex-based extraction.
 
 #### Methods
 
@@ -77,11 +81,11 @@ Parse DDL for a single object.
 
 **Example:**
 ```python
-from engine.parsers import SQLGlotParser
+from engine.parsers import RegexParser
 from engine.core import DuckDBWorkspace
 
 with DuckDBWorkspace('lineage.duckdb') as db:
-    parser = SQLGlotParser(db)
+    parser = RegexParser(db)
     result = parser.parse_object(object_id=123)
 
     print(f"Inputs: {result['inputs']}")
@@ -108,11 +112,12 @@ Get statistics about parser coverage.
 
 ---
 
+
 ## Supported SQL Patterns
 
 ### ✅ Fully Supported
 
-The parser successfully extracts lineage from these SQL patterns:
+The parser successfully extracts lineage from these SQL patterns using regex-based extraction:
 
 #### 1. Simple SELECT
 ```sql
@@ -312,11 +317,12 @@ SELECT * FROM dbo.NonExistentTable
 
 ---
 
+
 ## Error Handling
 
 ### Parse Errors
 
-If SQLGlot cannot parse the SQL (malformed syntax):
+If the regex parser cannot extract tables (malformed syntax):
 ```python
 {
     'object_id': 123,
@@ -324,7 +330,7 @@ If SQLGlot cannot parse the SQL (malformed syntax):
     'outputs': [],
     'confidence': 0.0,
     'source': 'parser',
-    'parse_error': 'SQLGlot parse error: ...'
+    'parse_error': 'Regex parse error: ...'
 }
 ```
 
@@ -504,13 +510,14 @@ END
 - Check schema name matches (case-insensitive)
 - Review debug logs for unresolved table names
 
+
 #### Issue: Parse errors for valid SQL
 **Symptom:** `parse_error` returned for syntactically correct SQL
-**Cause:** SQLGlot T-SQL dialect limitations
+**Cause:** Regex limitations or unsupported SQL pattern
 **Solution:**
-- These will be handled by AI fallback (Phase 5)
-- Review error message to identify unsupported pattern
-- Report new patterns to Vibecoding team
+    - These will be handled by AI fallback (Phase 5)
+    - Review error message to identify unsupported pattern
+    - Report new patterns to Vibecoding team
 
 #### Issue: Low success rate
 **Symptom:** Many objects with `confidence=0.0`
@@ -522,21 +529,21 @@ END
 
 ---
 
+
 ## Dependencies
 
-- **sqlglot:** SQL parser and AST library
 - **DuckDB:** Workspace for table name resolution
 - **Python:** 3.10+
 
 ---
 
+
 ## References
 
 - **Specification:** [lineage_specs_v2.md](../../lineage_specs_v2.md)
-- **Phase 4 Plan:** [docs/PHASE_4_PLAN.md](../../docs/PHASE_4_PLAN.md)
-- **SQLGlot Docs:** https://sqlglot.com/
 
 ---
 
-**Last Updated:** 2025-10-26
-**Status:** ✅ Phase 4 Complete
+
+**Last Updated:** 2025-11-19
+**Status:** ✅ Regex-Only Parsing

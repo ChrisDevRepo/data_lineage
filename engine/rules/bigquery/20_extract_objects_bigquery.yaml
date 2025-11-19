@@ -1,0 +1,44 @@
+# ==============================================================================
+# BigQuery Specific - Dataset.Table Reference Extraction
+# ==============================================================================
+# BigQuery uses project.dataset.table or dataset.table format.
+# UNNEST is NOT a lineage source - it's an array operation, not a table.
+#
+# Note: ANSI rules (05/06) will handle most BigQuery patterns.
+# This rule is disabled because UNNEST should be filtered, not extracted.
+#
+# Priority: 20 (Run after ANSI rules)
+# Category: extraction
+# ==============================================================================
+
+name: extract_sources_bigquery_unnest_filter
+description: |
+  BigQuery UNNEST operations do NOT produce lineage objects.
+  UNNEST expands arrays in-memory, it doesn't reference tables.
+  This rule is disabled - UNNEST is filtered by non-persistent object detection.
+
+dialect: bigquery
+category: extraction
+enabled: false  # UNNEST is already filtered by parser's _is_non_persistent()
+priority: 20
+
+rule_type: extraction
+extraction_target: source
+
+pattern_type: regex
+
+# This pattern is kept for documentation, but rule is disabled
+# UNNEST should be detected as non-persistent, not explicitly extracted
+pattern: (?i)\\bUNNEST\\b\\s*\\(.*?\\)\\s+AS\\s+([A-Za-z_][\\w$#-]*)
+
+debug:
+  log_matches: false
+  log_replacements: false
+  show_context_lines: 2
+
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  updated: "2025-11-19"
+  affects_lineage: false
+  impact: "Disabled - UNNEST is not a lineage source, filtered by parser."

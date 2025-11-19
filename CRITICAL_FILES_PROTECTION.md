@@ -197,12 +197,11 @@ cp docs/PARSER_*.md docs/backups/$(date +%Y-%m-%d)/
 
 ### Also Important (Not Critical)
 
-**Investigation Documents:**
-- `INVESTIGATION_COMPLETE.md` - Latest investigation
-- `EMPTY_LINEAGE_ROOT_CAUSE.md` - Empty lineage analysis
-- `REPARSE_ITERATION_SUMMARY.md` - Iteration results
+**Investigation Documents (Archived):**
+- `docs/archive/EMPTY_LINEAGE_ROOT_CAUSE.md` - Empty lineage analysis (moved to archive)
+- `docs/archive/AZURE_AUTH_BUG_LOG.md` - Azure auth investigation (moved to archive)
 
-**Policy:** Less critical than the 4 main files, but should be preserved for historical reference.
+**Policy:** Historical documents archived in `docs/archive/` for reference.
 
 ### Version Summaries
 

@@ -492,16 +492,34 @@ function DataLineageVisualizer() {
     // JSON imports are temporary and will be lost on page refresh
     // To persist data, upload parquet files instead
 
-    // Reset view state for a clean slate after import
+    // Reset ALL filters and view state for a clean slate after import
     setFocusedNodeId(null);
     setHighlightedNodes(new Set());
     setSearchTerm('');
+    setHideIsolated(false);
+    setFilterExtended(false);
+    setFocusSchemas(new Set());
+    
+    // Extract all unique schemas from new data
+    const allSchemas = new Set(processedData.map(node => node.schema));
+    
+    // Extract all unique object types from new data
+    const allObjectTypes = new Set(processedData.map(node => node.object_type || node.type).filter(Boolean));
+    
+    // Select all schemas and types from the new data
+    setSelectedSchemas(allSchemas);
+    setSelectedTypes(new Set());
+    setSelectedObjectTypes(allObjectTypes);
+    
+    // Clear persistent filter preferences
+    localStorage.removeItem('dataLineage_filterPreferences');
+    
     hasInitiallyFittedRef.current = false; // Allow fitView on new data
 
-    addNotification('Data imported successfully!', 'info');
+    addNotification('Data imported successfully! All schemas and types are now visible.', 'info');
     // Don't auto-close modal - let user close it after viewing summary
     // setIsImportModalOpen(false);
-  }, [addNotification]);
+  }, [addNotification, setHighlightedNodes, setSearchTerm, setHideIsolated, setFilterExtended, setFocusSchemas, setSelectedSchemas, setSelectedTypes, setSelectedObjectTypes]);
 
   const executeSearch = useCallback((query: string, schema?: string) => {
     try {

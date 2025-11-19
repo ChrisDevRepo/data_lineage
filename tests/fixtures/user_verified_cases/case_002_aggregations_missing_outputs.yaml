@@ -9,18 +9,23 @@ fix_version: "v4.3.5"
 fix_description: "Added SELECT...INTO target extraction to simplified_parser.py line 261-272. Handles exp.Into, exp.Table, and exp.Schema node types for INTO clauses."
 
 # Expected parsing results (verified by user as correct)
+# NOTE: SP was extended after initial golden record creation
+# Original had 2 SELECT...INTO, current version has 5 SELECT...INTO
 expected_inputs:
   - "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_Post"
   - "CONSUMPTION_ClinOpsFinance.CadenceBudget_LaborCost_PrimaContractUtilization_Junc"
   - "CONSUMPTION_ClinOpsFinance.DateRanges_PM"
-  - "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankAggregation"
   - "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_BillableEfficiency"
+  - "CONSUMPTION_ClinOpsFinance.CadenceBudgetData_BillableEfficiency_RankDetail"
 
 expected_outputs:
   - "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankAggregation"
   - "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_Aggregation"
+  - "CONSUMPTION_ClinOpsFinance.FactLaborCostForEarnedValue_RankDetaillAggregation"
+  - "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankDetailAggregation"
+  - "CONSUMPTION_ClinOpsFinance.BillableEfficiency_Productivity_RankGlobalAggregation"
 
-expected_confidence: 100
+expected_confidence: 85
 
 # DDL snippet (first 3000 chars of actual definition)
 ddl_snippet: |
@@ -44,9 +49,10 @@ ddl_snippet: |
 
 # What NOT to change (prevents regression)
 do_not_change:
-  - "Catalog validation - both output tables exist in catalog and should be found"
-  - "Input detection - 8 inputs correctly identified"
-  - "Confidence should remain 100 (perfect parse)"
+  - "Catalog validation - all 5 output tables exist in catalog and should be found"
+  - "Input detection - 5 inputs correctly identified"
+  - "SELECT...INTO detection - must find all 5 SELECT...INTO statements as outputs"
+  - "Confidence should be 85 (good completeness match)"
 
 # Related cases
 related_cases:

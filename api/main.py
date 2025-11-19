@@ -227,7 +227,7 @@ def get_job_result_data(job_id: str) -> dict:
         return json.load(f)
 
 
-def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = True) -> None:
+def run_processing_thread(job_id: str, job_dir: Path, incremental: bool = False) -> None:
     """Thread function to run lineage processing in background"""
     try:
         result = process_lineage_job(job_id, job_dir, data_dir=DATA_DIR, incremental=incremental)
@@ -504,7 +504,7 @@ async def search_ddl(q: str = Query(..., min_length=1, max_length=200, descripti
 async def upload_parquet(
     background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(..., description="Parquet files (any names - will be auto-detected)"),
-    incremental: bool = True,
+    incremental: bool = False,
     user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
 ) -> UploadResponse:
     """
@@ -524,7 +524,7 @@ async def upload_parquet(
 
     Args:
         files: List of Parquet files (3-5 files expected)
-        incremental: If True, only re-parse modified objects (default: True)
+        incremental: If True, only re-parse modified objects (default: False)
 
     Returns:
         Job ID for status polling
@@ -960,7 +960,7 @@ async def test_database_connection(
 @app.post("/api/database/refresh", tags=["Database"])
 async def refresh_from_database(
     background_tasks: BackgroundTasks,
-    incremental: bool = True,
+    incremental: bool = False,
     user: Optional[Dict[str, Any]] = Depends(verify_azure_auth)
 ) -> UploadResponse:
     """
@@ -970,7 +970,7 @@ async def refresh_from_database(
     to Parquet files, and triggers the SAME processing pipeline as file upload.
 
     Args:
-        incremental: If True, only fetch changed procedures (faster, default)
+        incremental: If True, only fetch changed procedures (faster, default: False)
 
     Returns:
         Job ID for status polling (same as upload-parquet endpoint)

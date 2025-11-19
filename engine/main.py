@@ -123,7 +123,7 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
     2. Build baseline from DMV dependencies
     3. Enhance from query logs (optional)
     4. Detect gaps (unresolved SPs)
-    5. Run SQLGlot parser with quality validation
+    5. Run YAML regex parser with quality validation
     6. Validate with query logs
     7. Merge all sources
     8. Generate output JSON files
@@ -230,9 +230,9 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
                         object_id=view_id,
                         modify_date=modify_date,
                         primary_source='dmv',
-                        confidence=1.0,
                         inputs=inputs,
-                        outputs=outputs
+                        outputs=outputs,
+                        parse_success=True
                     )
 
                 click.echo(f"✅ Loaded DMV dependencies for {len(views_with_dmv)} View(s)")
@@ -293,9 +293,6 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
 
                 parsed_count = 0
                 failed_count = 0
-                high_confidence_count = 0
-                medium_confidence_count = 0
-                low_confidence_count = 0
 
                 for i, sp in enumerate(all_sps):
                     try:
@@ -306,22 +303,18 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
                             object_id=sp[0],
                             modify_date=sp[3],  # sp[3] = modify_date
                             primary_source=result.get('source', 'parser'),
-                            confidence=result['confidence'],
                             inputs=result.get('inputs', []),
                             outputs=result.get('outputs', []),
-                            confidence_breakdown=result.get('confidence_breakdown')  # v2.0.0
+                            parse_success=result.get('parse_success', True),
+                            parse_failure_reason=result.get('parse_failure_reason'),
+                            expected_count=result.get('expected_count'),
+                            found_count=result.get('found_count')
                         )
 
-                        # Categorize by confidence
-                        if result['confidence'] >= 0.85:
+                        # Categorize by parse success (v4.3.6: simplified from confidence scoring)
+                        if result.get('parse_success', True):
                             parsed_count += 1
                             high_confidence_count += 1
-                        elif result['confidence'] >= 0.75:
-                            parsed_count += 1
-                            medium_confidence_count += 1
-                        elif result['confidence'] >= 0.50:
-                            parsed_count += 1
-                            low_confidence_count += 1
                         else:
                             failed_count += 1
 
@@ -337,9 +330,6 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
                 click.echo(f"✅ Parser complete:")
                 click.echo(f"   - Total SPs: {len(all_sps):,}")
                 click.echo(f"   - Successfully parsed: {parsed_count:,} ({parsed_count/len(all_sps)*100:.1f}%)")
-                click.echo(f"     • High confidence (≥0.85): {high_confidence_count:,}")
-                click.echo(f"     • Medium confidence (0.75-0.84): {medium_confidence_count:,}")
-                click.echo(f"     • Low confidence (0.50-0.74): {low_confidence_count:,}")
                 click.echo(f"   - Failed: {failed_count:,} ({failed_count/len(all_sps)*100:.1f}%)")
                 click.echo()
             else:
@@ -462,9 +452,9 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
                     object_id=table_id,
                     modify_date=None,  # Don't update modify_date
                     primary_source='metadata',
-                    confidence=1.0,
                     inputs=reverse_outputs.get(table_id, []),  # Objects that WRITE to this table
-                    outputs=readers  # Objects that READ from this table
+                    outputs=readers,  # Objects that READ from this table
+                    parse_success=True
                 )
                 tables_updated += 1
 
@@ -532,7 +522,7 @@ def run(parquet, output, full_refresh, format, skip_query_logs, workspace, repar
             click.echo("✅ Phase 4 & 6 COMPLETE")
             click.echo("=" * 70)
             click.echo("📊 Completed:")
-            click.echo("   - Phase 4: SQLGlot Parser & Dual-Parser")
+            click.echo("   - Phase 4: YAML Regex Parser")
             click.echo("   - Phase 6: Output Generation")
             click.echo()
             click.echo("📁 Output files:")
@@ -591,12 +581,6 @@ def validate():
         click.echo(f"✅ duckdb {duckdb.__version__}")
     except ImportError:
         click.echo("❌ duckdb not installed")
-
-    try:
-        import sqlglot
-        click.echo(f"✅ sqlglot {sqlglot.__version__}")
-    except ImportError:
-        click.echo("❌ sqlglot not installed")
 
     try:
         import click as click_pkg

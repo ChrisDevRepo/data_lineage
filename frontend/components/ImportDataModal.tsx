@@ -270,6 +270,27 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
         }
     };
 
+    const handleLoadSampleData = async () => {
+        // Set the sample data in the textarea
+        setJsonText(defaultSampleString);
+        
+        // Automatically apply it
+        const { data, errors, warnings } = validateAndCleanData(defaultSampleData);
+        setValidationResult({ errors, warnings });
+
+        if (errors.length === 0) {
+            // Auto-delete DuckDB workspace before importing JSON
+            try {
+                await fetch(`${API_BASE_URL}/api/clear-data`, { method: 'DELETE', credentials: 'same-origin' });
+            } catch (err) {
+                console.warn('Failed to clear backend data:', err);
+            }
+
+            onImport(data);
+            addNotification('Sample data loaded successfully!', 'info');
+        }
+    };
+
     // Parquet upload handler
     const handleParquetUpload = async () => {
         const files = parquetFilesRef.current?.files;
@@ -582,7 +603,7 @@ export const ImportDataModal = ({ isOpen, onClose, onImport, currentData, defaul
                             <div className="flex items-center gap-2">
                                 <input type="file" ref={importFileRef} onChange={handleFileChange} accept=".json" className="hidden" />
                                 <Button onClick={() => importFileRef.current?.click()} variant="secondary" size="sm">Upload File</Button>
-                                <Button onClick={() => setJsonText(defaultSampleString)} variant="secondary" size="sm">Load Sample Data</Button>
+                                <Button onClick={handleLoadSampleData} variant="secondary" size="sm">Load Sample Data</Button>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 overflow-hidden">

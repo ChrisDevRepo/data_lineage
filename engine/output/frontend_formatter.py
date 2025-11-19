@@ -133,27 +133,25 @@ class FrontendFormatter:
                 if out_id in self.object_id_to_node_id
             ]
             
-            # Get confidence and enhanced metadata for description (v4.2.0)
-            confidence = node['provenance']['confidence']
-            confidence_breakdown = node['provenance'].get('confidence_breakdown')  # v2.0.0
-            parse_failure_reason = node['provenance'].get('parse_failure_reason')  # v4.2.0
-            expected_count = node['provenance'].get('expected_count', 0)  # v4.2.0
-            found_count = node['provenance'].get('found_count', 0)  # v4.2.0
+            # Get parse_success and metadata for description (v4.3.6)
+            parse_success = node['provenance'].get('parse_success', True)
+            parse_failure_reason = node['provenance'].get('parse_failure_reason')  # v4.3.6
+            expected_count = node['provenance'].get('expected_count', 0)  # v4.3.6
+            found_count = node['provenance'].get('found_count', 0)  # v4.3.6
             source = node['provenance'].get('primary_source', 'unknown')
 
             if node['object_type'] == 'Stored Procedure':
-                # Enhanced description with actionable guidance (v4.2.0)
+                # Enhanced description with actionable guidance (v4.3.6)
                 description = self._format_sp_description(
-                    confidence=confidence,
+                    parse_success=parse_success,
                     parse_failure_reason=parse_failure_reason,
                     expected_count=expected_count,
                     found_count=found_count,
-                    source=source,
-                    confidence_breakdown=confidence_breakdown
+                    source=source
                 )
             else:
-                # Tables and Views always show 1.00 (they exist in metadata)
-                description = "Confidence: 1.00"
+                # Tables and Views always show as successfully parsed (they exist in metadata)
+                description = "Parse Success: True"
 
             # Classify data model type
             data_model_type = self._classify_data_model_type(
@@ -175,8 +173,7 @@ class FrontendFormatter:
                 'node_symbol': node_symbol,  # 'circle', 'diamond', 'square'
                 'inputs': sorted(input_node_ids, key=lambda x: int(x)),
                 'outputs': sorted(output_node_ids, key=lambda x: int(x)),
-                'confidence': confidence,  # v2.0.0 - explicit confidence field
-                'confidence_breakdown': confidence_breakdown  # v2.0.0 - multi-factor breakdown
+                'parse_success': parse_success  # v4.3.6 - boolean parse success
             }
 
             # Conditionally add DDL text if requested (for JSON mode with embedded DDL)
@@ -268,79 +265,56 @@ class FrontendFormatter:
 
     def _format_sp_description(
         self,
-        confidence: float,
+        parse_success: bool,
         parse_failure_reason: str | None,
         expected_count: int,
         found_count: int,
-        source: str,
-        confidence_breakdown: Dict[str, Any] | None
+        source: str
     ) -> str:
         """
         Generate enhanced description for stored procedure nodes.
 
-        Provides user-friendly description with actionable guidance for low confidence SPs.
+        Provides user-friendly description with actionable guidance for parse failures.
 
         Args:
-            confidence: Confidence score (0.0 - 1.0)
-            parse_failure_reason: Detailed reason why parsing failed (v4.2.0)
+            parse_success: Whether parsing succeeded (v4.3.6)
+            parse_failure_reason: Detailed reason why parsing failed (v4.3.6)
             expected_count: Expected number of tables from smoke test
             found_count: Actual number of tables extracted
-            source: Primary source (parser, parser_with_hints, etc.)
-            confidence_breakdown: Multi-factor confidence breakdown
+            source: Primary source (parser, dmv, etc.)
 
         Returns:
             Human-readable description string
 
         Examples:
-            "✅ High Confidence: 0.85"
-            "⚠️ Low Confidence: 0.50 | Dynamic SQL detected → Add @LINEAGE hints"
-            "❌ Parse Failed: 0.00 | WHILE loop - Expected 8 tables, found 0 → Add @LINEAGE hints"
+            "✅ Parse Success: True"
+            "❌ Parse Failed | WHILE loop - Expected 8 tables, found 0 → Add @LINEAGE hints"
 
-        Version: 4.2.0 (2025-11-07)
+        Version: 4.3.6 (2025-11-19)
         """
         parts = []
 
-        # CRITICAL: Use same thresholds as confidenceUtils.ts (v2.1.0 simplified - 3 categories)
-        # - ≥80% (85-100): ✅ Good
-        # - ≥70% (75): ⚠️ Acceptable
-        # - <70% (0): ❌ Failed
-
-        # Support both formats: discrete (0, 75, 85, 100) and decimal (0.0-1.0)
-        conf_pct = confidence * 100 if confidence <= 1 else confidence
-
-        # Map confidence to icon (matches confidenceUtils.ts exactly)
-        if conf_pct >= 80:
-            icon = "✅ Good"
-        elif conf_pct >= 70:
-            icon = "⚠️ Acceptable"
+        # v4.3.6: Simplified from confidence scoring to parse_success boolean
+        # Provide diagnostic info when available
+        if parse_success:
+            parts.append("✅ Parse Success: True")
         else:
-            icon = "❌ Failed"
+            parts.append("❌ Parse Failed")
 
-        parts.append(icon)
+            # Add parse failure reason if present
+            if parse_failure_reason:
+                # Truncate very long reasons for readability
+                if len(parse_failure_reason) > 80:
+                    reason_short = parse_failure_reason[:77] + "..."
+                else:
+                    reason_short = parse_failure_reason
+                parts.append(f"| {reason_short}")
 
-        # Add parse failure reason if present
-        if conf_pct == 0 and parse_failure_reason:
-            # Truncate very long reasons for readability
-            if len(parse_failure_reason) > 80:
-                reason_short = parse_failure_reason[:77] + "..."
-            else:
-                reason_short = parse_failure_reason
-            parts.append(f"| {reason_short}")
-
-        # Add missing dependencies warning (for 75% only - 85%/100% are "Good")
-        elif expected_count is not None and found_count is not None and expected_count > 0 and found_count >= 0:
-            missing = expected_count - found_count
-            if missing > 2 and conf_pct < 80:
-                parts.append(f"| {missing} tables may be missing - add @LINEAGE hints")
-
-        # Hint usage indicator (if applicable)
-        if source == 'parser_with_hints' and confidence_breakdown:
-            hint_factor = confidence_breakdown.get('comment_hints', {})
-            if hint_factor.get('score', 0) > 0:
-                parts.append("with hints")
-
-        # End with confidence score in brackets
-        parts.append(f"(score {confidence:.2f})")
+            # Add missing dependencies warning
+            if expected_count is not None and found_count is not None and expected_count > 0:
+                missing = expected_count - found_count
+                if missing > 0:
+                    parts.append(f"| {missing} tables missing - add @LINEAGE hints")
 
         return " ".join(parts)
 

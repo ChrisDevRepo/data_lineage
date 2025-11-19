@@ -39,15 +39,11 @@ class DDLNotFoundError(ParsingError):
     pass
 
 
+# DEPRECATED v4.3.5: SQLGlot removed, kept for backwards compatibility
 class SQLGlotParsingError(ParsingError):
     """
-    Raised when SQLGlot fails to parse SQL statement.
-
-    Example:
-        >>> try:
-        ...     ast = sqlglot.parse_one(sql, dialect='tsql')
-        ... except sqlglot.ParseError as e:
-        ...     raise SQLGlotParsingError(f"Failed to parse SQL: {e}")
+    DEPRECATED: SQLGlot removed in v4.3.5 (pure YAML regex extraction).
+    Kept for backwards compatibility only.
     """
     pass
 

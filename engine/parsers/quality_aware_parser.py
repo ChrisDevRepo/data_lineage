@@ -1,118 +1,39 @@
 r"""
-Quality-Aware SQLGlot Parser - Smart extraction with built-in QA
-================================================================
+SQL Lineage Parser - Pure YAML Regex Extraction
+================================================
 
 Strategy:
-1. Regex scan full DDL → Get expected entity count (baseline)
-2. Preprocess & split DDL → Parse with SQLGlot
-3. Compare counts:
-   - Match (±10%) → High confidence (0.85)
-   - Partial match (±25%) → Medium confidence (0.75)
-   - Major difference (>25%) → Low confidence (0.5)
+1. YAML regex rules scan full DDL → Extract dependencies
+2. Validate against metadata catalog → Filter false positives
+3. Return diagnostic counts (expected vs found)
 
-This gives us quality assurance built into the parser!
+All extraction patterns are maintained in YAML files that business users
+can edit without Python knowledge.
 
-Version: 4.3.2 (Defensive Improvements + Performance Tracking)
-Date: 2025-11-12
+Version: 4.3.6 (Confidence Scoring Removed)
+Date: 2025-11-19
 
 Changelog:
-- v4.3.2 (2025-11-12): DEFENSIVE IMPROVEMENTS + PERFORMANCE OPTIMIZATION
-    Added: Empty Command node check (prevents WARN mode regression)
-    Issue: SQLGlot WARN mode returns Command nodes with no .expression → empty lineage
-    Fix: Explicit check `isinstance(parsed, exp.Command) and not parsed.expression`
-    Added: Performance tracking - logs SPs taking >1 second to parse
-    Added: SELECT clause simplification - replaces complex SELECT with SELECT * (object-level lineage only)
-    Impact: Defensive programming + reduced parsing complexity without affecting table extraction
-    Files: quality_aware_parser.py lines 752-762, 344-346, 512-515, 562-565, 1117-1162
-    Testing: Created golden test cases to detect empty lineage regression
-    Test files: tests/unit/test_parser_golden_cases.py
-- v4.1.3 (2025-11-04): CRITICAL FIX - IF EXISTS/IF NOT EXISTS filtering
-    Fixed: IF EXISTS (SELECT ... FROM Table) checks no longer create false input dependencies
-    Issue: Administrative IF EXISTS checks were treated as data lineage sources
-    Example: IF EXISTS (SELECT 1 FROM FactTable) DELETE FROM FactTable
-             Previously: FactTable appeared as both input AND output (circular dependency)
-             Now: FactTable appears only as output (correct)
-    Root cause: IF EXISTS checks are control flow logic, not actual data dependencies
-    Solution: Remove IF EXISTS/IF NOT EXISTS patterns during preprocessing (lines 150-165)
-    Impact: Eliminates false bidirectional lineage for tables with existence checks
-    Test case: spLoadFactLaborCostForEarnedValue now shows FactLaborCostForEarnedValue
-               only as output, not as input
-    Files: quality_aware_parser.py ENHANCED_REMOVAL_PATTERNS
+- v4.3.6 (2025-11-19): REMOVED confidence scoring (circular logic with regex-only)
+- v4.3.5 (2025-11-19): REMOVED SQLGlot, pure YAML regex extraction
+- v4.3.5 (2025-11-19): Business users can maintain patterns via YAML
 
-- v4.1.2 (2025-11-04): CRITICAL FIX - Global target exclusion from sources
-    Fixed: INSERT INTO target tables no longer appear in sources list
-    Issue: find_all(exp.Table) extracts ALL tables from entire AST including DML targets
-    Root cause: Target exclusion was per-statement, but sources accumulated across statements
-    Example: Statement 1: INSERT INTO target → excludes target ✅
-             Statement 2: WITH cte AS (SELECT FROM target) → includes target ❌
-             Accumulated sources = {target} ← FALSE POSITIVE
-    Solution: Global exclusion after all statements parsed (line 462: sources - targets)
-    Impact: Eliminates false positive inputs for all DML operations
-    Test: spLoadGLCognosData now shows GLCognosData only in outputs, not inputs
-    Files: quality_aware_parser.py lines 430-464 (_sqlglot_parse method)
-
-- v4.1.2 (2025-11-04): Balanced parentheses matching for administrative queries
-    Fixed: SET/DECLARE @var = (SELECT COUNT(*) FROM Table) now correctly removes entire statement
-    Solution: Pattern (?:[^()]|\([^()]*\))* matches balanced parentheses (1 level deep)
-    Files: quality_aware_parser.py lines 166, 177
-
-- v4.1.1 (2025-11-04): REGEX FIX attempt (incomplete - superseded by v4.1.2)
-    Issue: Pattern still stopped at first ) in COUNT(*)
-    Root cause: Non-greedy .*? still matched minimal content
-
-- v4.1.0 (2025-11-04): DATAFLOW-FOCUSED LINEAGE
-    Philosophy: Show only data transformation operations (DML), not housekeeping (DDL)
-    Changes:
-      1. Preprocessing: Replace CATCH blocks and ROLLBACK sections with SELECT 1 dummy
-      2. Preprocessing: Replace DECLARE/SET @var = (SELECT ...) with literals (removes admin queries)
-      3. AST Extraction: Only extract INSERT/UPDATE/DELETE/MERGE (exclude TRUNCATE/DROP)
-    Impact: Cleaner lineage focused on business logic, removes administrative noise
-    Example: spLoadGLCognosData now shows INSERT only (not SELECT COUNT or TRUNCATE)
-    Breaking: Dataflow mode is now the default behavior (replaces "complete" mode)
-- v4.0.3 (2025-11-04): CRITICAL FIX - SP-to-SP lineage direction
-    Issue: EXEC/EXECUTE calls were added as INPUTS, making arrows point wrong direction in GUI
-    Example: spLoadFactTables showed incoming arrows from SPs it calls (should be outgoing)
-    Root Cause: Line 226-227 added sp_ids to input_ids instead of output_ids
-    Fix: Changed sp_ids.extend(input_ids) → sp_ids.extend(output_ids)
-    Rationale: When SP_A executes SP_B, SP_B is a TARGET/OUTPUT of SP_A (SP_A → SP_B)
-    Impact: Corrects 151 SP-to-SP relationships to show proper call hierarchy
-- v4.0.2 (2025-11-03): Orchestrator SP confidence fix
-    Issue: SPs with only EXEC calls (no tables) got 0.50 confidence (divide-by-zero edge case)
-    Fix: Special handling in _determine_confidence() for orchestrator SPs (0 tables + SP calls > 0)
-    Result: 12 orchestrator/utility SPs 0.50→0.85 confidence (190→202 SPs = 100% at ≥0.85)
-    Examples: spLoadFactTables, spLoadDimTables, spLoadArAnalyticsMetricsETL
-- v4.0.1 (2025-11-03): CRITICAL IMPROVEMENTS
-  Part 1: Statement boundary normalization
-    Issue: SQLGlot requires semicolons, T-SQL doesn't - causing parse failures
-    Fix 1: Add semicolons before DECLARE/SELECT/INSERT/UPDATE/DELETE/MERGE/TRUNCATE/WITH
-    Fix 2: DECLARE pattern was greedy ([^;]+;) - now stops at line end ([^\n;]+(?:;|\n))
-    Fix 3: SET pattern also fixed to be non-greedy
-    Result: +69 stored procedures improved to high confidence (121→190 SPs at ≥0.85)
-  Part 2: SP-to-SP lineage
-    Issue: Removing ALL EXEC statements lost 151 business SP calls (17.8% of total)
-    Fix: Only remove utility EXEC calls (LogMessage, spLastRowCount - 82.2%)
-    Added: _validate_sp_calls() and _resolve_sp_names() methods
-    Result: SP dependencies now tracked as inputs in lineage graph (CORRECTED in v4.0.3)
-- v4.0.0 (2025-11-03): Remove AI disambiguation - focus on Regex + SQLGlot + Rule Engine
-- v3.6.0 (2025-10-28): Add self-referencing pattern support
-  Issue #2: Staging patterns (INSERT → SELECT → INSERT) not captured
-  Fix: Statement-level target exclusion instead of global exclusion
-- v3.5.0 (2025-10-28): Add TRUNCATE statement support
-  Issue: spLoadGLCognosData and other SPs missing TRUNCATE outputs
-  Fix: Add exp.TruncateTable extraction in _extract_from_ast()
+Rationale for removing confidence:
+With a single extraction method (regex), comparing regex results to regex results
+is circular logic. Confidence was always 100% unless catalog validation failed,
+which indicates incomplete metadata rather than parser quality.
 """
 
 from typing import List, Dict, Any, Set, Tuple, Optional
-import sqlglot
-from sqlglot import exp, parse_one
-from sqlglot.errors import ErrorLevel
+import logging
+import re
+import os
 import logging
 import re
 import os
 
 from engine.core.duckdb_workspace import DuckDBWorkspace
 from engine.utils.validators import validate_object_id, sanitize_identifier
-from engine.utils.confidence_calculator import ConfidenceCalculator
 from engine.parsers.comment_hints_parser import CommentHintsParser
 from engine.rules.rule_loader import load_rules  # YAML-based rules (v0.9.0)
 from engine.config import settings
@@ -175,21 +96,14 @@ class YAMLRuleEngineAdapter:
 
 class QualityAwareParser:
     """
-    Parser with built-in quality assurance via regex baseline comparison.
+    Parser with YAML regex extraction and catalog validation.
 
-    Key innovation: Use regex count as quality check, not just fallback.
-    If SQLGlot results differ significantly from regex baseline, reduce
-    confidence and flag for AI review.
+    Key innovation: Pure YAML regex extraction with metadata catalog validation.
+    Business users can maintain extraction patterns without Python knowledge.
+    
+    Returns diagnostic counts (expected vs found) without confidence scoring,
+    as comparing regex to itself is circular logic.
     """
-
-    # Confidence scores
-    CONFIDENCE_HIGH = 0.85    # Regex and SQLGlot agree (±10%)
-    CONFIDENCE_MEDIUM = 0.75  # Partial agreement (±25%)
-    CONFIDENCE_LOW = 0.5      # Major difference (>25%) - needs review/refinement
-
-    # Quality check thresholds
-    THRESHOLD_GOOD = 0.10     # ±10% difference
-    THRESHOLD_FAIR = 0.25     # ±25% difference
 
 
 
@@ -259,7 +173,7 @@ class QualityAwareParser:
         # DATAFLOW: Replace CATCH blocks with dummy (error handling not dataflow)
         # v4.1.0: Changed from removing to replacing with SELECT 1 (keeps SQL valid)
         # Example: BEGIN /* CATCH */ INSERT INTO ErrorLog ... END /* CATCH */
-        # → BEGIN /* CATCH */ SELECT 1 END /* CATCH */ (SQLGlot can still parse)
+        # → BEGIN /* CATCH */ SELECT 1 END /* CATCH */ (Regex can still extract)
         (r'BEGIN\s+/\*\s*CATCH\s*\*/.*?END\s+/\*\s*CATCH\s*\*/',
          'BEGIN /* CATCH */\n  -- Error handling removed for dataflow clarity\n  SELECT 1;\nEND /* CATCH */',
          re.DOTALL),
@@ -300,49 +214,64 @@ class QualityAwareParser:
         # SQL Cleaning Engine with YAML rules (v0.9.0)
         self.enable_sql_cleaning = enable_sql_cleaning
 
-        if self.enable_sql_cleaning:
-            # Load YAML rules for configured dialect
-            try:
-                dialect = settings.dialect
-                yaml_rules = load_rules(dialect, custom_dirs=None)
-
-                if yaml_rules:
-                    # Create adapter to provide consistent interface
-                    self.cleaning_engine = YAMLRuleEngineAdapter(yaml_rules)
-                    logger.info(f"SQL Cleaning Engine loaded: {len(yaml_rules)} YAML rules for {dialect.value}")
-                else:
-                    logger.warning(f"No YAML rules found for {dialect.value}, SQL cleaning disabled")
-                    self.cleaning_engine = None
-
-            except Exception as e:
-                logger.error(f"Failed to load YAML rules: {e}, SQL cleaning disabled")
-                self.cleaning_engine = None
-
         # Load excluded schemas from settings
         from engine.config.settings import settings
         self.excluded_schemas = settings.excluded_schema_set
 
+        # Load YAML rules for configured dialect (v4.3.5: cleaning + extraction)
+        try:
+            dialect = settings.dialect
+            all_rules = load_rules(dialect, custom_dirs=None)
+
+            if all_rules:
+                # Separate cleaning and extraction rules
+                self.cleaning_rules = [r for r in all_rules if r.rule_type == 'cleaning']
+                self.extraction_rules = [r for r in all_rules if r.rule_type == 'extraction']
+                
+                # Create cleaning adapter if cleaning enabled
+                if self.enable_sql_cleaning and self.cleaning_rules:
+                    self.cleaning_engine = YAMLRuleEngineAdapter(self.cleaning_rules)
+                    logger.info(f"SQL Cleaning Engine loaded: {len(self.cleaning_rules)} cleaning rules for {dialect.value}")
+                else:
+                    self.cleaning_engine = None
+                
+                # Log extraction rules
+                if self.extraction_rules:
+                    logger.info(f"SQL Extraction Engine loaded: {len(self.extraction_rules)} extraction rules for {dialect.value}")
+                else:
+                    logger.warning(f"No extraction rules found for {dialect.value}")
+                    self.extraction_rules = []
+            else:
+                logger.warning(f"No YAML rules found for {dialect.value}")
+                self.cleaning_engine = None
+                self.extraction_rules = []
+
+        except Exception as e:
+            logger.error(f"Failed to load YAML rules: {e}")
+            self.cleaning_engine = None
+            self.extraction_rules = []
+
     def parse_object(self, object_id: int) -> Dict[str, Any]:
         """
-        Parse DDL with built-in quality check.
+        Parse DDL and extract dependencies.
 
         Returns:
             {
                 'object_id': int,
                 'inputs': List[int],
                 'outputs': List[int],
-                'confidence': float,  # Adjusted based on quality check
                 'source': 'parser',
                 'parse_error': Optional[str],
-                'quality_check': {
+                'parse_success': bool,
+                'diagnostics': {
+                    'expected_tables': int,  # From regex baseline
+                    'found_tables': int,     # After catalog validation
                     'regex_sources': int,
                     'regex_targets': int,
-                    'parser_sources': int,
-                    'parser_targets': int,
-                    'source_match': float,  # 0.0-1.0
-                    'target_match': float,  # 0.0-1.0
-                    'overall_match': float,  # 0.0-1.0
-                    'needs_improvement': bool
+                    'regex_sp_calls': int,
+                    'hint_inputs': int,
+                    'hint_outputs': int,
+                    'catalog_validation_rate': float
                 }
             }
         """
@@ -353,23 +282,23 @@ class QualityAwareParser:
         # Fetch DDL
         ddl = self._fetch_ddl(object_id)
         if not ddl:
-            # Generate failure breakdown for missing DDL (v2.1.0)
-            result = ConfidenceCalculator.calculate_simple(
-                parse_succeeded=False,
-                expected_tables=0,
-                found_tables=0,
-                is_orchestrator=False,
-                parse_failure_reason='No DDL definition found'
-            )
-
             return {
                 'object_id': object_id,
                 'inputs': [],
                 'outputs': [],
-                'confidence': result['confidence'],  # 0 for missing DDL
                 'source': 'parser',
                 'parse_error': 'No DDL definition found',
-                'confidence_breakdown': result['breakdown']
+                'parse_success': False,
+                'diagnostics': {
+                    'expected_tables': 0,
+                    'found_tables': 0,
+                    'regex_sources': 0,
+                    'regex_targets': 0,
+                    'regex_sp_calls': 0,
+                    'hint_inputs': 0,
+                    'hint_outputs': 0,
+                    'catalog_validation_rate': 0.0
+                }
             }
 
         try:
@@ -380,35 +309,21 @@ class QualityAwareParser:
             regex_sp_calls_valid = self._validate_sp_calls(regex_sp_calls)
             regex_function_calls_valid = self._validate_function_calls(regex_function_calls)  # v4.3.0
 
-            # STEP 2: Preprocess and parse with SQLGlot
-            cleaned_ddl = self._preprocess_ddl(ddl)
-            parser_sources, parser_targets = self._sqlglot_parse(cleaned_ddl, ddl, object_id)
-            parser_sources_valid = self._validate_against_catalog(parser_sources)
-            parser_targets_valid = self._validate_against_catalog(parser_targets)
-
-            # STEP 2b: Extract comment hints (v4.2.0)
-            # Use original DDL (not cleaned) to preserve hints in CATCH blocks
+            # STEP 2: Extract comment hints (v4.2.0)
             hint_inputs, hint_outputs = self.hints_parser.extract_hints(ddl, validate=True)
 
-            # Log hint extraction
-            if hint_inputs or hint_outputs:
-                logger.info(f"Comment hints found: {len(hint_inputs)} inputs, {len(hint_outputs)} outputs")
-                logger.debug(f"  Hint inputs: {hint_inputs}")
-                logger.debug(f"  Hint outputs: {hint_outputs}")
-
             # UNION hints with parser results (no duplicates)
-            parser_sources_with_hints = parser_sources_valid | hint_inputs
-            parser_targets_with_hints = parser_targets_valid | hint_outputs
+            parser_sources_with_hints = regex_sources_valid | hint_inputs
+            parser_targets_with_hints = regex_targets_valid | hint_outputs
 
             # STEP 3: Calculate catalog validation rate (for diagnostics)
-            # Get all objects from catalog for validation
             all_extracted = parser_sources_with_hints | parser_targets_with_hints
             all_catalog = self._get_catalog_objects()
             if all_extracted:
                 valid_count = len(all_extracted & all_catalog)
                 catalog_validation_rate = valid_count / len(all_extracted)
             else:
-                catalog_validation_rate = 1.0  # No objects to validate = 100% valid
+                catalog_validation_rate = 1.0
 
             # STEP 4: Determine if hints were used
             has_hints = bool(hint_inputs or hint_outputs)
@@ -417,75 +332,34 @@ class QualityAwareParser:
             input_ids = self._resolve_table_names(parser_sources_with_hints)
             output_ids = self._resolve_table_names(parser_targets_with_hints)
 
-            # STEP 5b: Add SP-to-SP lineage (v4.0.1)
-            # Stored procedures are OUTPUTS (we call/execute them)
-            # When SP_A executes SP_B: SP_A → SP_B (SP_B is a target/output)
+            # STEP 5b: Add SP-to-SP lineage
             sp_ids = self._resolve_sp_names(regex_sp_calls_valid)
             output_ids.extend(sp_ids)
 
-            # STEP 5b2: Add function lineage (v4.3.0 - UDF support)
-            # Functions are INPUTS (we use/read them)
-            # When SP_A uses func_B: func_B → SP_A (func_B is a source/input)
+            # STEP 5b2: Add function lineage
             func_ids = self._resolve_function_names(regex_function_calls_valid)
             input_ids.extend(func_ids)
 
-            # STEP 6: Calculate expected vs found counts for confidence calculation (v2.1.0)
-            # v4.3.4: Removed phantom tracking - objects not in catalog are simply filtered out
-            expected_count = len(regex_sources_valid) + len(regex_targets_valid)
-            # Exclude: SP IDs and function IDs from found_count (confidence based on real catalog table matches only)
-            found_count = len(input_ids) + len(output_ids) - len(sp_ids) - len(func_ids)
+            # STEP 6: Calculate diagnostic counts
+            expected_tables = len(regex_sources_valid) + len(regex_targets_valid)
+            found_tables = len(input_ids) + len(output_ids) - len(sp_ids) - len(func_ids)
 
-            # Detect orchestrator SPs (only calls other SPs, no table access)
-            is_orchestrator = (expected_count == 0 and len(regex_sp_calls_valid) > 0)
-
-            # STEP 7: Calculate simplified confidence (v2.1.0)
-            parse_success = True  # If we got here, parsing succeeded
-            confidence, confidence_breakdown = self._determine_confidence(
-                parse_success=parse_success,
-                expected_count=expected_count,
-                found_count=found_count,
-                is_orchestrator=is_orchestrator,
-                parse_failure_reason=None  # No failure, parsing succeeded
-            )
-
-            # Enhanced DEBUG logging for each object (v0.9.0)
-            # Shows how lineage was built: regex baseline, SQLGlot enhancement, hints, confidence
-            if logger.isEnabledFor(10):  # DEBUG = 10
+            # Enhanced DEBUG logging for each object
+            if logger.isEnabledFor(10):
                 obj_info = self._get_object_info(object_id)
                 obj_name = f"{obj_info['schema']}.{obj_info['name']}" if obj_info else f"ID:{object_id}"
-
-                # Determine parsing path
-                sqlglot_used = len(parser_sources_valid) > 0 or len(parser_targets_valid) > 0
-                hints_used = has_hints
-
-                path_description = []
-                if sqlglot_used:
-                    path_description.append("SQLGlot")
-                else:
-                    path_description.append("Regex-only (SQLGlot fallback)")
-                if hints_used:
+                path_description = ["Regex-only"]
+                if has_hints:
                     path_description.append("+ Hardcoded hints")
 
                 logger.debug(
-                    f"[APP] {obj_name}: "
+                    f"[PARSE] {obj_name}: "
                     f"Path=[{' '.join(path_description)}] "
                     f"Regex=[{len(regex_sources_valid)}S + {len(regex_targets_valid)}T + {len(regex_sp_calls_valid)}SP] "
-                    f"SQLGlot=[{len(parser_sources_valid)}S + {len(parser_targets_valid)}T] "
                     f"Hints=[{len(hint_inputs)}In + {len(hint_outputs)}Out] "
                     f"Final=[{len(parser_sources_with_hints)}S + {len(parser_targets_with_hints)}T] "
-                    f"Confidence={confidence}"
+                    f"Expected={expected_tables} Found={found_tables}"
                 )
-
-            # Generate failure reason if confidence is low (for diagnostics)
-            parse_failure_reason = None
-            if confidence < 75:  # v2.1.0: confidence < 75 means poor quality
-                parse_failure_reason = self._detect_parse_failure_reason(
-                    ddl=ddl,
-                    parse_error=None,
-                    expected_count=expected_count,
-                    found_count=found_count
-                )
-                logger.warning(f"Low confidence ({confidence}) for object_id {object_id}: {parse_failure_reason}")
 
             # Performance tracking (v4.3.2) - Log slow parses
             parse_time = time.time() - parse_start
@@ -496,46 +370,25 @@ class QualityAwareParser:
                 'object_id': object_id,
                 'inputs': input_ids,
                 'outputs': output_ids,
-                'confidence': confidence,
                 'source': 'parser_with_hints' if has_hints else 'parser',
                 'parse_error': None,
-                'parse_failure_reason': parse_failure_reason,  # v4.2.0: Actionable guidance
-                'expected_count': expected_count,  # v4.2.0: From smoke test
-                'found_count': found_count,        # v4.2.0: Actual extracted
-                'quality_check': {
+                'parse_success': True,
+                'diagnostics': {
+                    'expected_tables': expected_tables,
+                    'found_tables': found_tables,
                     'regex_sources': len(regex_sources_valid),
                     'regex_targets': len(regex_targets_valid),
                     'regex_sp_calls': len(regex_sp_calls_valid),
-                    'parser_sources': len(parser_sources_valid),
-                    'parser_targets': len(parser_targets_valid),
                     'hint_inputs': len(hint_inputs),
                     'hint_outputs': len(hint_outputs),
                     'final_sources': len(parser_sources_with_hints),
                     'final_targets': len(parser_targets_with_hints),
                     'catalog_validation_rate': catalog_validation_rate
-                },
-                'confidence_breakdown': confidence_breakdown  # Simplified breakdown (v2.1.0)
+                }
             }
 
         except Exception as e:
             logger.error(f"Failed to parse object_id {object_id}: {e}")
-
-            # Detect failure reason (v4.2.0)
-            parse_failure_reason = self._detect_parse_failure_reason(
-                ddl=ddl,
-                parse_error=str(e),
-                expected_count=0,
-                found_count=0
-            )
-
-            # Generate failure breakdown (v2.1.0)
-            result = ConfidenceCalculator.calculate_simple(
-                parse_succeeded=False,
-                expected_tables=0,
-                found_tables=0,
-                is_orchestrator=False,
-                parse_failure_reason=parse_failure_reason
-            )
 
             # Performance tracking (v4.3.2) - Log slow parses even on failure
             parse_time = time.time() - parse_start
@@ -546,388 +399,77 @@ class QualityAwareParser:
                 'object_id': object_id,
                 'inputs': [],
                 'outputs': [],
-                'confidence': result['confidence'],  # 0 for parse failures
                 'source': 'parser',
                 'parse_error': str(e),
-                'parse_failure_reason': parse_failure_reason,  # v4.2.0: Actionable guidance
-                'expected_count': 0,  # v4.2.0
-                'found_count': 0,     # v4.2.0
-                'confidence_breakdown': result['breakdown']
+                'parse_success': False,
+                'diagnostics': {
+                    'expected_tables': 0,
+                    'found_tables': 0,
+                    'regex_sources': 0,
+                    'regex_targets': 0,
+                    'regex_sp_calls': 0,
+                    'hint_inputs': 0,
+                    'hint_outputs': 0,
+                    'catalog_validation_rate': 0.0
+                }
             }
 
     def _regex_scan(self, ddl: str) -> Tuple[Set[str], Set[str], Set[str], Set[str]]:
         """
-        Scan full DDL with regex to get expected entity counts.
+        Scan full DDL using YAML extraction rules to get expected entity counts.
 
         This is the BASELINE - what we expect to find.
 
-        CRITICAL (2025-11-08): Smoke test counts BUSINESS LOGIC only
-        - Runs on RAW DDL (no pre-filtering to detect aggressive cleaning)
-        - Counts DML only: INSERT, UPDATE, DELETE, MERGE (data transformation)
-        - Excludes DDL: TRUNCATE, CREATE, DROP, ALTER (housekeeping)
-        - Excludes temp objects: CTEs, #temp tables, @table variables
-        - Rationale: Align baseline with dataflow mode expectations
+        v4.3.5: Now uses YAML extraction rules instead of hardcoded patterns.
+        Business users can adjust extraction patterns via YAML files.
         """
         sources = set()
         targets = set()
-
-        # Remove comments
-        ddl = re.sub(r'--[^\n]*', '', ddl)
-        ddl = re.sub(r'/\*.*?\*/', '', ddl, flags=re.DOTALL)
+        sp_calls = set()
+        function_calls = set()
 
         # STEP 1: Identify non-persistent objects to exclude
         non_persistent = self._identify_non_persistent_objects(ddl)
         logger.debug(f"Found {len(non_persistent)} non-persistent objects: {non_persistent}")
 
-        # STEP 2: Remove administrative queries before counting (2025-11-08)
-        # These are filtered by cleaning engine, so shouldn't be in baseline count
-        # Pattern: SET/DECLARE @var = (SELECT ... FROM Table) → Remove entire statement
-        # Handles nested parentheses like COUNT(*) correctly
-        # Result: COUNT(*) and other administrative SELECT won't be counted
-        ddl_no_admin = re.sub(
-            r'(?:SET|DECLARE)\s+@\w+.*?(?:;|\n)',
-            '\n',
-            ddl,
-            flags=re.IGNORECASE | re.DOTALL
-        )
-        logger.debug("Removed administrative SET/DECLARE queries from smoke test count")
-
-        # SOURCE patterns (tables we READ FROM)
-        # Pattern explanation:
-        # - \b = word boundary (ensures we match full keywords)
-        # - \[? and \]? = optional brackets (Synapse allows [schema].[table])
-        # - (\w+) = capture group for schema/table name (alphanumeric + underscore)
-        # - (?:OUTER\s+)? = optional OUTER keyword (non-capturing group)
-        source_patterns = [
-            r'\bFROM\s+\[?(\w+)\]?\.\[?(\w+)\]?',                      # FROM [schema].[table]
-            r'\bJOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?',                      # JOIN [schema].[table]
-            r'\bINNER\s+JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?',              # INNER JOIN
-            r'\bLEFT\s+(?:OUTER\s+)?JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?',  # LEFT [OUTER] JOIN
-            r'\bRIGHT\s+(?:OUTER\s+)?JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?', # RIGHT [OUTER] JOIN
-            r'\bFULL\s+(?:OUTER\s+)?JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?',  # FULL [OUTER] JOIN
-            r'\bCROSS\s+JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?',              # CROSS JOIN (v4.3.1 fix)
-        ]
-
-        for pattern in source_patterns:
-            # Run patterns on DDL with admin queries removed
-            matches = re.findall(pattern, ddl_no_admin, re.IGNORECASE)
-            for schema, table in matches:
-                # Existing exclusions (system schemas)
-                if self._is_excluded(schema, table):
-                    continue
-
-                # NEW: Filter non-persistent objects
-                if self._is_non_persistent(schema, table, non_persistent):
-                    continue
-
-                sources.add(f"{schema}.{table}")
-
-        # TARGET patterns (tables we WRITE TO)
-        # CRITICAL (2025-11-08): Smoke test counts ONLY DML operations (data transformation)
-        # - Counts: INSERT, UPDATE, DELETE, MERGE (actual data changes)
-        # - Excludes: TRUNCATE, CREATE, DROP, ALTER (DDL housekeeping)
-        # - Rationale: Align baseline with dataflow mode (business logic only)
-        # Pattern explanation: Same as SOURCE patterns above
-        target_patterns = [
-            r'\bINSERT\s+(?:INTO\s+)?\[?(\w+)\]?\.\[?(\w+)\]?',  # INSERT [INTO] [schema].[table]
-            r'\bUPDATE\s+\[?(\w+)\]?\.\[?(\w+)\]?\s+SET',        # UPDATE [schema].[table] SET
-            r'\bMERGE\s+(?:INTO\s+)?\[?(\w+)\]?\.\[?(\w+)\]?',   # MERGE [INTO] [schema].[table]
-            r'\bDELETE\s+(?:FROM\s+)?\[?(\w+)\]?\.\[?(\w+)\]?',  # DELETE [FROM] [schema].[table]
-            # TRUNCATE excluded - DDL housekeeping, not data transformation
-            # CREATE/DROP/ALTER excluded - DDL, not counted by smoke test
-        ]
-
-        for pattern in target_patterns:
-            matches = re.findall(pattern, ddl, re.IGNORECASE)
-            for schema, table in matches:
-                # Existing exclusions
-                if self._is_excluded(schema, table):
-                    continue
-
-                # NEW: Filter non-persistent objects
-                if self._is_non_persistent(schema, table, non_persistent):
-                    continue
-
-                targets.add(f"{schema}.{table}")
-
-        # SP CALL patterns (stored procedures we call)
-        # v4.0.1: Added SP-to-SP lineage detection
-        # Pattern: EXEC [schema].[sp_name] or EXECUTE [schema].[sp_name]
-        # Note: Utility SPs (LogMessage, spLastRowCount) are already removed by preprocessing
-        sp_calls = set()
-        sp_call_patterns = [
-            r'\bEXEC(?:UTE)?\s+\[?(\w+)\]?\.\[?(\w+)\]?',  # EXEC [schema].[sp_name]
-        ]
-
-        for pattern in sp_call_patterns:
-            matches = re.findall(pattern, ddl, re.IGNORECASE)
-            for schema, sp_name in matches:
-                # Skip utility SPs (in case they weren't removed by preprocessing)
-                if sp_name.lower() in ['splastrowcount', 'logmessage']:
-                    continue
-
-                # Skip system schemas
-                if self._is_excluded(schema, sp_name):
-                    continue
-
-                sp_calls.add(f"{schema}.{sp_name}")
-
-        # FUNCTION CALL patterns (UDFs - v4.3.0)
-        # Detects both scalar and table-valued functions:
-        # - Scalar: SELECT dbo.GetPrice(id) FROM Table
-        # - Table-valued: FROM dbo.GetOrders() o, FROM dbo.GetOrdersByDate(@date) AS o
-        # Pattern: [schema].[function_name](...) - function call with parentheses
-        function_calls = set()
-        function_patterns = [
-            # Table-valued functions in FROM/JOIN (most common)
-            r'\bFROM\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # FROM [schema].[function](
-            r'\bJOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # JOIN [schema].[function](
-            r'\bINNER\s+JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # INNER JOIN [schema].[function](
-            r'\bLEFT\s+(?:OUTER\s+)?JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # LEFT JOIN [schema].[function](
-            r'\bRIGHT\s+(?:OUTER\s+)?JOIN\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # RIGHT JOIN [schema].[function](
-            r'\bCROSS\s+APPLY\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # CROSS APPLY [schema].[function](
-            r'\bOUTER\s+APPLY\s+\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # OUTER APPLY [schema].[function](
-            # Scalar functions anywhere (general pattern)
-            # Matches schema.function( pattern - catches all UDF calls
-            r'\b\[?(\w+)\]?\.\[?(\w+)\]?\s*\(',  # [schema].[function](
-        ]
-
-        for pattern in function_patterns:
-            matches = re.findall(pattern, ddl, re.IGNORECASE)
-            for schema, func_name in matches:
-                # Skip built-in functions (CAST, CONVERT, etc.)
-                if func_name.upper() in ['CAST', 'CONVERT', 'COALESCE', 'ISNULL', 'CASE', 'COUNT', 'SUM', 'AVG', 'MAX', 'MIN']:
-                    continue
-
-                # Skip system schemas
-                if self._is_excluded(schema, func_name):
-                    continue
-
-                function_calls.add(f"{schema}.{func_name}")
-
-        logger.debug(f"Regex baseline: {len(sources)} sources, {len(targets)} targets, {len(sp_calls)} SP calls, {len(function_calls)} function calls (after filtering)")
-        return sources, targets, sp_calls, function_calls
-
-    def _sqlglot_parse(self, cleaned_ddl: str, original_ddl: str, object_id: Optional[int] = None) -> Tuple[Set[str], Set[str]]:
-        """
-        Parse with SQLGlot after preprocessing.
-
-        Args:
-            cleaned_ddl: Preprocessed DDL (with control flow removed)
-            original_ddl: Original DDL (for regex baseline)
-            object_id: Optional object ID for logging context
-
-        v4.1.2 CRITICAL FIX: Exclude targets from sources GLOBALLY
-        ----------------------------------------------------------
-        Previous bug: Targets were excluded per-statement, but sources from
-        other statements could reference the same table as a source.
-
-        Example:
-          Statement 1: INSERT INTO target SELECT FROM source
-                       → targets={target}, sources={source} ✅ target excluded
-          Statement 2: WITH cte AS (SELECT FROM target) SELECT FROM cte
-                       → targets={}, sources={target} ❌ target NOT excluded (not a target in THIS statement)
-
-        Solution: Collect all targets first, then remove from final sources.
-        """
-        # Get object name for logging context
-        obj_name = f"ID:{object_id}"
-        if object_id:
-            try:
-                obj_info = self._get_object_info(object_id)
-                if obj_info:
-                    obj_name = f"{obj_info['schema']}.{obj_info['name']}"
-            except:
-                pass  # Fallback to ID if lookup fails
-
-        # Suppress SQLGlot's own logger - we handle all logging ourselves
-        # SQLGlot warnings are too noisy and don't provide actionable info
-        # Our app logs will show any real parsing issues with full object context
-        sqlglot_logger = logging.getLogger('sqlglot')
-        original_level = sqlglot_logger.level
-        sqlglot_logger.setLevel(logging.ERROR)  # Only show actual errors, not warnings
-
-        try:
-            # REGEX-FIRST BASELINE ARCHITECTURE (v4.0.0 - proven 95% success rate)
-            # STEP 1: Apply regex to FULL DDL (guaranteed baseline - no context loss)
-            sources, targets, _, _ = self._regex_scan(original_ddl)
-
-            # Store regex baseline
-            regex_sources = sources.copy()
-            regex_targets = targets.copy()
-
-            # STEP 2: Try SQLGlot as enhancement (optional bonus)
-            # Use RAISE mode (strict) so failures are explicit, not silent
-            # Track SQLGlot success/failure for diagnostics (v4.3.2)
-            sqlglot_total_stmts = 0
-            sqlglot_success_count = 0
-            sqlglot_failed_count = 0
-            sqlglot_empty_command_count = 0
-
-            try:
-                statements = self._split_statements(cleaned_ddl)
-                sqlglot_total_stmts = len(statements)
-
-                for stmt in statements:
-                    try:
-                        # RAISE mode: fails fast with exception if SQL is invalid
-                        parsed = parse_one(stmt, dialect='tsql', error_level=ErrorLevel.RAISE)
-                        # Defensive: Skip empty Command nodes (can occur even with RAISE mode)
-                        # Empty Command nodes have no .expression attribute and yield zero tables
-                        # Root cause: SQLGlot WARN mode bug (documented in v4.3.1), but defensive check kept
-                        if parsed and not (isinstance(parsed, exp.Command) and not parsed.expression):
-                            stmt_sources, stmt_targets = self._extract_from_ast(parsed)
-                            # Add any additional tables SQLGlot found
-                            sources.update(stmt_sources)
-                            targets.update(stmt_targets)
-                            sqlglot_success_count += 1
-                        else:
-                            # Empty parse, regex baseline already captured tables
-                            sqlglot_empty_command_count += 1
-                            logger.debug("Skipped empty Command node, using regex baseline")
-                    except Exception as e:
-                        # SQLGlot failed on this statement, regex baseline already has it
-                        sqlglot_failed_count += 1
-                        # Only log if it's a real parsing error (not T-SQL syntax that we clean with rules)
-                        error_msg = str(e)[:200]
-                        if "unsupported syntax" not in error_msg.lower():
-                            logger.debug(f"[SQLGlot] {obj_name}: Parse failed (fallback to regex) - {error_msg}")
+        # STEP 2: Apply extraction rules from YAML
+        for rule in self.extraction_rules:
+            if not rule.enabled:
+                continue
+            
+            # Extract objects using rule
+            extracted = rule.extract(ddl, verbose=False)
+            
+            # Filter out non-persistent objects and excluded schemas
+            filtered = set()
+            for obj_name in extracted:
+                # Parse schema.table format
+                parts = obj_name.split('.')
+                if len(parts) == 2:
+                    schema, table = parts
+                    
+                    # Skip excluded schemas
+                    if self._is_excluded(schema, table):
                         continue
-            except Exception as e:
-                # Any failure in splitting/parsing, use regex baseline
-                logger.debug(f"[SQLGlot] {obj_name}: Statement splitting failed - {str(e)[:100]}")
-                pass
-
-            # Log SQLGlot statistics (v4.3.2)
-            if sqlglot_total_stmts > 0:
-                sqlglot_success_rate = (sqlglot_success_count / sqlglot_total_stmts) * 100
-                logger.debug(
-                    f"[SQLGlot] {obj_name}: {sqlglot_success_count}/{sqlglot_total_stmts} statements parsed "
-                    f"({sqlglot_success_rate:.1f}% success), "
-                    f"{sqlglot_failed_count} failed, {sqlglot_empty_command_count} empty"
-                )
-
-            # v4.1.2 FIX: Remove all targets from sources AFTER parsing all statements
-            # This prevents false positives where a table is a target in one statement
-            # but appears as a source in another statement (e.g., CTEs, temp tables)
-            sources_final = sources - targets
-
-            return sources_final, targets
-        finally:
-            # Restore SQLGlot logger level
-            sqlglot_logger.setLevel(original_level)
-
-    def _calculate_quality(
-        self,
-        regex_sources: int,
-        regex_targets: int,
-        parser_sources: int,
-        parser_targets: int
-    ) -> Dict[str, Any]:
-        """
-        Calculate quality metrics by comparing regex baseline to parser results.
-
-        KEY FIX: If BOTH regex and parser find zero dependencies, this indicates
-        a PARSE FAILURE (DDL too complex), not a perfect match. Returns 0.0.
-
-        Returns:
-            {
-                'source_match': float (0.0-1.0),
-                'target_match': float (0.0-1.0),
-                'overall_match': float (0.0-1.0),
-                'needs_improvement': bool
-            }
-        """
-        # CRITICAL FIX: Detect parse failure (both found nothing)
-        # This means the DDL is too complex for both regex AND parser to handle
-        if (regex_sources == 0 and regex_targets == 0 and
-            parser_sources == 0 and parser_targets == 0):
-            return {
-                'source_match': 0.0,
-                'target_match': 0.0,
-                'overall_match': 0.0,  # FAIL, not 1.0!
-                'needs_improvement': True
-            }
-
-        # Calculate match percentages
-        if regex_sources > 0:
-            source_match = min(parser_sources / regex_sources, 1.0)
-        else:
-            # If regex found nothing but parser found something, that's good
-            source_match = 1.0 if parser_sources == 0 else 1.0
-
-        if regex_targets > 0:
-            target_match = min(parser_targets / regex_targets, 1.0)
-        else:
-            # If regex found nothing but parser found something, that's good
-            target_match = 1.0 if parser_targets == 0 else 1.0
-
-        # Overall match (weighted average - targets more important)
-        overall_match = (source_match * 0.4) + (target_match * 0.6)
-
-        # Flag for review if either is significantly off
-        source_diff = abs(regex_sources - parser_sources) / max(regex_sources, parser_sources, 1)
-        target_diff = abs(regex_targets - parser_targets) / max(regex_targets, parser_targets, 1)
-
-        needs_improvement = (source_diff > self.THRESHOLD_FAIR or
-                            target_diff > self.THRESHOLD_FAIR)
-
-        return {
-            'source_match': source_match,
-            'target_match': target_match,
-            'overall_match': overall_match,
-            'needs_improvement': needs_improvement
-        }
-
-    def _determine_confidence(
-        self,
-        parse_success: bool,
-        expected_count: int,
-        found_count: int,
-        is_orchestrator: bool = False,
-        parse_failure_reason: Optional[str] = None
-    ) -> Tuple[int, Dict[str, Any]]:
-        """
-        Determine confidence score using simplified model (v2.1.0).
-
-        Uses unified ConfidenceCalculator.calculate_simple() for consistency
-        across the application.
-
-        Simplified 4-value Model:
-        - Parse failed → 0%
-        - Orchestrator (only EXEC, no tables) → 100%
-        - Completeness ≥90% → 100%
-        - Completeness 70-89% → 85%
-        - Completeness 50-69% → 75%
-        - Completeness <50% → 0%
-
-        Args:
-            parse_success: Whether parsing completed without errors
-            expected_count: Number of tables expected (from regex baseline)
-            found_count: Number of tables actually found by parser
-            is_orchestrator: Whether SP only calls other SPs (no table access)
-            parse_failure_reason: Optional reason for parse failure
-
-        Returns:
-            Tuple of (confidence_score, breakdown_dict)
-                confidence_score: 0 | 75 | 85 | 100
-                breakdown_dict: {parse_succeeded, expected_tables, found_tables,
-                                completeness_pct, explanation, to_improve}
-        """
-        # Use unified simplified confidence calculator (v2.1.0)
-        result = ConfidenceCalculator.calculate_simple(
-            parse_succeeded=parse_success,
-            expected_tables=expected_count,
-            found_tables=found_count,
-            is_orchestrator=is_orchestrator,
-            parse_failure_reason=parse_failure_reason
-        )
-
-        confidence = result['confidence']
-        breakdown = result['breakdown']
-
-        logger.debug(f"Simplified confidence: {confidence} (completeness: {breakdown.get('completeness_pct', 0):.1f}%)")
-        return confidence, breakdown
+                    
+                    # Skip non-persistent objects
+                    if self._is_non_persistent(schema, table, non_persistent):
+                        continue
+                    
+                    filtered.add(obj_name)
+            
+            # Add to appropriate collection based on extraction_target
+            if rule.extraction_target == 'source':
+                sources.update(filtered)
+            elif rule.extraction_target == 'target':
+                targets.update(filtered)
+            elif rule.extraction_target == 'sp_call':
+                sp_calls.update(filtered)
+            elif rule.extraction_target == 'function':
+                function_calls.update(filtered)
+        
+        logger.debug(f"YAML extraction: {len(sources)} sources, {len(targets)} targets, {len(sp_calls)} SP calls, {len(function_calls)} function calls")
+        return sources, targets, sp_calls, function_calls
 
     def _is_excluded(self, schema: str, table: str) -> bool:
         """Check if table should be excluded (temp tables, system schemas)."""
@@ -1007,20 +549,20 @@ class QualityAwareParser:
 
     def _preprocess_ddl(self, ddl: str) -> str:
         """
-        Preprocess DDL to make it parseable by SQLGlot/SQLLineage.
+        Preprocess DDL to improve regex extraction accuracy.
 
         **Goal:** Extract only the core business logic (data movement statements)
-        and remove T-SQL specific syntax that breaks SQL parsers.
+        and remove T-SQL specific syntax that complicates pattern matching.
 
-        **Enhanced Strategy (2025-11-07 - SQL Cleaning Engine Integration):**
-        1. **NEW**: Apply SQL Cleaning Engine rules (if enabled) for +27% SQLGlot success
+        **Strategy (v4.3.5 - YAML Regex Extraction):**
+        1. Apply SQL Cleaning Engine rules (if enabled) for better regex matching
            - Removes GO, DECLARE, SET, TRY/CATCH, RAISERROR, EXEC, transactions
            - Extracts core DML from CREATE PROC wrapper
            - 10 declarative rules with priority-based execution
         2. **Fallback**: Legacy regex-based preprocessing (if cleaning disabled)
 
         **Original Strategy (2025-11-03):**
-        1. Normalize statement boundaries with semicolons (SQLGlot requirement)
+        1. Normalize statement boundaries with semicolons (for clarity)
         2. Fix DECLARE pattern to avoid greedy matching
         3. Focus on TRY block (business logic), remove CATCH/EXEC/post-COMMIT noise
 
@@ -1035,7 +577,7 @@ class QualityAwareParser:
             Cleaned DDL ready for parser consumption
         """
         # Step 0: Apply SQL Cleaning Engine with YAML rules (if enabled and available)
-        # This is a more sophisticated rule-based approach that improves SQLGlot success by 27%
+        # This is a more sophisticated rule-based approach that improves regex extraction accuracy
         # (Baseline 53.6% → Improved 80.8% based on 349 production SPs)
         if self.enable_sql_cleaning and self.cleaning_engine is not None:
             try:
@@ -1066,7 +608,7 @@ class QualityAwareParser:
             cleaned = re.sub(r'\s*END\s*$', '', cleaned, flags=re.IGNORECASE)  # Remove trailing END
 
         # Step 3: Normalize statement boundaries with semicolons
-        # SQLGlot expects semicolons to separate statements, but T-SQL doesn't require them
+        # Add semicolons to separate statements for clarity (T-SQL doesn't require them)
         # Strategy: Add semicolon before INDEPENDENT statement keywords only
         # IMPORTANT: Don't add semicolons before SELECT/WITH when they're part of other statements
 
@@ -1157,8 +699,8 @@ class QualityAwareParser:
         # Pattern matches: SELECT (anything) FROM, but stops at nested SELECTs
 
         # Strategy: Replace SELECT clause content with * while preserving:
-        # - TOP clause (for SQLGlot parsing)
-        # - DISTINCT (for SQLGlot parsing)
+        # - TOP clause (for regex extraction)
+        # - DISTINCT (for regex extraction)
         # But simplify column list to just *
 
         # Pattern explanation:
@@ -1203,29 +745,7 @@ class QualityAwareParser:
 
         return statements
 
-    def _extract_from_ast(self, parsed: exp.Expression) -> Tuple[Set[str], Set[str]]:
-        """
-        Extract tables from SQLGlot AST.
-
-        DATAFLOW MODE (v4.1.0): Only extracts DML operations
-        -------------------------------------------------------
-        Includes:
-          - INSERT INTO (data transformation)
-          - UPDATE (data modification)
-          - DELETE (data removal)
-          - MERGE (data upsert)
-          - SELECT INTO (data creation)
-
-        Excludes:
-          - TRUNCATE (DDL housekeeping, not transformation)
-          - DROP (DDL housekeeping)
-          - Administrative SELECT (filtered in preprocessing)
-
-        Enhanced to handle SELECT INTO statements correctly:
-        - SELECT ... INTO #temp FROM source_table
-        - #temp is a target (temp table, filtered from lineage)
-        - source_table is a source (should be included)
-        """
+        # All table extraction now uses regex-based methods only.
         sources = set()
         targets = set()
         select_into_targets = set()  # Track SELECT INTO temp tables separately
@@ -1238,7 +758,7 @@ class QualityAwareParser:
                 into_node = select.args['into']
 
                 # Handle different node types for INTO clause
-                # SQLGlot wraps INTO in exp.Into object
+                # SELECT INTO is a T-SQL extension
                 if isinstance(into_node, exp.Into):
                     # Extract table from Into.this
                     into_table = into_node.this
@@ -1304,12 +824,12 @@ class QualityAwareParser:
         # Issue: find_all(exp.Table) was extracting ALL tables including DML targets
         # Root cause: INSERT INTO target was being added to sources (false positive)
         #
-        # SQLGlot structure:
+        # T-SQL statement structure:
         #   INSERT.this = target table
         #   INSERT.expression = SELECT statement with sources
         #
         # Solution: Exclude DML targets from source extraction (per-statement)
-        # Note: Global exclusion also happens in _sqlglot_parse() after all statements
+        # Note: Target exclusion happens globally after regex extraction
         # are accumulated. This per-statement exclusion is a defensive measure.
 
         for table in parsed.find_all(exp.Table):
@@ -1328,40 +848,7 @@ class QualityAwareParser:
 
         return sources, targets
 
-    def _extract_dml_target(self, target_node) -> Optional[str]:
-        """
-        Extract target table from DML statement (INSERT/UPDATE/MERGE/DELETE).
-
-        Handles both:
-        - exp.Table: Direct table reference
-        - exp.Schema: Wrapped table (happens with bracketed identifiers like [ADMIN].Logs)
-        """
-        if isinstance(target_node, exp.Table):
-            # Direct table reference
-            return self._get_table_name(target_node)
-
-        elif isinstance(target_node, exp.Schema):
-            # Schema wraps the table (happens with bracketed identifiers)
-            # Schema structure: Schema.this = Table
-            if target_node.this and isinstance(target_node.this, exp.Table):
-                return self._get_table_name(target_node.this)
-
-        return None
-
-    def _get_table_name(self, table: exp.Table) -> Optional[str]:
-        """Extract schema.table from Table node."""
-        try:
-            name = table.name
-            if not name:
-                return None
-
-            name = name.strip('[]')
-            schema = table.db if table.db else 'dbo'
-            schema = schema.strip('[]')
-
-            return f"{schema}.{name}"
-        except Exception:
-            return None
+    # SQLGlot AST logic removed; regex-only parsing in use
 
     def _get_object_catalog(self) -> Set[str]:
         """Get set of valid table names from workspace."""
@@ -1595,7 +1082,7 @@ class QualityAwareParser:
 
         Args:
             ddl: The stored procedure DDL text
-            parse_error: Optional SQLGlot parse error message
+            parse_error: Optional parse error message
             expected_count: Expected number of tables from smoke test (DDL text analysis)
             found_count: Actual number of tables extracted by parser
 
@@ -1646,9 +1133,9 @@ class QualityAwareParser:
         if cte_count >= 10:
             reasons.append(f"Multiple CTEs: {cte_count} WITH clauses (limit: 9)")
 
-        # Fallback: Use SQLGlot error if available
+        # Fallback: Use parse error if available
         if not reasons and parse_error:
-            reasons.append(f"SQLGlot parse error: {parse_error[:100]}")
+            reasons.append(f"Parse error: {parse_error[:100]}")
 
         # Generic fallback
         if not reasons:
@@ -1698,14 +1185,15 @@ class QualityAwareParser:
             return None
 
     def get_parse_statistics(self) -> Dict[str, Any]:
-        """Get parser statistics."""
+        """
+        Get parser statistics.
+        
+        Note: Confidence scoring was removed in v4.3.6 due to circular logic.
+        """
         query = """
         SELECT
             COUNT(*) as total,
-            SUM(CASE WHEN confidence >= 0.85 THEN 1 ELSE 0 END) as high_conf,
-            SUM(CASE WHEN confidence >= 0.75 AND confidence < 0.85 THEN 1 ELSE 0 END) as med_conf,
-            SUM(CASE WHEN confidence > 0 AND confidence < 0.75 THEN 1 ELSE 0 END) as low_conf,
-            SUM(CASE WHEN confidence = 0 THEN 1 ELSE 0 END) as failed
+            SUM(CASE WHEN inputs IS NOT NULL OR outputs IS NOT NULL THEN 1 ELSE 0 END) as with_dependencies
         FROM lineage_metadata
         WHERE primary_source = 'parser'
         """
@@ -1716,14 +1204,12 @@ class QualityAwareParser:
 
         row = results[0]
         total = row[0]
+        with_deps = row[1]
 
         return {
             'total_parsed': total,
-            'high_confidence': row[1],
-            'medium_confidence': row[2],
-            'low_confidence': row[3],
-            'failed': row[4],
-            'success_rate': (total - row[4]) / total * 100 if total > 0 else 0
+            'with_dependencies': with_deps,
+            'success_rate': (with_deps / total * 100) if total > 0 else 0
         }
 
     # ============================================================================
@@ -1776,61 +1262,4 @@ class QualityAwareParser:
             'function_calls_count': len(function_calls_validated)  # v4.3.0
         }
 
-    def extract_sqlglot_dependencies(self, ddl: str) -> Dict[str, Any]:
-        """
-        Public wrapper for SQLGlot extraction (used by evaluation subagent).
 
-        Runs SQLGlot AST parsing with preprocessing.
-        Includes quality check metrics (comparison to regex baseline).
-
-        Args:
-            ddl: SQL DDL text
-
-        Returns:
-            {
-                'sources': Set[str],
-                'targets': Set[str],
-                'sources_validated': Set[str],
-                'targets_validated': Set[str],
-                'sources_count': int,
-                'targets_count': int,
-                'quality_check': {
-                    'regex_sources': int,
-                    'regex_targets': int,
-                    'parser_sources': int,
-                    'parser_targets': int,
-                    'source_match': float,
-                    'target_match': float,
-                    'overall_match': float,
-                    'needs_improvement': bool
-                }
-            }
-        """
-        # Preprocess DDL (same as production)
-        cleaned_ddl = self._preprocess_ddl(ddl)
-
-        # Parse with SQLGlot
-        sources, targets = self._sqlglot_parse(cleaned_ddl, ddl)
-
-        # Validate against catalog
-        sources_validated = self._validate_against_catalog(sources)
-        targets_validated = self._validate_against_catalog(targets)
-
-        # Run quality check (compare to regex baseline)
-        regex_result = self.extract_regex_dependencies(ddl)
-        quality = self._calculate_quality(
-            len(regex_result['sources_validated']),
-            len(regex_result['targets_validated']),
-            len(sources_validated),
-            len(targets_validated)
-        )
-
-        return {
-            'sources': sources,
-            'targets': targets,
-            'sources_validated': sources_validated,
-            'targets_validated': targets_validated,
-            'sources_count': len(sources_validated),
-            'targets_count': len(targets_validated),
-            'quality_check': quality
-        }

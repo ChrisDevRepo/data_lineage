@@ -90,7 +90,7 @@ This document describes the GitHub documentation structure optimized for power u
 
 **Clarified Data Flow:**
 - **Inputs:** Parquet files OR Database connection
-- **Processing:** YAML rules → Hybrid parser (Regex + SQLGlot)
+- **Processing:** YAML rules → Pure YAML regex extraction
 - **Output:** JSON format (`data/latest_frontend_lineage.json`)
 
 **Added to QUICKSTART.md:**
