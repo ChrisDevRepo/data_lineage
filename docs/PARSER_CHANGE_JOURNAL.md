@@ -39,6 +39,26 @@ The rule engine supports multiple SQL dialects:
 
 ## Rule Change Log
 
+### 2025-11-19 - Dead Code Cleanup and Test Alignment
+
+**Rule Modified:** N/A (Cleanup)
+**Type:** Bug Fix / Cleanup
+
+**Issue:**
+Dead code `simplified_parser.py` and `simplified_rule_engine.py` were removed. Test case `case_002_aggregations_missing_outputs.yaml` referenced the dead code and was not tracked in this journal, causing test failures.
+
+**Change:**
+- Removed `engine/parsers/simplified_parser.py`
+- Removed `engine/parsers/simplified_rule_engine.py`
+- Updated fixture `tests/fixtures/user_verified_cases/case_002_aggregations_missing_outputs.yaml`
+
+**Impact:**
+- Removed dependency on `sqlglot` (which was already removed from requirements).
+- Fixed test failures in `test_user_verified_cases.py`.
+
+**Validation:**
+✅ `pytest tests/unit/` passing.
+
 ### 2025-11-19 - Regex-Only Parsing: Fresh Start
 
 **Status:** 🎯 Clean slate for regex-only architecture
