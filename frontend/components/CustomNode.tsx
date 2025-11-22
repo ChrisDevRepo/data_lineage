@@ -1,8 +1,7 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { CONSTANTS } from '../constants';
 import { DataNode } from '../types';
-import { getConfidenceLevel } from '../utils/confidenceUtils';
 
 type CustomNodeData = DataNode & {
     isHighlighted: boolean;
@@ -84,21 +83,6 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
         nodeTitle += `\n\n💡 Click to view SQL definition`;
     }
 
-    // Get confidence badge for Stored Procedures (v2.1.0 simplified model)
-    // Uses shared confidenceUtils.ts for single source of truth
-    const confidenceBadge = useMemo(() => {
-        if (data.object_type !== 'Stored Procedure') return null;
-
-        const confidence = data.confidence || 0;
-        const level = getConfidenceLevel(confidence);
-
-        return (
-            <span className="confidence-badge" title={level.title}>
-                {level.icon}
-            </span>
-        );
-    }, [data.object_type, data.confidence]);
-
     return (
         <div className="relative">
             <div
@@ -115,12 +99,6 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
                 <div className="truncate px-2">{data.name}</div>
                 <Handle type="source" position={isHorizontal ? Position.Right : Position.Bottom} className="!bg-gray-500" />
             </div>
-            {/* Confidence badge for Stored Procedures (v2.1.0) */}
-            {confidenceBadge && (
-                <div key={`badge-${data.id}`} className="absolute -top-1 -right-1 text-sm leading-none">
-                    {confidenceBadge}
-                </div>
-            )}
         </div>
     );
 });

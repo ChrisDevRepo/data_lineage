@@ -273,7 +273,10 @@ async def get_latest_data(user: Optional[Dict[str, Any]] = Depends(verify_azure_
     Returns:
         JSON array of lineage nodes, or empty array if no data exists
     """
+    request_start = time.time()
+
     if not LATEST_DATA_FILE.exists():
+        logger.info("[API] /latest-data: No data file found, returning empty array")
         return JSONResponse(
             content=[],
             status_code=200,
@@ -281,12 +284,29 @@ async def get_latest_data(user: Optional[Dict[str, Any]] = Depends(verify_azure_
         )
 
     try:
+        # Log file size before reading
+        file_size_mb = LATEST_DATA_FILE.stat().st_size / (1024 * 1024)
+        logger.debug(f"[API] Reading data file: {file_size_mb:.2f} MB")
+
+        # Time the file read
+        read_start = time.time()
         with open(LATEST_DATA_FILE, 'r') as f:
-            data = json.load(f)
+            raw_data = f.read()
+        read_time = (time.time() - read_start) * 1000
+        logger.debug(f"[API] File read took {read_time:.2f}ms")
+
+        # Time the JSON parse
+        parse_start = time.time()
+        data = json.loads(raw_data)
+        parse_time = (time.time() - parse_start) * 1000
+        logger.info(f"[API] JSON parse took {parse_time:.2f}ms for {len(data) if isinstance(data, list) else 0} nodes")
 
         # Get file modification time
         mtime = LATEST_DATA_FILE.stat().st_mtime
         upload_timestamp = datetime.fromtimestamp(mtime).isoformat()
+
+        total_time = (time.time() - request_start) * 1000
+        logger.info(f"[API] /latest-data complete: {total_time:.2f}ms total (read: {read_time:.2f}ms, parse: {parse_time:.2f}ms)")
 
         return JSONResponse(
             content=data,
@@ -294,10 +314,12 @@ async def get_latest_data(user: Optional[Dict[str, Any]] = Depends(verify_azure_
             headers={
                 "X-Data-Available": "true",
                 "X-Node-Count": str(len(data)) if isinstance(data, list) else "unknown",
-                "X-Upload-Timestamp": upload_timestamp
+                "X-Upload-Timestamp": upload_timestamp,
+                "X-Load-Time-Ms": f"{total_time:.2f}"
             }
         )
     except Exception as e:
+        logger.error(f"[API] /latest-data failed: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to load latest data: {str(e)}"

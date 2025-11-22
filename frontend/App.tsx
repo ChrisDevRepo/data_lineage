@@ -42,7 +42,9 @@ function DataLineageVisualizer() {
   const { fitView, setCenter, getNodes, getEdges } = useReactFlow();
   // Memoize ReactFlow proOptions for performance (stable reference)
   const reactFlowProOptions = useMemo(() => ({ hideAttribution: true }), []);
-
+  // Memoize nodeTypes to prevent React Flow warnings about recreating the object on every render
+  // This fixes: "It looks like you've created a new nodeTypes or edgeTypes object"
+  const memoizedNodeTypes = useMemo(() => nodeTypes, []);
 
   // --- State Management ---
   // Start with empty data, load from API asynchronously
@@ -1102,7 +1104,7 @@ function DataLineageVisualizer() {
             <div className={`relative ${!isResizing ? 'transition-all duration-300' : ''}`} style={{ width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%' }} data-testid="lineage-graph">
               <ReactFlow
                 nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
-                nodeTypes={nodeTypes}
+                nodeTypes={memoizedNodeTypes}
                 onPaneClick={handlePaneClick}
                 onNodeClick={handleNodeClick}
                 onNodeContextMenu={handleNodeContextMenu}
