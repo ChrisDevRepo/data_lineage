@@ -11,10 +11,21 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </React.StrictMode>
+
+// Only wrap in StrictMode in development for error checking
+// In development, StrictMode double-renders components which causes React Flow nodeTypes warning
+const AppWithBoundary = (
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
 );
+
+if (import.meta.env.DEV) {
+  root.render(
+    <React.StrictMode>
+      {AppWithBoundary}
+    </React.StrictMode>
+  );
+} else {
+  root.render(AppWithBoundary);
+}
