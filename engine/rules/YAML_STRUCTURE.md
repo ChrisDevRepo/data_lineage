@@ -91,7 +91,7 @@ metadata:
 | `metadata.created` | string | No | Creation date |
 | `metadata.tested_with` | string | No | What was used to test this |
 | `metadata.affects_lineage` | boolean | No | Does this remove SELECT/INSERT/UPDATE/DELETE? |
-| `metadata.impact` | string | No | What SQLGlot error this fixes |
+| `metadata.impact` | string | No | What this rule fixes |
 
 ## When to Use What
 
@@ -113,7 +113,7 @@ Include optional fields when sharing rules publicly:
 # ==============================================================================
 # T-SQL Rule: Remove GO Batch Separators
 # ==============================================================================
-# GO is SSMS-only syntax - SQLGlot cannot parse it
+# GO is SSMS-only syntax and not valid T-SQL
 # ==============================================================================
 
 name: remove_go
@@ -137,7 +137,7 @@ metadata:
   created: "2025-11-06"
   tested_with: "349 stored procedures"
   affects_lineage: false
-  impact: "Critical - GO causes immediate SQLGlot failure"
+  impact: "Critical - GO is not valid T-SQL and causes parser failure"
 ```
 
 ## Multi-Step Rules

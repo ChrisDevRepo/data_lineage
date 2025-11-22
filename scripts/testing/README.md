@@ -92,14 +92,12 @@ python3 scripts/testing/analyze_sp.py
 **Output:**
 - First 1000 chars of SP DDL
 - Regex pattern matches (sources/targets)
-- SQLGlot WARN mode results
 - Problematic patterns identified
 - Expected vs actual comparison
 
 **When to use:**
 - When specific SP fails to parse correctly
 - To understand why regex patterns miss tables
-- To test SQLGlot behavior on complex SQL
 - To identify T-SQL constructs causing issues
 
 ---
@@ -182,7 +180,6 @@ python3 scripts/testing/analyze_sp.py
 
 **Architecture:**
 - Regex-first baseline (guaranteed, no context loss)
-- SQLGlot RAISE mode enhancement (optional bonus)
 - Full DDL scanning (no statement splitting)
 
 ---

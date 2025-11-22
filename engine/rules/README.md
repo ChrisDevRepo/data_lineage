@@ -1,6 +1,6 @@
 # SQL Cleaning Rules
 
-**YAML-based rules to help SQLGlot parse stored procedures by removing dialect-specific syntax.**
+**YAML-based rules to clean and normalize SQL dialects before parsing.**
 
 **⚠️ IMPORTANT:** Execution order is controlled by the `priority` field in YAML, **NOT** by filename. Filename numbers (like `10_rule.yaml`) are just for organization.
 
@@ -124,14 +124,6 @@ cp custom_rule.yaml engine/rules/defaults/tsql/70_custom.yaml
 # Now manual reset will include your custom rule
 ```
 
-## 🎯 How It Works
-
-1. **Parser encounters stored procedure** with Snowflake syntax
-2. **SQLGlot fails**: `"LANGUAGE JAVASCRIPT not supported"`
-3. **You enable DEBUG mode** → See exact error in log viewer
-4. **You create rule**: `rules/snowflake/10_javascript_procs.yaml`
-5. **Rule removes problematic syntax** → SQLGlot succeeds ✅
-
 ## 🚀 Quick Start: Adding a Rule for Your Database
 
 ### Step 1: Copy the Template
@@ -154,11 +146,7 @@ LOG_LEVEL=DEBUG
 
 Upload your Snowflake/BigQuery/Oracle SP and watch Developer Panel → Logs.
 
-### Step 4: See the SQLGlot Error
-
-```
-[SQLGlot] ❌ Parse failed: "LANGUAGE JAVASCRIPT not supported"
-```
+### Step 4: See the parser error in the logs
 
 ### Step 5: Create a Rule to Fix It
 
@@ -329,7 +317,7 @@ Test your rules manually with real stored procedures before deploying!
 
 1. **Start with TSQL rules** - Battle-tested with 349 stored procedures (100% success)
 2. **Copy & modify** - Don't write from scratch
-3. **Enable DEBUG mode** - See exactly what SQLGlot is complaining about
+3. **Enable DEBUG mode** - See what the parser is complaining about
 4. **Test incrementally** - Add one rule at a time, validate results
 
 ## 📚 Advanced Topics
@@ -401,10 +389,10 @@ Found rules that work for your database? **Share them!**
 ## 📞 Need Help?
 
 1. Check TSQL rules in `engine/rules/tsql/` for working examples
-2. Enable DEBUG mode (`RUN_MODE=debug`, `LOG_LEVEL=DEBUG`) to see SQLGlot errors
+2. Enable DEBUG mode (`RUN_MODE=debug`, `LOG_LEVEL=DEBUG`) to see parser errors
 3. Use Developer Panel → Logs to debug rule application in real-time
 4. Check [YAML_STRUCTURE.md](YAML_STRUCTURE.md) for complete field reference
 
 ---
 
-**Remember:** The goal is to help SQLGlot parse stored procedures, **not** to produce syntactically perfect SQL. Remove noise, preserve lineage! ✅
+**Remember:** The goal is to help the parser understand stored procedures, **not** to produce syntactically perfect SQL. Remove noise, preserve lineage! ✅

@@ -6,7 +6,7 @@
 
 ## Overview
 
-This journal documents changes to the YAML rule engine that powers the regex-only SQL parser. The parser uses a simplified architecture with pattern-based extraction rules instead of SQLGlot AST parsing.
+This journal documents changes to the YAML rule engine that powers the regex-only SQL parser. The parser uses a simplified architecture with pattern-based extraction rules.
 
 ## 🚨 CRITICAL: Check This Journal BEFORE Making Rule Changes
 
@@ -45,7 +45,6 @@ The rule engine supports multiple SQL dialects:
 
 **Context:**
 Starting new branch `v4.3.5-regex-only-parsing` with simplified architecture:
-- No SQLGlot AST parsing
 - Pure regex-based extraction via YAML rules
 - Pattern-based cleaning and normalization
 - Simplified rule engine
@@ -63,7 +62,7 @@ Starting new branch `v4.3.5-regex-only-parsing` with simplified architecture:
 5. **Catalog validation** - Filter extracted objects against metadata catalog
 
 **DO NOT:**
-- ❌ Add SQLGlot parsing back (defeats purpose of regex-only approach)
+- ❌ Re-introduce AST parsing (defeats purpose of regex-only approach)
 - ❌ Create overly complex regex patterns (maintainability over perfection)
 - ❌ Skip catalog validation (prevents false positives from comments/strings)
 

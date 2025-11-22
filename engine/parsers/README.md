@@ -376,9 +376,9 @@ from engine.core import GapDetector
 gap_detector = GapDetector(db)
 gaps = gap_detector.detect_gaps()
 
-# Step 5: Run SQLGlot parser on gaps
-from engine.parsers import SQLGlotParser
-parser = SQLGlotParser(db)
+# Step 5: Run Regex parser on gaps
+from engine.parsers import RegexParser
+parser = RegexParser(db)
 
 for gap in gaps:
     result = parser.parse_object(gap['object_id'])
@@ -400,11 +400,11 @@ for gap in gaps:
 
 ### Unit Tests
 
-**File:** [tests/test_sqlglot_parser.py](../../tests/test_sqlglot_parser.py)
+**File:** [tests/test_regex_parser.py](../../tests/test_regex_parser.py)
 
 Run tests:
 ```bash
-pytest tests/test_sqlglot_parser.py -v
+pytest tests/test_regex_parser.py -v
 ```
 
 **Coverage:**
@@ -439,7 +439,6 @@ pytest tests/test_sqlglot_parser.py -v
 
 ### Memory Usage
 
-- SQLGlot AST parsing: ~5-10MB per complex object
 - Workspace query overhead: minimal (indexed lookups)
 
 ### Optimization Tips

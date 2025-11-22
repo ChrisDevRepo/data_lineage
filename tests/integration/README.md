@@ -112,41 +112,6 @@ def test_confidence_85_completeness_range(self, conf_85_sps):
 
 ---
 
-### 4. test_sqlglot_performance.py (11 tests)
-
-**Purpose:** SQLGlot enhancement impact and completeness analysis
-
-**Test Classes:**
-- `TestOverallParsingSuccess` - 100% success with SQLGlot
-- `TestConfidenceDistribution` - Valid distribution
-- `TestCompletenessAnalysis` - Found vs expected tables
-- `TestSQLGlotEnhancementImpact` - Tables added by SQLGlot
-- `TestKeyInsights` - Architectural validation
-
-**Key Validations:**
-- ✅ Regex baseline provides guaranteed coverage
-- ✅ SQLGlot enhances but doesn't replace baseline
-- ✅ Average 0-5 tables added per SP by SQLGlot
-- ✅ No SPs with <50% completeness (poor quality)
-
-**Example:**
-```python
-def test_sqlglot_enhances_not_replaces(self, db_connection):
-    """Test that SQLGlot enhances but doesn't replace regex baseline."""
-    result = db_connection.execute("""
-        SELECT
-            COUNT(*) FILTER (WHERE found_count >= expected_count) as maintained,
-            COUNT(*) as total
-        FROM lineage_metadata
-        WHERE primary_source = 'parser' AND expected_count > 0
-    """).fetchone()
-
-    maintained, total = result
-    percentage = (maintained / total) * 100
-
-    assert percentage >= 95.0, "SQLGlot should maintain or enhance for >=95%"
-```
-
 ---
 
 ### 5. test_failure_analysis.py (8 tests)
@@ -183,7 +148,6 @@ def test_no_failed_sps(self, failed_sps):
 
 **Test Classes:**
 - `TestRegexExtraction` - FROM/INTO/UPDATE table extraction
-- `TestSQLGlotParsing` - WARN/RAISE mode behavior
 - `TestProblematicPatterns` - T-SQL patterns detection
 - `TestExpectedDependencyValidation` - Expected sources validation
 - `TestDebuggingWorkflow` - Debugging workflow validation
@@ -191,7 +155,6 @@ def test_no_failed_sps(self, failed_sps):
 **Key Validations:**
 - ✅ Regex extracts FROM tables correctly
 - ✅ Regex extracts target tables (INSERT/UPDATE)
-- ✅ SQLGlot RAISE mode used (correct choice)
 - ✅ Temp tables (#temp) excluded from dependencies
 - ✅ SPs have reasonable DDL length and data operations
 
@@ -412,7 +375,6 @@ These integration tests replace standalone validation scripts:
 | `check_parsing_results.py` | `test_database_validation.py` | 13 |
 | `verify_sp_parsing.py` | `test_sp_parsing_details.py` | 8 |
 | `analyze_lower_confidence_sps.py` | `test_confidence_analysis.py` | 11 |
-| `analyze_sqlglot_performance.py` | `test_sqlglot_performance.py` | 14 |
 | `analyze_failed_sps.py` | `test_failure_analysis.py` | 8 |
 | `analyze_sp.py` | `test_sp_deep_debugging.py` | 10 |
 

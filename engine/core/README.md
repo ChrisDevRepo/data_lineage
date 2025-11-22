@@ -226,7 +226,6 @@ with DuckDBWorkspace(workspace_path=workspace) as db:
 
 ## Future Enhancements (Post-Phase 3)
 
-- [ ] **Phase 4**: SQLGlot parser integration for gap-filling
 - [ ] **Phase 5**: AI fallback framework for complex SPs
 - [ ] **Phase 6**: Output formatters (internal + frontend JSON)
 - [ ] **Phase 7**: Full incremental pipeline with Steps 2-7
