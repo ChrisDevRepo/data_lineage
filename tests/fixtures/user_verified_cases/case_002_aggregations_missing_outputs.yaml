@@ -6,7 +6,7 @@ reported_by: "chris@company.com"
 issue: "Parser found 8 inputs but 0 outputs - missing 2 SELECT...INTO statements"
 root_cause: "Simplified parser only handled INSERT/UPDATE/DELETE/MERGE targets, missing SELECT...INTO statements"
 fix_version: "v4.3.5"
-fix_description: "Added SELECT...INTO target extraction to simplified_parser.py line 261-272. Handles exp.Into, exp.Table, and exp.Schema node types for INTO clauses."
+fix_description: "Added SELECT...INTO target extraction. Handles exp.Into, exp.Table, and exp.Schema node types for INTO clauses."
 
 # Expected parsing results (verified by user as correct)
 # NOTE: SP was extended after initial golden record creation
