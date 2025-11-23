@@ -5,7 +5,8 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10+-green.svg)
 ![Node](https://img.shields.io/badge/node-18+-green.svg)
-![Version](https://img.shields.io/badge/version-0.10.0-orange.svg)
+![Version](https://img.shields.io/badge/version-0.10.1-orange.svg)
+![Status](https://img.shields.io/badge/status-production%20ready-brightgreen.svg)
 
 **Interactive lineage analysis for SQL data warehouses**
 
@@ -79,6 +80,30 @@ pip install -r requirements.txt && ./start-app.sh
 | **Developer Mode** | Real-time logs viewer + YAML rules browser |
 | **Multi-Dialect** | Support for 7 databases (T-SQL, PostgreSQL, Snowflake, etc.) |
 | **Reset to Defaults** | Restore factory rules with one click |
+
+---
+
+## Recent Updates (v0.10.1 - 2025-11-23)
+
+### ✅ Rendering Performance Optimizations
+- **CSS Module Import** - React Flow stylesheet now imports from module instead of CDN (fixes tracking prevention blocks)
+- **Confidence Badge Cleanup** - Removed deprecated UI elements from v4.3.6 cleanup
+- **API Diagnostics Logging** - Added timing logs to `/api/latest-data` endpoint for performance monitoring
+- **StrictMode Optimization** - Conditional React.StrictMode wrapping (development only)
+
+### 📊 Performance Confirmed
+- ✅ Initial page load: **~300-700ms** (API network latency only, not React rendering)
+- ✅ Subsequent loads: **<100ms** (cached data)
+- ✅ Graph rendering: **1-3ms for 20 nodes** (scales efficiently)
+- ✅ **NO automatic database connections** on startup (manual user-triggered only)
+
+### 🧹 Code Quality
+- Removed unused confidence badge rendering code
+- Simplified memoization strategy
+- Added detailed API endpoint logging
+- Updated documentation with performance findings
+
+**See:** [BUG_RENDERING_ISSUE.md](BUG_RENDERING_ISSUE.md) for detailed investigation findings
 
 ---
 
