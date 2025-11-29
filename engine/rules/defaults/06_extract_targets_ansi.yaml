@@ -1,0 +1,39 @@
+# ==============================================================================
+# ANSI SQL Target Object Extraction (INSERT, UPDATE, MERGE, DELETE patterns)
+# ==============================================================================
+# Extracts table references that are WRITTEN (targets) using standard ANSI SQL.
+# Only captures DML operations, not DDL (TRUNCATE, DROP, CREATE).
+#
+# Priority: 6 (Run after source extraction)
+# Category: extraction
+# ==============================================================================
+
+name: extract_targets_ansi
+description: |
+  Extract target table references from ANSI SQL DML patterns.
+  Captures INSERT, UPDATE, MERGE, DELETE operations only.
+
+dialect: generic
+category: extraction
+enabled: true
+priority: 6
+
+rule_type: extraction
+extraction_target: target
+
+pattern_type: regex
+
+# Pattern captures: (keyword, identifier)
+# Group 2 = full identifier (will be parsed for schema.table or just table)
+pattern: (?i)\b(INSERT\s+(?:INTO\s+)?|UPDATE|MERGE\s+(?:INTO\s+)?|DELETE\s+(?:FROM\s+)?|INTO)\b\s+([^\s,;()]+)
+
+debug:
+  log_matches: true
+  log_replacements: false
+  show_context_lines: 2
+
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  affects_lineage: true
+  impact: "Extracts all target table references from DML operations."

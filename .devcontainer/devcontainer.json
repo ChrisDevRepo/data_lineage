@@ -1,0 +1,127 @@
+{
+  "name": "Data Lineage Visualizer",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+
+  // Configure tool-specific properties
+  "customizations": {
+    "vscode": {
+      // VS Code settings
+      "settings": {
+        // Python settings
+        "python.defaultInterpreterPath": "/usr/bin/python3",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": false,
+        "python.formatting.provider": "none",
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.black-formatter",
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+
+        // JavaScript/TypeScript settings
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        },
+        "[javascriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        },
+        "[typescriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode",
+          "editor.formatOnSave": true
+        },
+
+        // Editor settings
+        "editor.tabSize": 4,
+        "editor.rulers": [88, 120],
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+
+        // Terminal settings
+        "terminal.integrated.defaultProfile.linux": "bash",
+
+        // Git settings
+        "git.enableCommitSigning": false,
+
+        // Claude Code settings - YOLO mode (allow all commands)
+        "claude.allowedCommands": ["*"]
+      },
+
+      // VS Code extensions
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.black-formatter",
+        "ms-python.isort",
+        "ms-python.debugpy",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "dsznajder.es7-react-js-snippets",
+        "bradlc.vscode-tailwindcss",
+        "humao.rest-client",
+        "ms-azuretools.vscode-docker",
+        "eamodio.gitlens",
+        "mhutchie.git-graph",
+        "streetsidesoftware.code-spell-checker",
+        "usernamehw.errorlens",
+        "redhat.vscode-yaml",
+        "yzhang.markdown-all-in-one"
+      ]
+    }
+  },
+
+  // Port forwarding
+  "forwardPorts": [8000, 3000],
+  "portsAttributes": {
+    "8000": {
+      "label": "FastAPI Backend",
+      "onAutoForward": "notify"
+    },
+    "3000": {
+      "label": "React Frontend",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // Features
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  // Lifecycle commands
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh",
+
+  // Run as non-root user
+  "remoteUser": "vscode",
+
+  // Environment variables
+  "containerEnv": {
+    "PYTHONPATH": "/workspace",
+    "PYTHONUNBUFFERED": "1",
+    "PATH_OUTPUT_DIR": "/workspace/data",
+    "PATH_WORKSPACE_FILE": "/workspace/data/lineage_workspace.duckdb",
+    "PATH_PARQUET_DIR": "/workspace/data/parquet_snapshots",
+    "LOG_LEVEL": "INFO",
+    "RUN_MODE": "debug",
+    "SQL_DIALECT": "tsql",
+    "ALLOWED_ORIGINS": "*",
+    "EXCLUDED_SCHEMAS": "sys,dummy,information_schema,tempdb,master,msdb,model",
+    "SKIP_QUERY_LOGS": "false"
+  }
+}

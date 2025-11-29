@@ -1,0 +1,39 @@
+# ==============================================================================
+# T-SQL Stored Procedure Call Extraction (EXEC/EXECUTE patterns)
+# ==============================================================================
+# Extracts stored procedure calls for SP-to-SP lineage.
+# Captures EXEC and EXECUTE statements.
+#
+# Priority: 8 (Run after table extractions)
+# Category: extraction
+# ==============================================================================
+
+name: extract_sp_calls_tsql
+description: |
+  Extract stored procedure calls from EXEC/EXECUTE statements.
+  Creates SP-to-SP lineage relationships.
+
+dialect: tsql
+category: extraction
+enabled: true
+priority: 8
+
+rule_type: extraction
+extraction_target: sp_call
+
+pattern_type: regex
+
+# Pattern captures: (keyword, sp_name)
+# Group 2 = stored procedure name (schema.sp format)
+pattern: (?i)\b(EXEC(?:UTE)?)\b\s+([^\s,;()]+)
+
+debug:
+  log_matches: true
+  log_replacements: false
+  show_context_lines: 2
+
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  affects_lineage: true
+  impact: "Extracts SP-to-SP lineage via EXEC statements."

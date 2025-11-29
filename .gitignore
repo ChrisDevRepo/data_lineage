@@ -1,0 +1,101 @@
+# Hidden directories and OS files
+.DS_Store
+Thumbs.db
+.*
+!.git*        # EXCEPTION: Git files should be tracked
+!.github/     # EXCEPTION: GitHub workflows should be tracked
+!.devcontainer/  # EXCEPTION: Dev container config should be tracked
+!.editorconfig   # EXCEPTION: Editor config should be tracked
+!.env.example    # EXCEPTION: Environment template should be tracked
+
+# Claude Code workspace (internal development only)
+.claude/
+CLAUDE.md
+
+# Internal documentation (not for external repo)
+internal/
+
+# Internal evaluation and baselines (development testing only)
+evaluation/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables (NEVER commit credentials!)
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# EXCEPTION: These should be committed (not in gitignore):
+# .env.template        - Template with documentation
+# .env.development     - Frontend development config (no secrets)
+# .env.production      - Frontend production config (no secrets)
+
+# DuckDB workspace files
+*.duckdb
+*.duckdb.wal
+lineage_workspace.*
+
+# Parquet snapshots (may contain sensitive data)
+parquet_snapshots/*.parquet
+
+# Temp folder (uploaded parquet files and development artifacts)
+temp/
+
+# Lineage output (generated files should not be tracked)
+lineage_output/*.json
+api/lineage_output/
+
+# API persistent data
+api/data/
+data/
+
+# Log files (should never be committed)
+logs/
+*.log
+
+# Azure deployment logs (temporary debugging)
+.azure-deploy/
+
+# Database files
+*.db
+*.sqlite
+
+# Node modules (regenerate with npm install)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.build/
+
+# Test results and temporary test files
+test-results/
+uploads/
+
+# Debug and development scripts
+debug-browser.mjs
+
+# Demo data cache
+frontend/public/demo-data.json

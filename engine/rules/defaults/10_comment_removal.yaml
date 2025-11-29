@@ -1,0 +1,27 @@
+# ===============================================================================
+# Universal SQL Comment Removal (Regex)
+# ===============================================================================
+name: remove_comments
+description: Remove SQL comments (line and block) before extraction
+dialect: generic
+category: preprocessing
+enabled: true
+priority: 1
+pattern_type: regex
+pattern: >
+  (?is)
+  (
+    --[^\r\n]*       # Line comments
+    |
+    /\*.*?\*/        # Block comments (multi-line)
+  )
+replacement: ''
+debug:
+  log_matches: true
+  log_replacements: false
+  show_context_lines: 2
+metadata:
+  author: copilot
+  created: "2025-11-19"
+  affects_lineage: false
+  impact: "Removes all SQL comments before object extraction."

@@ -1,0 +1,23 @@
+# ==============================================================================
+# API Dependencies - FastAPI Backend Server
+# ==============================================================================
+# Includes: Base dependencies + API-specific packages
+# ==============================================================================
+
+# Include base dependencies
+-r base.txt
+
+# ------------------------------------------------------------------------------
+# Web Framework
+# ------------------------------------------------------------------------------
+fastapi==0.121.3                 # FastAPI web framework (updated 2025-11-23)
+uvicorn[standard]==0.38.0        # ASGI server with auto-reload (updated 2025-11-23)
+python-multipart==0.0.20         # For file uploads and form data (updated 2025-11-23)
+gunicorn==23.0.0                 # WSGI server for production (Azure deployment)
+aiofiles==23.2.1                 # Async file I/O for non-blocking uploads (v0.10.0)
+orjson==3.10.12                  # Fast JSON parsing/serialization (2-3x faster than stdlib) (v0.10.0)
+
+# ------------------------------------------------------------------------------
+# Database Connectors (v0.10.0 - Optional, only if DB_ENABLED=true)
+# ------------------------------------------------------------------------------
+pyodbc==5.3.0                    # ODBC connector for T-SQL (SQL Server/Azure SQL/Synapse/Fabric) (updated 2025-11-23)

@@ -1,0 +1,58 @@
+# Git Line Ending Configuration
+# Ensures consistent line endings across Windows, macOS, and Linux
+
+# Auto-detect text files and normalize to LF in repository
+* text=auto
+
+# Explicitly declare text files
+*.py text eol=lf
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.ini text eol=lf
+*.cfg text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+*.sql text eol=lf
+*.csv text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+
+# Configuration files
+.env* text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.editorconfig text eol=lf
+Dockerfile text eol=lf
+*.config.* text eol=lf
+
+# Binary files (do not normalize)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.parquet binary
+*.duckdb binary
+*.zip binary
+*.gz binary
+*.tar binary
+*.pdf binary
+
+# Lock files (exact format matters)
+package-lock.json -diff
+yarn.lock -diff
+poetry.lock -diff

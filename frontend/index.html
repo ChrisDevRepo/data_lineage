@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Lineage</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="256x256" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+
+    <!-- IMPORTANT: No import map needed - Vite bundles all dependencies locally -->
+
+    <style>
+        /* Ensure the app takes the full screen */
+        body, #root {
+            width: 100vw;
+            height: 100vh;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        /* Pre-React loading state - shown instantly before JS loads */
+        #initial-loader {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #f3f4f6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            z-index: 9999;
+        }
+        #initial-loader .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e5e7eb;
+            border-top-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 16px;
+        }
+        #initial-loader .text {
+            color: #374151;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Confidence badges for Stored Procedure nodes (v2.1.0) */
+        .confidence-badge {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            line-height: 20px;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            font-size: 12px;
+            cursor: help;
+            transition: transform 0.2s;
+        }
+
+        .confidence-badge:hover {
+            transform: scale(1.3);
+        }
+    </style>
+</head>
+<body>
+    <!-- Pre-React loading state - instantly visible, removed when React mounts -->
+    <div id="initial-loader">
+        <div class="spinner"></div>
+        <div class="text">Loading Data Lineage Visualizer...</div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
