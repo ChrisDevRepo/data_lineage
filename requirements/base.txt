@@ -1,0 +1,15 @@
+# ==============================================================================
+# Base Dependencies - Shared by Parser and API
+# ==============================================================================
+# Python Version Requirement: >=3.10
+# ==============================================================================
+
+# Data validation and settings
+pydantic>=2.5.0
+pydantic-settings>=2.6.0
+
+# Configuration and environment
+python-dotenv>=1.1.1
+
+# Console output and formatting
+rich>=13.7.0
