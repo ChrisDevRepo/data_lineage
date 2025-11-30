@@ -19,16 +19,16 @@
 ### Default Configuration (Works Out-of-the-Box)
 
 No configuration needed! The application works with defaults:
-- **SQL Dialect:** T-SQL (SQL Server/Azure SQL/Synapse/Fabric - only supported dialect)
+- **SQL Dialect:** T-SQL (SQL Server/Azure SQL/Synapse/Fabric) - other dialects can be added
 - **Data Source:** Parquet upload only
 - **Log Level:** INFO
 - **Runtime Mode:** Production
 
 ### Custom Configuration
 
-# Edit .env with your settings
-```
-nano .env
+```bash
+# Copy template and edit
+cp .env.example .env
 ```
 
 ---
@@ -50,12 +50,13 @@ ALLOWED_ORIGINS=http://localhost:3000,https://your-domain.com
 ### SQL Dialect
 
 ```bash
-# Database dialect for parser (currently only tsql is supported)
+# Database dialect for parser
 SQL_DIALECT=tsql
 ```
 
 **Supported Values:**
-- `tsql` - Microsoft SQL Server, Azure SQL, Synapse Analytics, Fabric (only supported dialect)
+- `tsql` - Microsoft SQL Server, Azure SQL, Synapse Analytics, Fabric (currently implemented)
+- New dialects can be added through YAML rules + dialect implementation (see [ARCHITECTURE.md](ARCHITECTURE.md))
 
 ---
 
@@ -151,132 +152,29 @@ Click **"Refresh from Database"** button in Import modal.
 
 ---
 
-## Adding Custom Rules
-
-**Location:** `engine/rules/{dialect}/custom_rule.yaml`
-
-**Example (T-SQL specific pattern):**
-
-```yaml
-name: extract_merge_pattern
-description: Extract MERGE statement targets
-category: extraction
-dialect: tsql
-enabled: true
-priority: 15
-pattern: '\bMERGE\s+(?:INTO\s+)?([^\s,;()]+)'
-replacement: ''
-```
-
-**Apply Changes:**
-1. Save file to `engine/rules/tsql/`
-2. Restart application
-3. Check Developer Mode → YAML Rules tab to verify
-
-**Complete Guide:** See [ARCHITECTURE.md](ARCHITECTURE.md#yaml-rule-engine)
-
----
-
-## Advanced Configuration
-
-### Developer Mode
-
-**Enable debugging UI:**
-
-1. Set `LOG_LEVEL=DEBUG` in `.env`
-2. Restart application
-3. Access: Help (?) → "For Developers" → "Open Developer Panel"
-
-**Features:**
-- Real-time log viewer (last 500 entries)
-- YAML rule browser
-- Reset rules to defaults
-
----
-
-### Custom Paths
-
-**Use case:** Docker deployments, custom directory structures
-
-```bash
-# Custom DuckDB location
-PATH_WORKSPACE_FILE=/mnt/data/lineage.duckdb
-
-# Custom output directory
-PATH_OUTPUT_DIR=/mnt/output
-
-# Custom Parquet cache
-PATH_PARQUET_DIR=/mnt/parquet
-```
-
-**Important:** Ensure directories exist and have write permissions.
-
----
-
-### Query Log Analysis
-
-**Optional:** Validate parser results against actual query execution logs.
-
-```bash
-# Skip query log validation
-SKIP_QUERY_LOGS=true
-```
-
-**When to skip:**
-- Query logs not available
-- First-time setup
-- No `query_logs.parquet` file
-
----
-
 ## Troubleshooting
 
 ### Configuration Not Applied
 
-**Solution:**
 1. Verify `.env` file exists (not `.env.example`)
 2. Check syntax (no quotes around values)
 3. Restart application: `./stop-app.sh && ./start-app.sh`
 
----
-
 ### Database Connection Fails
-
-**Check:**
-1. ✅ Connection string format correct
-2. ✅ Firewall allows outbound connections
-3. ✅ ODBC driver installed (T-SQL)
-4. ✅ Credentials valid
-5. ✅ Server accessible: `telnet your-server.database.windows.net 1433`
 
 **Enable DEBUG logging:**
 ```bash
 LOG_LEVEL=DEBUG
 ```
 
-Check logs: `logs/app.log`
-
----
-
-### CORS Errors
-
-**Symptom:** Frontend shows network errors, browser console shows CORS error
-
-**Solution:**
-```bash
-# Add frontend URL to ALLOWED_ORIGINS
-ALLOWED_ORIGINS=http://localhost:3000,https://your-frontend-domain.com
-```
-
----
+Check logs at `logs/app.log` for connection details.
 
 ### Parser Shows No Dependencies
 
-**Check:**
-1. ✅ Parquet files uploaded successfully
-2. ✅ `SQL_DIALECT` matches your database
-3. ✅ `EXCLUDED_SCHEMAS` not filtering everything
-4. ✅ Enable DEBUG logging to see per-object parsing details
+1. Verify Parquet files uploaded successfully
+2. Check `SQL_DIALECT` matches your database
+3. Verify `EXCLUDED_SCHEMAS` not filtering everything
+4. Enable DEBUG logging to see per-object parsing details
 
 ---
 
@@ -315,5 +213,6 @@ EXCLUDED_SCHEMAS=sys,information_schema,tempdb
 
 **See Also:**
 - [QUICKSTART.md](../QUICKSTART.md) - Quick setup guide
-- [DATA_CONTRACTS.md](DATA_CONTRACTS.md) - Parquet schemas, API endpoints
+- [DATA_SPECIFICATIONS.md](DATA_SPECIFICATIONS.md) - Parquet schemas, API endpoints
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System design, parser internals
+- [DEVELOPMENT.md](DEVELOPMENT.md) - Development environment, YAML rules, DMV configuration
