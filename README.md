@@ -15,7 +15,7 @@ Analyze dependencies between tables, views, and stored procedures with an intera
 
 ### 📺 Watch the Demo Video
 
-[![Data Lineage Visualizer Demo](https://img.youtube.com/vi/uZAk9PqHwJc/maxresdefault.jpg)](https://www.youtube.com/watch?v=uZAk9PqHwJc)
+[![Data Lineage Visualizer Demo](docs/images/datalineage-youtube.png)](https://www.youtube.com/watch?v=uZAk9PqHwJc)
 
 **[▶️ Watch Video Demo](https://www.youtube.com/watch?v=uZAk9PqHwJc)** • [Quick Start](#quick-start) • [Features](#features) • [Documentation](#documentation) • [Live Demo](https://datalineage.chwagner.eu/) • [Disclaimers](#disclaimers)
 
@@ -67,9 +67,16 @@ pip install -r requirements.txt
 **Next Steps:** Upload Parquet files or [configure database connection](docs/CONFIGURATION.md#database-direct-connection)
 
 **Setup Guides:**
-- [QUICKSTART.md](QUICKSTART.md) - Detailed installation and setup
-- [.devcontainer/README.md](.devcontainer/README.md) - VSCode devcontainer configuration
-- [.azure-deploy/AZURE_DEPLOYMENT.md](.azure-deploy/AZURE_DEPLOYMENT.md) - Azure Container Apps deployment
+- **[QUICKSTART.md](QUICKSTART.md)** - Detailed installation and setup
+- **[.devcontainer/README.md](.devcontainer/README.md)** - VSCode devcontainer configuration (Docker-based development environment)
+
+**Deployment Options:**
+- **Docker:** Build production container with `docker build` using included Dockerfile
+- **Azure Container Apps:** Deploy to Azure with managed containers (requires Azure subscription)
+  - Supports Azure AD authentication
+  - External HTTPS ingress
+  - Managed identity for secure access
+  - See [.devcontainer/README.md](.devcontainer/README.md) for containerization details
 
 ---
 
@@ -129,9 +136,9 @@ pip install -r requirements.txt
 |----------|----------|---------|
 | [QUICKSTART.md](QUICKSTART.md) | Users | 5-minute deployment guide |
 | [CONFIGURATION.md](docs/CONFIGURATION.md) | Users/DBAs | Environment variables, database setup |
-| [CONTRACTS.md](docs/CONTRACTS.md) | Developers/DBAs | Complete data contracts: interfaces, schemas, API endpoints |
+| [DATA_SPECIFICATIONS.md](docs/DATA_SPECIFICATIONS.md) | Developers/DBAs | Data contracts, interface specifications, API endpoints |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Developers | System design, parser internals, rule engine |
-| [DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md) | Contributors | Development environment setup |
+| [DEVELOPMENT.md](docs/DEVELOPMENT.md) | Contributors | Development environment setup and configuration |
 
 ---
 
@@ -195,8 +202,21 @@ This software is provided "as is" under the MIT License:
 The YAML-based architecture was designed for adaptability:
 - Customize parsing rules without Python code changes
 - Add new extraction patterns via YAML rules
+- Add support for new SQL dialects with generic development effort (see [ARCHITECTURE.md](docs/ARCHITECTURE.md) for dialect extension guide)
 
 See `engine/rules/` for YAML rule examples.
+
+### ⚠️ Not Supported
+
+**SQL Parsing:**
+- **Cross-database lineage:** Parser only tracks dependencies within a single database
+- **Dynamic SQL:** Cannot parse dynamically constructed SQL statements (e.g., `EXEC(@sql)`, `sp_executesql`)
+- **Linked server queries:** Remote object references not tracked
+
+**Dialect Support:**
+- Currently supports **Microsoft SQL Server family only** (SQL Server, Azure SQL, Synapse Analytics, Fabric)
+- Other SQL dialects can be added through generic development effort (YAML rules + dialect implementation)
+- ANSI SQL patterns in `engine/rules/defaults/` provide foundation for new dialects
 
 ---
 
@@ -212,7 +232,7 @@ See [LICENSE](LICENSE) for the official text.
 
 ## Contributing
 
-Community contributions are welcome! See [DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md) for environment setup.
+Community contributions are welcome! See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for environment setup.
 
 **Please note:** While contributions are welcome, active maintenance and review may be limited. Consider this when planning contributions.
 
