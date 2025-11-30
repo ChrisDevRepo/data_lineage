@@ -31,36 +31,36 @@ pip install -r requirements.txt
 - `./start-app.sh dev` - Development mode with HMR (first load ~2min due to React Flow dev mode)
 - `./start-app.sh --rebuild` - Force rebuild production bundle
 
-> **Note:** Development mode is slower because React Flow runs with additional checks and warnings. Production mode is significantly faster. See [React Flow Performance Docs](https://reactflow.dev/learn/troubleshooting/performance).
+> **Note:** Development mode is slower because React Flow runs with additional checks and warnings. Production mode is significantly faster.
 
 ---
 
 ## First-Time Setup
 
-### Option 1: Upload Parquet Files (Recommended)
+### Option 1: Upload Parquet Files
 
 **Parquet Files Overview:**
 
 The system supports 5 Parquet files, but only 3 are required to get started:
 
-**Required (for basic functionality):**
+**Required:**
 1. `objects.parquet` - Database objects (tables, views, SPs)
 2. `definitions.parquet` - Object definitions (DDL)
 3. `dependencies.parquet` - SQL expression dependencies
 
-**Optional (for advanced features):**
+**Optional:**
 4. `query_logs.parquet` - Query execution logs (validation)
 5. `table_columns.parquet` - Table schema metadata (enhanced search)
 
 
 **How to Generate Parquet Files:**
-See [DATA_CONTRACTS.md](docs/DATA_CONTRACTS.md#parquet-schema-specification) for DMV queries.
+See [DATA_SPECIFICATIONS.md](docs/DATA_SPECIFICATIONS.md#parquet-file-specifications) for DMV queries.
 
 ---
 
 ### Option 2: Direct Database Connection (Optional)
 
-**For DBAs who want automated refresh:**
+**For direct refresh from the DB:**
 
 1. **Create `.env` file:**
    ```bash
@@ -173,7 +173,7 @@ See [ARCHITECTURE.md](docs/ARCHITECTURE.md#yaml-rule-engine) for complete guide.
 | **Port already in use** | Run `./stop-app.sh` to kill existing processes |
 | **Database import button disabled** | Check API is running: `curl http://localhost:8000/health` |
 | **Missing dependencies** | Run `pip install -r requirements.txt && cd frontend && npm install` |
-| **Parquet upload fails** | Check file formats match [DATA_CONTRACTS.md](docs/DATA_CONTRACTS.md#parquet-schema-specification) |
+| **Parquet upload fails** | Check file formats match [DATA_SPECIFICATIONS.md](docs/DATA_SPECIFICATIONS.md#parquet-file-specifications) |
 | **Database connection fails** | Verify connection string, check firewall, ensure ODBC driver installed |
 | **Parser shows 0 dependencies** | Enable DEBUG logging (`LOG_LEVEL=DEBUG`), check `/api/debug/logs` |
 | **Frontend blank screen** | Check browser console, verify backend is running on port 8000 |
@@ -202,22 +202,23 @@ See [ARCHITECTURE.md](docs/ARCHITECTURE.md#yaml-rule-engine) for complete guide.
 Setting up the application for your specific database environment.
 
 **Key Documents:**
-1. **[INTERFACE_CONTRACTS.md](docs/INTERFACE_CONTRACTS.md)** - The 4 core interfaces (DMV, Parquet, JSON, YAML)
+1. **[DATA_SPECIFICATIONS.md](docs/DATA_SPECIFICATIONS.md)** - The 4 core interfaces (DMV, Parquet, JSON, YAML)
 2. **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - System design and YAML rule engine
 
 **Database Requirements:**
-The system currently supports **Microsoft SQL Server family only** (SQL Server, Azure SQL, Synapse Analytics, Fabric):
-1. **Parquet files** - Export metadata using T-SQL DMV queries (see [DATA_CONTRACTS.md](docs/DATA_CONTRACTS.md#parquet-schema-specification))
+The system currently supports **Microsoft SQL Server family** (SQL Server, Azure SQL, Synapse Analytics, Fabric). Other SQL dialects can be added with generic development effort:
+1. **Parquet files** - Export metadata using T-SQL DMV queries (see [DATA_SPECIFICATIONS.md](docs/DATA_SPECIFICATIONS.md#parquet-file-specifications))
 2. **ODBC driver** - [ODBC Driver 18 for SQL Server](https://learn.microsoft.com/en-us/sql/connect/odbc/download-odbc-driver-for-sql-server) (for database direct connection)
 3. **Custom YAML rules** - Optional extraction rules for custom SQL patterns (see `engine/rules/TEMPLATE.yaml`)
+4. **Dialect Extension** - See [ARCHITECTURE.md](docs/ARCHITECTURE.md) for adding new SQL dialects
 
 ---
 
 ## What's Next?
 
 - **Customize Parsing:** [ARCHITECTURE.md](docs/ARCHITECTURE.md#parser-architecture)
-- **API Integration:** [DATA_CONTRACTS.md](docs/DATA_CONTRACTS.md#rest-api-endpoints)
-- **Development Setup:** [DEVELOPMENT_SETUP.md](docs/DEVELOPMENT_SETUP.md)
+- **API Integration:** [DATA_SPECIFICATIONS.md](docs/DATA_SPECIFICATIONS.md#rest-api-endpoints)
+- **Development Setup:** [DEVELOPMENT.md](docs/DEVELOPMENT.md)
 - **Full Configuration:** [CONFIGURATION.md](docs/CONFIGURATION.md)
 
 ---
