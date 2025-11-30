@@ -103,38 +103,6 @@ Access via `F5` or Debug panel
 - **Python: Parser Script** - Debug parser validation script
 - **Attach to FastAPI (Remote)** - Attach to running FastAPI instance
 
----
-
-### Common Workflows
-
-#### Starting Development
-
-```bash
-# Backend only
-Ctrl+Shift+P → Tasks: Run Task → Start Backend (FastAPI)
-# Opens at http://localhost:8000
-
-# Frontend only
-Ctrl+Shift+P → Tasks: Run Task → Start Frontend (React)
-# Opens at http://localhost:3000
-
-# Both (Full Stack)
-Ctrl+Shift+P → Tasks: Run Task → Start Full Stack (Backend + Frontend)
-```
-
-#### Debugging
-
-1. Set breakpoints in your code (click left gutter)
-2. Press `F5` or go to Debug panel
-3. Select configuration: "Python: FastAPI Backend"
-4. Start debugging
-
-#### Formatting Code
-
-```bash
-# Auto-format on save (already configured)
-# Or manually:
-Ctrl+Shift+P → Tasks: Run Task → Format Python Code (Black)
 ```
 
 #### Accessing Services
@@ -157,8 +125,6 @@ Once the container is running:
 **Location:** `engine/connectors/queries/tsql/metadata.yaml`
 
 **This is the ONLY file used at runtime.** The connector loads all SQL queries from this YAML file, allowing customization without code changes.
-
-**Note:** `engine/dialects/tsql.py` contains similar SQL (lines 46-69) but this is legacy code that is NOT used. The YAML file is the single source of truth.
 
 This YAML file contains 5 metadata extraction queries used for database direct import:
 
@@ -209,28 +175,6 @@ This YAML file contains 5 metadata extraction queries used for database direct i
    ```
 
 **Important:** Query result columns must match the DMV interface specification. See [DATA_SPECIFICATIONS.md](DATA_SPECIFICATIONS.md#interface-1-dmv-database-metadata-queries) for required column names and types.
-
----
-
-### Resetting DMV Queries
-
-If you've modified queries and want to restore defaults:
-
-1. **Check git for original file:**
-   ```bash
-   git diff engine/connectors/queries/tsql/metadata.yaml
-   ```
-
-2. **Restore from git:**
-   ```bash
-   git checkout engine/connectors/queries/tsql/metadata.yaml
-   ```
-
-3. **Restart application:**
-   ```bash
-   ./stop-app.sh
-   ./start-app.sh
-   ```
 
 ---
 
@@ -302,26 +246,11 @@ replacement: ''
 
 #### Resetting YAML Rules
 
-**Option 1: Reset from Developer Panel**
+**Reset from Developer Panel**
 1. Open Developer Panel: Help (?) → "For Developers"
 2. Navigate to "YAML Rules" tab
-3. Click "Reset Rules to Defaults"
+3. Click "Reset Rules to Defaults this restores the rules from the `engine/rules/defaults/` folder"
 4. Confirm reset
-
-**Option 2: Reset from Git**
-```bash
-# Check what changed
-git diff engine/rules/
-
-# Reset specific file
-git checkout engine/rules/tsql/07_extract_sources_tsql_apply.yaml
-
-# Reset all rules
-git checkout engine/rules/
-```
-
-**Option 3: Restore from defaults folder**
-The `engine/rules/defaults/` folder contains ANSI-compliant rules that work across all dialects. These are the source of truth for "Reset to Defaults" functionality.
 
 ---
 
@@ -455,33 +384,6 @@ DIALECT_REGISTRY = {
 
 ## Troubleshooting
 
-### Container Build Fails
-
-**Issue:** Build fails during creation
-
-**Solution:**
-1. Check Docker is running: `docker ps`
-2. Rebuild container:
-   - `Ctrl+Shift+P` → `Dev Containers: Rebuild Container`
-3. Check Docker logs in VS Code Output panel
-
-### Ports Already in Use
-
-**Issue:** Port 8000 or 3000 already in use
-
-**Solution:**
-```bash
-# Find process using port (Windows)
-netstat -ano | findstr :8000
-netstat -ano | findstr :3000
-
-# Kill process (Windows)
-taskkill /PID <PID> /F
-
-# Or use stop script
-./stop-app.sh
-```
-
 ### Python Dependencies Not Found
 
 **Issue:** `ModuleNotFoundError` when running code
@@ -505,40 +407,6 @@ pip install -r requirements.txt
 cd frontend
 npm install
 ```
-
----
-
-## Tips & Best Practices
-
-### 1. Use Tasks Instead of Terminal Commands
-
-Tasks are pre-configured and easier to run:
-- `Ctrl+Shift+P` → `Tasks: Run Task`
-
-### 2. Format on Save
-
-Already configured! Just save files for auto-formatting.
-
-### 3. Use Debugger Instead of Print Statements
-
-Set breakpoints and press `F5` - much more powerful than `print()`.
-
-### 4. Terminal Selection
-
-Use integrated terminal:
-- `` Ctrl+` `` to open/close terminal
-- Terminal is already in the container
-- Virtual environment pre-activated in scripts
-
-### 5. Keep Container Running
-
-Don't rebuild unless necessary:
-- Container persists dependencies in volumes
-- Rebuilding is slow (10-15 minutes)
-- Only rebuild for Dockerfile/devcontainer.json changes
-
----
-
 ## References
 
 - **Main Documentation:** [README.md](../README.md)
@@ -546,8 +414,6 @@ Don't rebuild unless necessary:
 - **Architecture Overview:** [ARCHITECTURE.md](ARCHITECTURE.md)
 - **Configuration Reference:** [CONFIGURATION.md](CONFIGURATION.md)
 - **Data Specifications:** [DATA_SPECIFICATIONS.md](DATA_SPECIFICATIONS.md)
-- [VS Code Dev Containers Documentation](https://code.visualstudio.com/docs/devcontainers/containers)
-- [Dev Container Specification](https://containers.dev/)
 
 ---
 

@@ -1,22 +1,17 @@
 # Data Specifications
 
-**Complete reference for all data interfaces, schemas, and API contracts**
-
-> **Purpose:** Defines the 6 interfaces that enable data flow through the Data Lineage Visualizer.
-
 ---
 
 ## Table of Contents
 
-### Import Interfaces (External Data Entry)
+### Import Interfaces
 - [Import Interface 1: Parquet Files](#import-interface-1-parquet-files)
 - [Import Interface 2: Database Direct (DMV Queries)](#import-interface-2-database-direct-dmv-queries)
 - [Import Interface 3: JSON Import](#import-interface-3-json-import)
 
-### Internal Interfaces (Processing & Output)
-- [Internal Interface 4: REST API](#internal-interface-4-rest-api)
-- [Internal Interface 5: DMV Query Definitions (YAML)](#internal-interface-5-dmv-query-definitions-yaml)
-- [Internal Interface 6: SQL Cleaning Rules (YAML)](#internal-interface-6-sql-cleaning-rules-yaml)
+### Configuration Interfaces
+- [Configuration Interface 1: DMV Query Definitions (YAML)](#configuration-interface-1-dmv-query-definitions-yaml)
+- [Configuration Interface 2: SQL Cleaning Rules (YAML)](#configuration-interface-2-sql-cleaning-rules-yaml)
 
 ### Additional Documentation
 - [SQL Comment Hints](#sql-comment-hints)
@@ -26,24 +21,22 @@
 
 ## Overview
 
-The Data Lineage Visualizer defines **6 interfaces** organized in 2 categories:
+The Data Lineage Visualizer defines **5 interfaces** organized in 2 categories:
 
-### Import Interfaces (How data enters the system)
+### Import Interfaces
 
 1. **Parquet Files** - Upload 3-5 Parquet files with database metadata
-2. **Database Direct** - Connect directly to SQL Server/Azure SQL/Synapse/Fabric and query DMVs
-3. **JSON Import** - Import pre-generated lineage JSON files
+2. **Database Direct** - Connection string to SQL Server/Azure SQL/Synapse/Fabric
+3. **JSON Import** - Upload or paste lineage JSON (max 10MB)
 
-### Internal Interfaces (How the system processes data)
+### Configuration Interfaces
 
-4. **REST API** - FastAPI endpoints for frontend communication
-5. **DMV Query Definitions** - YAML configuration for database metadata extraction
-6. **SQL Cleaning Rules** - YAML regex patterns for SQL preprocessing and dependency extraction
+1. **DMV Query Definitions (YAML)** - SQL queries for metadata extraction from databases
+2. **SQL Cleaning Rules (YAML)** - Regex patterns for SQL preprocessing and dependency extraction
 
 **Extensibility:**
-- Add support for new SQL dialects by implementing DMV Query Definitions and SQL Cleaning Rules (YAML)
-- Integrate with external data sources via the Parquet interface
-- Build custom visualizations using the JSON API output format
+- Add support for new SQL dialects by creating DMV Query Definitions and SQL Cleaning Rules (YAML files)
+- Integrate with external data sources by providing Parquet files in the correct schema
 
 ---
 
@@ -52,14 +45,6 @@ The Data Lineage Visualizer defines **6 interfaces** organized in 2 categories:
 ### Purpose
 
 Upload 3-5 Parquet files containing database metadata exported from SQL Server DMVs or similar sources.
-
-**Files: 3 Required, 2 Optional**
-
-### Location
-
-- **Validation:** `engine/core/validation.py` (PARQUET_SCHEMAS constant)
-- **Import Logic:** `engine/core/duckdb_workspace.py` (load_parquet_files method)
-- **API Endpoint:** `POST /api/upload/parquet`
 
 ### File 1: objects.parquet (REQUIRED)
 
@@ -104,13 +89,11 @@ Upload 3-5 Parquet files containing database metadata exported from SQL Server D
 - Include all comments (used for `@LINEAGE_INPUTS/@LINEAGE_OUTPUTS` hints)
 - SQL validity checked by parser, not at import
 
-**Code Reference:** `engine/core/validation.py:24`
-
 ---
 
 ### File 3: dependencies.parquet (REQUIRED)
 
-**Purpose:** Native database dependency tracking (cross-referenced with parser results)
+**Purpose:** Native database dependency tracking
 
 **Schema Contract:**
 ```python
@@ -126,10 +109,6 @@ Upload 3-5 Parquet files containing database metadata exported from SQL Server D
 - `referencing_object_id` should exist in `objects.parquet`
 - `referenced_object_id` should exist in `objects.parquet`
 - This file provides validation data - parser extracts dependencies independently
-
-**Note:** If your database doesn't track dependencies natively, provide an empty Parquet file with the correct schema.
-
-**Code Reference:** `engine/core/validation.py:25`
 
 ---
 
@@ -147,8 +126,6 @@ Upload 3-5 Parquet files containing database metadata exported from SQL Server D
 **Note:** The file must contain **only** the `command_text` column. Additional columns are not supported.
 
 **Usage:** Validates parser results against actual query execution patterns
-
-**Code Reference:** `engine/core/duckdb_workspace.py:528`
 
 ---
 
@@ -169,11 +146,7 @@ Upload 3-5 Parquet files containing database metadata exported from SQL Server D
 }
 ```
 
-**Note:** The 5 **REQUIRED** columns must all be present. Optional columns enhance functionality but are not mandatory.
-
 **Usage:** Enables CREATE TABLE DDL generation for search functionality
-
-**Code Reference:** `engine/core/duckdb_workspace.py:530`
 
 ---
 
@@ -185,13 +158,11 @@ Connect directly to SQL Server/Azure SQL/Synapse/Fabric and query Dynamic Manage
 
 ### Location
 
-- **Connector:** `engine/connectors/tsql_connector.py`
 - **Query Definitions:** `engine/connectors/queries/tsql/metadata.yaml` (YAML format)
-- **API Endpoint:** `POST /api/database/import`
 
 ### Query Contract
 
-The YAML file must define queries that return DataFrames with specific schemas. See [Internal Interface 5: DMV Query Definitions](#internal-interface-5-dmv-query-definitions-yaml) for complete specification.
+The YAML file must define the same DMV queries that are defined in the import specification for the Parquet files.
 
 **Required Queries:**
 1. `list_objects` - Returns all database objects (tables, views, procedures, functions)
@@ -212,90 +183,61 @@ Database Direct import converts DMV query results to the same Parquet schema as 
 
 ### Purpose
 
-Import pre-generated lineage JSON files directly into the frontend without processing.
+Upload or paste lineage JSON directly into the application for quick visualization without processing.
 
-**Use Case:** Load previously exported lineage data or import from external lineage tools.
+**Use Cases:**
+- Import pre-generated lineage data from external tools
+- Quick testing with sample data
 
-### Location
+### JSON Format
 
-- **Format Validation:** `engine/core/validation.py` (validate_lineage_json)
-- **API Endpoint:** `POST /api/lineage/import` (loads directly to frontend)
-- **Export Endpoint:** `GET /api/lineage/export` (generates compliant JSON)
-
-### JSON Schema
-
-**Structure:**
+The JSON must be an array of node objects with the following structure:
 
 ```json
 [
   {
     "id": "1986106116",
     "name": "spLoadFactSales",
-    "object_type": "Stored Procedure",
     "schema": "CONSUMPTION_FINANCE",
-    "parse_success": true,
-    "data_model_type": "Fact",
-    "node_symbol": "diamond",
+    "object_type": "Stored Procedure",
     "inputs": ["101", "102", "103"],
-    "outputs": ["201"],
-    "ddl_text": "CREATE PROCEDURE [CONSUMPTION_FINANCE].[spLoadFactSales] AS...",
-    "description": "Parse Success: True"
+    "outputs": ["201"]
   }
 ]
 ```
 
-**Field Reference:**
+### Required Fields
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | Unique object identifier (stringified object_id from database) |
-| `name` | string | Display name (object_name) |
-| `object_type` | string | Object type: `Table`, `View`, `Stored Procedure`, `Function` |
-| `schema` | string | Database schema |
-| `parse_success` | boolean | Parser completed without errors |
-| `data_model_type` | string | Classification: `Dimension`, `Fact`, `Other` |
-| `node_symbol` | string | Visualization symbol: `circle`, `diamond`, `square` |
-| `inputs` | string[] | Array of input node IDs (sources) - **strings**, not integers |
-| `outputs` | string[] | Array of output node IDs (targets) - **strings**, not integers |
-| `ddl_text` | string | Full DDL (optional, only when include_ddl=true) |
-| `description` | string | Human-readable summary with parse details |
+| `id` | string | Unique object identifier (**must be string**) |
+| `name` | string | Object name |
+| `schema` | string | Database schema name |
+| `object_type` | string | `Table`, `View`, `Stored Procedure`, or `Function` |
+| `inputs` | string[] | Array of input node IDs (**strings**, not integers) |
+| `outputs` | string[] | Array of output node IDs (**strings**, not integers) |
+
+### Optional Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `description` | string | Human-readable description |
+| `data_model_type` | string | Classification: `Dimension`, `Fact`, `Lookup`, or `Other` |
+| `ddl_text` | string | Full DDL text (CREATE statement) |
+
+
+### Validation
+
+The system validates:
+- JSON syntax (must be valid JSON)
+- Array structure (must be array of objects)
+- Required fields (all required fields must be present)
+- Data types (strings, arrays, booleans must match specification)
+- File size (max 10MB)
 
 ---
 
-## Internal Interface 4: REST API
-
-### Purpose
-
-FastAPI endpoints for frontend communication, data upload, and lineage retrieval.
-
-**Base URL:** `http://localhost:8000`
-
-### Documentation
-
-**Complete API Reference:** http://localhost:8000/docs (Swagger UI with interactive testing)
-
-The API provides comprehensive endpoints for:
-- Uploading Parquet files
-- Database direct connection
-- Job status monitoring
-- Retrieving lineage results
-- Full-text DDL search
-- Developer/debug tools
-
-### Key Endpoints
-
-**Health Check:**
-- `GET /health` - System health status
-
-**API Documentation:**
-- `GET /docs` - Interactive Swagger UI
-- `GET /redoc` - ReDoc API documentation
-
-**For all other endpoints, please refer to the Swagger UI at http://localhost:8000/docs for up-to-date specifications.**
-
----
-
-## Internal Interface 5: DMV Query Definitions (YAML)
+## Configuration Interface 1: DMV Query Definitions (YAML)
 
 ### Purpose
 
@@ -308,7 +250,7 @@ YAML configuration files that define SQL queries for extracting database metadat
 ```
 engine/connectors/queries/
 └── tsql/
-    └── metadata.yaml          # T-SQL DMV queries (currently implemented)
+    └── metadata.yaml          # T-SQL DMV queries
 ```
 
 ### YAML Structure
@@ -321,27 +263,7 @@ Each query must have:
 
 ### Required Queries
 
-**1. list_objects**
-
-Must return DataFrame with these columns:
-
-| Column Name          | Type       | Required | Description |
-|---------------------|------------|----------|-------------|
-| database_object_id   | int64      | ✅       | Unique object identifier |
-| schema_name          | string     | ✅       | Database schema/namespace |
-| object_name          | string     | ✅       | Object name (table/view/proc) |
-| object_type          | string     | ✅       | Type (PROCEDURE, VIEW, TABLE, FUNCTION) |
-| created_at           | datetime64 | ⬜       | Creation timestamp |
-| modified_at          | datetime64 | ⬜       | Last modification timestamp |
-
-**2. list_object_definitions**
-
-Must return DataFrame with these columns:
-
-| Column Name          | Type       | Required | Description |
-|---------------------|------------|----------|-------------|
-| database_object_id   | int64      | ✅       | Matches list_objects.database_object_id |
-| sql_code             | string     | ✅       | Full SQL source code (CREATE statement) |
+The YAML file must define the same DMV queries that are defined in the import specification for the Parquet files.
 
 ### Example (T-SQL metadata.yaml)
 
@@ -363,11 +285,7 @@ queries:
         AND o.is_ms_shipped = 0
 ```
 
-**Code Reference:** `engine/connectors/base.py:_load_queries()` (loads YAML at runtime)
-
----
-
-## Internal Interface 6: SQL Cleaning Rules (YAML)
+## Configuration Interface 2: SQL Cleaning Rules (YAML)
 
 ### Purpose
 
@@ -404,8 +322,6 @@ engine/rules/
 - **Location:** `engine/rules/defaults/`
 - **Purpose:** ANSI-compliant patterns that work across all SQL dialects
 - **Usage:** Used as fallback when no dialect-specific rule exists
-
-**Code Reference:** `engine/rules/rule_loader.py`
 
 ### YAML Rule Schema Contract
 
@@ -467,8 +383,6 @@ examples:
 - [CONFIGURATION.md](CONFIGURATION.md) - Environment variables and database setup
 - [DEVELOPMENT.md](DEVELOPMENT.md) - Development environment and YAML rule configuration
 - `engine/rules/YAML_STRUCTURE.md` - Complete YAML rule schema reference
-- `engine/core/validation.py` - Schema validation logic
-- `engine/output/frontend_formatter.py` - JSON output generation
 
 ---
 
