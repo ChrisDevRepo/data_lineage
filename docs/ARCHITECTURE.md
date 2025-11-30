@@ -2,7 +2,7 @@
 
 **Data Lineage Visualizer**
 
-> **For Developers:** This system currently supports **Microsoft SQL Server family only** (SQL Server, Azure SQL, Synapse, Fabric). See [CONTRACTS.md](CONTRACTS.md) for the 4 core interface specifications (DMV, Parquet, JSON, YAML).
+> **For Developers:** This system currently supports **Microsoft SQL Server family** (SQL Server, Azure SQL, Synapse, Fabric). Other SQL dialects can be added with generic development effort. See [DATA_SPECIFICATIONS.md](DATA_SPECIFICATIONS.md) for the 4 core interface specifications (DMV, Parquet, JSON, YAML).
 
 ## System Flow
 
@@ -29,7 +29,7 @@ graph LR
 
 **Note:** FastAPI Backend and DuckDB are internal implementation details, not external interfaces.
 
-## Data Flow
+## Processing Pipeline
 
 ### Input Sources (3 Options)
 
@@ -83,7 +83,7 @@ graph LR
    ├─ Frontend format: Array of node objects with string IDs
    ├─ Each node: {id, name, schema, object_type, inputs, outputs, parse_success, ddl_text}
    ├─ Consumed by React frontend
-   └─ See INTERFACE_CONTRACTS.md for complete schema
+   └─ See DATA_SPECIFICATIONS.md for complete schema
 ```
 
 ### Output Format
@@ -106,7 +106,7 @@ graph LR
 ]
 ```
 
-**Note:** All IDs are strings. See [CONTRACTS.md](CONTRACTS.md) for complete schema specification.
+**Note:** All IDs are strings. See [DATA_SPECIFICATIONS.md](DATA_SPECIFICATIONS.md#json-output-format) for complete schema specification.
 
 ## Parser Architecture
 
@@ -135,246 +135,9 @@ END
 -- Result: {TableA, TableB, TableC} = parse_success: true
 ```
 
-### YAML Rule Engine (Interface 4)
+### YAML Rule Engine
 
-**Purpose:** Clean SQL and extract table dependencies using dialect-specific, business-maintainable regex patterns
-
-#### Architecture
-
-The YAML Rule Engine provides **SQL parsing** through a two-phase approach:
-
-1. **Cleaning Phase** - Normalize SQL syntax (remove noise, standardize formatting)
-2. **Extraction Phase** - Extract table references using regex patterns
-
-#### Folder Structure
-
-```
-engine/rules/
-├── defaults/                      # ANSI-compliant rules (all dialects)
-│   ├── 05_extract_sources_ansi.yaml
-│   ├── 06_extract_targets_ansi.yaml
-│   └── 10_comment_removal.yaml
-│
-├── tsql/                          # T-SQL specific rules
-│   ├── 07_extract_sources_tsql_apply.yaml
-│   ├── 08_extract_sp_calls_tsql.yaml
-│   └── 10_extract_targets_tsql.yaml
-```
-
-**Rule Loading Strategy:**
-1. Load dialect-specific rules from `engine/rules/{dialect}/`
-2. Merge with default ANSI rules from `engine/rules/defaults/`
-3. Sort by priority (lower number = higher priority)
-4. Apply in order during SQL preprocessing
-
-**Access in UI:** Help (?) → "For Developers" → "Open Developer Panel" → YAML Rules tab
-
-![Developer Panel - YAML Rules Tab](images/developer-panel-yaml-rules.png)
-
-#### Rule Schema
-
-Each YAML file defines a single rule with this structure:
-
-```yaml
-name: string                # REQUIRED - Unique identifier
-description: string         # REQUIRED - Human-readable purpose
-dialect: string             # REQUIRED - Target dialect (tsql)
-enabled: boolean            # REQUIRED - Whether rule is active
-priority: integer           # REQUIRED - Execution order (lower = earlier, e.g. 10, 20, 30...)
-pattern: string             # REQUIRED - Regex pattern to match
-replacement: string         # REQUIRED - Replacement string (empty string to remove)
-
-# Optional fields
-category: string            # OPTIONAL - Type: cleaning, extraction, normalization (default: 'general')
-rule_type: string          # OPTIONAL - For extraction rules: "extraction"
-extraction_target: string   # OPTIONAL - For extraction: "source" or "target"
-pattern_type: string       # OPTIONAL - Always "regex" (default)
-debug:                      # OPTIONAL - Debug logging configuration
-  log_matches: boolean
-  log_replacements: boolean
-  show_context_lines: integer
-metadata:                   # OPTIONAL - Documentation only (not used by engine)
-  author: string
-  created: string
-  affects_lineage: boolean
-```
-
-**Complete schema:** See `engine/rules/YAML_STRUCTURE.md` and `engine/rules/TEMPLATE.yaml`
-
-#### Example: Cleaning Rule
-
-**File:** `engine/rules/defaults/10_comment_removal.yaml` (actual file)
-
-```yaml
-name: remove_comments
-description: Remove SQL comments (line and block) before extraction
-dialect: generic
-category: preprocessing
-enabled: true
-priority: 1
-pattern_type: regex
-pattern: >
-  (?is)
-  (
-    --[^\r\n]*       # Line comments
-    |
-    /\*.*?\*/        # Block comments (multi-line)
-  )
-replacement: ''
-```
-
-**Effect:**
-- **Before:** `SELECT * FROM TableA -- Get all records`
-- **After:** `SELECT * FROM TableA`
-- **Before:** `/* Multi-line comment */ SELECT`
-- **After:** `SELECT`
-
-#### Example: Extraction Rule
-
-**File:** `engine/rules/defaults/05_extract_sources_ansi.yaml`
-
-```yaml
-name: extract_sources_ansi
-description: Extract source table references from ANSI SQL patterns (FROM, JOIN)
-dialect: generic
-enabled: true
-priority: 5
-category: extraction
-rule_type: extraction
-extraction_target: source
-pattern_type: regex
-pattern: (?i)\b(FROM|JOIN|INNER\s+JOIN|LEFT\s+(?:OUTER\s+)?JOIN|RIGHT\s+(?:OUTER\s+)?JOIN|FULL\s+(?:OUTER\s+)?JOIN|CROSS\s+JOIN|OUTER\s+JOIN)\b\s+([^\s,;()]+)
-```
-
-**Effect:**
-- **Input:** `SELECT * FROM dbo.TableA JOIN dbo.TableB ON ...`
-- **Extracted:** `["dbo.TableA", "dbo.TableB"]` (from regex capture group 2)
-- **Post-processing:** Clean brackets, validate against catalog
-
-#### Processing Flow
-
-```
-1. Load SQL Definition
-   ↓
-2. Apply Cleaning Rules (priority 1-49)
-   ├─ Remove comments
-   ├─ Remove GO separators
-   ├─ Standardize whitespace
-   └─ Remove SQL hints
-   ↓
-3. Apply Extraction Rules (priority 50+)
-   ├─ Extract FROM/JOIN (sources)
-   ├─ Extract INSERT/UPDATE/MERGE (targets)
-   ├─ Extract EXEC/EXECUTE (SP calls)
-   └─ Extract subqueries
-   ↓
-4. Post-Processing
-   ├─ Remove brackets: [schema].[table] → schema.table
-   ├─ Parse schema.table format
-   ├─ Handle table aliases
-   └─ Filter invalid patterns (e.g., system functions)
-   ↓
-5. Catalog Validation
-   ├─ Check if extracted table exists in metadata catalog
-   ├─ Keep only validated tables
-   └─ Remove false positives (e.g., variable names, CTEs)
-   ↓
-6. Lineage Result
-   └─ Final {sources, targets} arrays with only catalog-validated objects
-```
-
-#### Rule Priority Guidelines
-
-| Priority | Category | Purpose | Examples |
-|----------|----------|---------|----------|
-| **1** | Preprocessing | Remove syntax that breaks regex | Comments removal |
-| **5-6** | ANSI Extraction | Common SQL patterns | FROM, JOIN (5), INSERT, UPDATE (6) |
-| **7-8** | Dialect-Specific Extraction | T-SQL specific patterns | APPLY (7), EXEC/SP calls (8) |
-| **10** | Additional Rules | Extended cleaning/extraction | Custom dialect rules |
-
-#### Dialect-Specific Features
-
-**T-SQL (SQL Server, Azure SQL, Synapse, Fabric):**
-- `APPLY` operator (CROSS APPLY, OUTER APPLY)
-- `MERGE` statements
-- `OUTPUT` clause
-- GO batch separators
-- SQL hints (`WITH (NOLOCK)`, `OPTION (RECOMPILE)`)
-
-#### Validation & Error Handling
-
-**JSON Schema Validation:**
-- All YAML files validated against JSON schema on load
-- Invalid rules logged and skipped (non-blocking)
-- See `engine/rules/rule_loader.py` for validation logic
-
-**Error Recovery:**
-- Invalid YAML syntax → Skip file, log error, continue
-- Missing required fields → Skip rule, log error
-- Invalid regex pattern → Skip rule, log error
-- Duplicate rule names → Use first occurrence, log warning
-
-**Debugging:**
-1. Enable DEBUG logging: `LOG_LEVEL=DEBUG` in `.env`
-2. Open Developer Panel: Help (?) → "For Developers"
-3. View YAML Rules tab to inspect loaded rules
-4. Check logs for rule application details
-
-#### Creating Custom Rules
-
-**Step-by-Step:**
-
-1. **Copy template:**
-   ```bash
-   cp engine/rules/TEMPLATE.yaml engine/rules/tsql/99_my_custom_rule.yaml
-   ```
-
-2. **Edit YAML file:**
-   ```yaml
-   name: extract_my_pattern
-   description: Extract my custom SQL pattern
-   dialect: tsql
-   enabled: true
-   priority: 85
-   category: extraction
-   rule_type: extraction
-   extraction_target: source
-   pattern: '\bMY_KEYWORD\s+([^\s,;()]+)'
-   ```
-
-3. **Test rule:**
-   - Restart application
-   - Open Developer Panel → YAML Rules tab
-   - Verify rule is loaded and enabled
-   - Upload test Parquet file to verify extraction
-
-4. **Add test cases:**
-   ```yaml
-   examples:
-     - before: "SELECT * FROM MY_KEYWORD dbo.MyTable"
-       after: "dbo.MyTable"
-       description: "Extracts table from MY_KEYWORD syntax"
-   ```
-
-**Best Practices:**
-- Use descriptive names: `extract_cte_sources`, not `rule5`
-- Set appropriate priority (avoid conflicts)
-- Test against real SQL before deploying
-- Add examples for documentation
-- Use capture groups `()` for extraction, not cleaning
-
-#### Implementation Details
-
-**Location:** `engine/rules/`
-- **Rule Loader:** `rule_loader.py` (JSON schema validation)
-- **Schema Reference:** `YAML_STRUCTURE.md`
-- **Template:** `TEMPLATE.yaml`
-- **README:** `README.md`
-
-**Available Dialects:**
-- ✅ **tsql** - 3 rules (SQL Server, Azure SQL, Synapse, Fabric) - Tested
-
-**Adding New Dialects:** To add support for a new database dialect, implement the `BaseDialect` interface in `engine/dialects/` and create dialect-specific YAML rules in `engine/rules/{dialect}/`. See `engine/dialects/tsql.py` for reference implementations.
+The YAML Rule Engine uses dialect-specific regex patterns to clean SQL and extract table dependencies through a two-phase process (cleaning → extraction), with rules loaded from `engine/rules/{dialect}/` and merged with ANSI defaults. For creating custom rules, managing configurations, and accessing the Developer Panel, see [DEVELOPMENT.md](DEVELOPMENT.md#yaml-rule-configuration).
 
 ## Frontend Architecture
 
@@ -404,24 +167,3 @@ pattern: (?i)\b(FROM|JOIN|INNER\s+JOIN|LEFT\s+(?:OUTER\s+)?JOIN|RIGHT\s+(?:OUTER
 | **Schema Filtering** | Checkbox-based schema selection |
 | **SQL Viewer** | Monaco Editor with lazy loading |
 | **Search** | Full-text search across all DDL |
-
-### Developer Mode
-
-**Access:** Help (?) → "For Developers" → "Open Developer Panel"
-
-**Tabs:**
-1. **Logs** - Last 500 entries with color-coding
-2. **YAML Rules** - Browse and inspect all rules
-
-**Useful for:**
-- Debugging parse failures
-- Understanding rule application
-- Monitoring diagnostics
-
-**Supported Features (Tested with T-SQL):**
-- ✅ All table objects (U - User Tables)
-- ✅ All views (V - Views)
-- ✅ All stored procedures (P - Stored Procedures)
-- ✅ All user-defined functions (FN, TF, IF - Scalar, Table-Valued, Inline)
-- ✅ Full DDL source code for all object types
-- ✅ Parquet file generation and DuckDB parsing
