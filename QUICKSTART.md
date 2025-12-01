@@ -178,10 +178,6 @@ See [ARCHITECTURE.md](docs/ARCHITECTURE.md#yaml-rule-engine) for complete guide.
 | **Parser shows 0 dependencies** | Enable DEBUG logging (`LOG_LEVEL=DEBUG`), check `/api/debug/logs` |
 | **Frontend blank screen** | Check browser console, verify backend is running on port 8000 |
 
-**Still stuck?** Open an issue on GitHub with:
-- Error message
-- Browser console logs (F12 → Console)
-- Backend logs (`data/logs/app.log`)
 
 ---
 

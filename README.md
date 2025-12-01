@@ -23,12 +23,13 @@ Analyze dependencies between tables, views, and stored procedures with an intera
 
 ---
 
-## Screenshots
 
 <div align="center">
 
 ### Interactive Graph Visualization
 ![Data Lineage GUI](docs/images/data-lineage-gui.png)
+
+**[Check out Live Demo](https://datalineage.chwagner.eu/)**
 
 </div>
 
@@ -36,7 +37,7 @@ Analyze dependencies between tables, views, and stored procedures with an intera
 
 ## Why Data Lineage Visualizer?
 
-- ✅ **YAML-Based Parser** - Pure regex extraction with metadata catalog validation (100% success in testing)
+- ✅ **YAML-Based Parser** - Pure regex extraction with metadata catalog validation
 - ⚡ **5-Minute Setup** - One command installation
 - 🔧 **Business-Maintainable** - YAML rule engine, no Python required for rule changes
 - 🔌 **Flexible** - Parquet upload OR direct database connection
@@ -60,8 +61,8 @@ pip install -r requirements.txt
 - API Docs: http://localhost:8000/docs
 
 **Startup Modes:**
-- `./start-app.sh` - Production mode (default, fast <5s initial load)
-- `./start-app.sh dev` - Development mode with HMR (slower ~2min due to React Flow dev mode)
+- `./start-app.sh` - Production mode (default)
+- `./start-app.sh dev` - Development mode with HMR (slower inital load ~2min due to React Flow dev mode)
 - `./start-app.sh --rebuild` - Force rebuild production bundle
 
 **Next Steps:** Upload Parquet files or [configure database connection](docs/CONFIGURATION.md#database-direct-connection)
@@ -73,9 +74,6 @@ pip install -r requirements.txt
 **Deployment Options:**
 - **Docker:** Build production container with `docker build` using included Dockerfile
 - **Azure Container Apps:** Deploy to Azure with managed containers (requires Azure subscription)
-  - Supports Azure AD authentication
-  - External HTTPS ingress
-  - Managed identity for secure access
   - See [.devcontainer/README.md](.devcontainer/README.md) for containerization details
 
 ---
@@ -97,13 +95,13 @@ pip install -r requirements.txt
 | Method | Use Case |
 |--------|----------|
 | **Parquet Upload** | Manual metadata extraction (default) |
-| **Database Direct** | Auto-refresh from SQL Server/Azure SQL/Synapse/Fabric |
+| **Database Direct** | Refresh from SQL Server/Azure SQL/Synapse/Fabric |
 | **JSON Export** | Share and version control lineage data |
 
 ### Supported Databases
 
 **Implemented and Tested:**
-- ✅ **Azure Synapse Analytics** (dedicated SQL pools) - Extensively tested
+- ✅ **Azure Synapse Analytics** (dedicated SQL pools) - tested
 - ✅ **Azure SQL Database** - Tested with database direct import
 - ✅ **SQL Server** - Uses same T-SQL connector as Synapse/Azure SQL
 - ✅ **Microsoft Fabric** - Uses T-SQL dialect, same connector as SQL Server/Synapse
@@ -124,7 +122,7 @@ pip install -r requirements.txt
 6. **Output** - JSON format with validated lineage data
 7. **Visualization** - React + React Flow interactive graph
 
-**Parser:** Pure YAML regex patterns extract dependencies, validated against metadata catalog (100% success rate)
+**Parser:** Pure YAML regex patterns extract dependencies, validated against metadata catalog
 
 **Details:** See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
@@ -147,7 +145,7 @@ pip install -r requirements.txt
 ### ⚠️ Proof of Concept Status
 
 This tool was developed as a **proof of concept** using Claude Code and tested specifically with:
-- Azure Synapse Analytics dedicated SQL pools (extensively tested)
+- Azure Synapse Analytics dedicated SQL pools (tested)
 - Azure SQL Database (tested with database direct import feature)
 
 **Production Status:**
@@ -212,10 +210,11 @@ See `engine/rules/` for YAML rule examples.
 - **Cross-database lineage:** Parser only tracks dependencies within a single database
 - **Dynamic SQL:** Cannot parse dynamically constructed SQL statements (e.g., `EXEC(@sql)`, `sp_executesql`)
 - **Linked server queries:** Remote object references not tracked
+- **Column-level tacing:** Tool supports only object-level tracing
 
 **Dialect Support:**
-- Currently supports **Microsoft SQL Server family only** (SQL Server, Azure SQL, Synapse Analytics, Fabric)
-- Other SQL dialects can be added through generic development effort (YAML rules + dialect implementation)
+- Supports only **Microsoft SQL Server family only** (SQL Server, Azure SQL, Synapse Analytics, Fabric)
+- Other SQL dialects could be added through generic development effort (YAML rules + dialect implementation)
 - ANSI SQL patterns in `engine/rules/defaults/` provide foundation for new dialects
 
 ---
