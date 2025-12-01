@@ -302,7 +302,7 @@ engine/rules/
 ├── TEMPLATE.yaml                  # Template for creating new rules
 ├── rule_loader.py                 # Rule validation and loading logic
 │
-├── defaults/                      # ⭐ DEFAULT RULES (for resetting)
+├── defaults/                      # DEFAULT RULES
 │   ├── 05_extract_sources_ansi.yaml
 │   ├── 06_extract_targets_ansi.yaml
 │   └── 10_comment_removal.yaml
