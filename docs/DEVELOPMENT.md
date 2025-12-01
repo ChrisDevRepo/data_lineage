@@ -103,8 +103,6 @@ Access via `F5` or Debug panel
 - **Python: Parser Script** - Debug parser validation script
 - **Attach to FastAPI (Remote)** - Attach to running FastAPI instance
 
-```
-
 #### Accessing Services
 
 Once the container is running:
@@ -259,6 +257,8 @@ replacement: ''
 **Access:** Help (?) → "For Developers" → "Open Developer Panel"
 
 The Developer Panel provides debugging and management tools for development and troubleshooting.
+
+![Developer Panel - YAML Rules](images/developer-panel-yaml-rules.png)
 
 #### Tabs
 
