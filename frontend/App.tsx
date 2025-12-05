@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import {
   ReactFlow,
   useNodesState,
@@ -15,7 +21,10 @@ import { Legend } from './components/Legend';
 import { Toolbar } from './components/Toolbar';
 import { ImportDataModal } from './components/ImportDataModal';
 import { InfoModal } from './components/InfoModal';
-import { NotificationContainer, NotificationHistory } from './components/NotificationSystem';
+import {
+  NotificationContainer,
+  NotificationHistory,
+} from './components/NotificationSystem';
 import { SqlViewer } from './components/SqlViewer';
 import { DetailSearchModal } from './components/DetailSearchModal';
 import { NodeContextMenu } from './components/NodeContextMenu';
@@ -50,7 +59,8 @@ function DataLineageVisualizer() {
   const [closeDropdownsTrigger, setCloseDropdownsTrigger] = useState(0);
   const [runMode, setRunMode] = useState<string>('production'); // Track backend run mode (demo/debug/production)
   const [dbEnabled, setDbEnabled] = useState<boolean>(false); // Track if database import is enabled
-  const [isDemoBannerDismissed, setIsDemoBannerDismissed] = useState<boolean>(false); // Track if demo banner was dismissed
+  const [isDemoBannerDismissed, setIsDemoBannerDismissed] =
+    useState<boolean>(false); // Track if demo banner was dismissed
 
   // Fetch metadata on mount to get run_mode and db_enabled
   useEffect(() => {
@@ -87,7 +97,11 @@ function DataLineageVisualizer() {
             const cachedData = JSON.parse(cached);
             setAllData(cachedData);
             setIsLoadingData(false);
-            logger.perf(`Loaded from localStorage cache: ${cachedData.length} nodes in ${Date.now() - startTime}ms`);
+            logger.perf(
+              `Loaded from localStorage cache: ${cachedData.length} nodes in ${
+                Date.now() - startTime
+              }ms`
+            );
             return; // Skip API call in demo mode
           }
         } catch (e) {
@@ -99,9 +113,12 @@ function DataLineageVisualizer() {
         const fetchStart = Date.now();
         // Add cache-busting timestamp to ensure fresh data after import
         const cacheBuster = `?_t=${Date.now()}`;
-        const response = await fetch(`${API_BASE_URL}/api/latest-data${cacheBuster}`, {
-          cache: 'no-store' // Disable HTTP cache
-        });
+        const response = await fetch(
+          `${API_BASE_URL}/api/latest-data${cacheBuster}`,
+          {
+            cache: 'no-store', // Disable HTTP cache
+          }
+        );
         logger.perf(`API fetch took ${Date.now() - fetchStart}ms`);
 
         if (!response.ok) {
@@ -110,7 +127,11 @@ function DataLineageVisualizer() {
 
         const parseStart = Date.now();
         const data = await response.json();
-        logger.perf(`JSON parse took ${Date.now() - parseStart}ms, data size: ${data.length} objects`);
+        logger.perf(
+          `JSON parse took ${Date.now() - parseStart}ms, data size: ${
+            data.length
+          } objects`
+        );
 
         // Simple check: if we got an array with data, use it
         if (Array.isArray(data) && data.length > 0) {
@@ -121,7 +142,10 @@ function DataLineageVisualizer() {
           // Cache sample data in localStorage for instant future loads
           if (runMode === 'demo' || runMode === 'debug') {
             try {
-              localStorage.setItem('demo_data_cache', JSON.stringify(sampleData));
+              localStorage.setItem(
+                'demo_data_cache',
+                JSON.stringify(sampleData)
+              );
             } catch (e) {
               // Ignore storage errors
             }
@@ -154,9 +178,22 @@ function DataLineageVisualizer() {
   const [activeExcludeTerms, setActiveExcludeTerms] = useState<string[]>([]);
 
   // --- Custom Hooks for Logic Encapsulation ---
-  const { addNotification, activeToasts, removeActiveToast, notificationHistory, clearNotificationHistory } = useNotifications();
-  const { lineageGraph, schemas, schemaColorMap, objectTypes, dataModelTypes } = useGraphology(allData);
-  const { traceConfig, isTraceModeActive, setIsTraceModeActive, performInteractiveTrace, handleApplyTrace } = useInteractiveTrace(addNotification, lineageGraph);
+  const {
+    addNotification,
+    activeToasts,
+    removeActiveToast,
+    notificationHistory,
+    clearNotificationHistory,
+  } = useNotifications();
+  const { lineageGraph, schemas, schemaColorMap, objectTypes, dataModelTypes } =
+    useGraphology(allData);
+  const {
+    traceConfig,
+    isTraceModeActive,
+    setIsTraceModeActive,
+    performInteractiveTrace,
+    handleApplyTrace,
+  } = useInteractiveTrace(addNotification, lineageGraph);
   // Store previous trace results for when we exit trace mode (as state for reactivity)
   const [traceExitNodes, setTraceExitNodes] = useState<Set<string>>(new Set());
   const [isInTraceExitMode, setIsInTraceExitMode] = useState(false);
@@ -206,7 +243,7 @@ function DataLineageVisualizer() {
     performInteractiveTrace,
     isInTraceExitMode,
     traceExitNodes,
-    isTraceFilterApplied
+    isTraceFilterApplied,
   });
 
   // --- Callback to apply exclude terms ---
@@ -215,14 +252,17 @@ function DataLineageVisualizer() {
       // Split by comma, trim whitespace, filter empty strings (preserve case for wildcards)
       const terms = excludeTerm
         .split(',')
-        .map(term => term.trim())
-        .filter(term => term.length > 0);
+        .map((term) => term.trim())
+        .filter((term) => term.length > 0);
 
       setActiveExcludeTerms(terms);
       logger.debug('[App] Applied exclude terms:', terms);
 
       // Show notification
-      addNotification(`Excluding ${terms.length} term(s): ${terms.join(', ')}`, 'info');
+      addNotification(
+        `Excluding ${terms.length} term(s): ${terms.join(', ')}`,
+        'info'
+      );
     }
   }, [excludeTerm, addNotification]);
 
@@ -256,9 +296,15 @@ function DataLineageVisualizer() {
 
   // Mark preferences as initialized after schemas are loaded
   useEffect(() => {
-    if (schemas.length > 0 && selectedSchemas.size > 0 && !hasInitializedPreferences.current) {
+    if (
+      schemas.length > 0 &&
+      selectedSchemas.size > 0 &&
+      !hasInitializedPreferences.current
+    ) {
       hasInitializedPreferences.current = true;
-      logger.debug('[localStorage] Preferences initialized, will now save on changes');
+      logger.debug(
+        '[localStorage] Preferences initialized, will now save on changes'
+      );
     }
   }, [schemas.length, selectedSchemas.size]);
 
@@ -276,14 +322,24 @@ function DataLineageVisualizer() {
         hideIsolated,
         filterExtended,
         focusSchemas: Array.from(focusSchemas),
-        layout
+        layout,
       };
-      localStorage.setItem('lineage_filter_preferences', JSON.stringify(preferences));
+      localStorage.setItem(
+        'lineage_filter_preferences',
+        JSON.stringify(preferences)
+      );
       logger.debug('[localStorage] Saved preferences:', preferences);
     } catch (error) {
       console.error('[localStorage] Failed to save preferences:', error);
     }
-  }, [selectedSchemas, selectedTypes, hideIsolated, filterExtended, focusSchemas, layout]);
+  }, [
+    selectedSchemas,
+    selectedTypes,
+    hideIsolated,
+    filterExtended,
+    focusSchemas,
+    layout,
+  ]);
 
   // --- Detect DDL Availability (memoized for performance) ---
   // DDL is now fetched on-demand via API, so always available when data is loaded
@@ -297,11 +353,18 @@ function DataLineageVisualizer() {
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
   const [isDetailSearchOpen, setIsDetailSearchOpen] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string; nodeName: string } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    nodeId: string;
+    nodeName: string;
+  } | null>(null);
 
   // --- SQL Viewer State ---
   const [sqlViewerOpen, setSqlViewerOpen] = useState(false);
-  const [sqlViewerWidth, setSqlViewerWidth] = useState(INTERACTION_CONSTANTS.SQL_VIEWER_WIDTH_DEFAULT_PCT);
+  const [sqlViewerWidth, setSqlViewerWidth] = useState(
+    INTERACTION_CONSTANTS.SQL_VIEWER_WIDTH_DEFAULT_PCT
+  );
   const [isResizing, setIsResizing] = useState(false);
   const [selectedNodeForSql, setSelectedNodeForSql] = useState<{
     id: string;
@@ -324,17 +387,29 @@ function DataLineageVisualizer() {
     const prioritized = [...finalVisibleData].sort((a, b) => {
       if (a.is_phantom && !b.is_phantom) return -1;
       if (!a.is_phantom && b.is_phantom) return 1;
-      if (a.object_type === 'Stored Procedure' && b.object_type !== 'Stored Procedure') return -1;
-      if (a.object_type !== 'Stored Procedure' && b.object_type === 'Stored Procedure') return 1;
-      if (a.object_type === 'Function' && b.object_type !== 'Function') return -1;
-      if (a.object_type !== 'Function' && b.object_type === 'Function') return 1;
+      if (
+        a.object_type === 'Stored Procedure' &&
+        b.object_type !== 'Stored Procedure'
+      )
+        return -1;
+      if (
+        a.object_type !== 'Stored Procedure' &&
+        b.object_type === 'Stored Procedure'
+      )
+        return 1;
+      if (a.object_type === 'Function' && b.object_type !== 'Function')
+        return -1;
+      if (a.object_type !== 'Function' && b.object_type === 'Function')
+        return 1;
       return 0;
     });
 
     const limited = prioritized.slice(0, MAX_VISIBLE_NODES);
     const hiddenCount = finalVisibleData.length - MAX_VISIBLE_NODES;
 
-    logger.perf(`Performance limit: Showing ${MAX_VISIBLE_NODES} of ${finalVisibleData.length} nodes (${hiddenCount} hidden)`);
+    logger.perf(
+      `Performance limit: Showing ${MAX_VISIBLE_NODES} of ${finalVisibleData.length} nodes (${hiddenCount} hidden)`
+    );
 
     return limited;
   }, [finalVisibleData]);
@@ -348,26 +423,32 @@ function DataLineageVisualizer() {
       lineageGraph,
       isTraceModeActive,
     });
-  }, [limitedVisibleData, layout, schemaColorMap, lineageGraph, isTraceModeActive]);
+  }, [
+    limitedVisibleData,
+    layout,
+    schemaColorMap,
+    lineageGraph,
+    isTraceModeActive,
+  ]);
 
   // OPTIMIZATION: Create Map for O(1) lookups instead of O(n) find()
   const allDataMap = useMemo(() => {
-    return new Map(allData.map(node => [node.id, node]));
+    return new Map(allData.map((node) => [node.id, node]));
   }, [allData]);
 
   const finalNodes = useMemo(() => {
     // Build set of level 1 neighbors (nodes directly connected to highlighted node)
     const level1Neighbors = new Set<string>();
     if (highlightedNodes.size > 0) {
-      highlightedNodes.forEach(nodeId => {
+      highlightedNodes.forEach((nodeId) => {
         if (lineageGraph.hasNode(nodeId)) {
           const neighbors = lineageGraph.neighbors(nodeId);
-          neighbors.forEach(neighborId => level1Neighbors.add(neighborId));
+          neighbors.forEach((neighborId) => level1Neighbors.add(neighborId));
         }
       });
     }
 
-    return layoutedElements.nodes.map(n => {
+    return layoutedElements.nodes.map((n) => {
       // OPTIMIZATION: Use Map for O(1) lookup instead of O(n) find()
       const originalNode = allDataMap.get(n.id);
 
@@ -377,12 +458,14 @@ function DataLineageVisualizer() {
       // - If there ARE highlighted nodes AND
       // - This node is NOT highlighted AND
       // - This node is NOT a level 1 neighbor
-      const shouldBeDimmed = highlightedNodes.size > 0 &&
-                             !isHighlighted &&
-                             !level1Neighbors.has(n.id);
+      const shouldBeDimmed =
+        highlightedNodes.size > 0 &&
+        !isHighlighted &&
+        !level1Neighbors.has(n.id);
 
       // Check if this is the trace start node
-      const isTraceStartNode = isTraceFilterApplied && traceConfig && n.id === traceConfig.startNodeId;
+      const isTraceStartNode =
+        isTraceFilterApplied && traceConfig && n.id === traceConfig.startNodeId;
 
       return {
         ...n,
@@ -392,11 +475,19 @@ function DataLineageVisualizer() {
           isDimmed: shouldBeDimmed,
           isTraceStartNode: isTraceStartNode,
           layoutDir: layout,
-          ddl_text: originalNode?.ddl_text
-        }
+          ddl_text: originalNode?.ddl_text,
+        },
       };
     });
-  }, [layoutedElements.nodes, highlightedNodes, layout, allDataMap, lineageGraph, isTraceFilterApplied, traceConfig]);
+  }, [
+    layoutedElements.nodes,
+    highlightedNodes,
+    layout,
+    allDataMap,
+    lineageGraph,
+    isTraceFilterApplied,
+    traceConfig,
+  ]);
 
   // --- Effects to Synchronize State with React Flow ---
   useEffect(() => {
@@ -413,14 +504,14 @@ function DataLineageVisualizer() {
       const timeoutId = setTimeout(() => {
         fitView({
           padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
-          duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS
+          duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS,
         });
         hasInitiallyFittedRef.current = true;
       }, INTERACTION_CONSTANTS.INITIAL_FIT_VIEW_DELAY_MS);
       return () => clearTimeout(timeoutId);
     }
   }, [nodes.length, fitView]);
-  
+
   // --- Effect for handling window resize ---
   useEffect(() => {
     // Debounce resize events to avoid excessive calls
@@ -461,158 +552,233 @@ function DataLineageVisualizer() {
       // Mark that we're in trace exit mode (showing trace results in detail view)
       setIsInTraceExitMode(true);
     }
-  }, [isTraceModeActive, setHighlightedNodes, isInTraceExitMode, traceExitNodes]);
+  }, [
+    isTraceModeActive,
+    setHighlightedNodes,
+    isInTraceExitMode,
+    traceExitNodes,
+  ]);
 
   // --- Event Handlers ---
-  const handleNodeContextMenu = useCallback((event: React.MouseEvent, node: ReactFlowNode) => {
-    event.preventDefault();
-    const originalNode = allDataMap.get(node.id);
-    if (originalNode) {
-      // Don't show context menu for phantom objects
-      if (originalNode.is_phantom) {
-        return;
+  const handleNodeContextMenu = useCallback(
+    (event: React.MouseEvent, node: ReactFlowNode) => {
+      event.preventDefault();
+      const originalNode = allDataMap.get(node.id);
+      if (originalNode) {
+        // Don't show context menu for phantom objects
+        if (originalNode.is_phantom) {
+          return;
+        }
+
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          nodeId: node.id,
+          nodeName: originalNode.name,
+        });
+      }
+    },
+    [allDataMap]
+  );
+
+  const handleNodeClick = useCallback(
+    (_: React.MouseEvent, node: ReactFlowNode) => {
+      // Exit trace exit mode if we're clicking a node
+      if (isInTraceExitMode) {
+        setIsInTraceExitMode(false);
+        setTraceExitNodes(new Set());
       }
 
-      setContextMenu({
-        x: event.clientX,
-        y: event.clientY,
-        nodeId: node.id,
-        nodeName: originalNode.name
-      });
-    }
-  }, [allDataMap]);
+      // Update SQL viewer if it's open (only in detail view, not in trace mode)
+      // OPTIMIZATION: Only update if node actually changed (prevents unnecessary re-renders)
+      if (sqlViewerOpen && !isTraceModeActive) {
+        if (selectedNodeForSql?.id !== node.id) {
+          const originalNode = allDataMap.get(node.id);
+          if (originalNode) {
+            const nodeForSql: any = {
+              id: originalNode.id,
+              name: originalNode.name,
+              schema: originalNode.schema,
+              objectType: originalNode.object_type,
+            };
 
-  const handleNodeClick = useCallback((_: React.MouseEvent, node: ReactFlowNode) => {
-    // Exit trace exit mode if we're clicking a node
-    if (isInTraceExitMode) {
-      setIsInTraceExitMode(false);
-      setTraceExitNodes(new Set());
-    }
+            // Only add ddl_text if it exists in source data (JSON mode)
+            if ('ddl_text' in originalNode) {
+              nodeForSql.ddl_text = originalNode.ddl_text;
+            }
 
-    // Update SQL viewer if it's open (only in detail view, not in trace mode)
-    // OPTIMIZATION: Only update if node actually changed (prevents unnecessary re-renders)
-    if (sqlViewerOpen && !isTraceModeActive) {
-      if (selectedNodeForSql?.id !== node.id) {
-        const originalNode = allDataMap.get(node.id);
-        if (originalNode) {
-          const nodeForSql: any = {
-            id: originalNode.id,
-            name: originalNode.name,
-            schema: originalNode.schema,
-            objectType: originalNode.object_type
-          };
-
-          // Only add ddl_text if it exists in source data (JSON mode)
-          if ('ddl_text' in originalNode) {
-            nodeForSql.ddl_text = originalNode.ddl_text;
+            setSelectedNodeForSql(nodeForSql);
           }
-
-          setSelectedNodeForSql(nodeForSql);
         }
       }
-    }
 
-    // Simple toggle logic: click to highlight (yellow), click again to unhighlight
-    if (focusedNodeId === node.id) {
-      // Clicking the same node again - unhighlight it
+      // Simple toggle logic: click to highlight (yellow), click again to unhighlight
+      if (focusedNodeId === node.id) {
+        // Clicking the same node again - unhighlight it
+        setFocusedNodeId(null);
+        setHighlightedNodes(new Set());
+      } else {
+        // Clicking a different node - highlight it in yellow
+        // All other nodes remain visible (no dimming)
+        setFocusedNodeId(node.id);
+        setHighlightedNodes(new Set([node.id]));
+      }
+    },
+    [
+      isInTraceExitMode,
+      sqlViewerOpen,
+      isTraceModeActive,
+      selectedNodeForSql?.id,
+      allDataMap,
+      focusedNodeId,
+      setHighlightedNodes,
+      setIsInTraceExitMode,
+      setTraceExitNodes,
+    ]
+  );
+
+  const handleDataImport = useCallback(
+    (newData: DataNode[]) => {
+      const processedData = newData.map((node) => ({
+        ...node,
+        schema: node.schema.toUpperCase(),
+      }));
+      setAllData(processedData);
+
+      // Note: Only parquet uploads via API are persisted to backend
+      // JSON imports are temporary and will be lost on page refresh
+      // To persist data, upload parquet files instead
+
+      // Reset ALL filters and view state for a clean slate after import
       setFocusedNodeId(null);
       setHighlightedNodes(new Set());
-    } else {
-      // Clicking a different node - highlight it in yellow
-      // All other nodes remain visible (no dimming)
-      setFocusedNodeId(node.id);
-      setHighlightedNodes(new Set([node.id]));
-    }
-  }, [isInTraceExitMode, sqlViewerOpen, isTraceModeActive, selectedNodeForSql?.id, allDataMap, focusedNodeId, setHighlightedNodes, setIsInTraceExitMode, setTraceExitNodes]);
-
-  const handleDataImport = useCallback((newData: DataNode[]) => {
-    const processedData = newData.map(node => ({ ...node, schema: node.schema.toUpperCase() }));
-    setAllData(processedData);
-
-    // Note: Only parquet uploads via API are persisted to backend
-    // JSON imports are temporary and will be lost on page refresh
-    // To persist data, upload parquet files instead
-
-    // Reset ALL filters and view state for a clean slate after import
-    setFocusedNodeId(null);
-    setHighlightedNodes(new Set());
-    setSearchTerm('');
-    setHideIsolated(true); // Default: hide isolated nodes after import
-    setFilterExtended(false);
-    setFocusSchemas(new Set());
-    
-    // Extract all unique schemas from new data
-    const allSchemas = new Set(processedData.map(node => node.schema));
-    
-    // Extract all unique object types from new data
-    const allObjectTypes = new Set(processedData.map(node => node.object_type || node.type).filter(Boolean));
-    
-    // Select all schemas and types from the new data
-    setSelectedSchemas(allSchemas);
-    setSelectedTypes(new Set());
-    setSelectedObjectTypes(allObjectTypes);
-    
-    // Clear persistent filter preferences
-    localStorage.removeItem('dataLineage_filterPreferences');
-    
-    hasInitiallyFittedRef.current = false; // Allow fitView on new data
-
-    addNotification('Data imported successfully! All schemas and types are now visible.', 'info');
-    // Don't auto-close modal - let user close it after viewing summary
-    // setIsImportModalOpen(false);
-  }, [addNotification, setHighlightedNodes, setSearchTerm, setHideIsolated, setFilterExtended, setFocusSchemas, setSelectedSchemas, setSelectedTypes, setSelectedObjectTypes]);
-
-  const executeSearch = useCallback((query: string, schema?: string) => {
-    try {
-      if (isTraceModeActive) return;
-      setFocusedNodeId(null);
-      if (!query) {
-        setHighlightedNodes(new Set());
-        fitView({ duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS });
-        return;
-      }
-
-      // Safety check: ensure query is a valid string
-      if (typeof query !== 'string') {
-        console.error('[Search] Invalid query type:', typeof query);
-        addNotification('Invalid search query. Please try again.', 'error');
-        return;
-      }
-
-      // Search by name AND schema if schema is provided (from autocomplete)
-      // Otherwise just search by name (manual search)
-      const foundNodeData = schema
-        ? allData.find(d => d.name && d.name.toLowerCase() === query.toLowerCase() && d.schema === schema)
-        : allData.find(d => d.name && d.name.toLowerCase() === query.toLowerCase());
-      
-      if (!foundNodeData) {
-        addNotification('No object found with that name.', 'error');
-        return;
-      }
-      
-      const reactFlowNode = nodes.find(n => n.id === foundNodeData.id);
-      
-      if (!reactFlowNode) {
-        addNotification('Object found, but it is not visible with the current filters.', 'error');
-        return;
-      }
-      
-      setHighlightedNodes(new Set([foundNodeData.id]));
-      setCenter(
-        reactFlowNode.position.x + (reactFlowNode.width || 192) / 2,
-        reactFlowNode.position.y + (reactFlowNode.height || 48) / 2,
-        { zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL, duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS }
-      );
       setSearchTerm('');
-    } catch (error) {
-      console.error('[Search] Error during search:', error);
-      addNotification('An error occurred while searching. Please try again.', 'error');
-    }
-  }, [isTraceModeActive, allData, nodes, fitView, setCenter, addNotification, setHighlightedNodes, setSearchTerm]);
+      setHideIsolated(true); // Default: hide isolated nodes after import
+      setFilterExtended(false);
+      setFocusSchemas(new Set());
+
+      // Extract all unique schemas from new data
+      const allSchemas = new Set(processedData.map((node) => node.schema));
+
+      // Extract all unique object types from new data
+      const allObjectTypes = new Set(
+        processedData
+          .map((node) => node.object_type || node.type)
+          .filter(Boolean)
+      );
+
+      // Select all schemas and types from the new data
+      setSelectedSchemas(allSchemas);
+      setSelectedTypes(new Set());
+      setSelectedObjectTypes(allObjectTypes);
+
+      // Clear persistent filter preferences
+      localStorage.removeItem('dataLineage_filterPreferences');
+
+      hasInitiallyFittedRef.current = false; // Allow fitView on new data
+
+      // Only show notification when actual data is imported (not when clearing with empty array)
+      if (newData.length > 0) {
+        addNotification(
+          'Data imported successfully! All schemas and types are now visible.',
+          'info'
+        );
+      }
+      // Don't auto-close modal - let user close it after viewing summary
+      // setIsImportModalOpen(false);
+    },
+    [
+      addNotification,
+      setHighlightedNodes,
+      setSearchTerm,
+      setHideIsolated,
+      setFilterExtended,
+      setFocusSchemas,
+      setSelectedSchemas,
+      setSelectedTypes,
+      setSelectedObjectTypes,
+    ]
+  );
+
+  const executeSearch = useCallback(
+    (query: string, schema?: string) => {
+      try {
+        if (isTraceModeActive) return;
+        setFocusedNodeId(null);
+        if (!query) {
+          setHighlightedNodes(new Set());
+          fitView({ duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS });
+          return;
+        }
+
+        // Safety check: ensure query is a valid string
+        if (typeof query !== 'string') {
+          console.error('[Search] Invalid query type:', typeof query);
+          addNotification('Invalid search query. Please try again.', 'error');
+          return;
+        }
+
+        // Search by name AND schema if schema is provided (from autocomplete)
+        // Otherwise just search by name (manual search)
+        const foundNodeData = schema
+          ? allData.find(
+              (d) =>
+                d.name &&
+                d.name.toLowerCase() === query.toLowerCase() &&
+                d.schema === schema
+            )
+          : allData.find(
+              (d) => d.name && d.name.toLowerCase() === query.toLowerCase()
+            );
+
+        if (!foundNodeData) {
+          addNotification('No object found with that name.', 'error');
+          return;
+        }
+
+        const reactFlowNode = nodes.find((n) => n.id === foundNodeData.id);
+
+        if (!reactFlowNode) {
+          addNotification(
+            'Object found, but it is not visible with the current filters.',
+            'error'
+          );
+          return;
+        }
+
+        setHighlightedNodes(new Set([foundNodeData.id]));
+        setCenter(
+          reactFlowNode.position.x + (reactFlowNode.width || 192) / 2,
+          reactFlowNode.position.y + (reactFlowNode.height || 48) / 2,
+          {
+            zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL,
+            duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS,
+          }
+        );
+        setSearchTerm('');
+      } catch (error) {
+        console.error('[Search] Error during search:', error);
+        addNotification(
+          'An error occurred while searching. Please try again.',
+          'error'
+        );
+      }
+    },
+    [
+      isTraceModeActive,
+      allData,
+      nodes,
+      fitView,
+      setCenter,
+      addNotification,
+      setHighlightedNodes,
+      setSearchTerm,
+    ]
+  );
 
   const handlePaneClick = useCallback(() => {
     // Close any open dropdowns in toolbar
-    setCloseDropdownsTrigger(prev => prev + 1);
+    setCloseDropdownsTrigger((prev) => prev + 1);
 
     // Close context menu
     setContextMenu(null);
@@ -652,101 +818,128 @@ function DataLineageVisualizer() {
     setSelectedNodeForSql(null);
 
     // Fit view after reset
-    setTimeout(() => fitView({
-      padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
-      duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS
-    }), 100);
+    setTimeout(
+      () =>
+        fitView({
+          padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+          duration: INTERACTION_CONSTANTS.FIT_VIEW_DURATION_MS,
+        }),
+      100
+    );
 
     addNotification('View reset (schema and type filters preserved).', 'info');
   }, [fitView, addNotification, setHighlightedNodes]);
 
-  const handleCloseDetailSearch = useCallback((nodeId: string | null) => {
-    setIsDetailSearchOpen(false);
+  const handleCloseDetailSearch = useCallback(
+    (nodeId: string | null) => {
+      setIsDetailSearchOpen(false);
 
-    if (nodeId) {
-      // Highlight the selected node
-      setHighlightedNodes(new Set([nodeId]));
+      if (nodeId) {
+        // Highlight the selected node
+        setHighlightedNodes(new Set([nodeId]));
 
-      // Zoom to the node with animation
-      setTimeout(() => {
-        const node = getNodes().find(n => n.id === nodeId);
-        if (node) {
-          setCenter(node.position.x + 100, node.position.y, {
-            duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS,
-            zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL
-          });
-        }
-      }, 100);
-    }
-  }, [getNodes, setCenter, setHighlightedNodes]);
+        // Zoom to the node with animation
+        setTimeout(() => {
+          const node = getNodes().find((n) => n.id === nodeId);
+          if (node) {
+            setCenter(node.position.x + 100, node.position.y, {
+              duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS,
+              zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL,
+            });
+          }
+        }, 100);
+      }
+    },
+    [getNodes, setCenter, setHighlightedNodes]
+  );
 
   // Wrapper for trace apply that adds auto-fit and highlight
-  const handleApplyTraceWithFit = useCallback((config: Parameters<typeof handleApplyTrace>[0]) => {
-    // Call original handler
-    handleApplyTrace(config);
+  const handleApplyTraceWithFit = useCallback(
+    (config: Parameters<typeof handleApplyTrace>[0]) => {
+      // Call original handler
+      handleApplyTrace(config);
 
-    // Highlight the start node
-    setHighlightedNodes(new Set([config.startNodeId]));
+      // Highlight the start node
+      setHighlightedNodes(new Set([config.startNodeId]));
 
-    // Auto-fit view after a short delay (to let layout calculate)
-    setTimeout(() => {
-      fitView({
-        padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
-        duration: INTERACTION_CONSTANTS.FIT_VIEW_AFTER_SEARCH_MS
-      });
-    }, 200);
-  }, [handleApplyTrace, fitView]);
+      // Auto-fit view after a short delay (to let layout calculate)
+      setTimeout(() => {
+        fitView({
+          padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+          duration: INTERACTION_CONSTANTS.FIT_VIEW_AFTER_SEARCH_MS,
+        });
+      }, 200);
+    },
+    [handleApplyTrace, fitView]
+  );
 
   // --- Inline Trace Handlers ---
-  const handleStartTracing = useCallback((nodeId: string) => {
-    // Set up initial trace config with default values
-    const initialConfig = {
-      startNodeId: nodeId,
-      endNodeId: null,
-      upstreamLevels: 3,
-      downstreamLevels: 3,
-      includedSchemas: selectedSchemas,
-      includedTypes: selectedTypes,
-      exclusionPatterns: activeExcludeTerms
-    };
-    handleApplyTrace(initialConfig);
-    setIsTraceModeActive(true);
-    setIsTraceFilterApplied(false); // Show all objects when trace menu opens
-  }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms]);
+  const handleStartTracing = useCallback(
+    (nodeId: string) => {
+      // Set up initial trace config with default values
+      const initialConfig = {
+        startNodeId: nodeId,
+        endNodeId: null,
+        upstreamLevels: 3,
+        downstreamLevels: 3,
+        includedSchemas: selectedSchemas,
+        includedTypes: selectedTypes,
+        exclusionPatterns: activeExcludeTerms,
+      };
+      handleApplyTrace(initialConfig);
+      setIsTraceModeActive(true);
+      setIsTraceFilterApplied(false); // Show all objects when trace menu opens
+    },
+    [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms]
+  );
 
-  const handleInlineTraceApply = useCallback((config: { startNodeId: string; upstreamLevels: number; downstreamLevels: number }) => {
-    // Build full config using CURRENT filters from main toolbar
-    // Create NEW Set/Array instances to ensure React detects changes
-    const fullConfig = {
-      startNodeId: config.startNodeId,
-      endNodeId: null,
-      upstreamLevels: config.upstreamLevels,
-      downstreamLevels: config.downstreamLevels,
-      includedSchemas: new Set(selectedSchemas), // NEW Set instance
-      includedTypes: new Set(selectedTypes),     // NEW Set instance
-      exclusionPatterns: [...activeExcludeTerms] // NEW Array instance
-    };
+  const handleInlineTraceApply = useCallback(
+    (config: {
+      startNodeId: string;
+      upstreamLevels: number;
+      downstreamLevels: number;
+    }) => {
+      // Build full config using CURRENT filters from main toolbar
+      // Create NEW Set/Array instances to ensure React detects changes
+      const fullConfig = {
+        startNodeId: config.startNodeId,
+        endNodeId: null,
+        upstreamLevels: config.upstreamLevels,
+        downstreamLevels: config.downstreamLevels,
+        includedSchemas: new Set(selectedSchemas), // NEW Set instance
+        includedTypes: new Set(selectedTypes), // NEW Set instance
+        exclusionPatterns: [...activeExcludeTerms], // NEW Array instance
+      };
 
-    logger.debug('[Trace] Applying trace with config:', fullConfig);
-    handleApplyTrace(fullConfig);
+      logger.debug('[Trace] Applying trace with config:', fullConfig);
+      handleApplyTrace(fullConfig);
 
-    // Filter to traced nodes when Apply is clicked
-    setIsTraceFilterApplied(true);
+      // Filter to traced nodes when Apply is clicked
+      setIsTraceFilterApplied(true);
 
-    // Immediately close trace panel and show banner
-    setIsTraceModeActive(false);
+      // Immediately close trace panel and show banner
+      setIsTraceModeActive(false);
 
-    // Highlight the start node
-    setHighlightedNodes(new Set([config.startNodeId]));
+      // Highlight the start node
+      setHighlightedNodes(new Set([config.startNodeId]));
 
-    // Auto-fit view
-    setTimeout(() => {
-      fitView({
-        padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
-        duration: INTERACTION_CONSTANTS.FIT_VIEW_AFTER_SEARCH_MS
-      });
-    }, 200);
-  }, [handleApplyTrace, selectedSchemas, selectedTypes, activeExcludeTerms, fitView, setHighlightedNodes]);
+      // Auto-fit view
+      setTimeout(() => {
+        fitView({
+          padding: INTERACTION_CONSTANTS.FIT_VIEW_PADDING,
+          duration: INTERACTION_CONSTANTS.FIT_VIEW_AFTER_SEARCH_MS,
+        });
+      }, 200);
+    },
+    [
+      handleApplyTrace,
+      selectedSchemas,
+      selectedTypes,
+      activeExcludeTerms,
+      fitView,
+      setHighlightedNodes,
+    ]
+  );
 
   const handleEndTracing = useCallback(() => {
     // When "End Trace" is clicked:
@@ -757,12 +950,12 @@ function DataLineageVisualizer() {
 
     if (traceConfig && isTraceFilterApplied && nodes.length > 0) {
       // Store trace config for banner display
-      const startNode = allData.find(n => n.id === traceConfig.startNodeId);
+      const startNode = allData.find((n) => n.id === traceConfig.startNodeId);
       setTracedFilterConfig({
         startNodeName: startNode?.name || traceConfig.startNodeId,
         upstreamLevels: traceConfig.upstreamLevels,
         downstreamLevels: traceConfig.downstreamLevels,
-        totalNodes: nodes.length // Current visible nodes count
+        totalNodes: nodes.length, // Current visible nodes count
       });
       setIsInTracedFilterMode(true);
       // No notification - the amber banner is the visual indicator
@@ -786,41 +979,44 @@ function DataLineageVisualizer() {
   };
 
   // --- View Transition Handlers (Detail Search <-> SQL Viewer) ---
-  const handleSwitchToSqlViewer = useCallback((nodeId: string) => {
-    // Close detail search
-    setIsDetailSearchOpen(false);
+  const handleSwitchToSqlViewer = useCallback(
+    (nodeId: string) => {
+      // Close detail search
+      setIsDetailSearchOpen(false);
 
-    // Find the node data
-    const originalNode = allDataMap.get(nodeId);
-    if (originalNode) {
-      const nodeForSql: any = {
-        id: originalNode.id,
-        name: originalNode.name,
-        schema: originalNode.schema,
-        objectType: originalNode.object_type
-      };
+      // Find the node data
+      const originalNode = allDataMap.get(nodeId);
+      if (originalNode) {
+        const nodeForSql: any = {
+          id: originalNode.id,
+          name: originalNode.name,
+          schema: originalNode.schema,
+          objectType: originalNode.object_type,
+        };
 
-      // Only add ddl_text if it exists in source data (JSON mode)
-      if ('ddl_text' in originalNode) {
-        nodeForSql.ddl_text = originalNode.ddl_text;
-      }
-
-      setSelectedNodeForSql(nodeForSql);
-      setSqlViewerOpen(true);
-
-      // Highlight and zoom to the node in the graph
-      setHighlightedNodes(new Set([nodeId]));
-      setTimeout(() => {
-        const node = getNodes().find(n => n.id === nodeId);
-        if (node) {
-          setCenter(node.position.x + 100, node.position.y, {
-            duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS,
-            zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL
-          });
+        // Only add ddl_text if it exists in source data (JSON mode)
+        if ('ddl_text' in originalNode) {
+          nodeForSql.ddl_text = originalNode.ddl_text;
         }
-      }, 100);
-    }
-  }, [allDataMap, getNodes, setCenter, setHighlightedNodes]);
+
+        setSelectedNodeForSql(nodeForSql);
+        setSqlViewerOpen(true);
+
+        // Highlight and zoom to the node in the graph
+        setHighlightedNodes(new Set([nodeId]));
+        setTimeout(() => {
+          const node = getNodes().find((n) => n.id === nodeId);
+          if (node) {
+            setCenter(node.position.x + 100, node.position.y, {
+              duration: INTERACTION_CONSTANTS.FOCUS_NODE_DURATION_MS,
+              zoom: INTERACTION_CONSTANTS.FOCUS_NODE_ZOOM_LEVEL,
+            });
+          }
+        }, 100);
+      }
+    },
+    [allDataMap, getNodes, setCenter, setHighlightedNodes]
+  );
 
   const handleSwitchToDetailSearch = useCallback(() => {
     // Close SQL viewer and open detail search with the current SQL node
@@ -840,7 +1036,9 @@ function DataLineageVisualizer() {
 
     const handleMouseMove = (e: MouseEvent) => {
       // Get the main container element (the flex parent)
-      const mainContainer = document.querySelector('.flex-grow.rounded-b-lg.flex') as HTMLElement;
+      const mainContainer = document.querySelector(
+        '.flex-grow.rounded-b-lg.flex'
+      ) as HTMLElement;
       if (!mainContainer) return;
 
       const containerRect = mainContainer.getBoundingClientRect();
@@ -881,8 +1079,8 @@ function DataLineageVisualizer() {
     const edgesToExport = getEdges();
 
     if (nodesToExport.length === 0) {
-        addNotification('Nothing to export.', 'error');
-        return;
+      addNotification('Nothing to export.', 'error');
+      return;
     }
 
     // Convert logo to base64
@@ -904,10 +1102,14 @@ function DataLineageVisualizer() {
     const LEGEND_WIDTH = 280; // Space for legend on left
     const LEGEND_PADDING = 20;
 
-    const minX = Math.min(...nodesToExport.map(n => n.position.x));
-    const minY = Math.min(...nodesToExport.map(n => n.position.y));
-    const maxX = Math.max(...nodesToExport.map(n => n.position.x + (n.width || 0)));
-    const maxY = Math.max(...nodesToExport.map(n => n.position.y + (n.height || 0)));
+    const minX = Math.min(...nodesToExport.map((n) => n.position.x));
+    const minY = Math.min(...nodesToExport.map((n) => n.position.y));
+    const maxX = Math.max(
+      ...nodesToExport.map((n) => n.position.x + (n.width || 0))
+    );
+    const maxY = Math.max(
+      ...nodesToExport.map((n) => n.position.y + (n.height || 0))
+    );
     const graphWidth = maxX - minX + PADDING * 2;
     const graphHeight = maxY - minY + PADDING * 2;
     const width = graphWidth + LEGEND_WIDTH + LEGEND_PADDING;
@@ -917,59 +1119,96 @@ function DataLineageVisualizer() {
 
     const isHorizontal = layout === 'LR';
 
-    const edgePaths = edgesToExport.map(edge => {
-        const sourceNode = nodesToExport.find(n => n.id === edge.source);
-        const targetNode = nodesToExport.find(n => n.id === edge.target);
+    const edgePaths = edgesToExport
+      .map((edge) => {
+        const sourceNode = nodesToExport.find((n) => n.id === edge.source);
+        const targetNode = nodesToExport.find((n) => n.id === edge.target);
         if (!sourceNode || !targetNode) return '';
-        
-        const sourceX = sourceNode.position.x + (isHorizontal ? (sourceNode.width || 0) : (sourceNode.width || 0) / 2) + offsetX;
-        const sourceY = sourceNode.position.y + (isHorizontal ? (sourceNode.height || 0) / 2 : (sourceNode.height || 0)) + offsetY;
-        const targetX = targetNode.position.x + (isHorizontal ? 0 : (targetNode.width || 0) / 2) + offsetX;
-        const targetY = targetNode.position.y + (isHorizontal ? (targetNode.height || 0) / 2 : 0) + offsetY;
+
+        const sourceX =
+          sourceNode.position.x +
+          (isHorizontal ? sourceNode.width || 0 : (sourceNode.width || 0) / 2) +
+          offsetX;
+        const sourceY =
+          sourceNode.position.y +
+          (isHorizontal
+            ? (sourceNode.height || 0) / 2
+            : sourceNode.height || 0) +
+          offsetY;
+        const targetX =
+          targetNode.position.x +
+          (isHorizontal ? 0 : (targetNode.width || 0) / 2) +
+          offsetX;
+        const targetY =
+          targetNode.position.y +
+          (isHorizontal ? (targetNode.height || 0) / 2 : 0) +
+          offsetY;
 
         if (isHorizontal) {
-            const cpx1 = sourceX + (targetX - sourceX) * 0.5;
-            return `<path d="M ${sourceX},${sourceY} C ${cpx1},${sourceY} ${cpx1},${targetY} ${targetX},${targetY}" stroke="#9ca3af" stroke-width="1.5" fill="none" marker-end="url(#arrow)" />`;
+          const cpx1 = sourceX + (targetX - sourceX) * 0.5;
+          return `<path d="M ${sourceX},${sourceY} C ${cpx1},${sourceY} ${cpx1},${targetY} ${targetX},${targetY}" stroke="#9ca3af" stroke-width="1.5" fill="none" marker-end="url(#arrow)" />`;
         }
         const cpy1 = sourceY + (targetY - sourceY) * 0.5;
         return `<path d="M ${sourceX},${sourceY} C ${sourceX},${cpy1} ${targetX},${cpy1} ${targetX},${targetY}" stroke="#9ca3af" stroke-width="1.5" fill="none" marker-end="url(#arrow)" />`;
-    }).join('');
-    
-    const nodeElements = nodesToExport.map(node => {
-        const { position, width: nodeWidth = 192, height: nodeHeight = 48, data } = node;
+      })
+      .join('');
+
+    const nodeElements = nodesToExport
+      .map((node) => {
+        const {
+          position,
+          width: nodeWidth = 192,
+          height: nodeHeight = 48,
+          data,
+        } = node;
         const x = position.x + offsetX;
         const y = position.y + offsetY;
 
         const { style } = CONSTANTS.SHAPE_MAP[data.object_type] || {};
-        const rx = style === 'rounded-full' ? nodeHeight / 2 : (style === 'rounded-md' ? 6 : 0);
+        const rx =
+          style === 'rounded-full'
+            ? nodeHeight / 2
+            : style === 'rounded-md'
+            ? 6
+            : 0;
         const strokeDasharray = style === 'border-dashed' ? '5, 5' : 'none';
         const color = schemaColorMap.get(data.schema) || '#7f7f7f';
 
         return `
             <g transform="translate(${x}, ${y})">
                 <rect width="${nodeWidth}" height="${nodeHeight}" rx="${rx}" fill="${color}30" stroke="${color}" stroke-width="2" stroke-dasharray="${strokeDasharray}"/>
-                <text x="${nodeWidth / 2}" y="${nodeHeight / 2}" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14px" font-weight="bold" fill="#1f2937">
+                <text x="${nodeWidth / 2}" y="${
+          nodeHeight / 2
+        }" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14px" font-weight="bold" fill="#1f2937">
                     ${data.name}
                 </text>
             </g>
         `;
-    }).join('');
+      })
+      .join('');
 
     // Generate legend elements - only show schemas present in current view
-    const visibleSchemas = [...new Set(nodesToExport.map(n => n.data.schema))].sort();
-    const legendItems = visibleSchemas.map((schema, index) => {
-      const color = schemaColorMap.get(schema) || '#7f7f7f';
-      const y = HEADER_HEIGHT + 60 + (index * 28);
-      return `
+    const visibleSchemas = [
+      ...new Set(nodesToExport.map((n) => n.data.schema)),
+    ].sort();
+    const legendItems = visibleSchemas
+      .map((schema, index) => {
+        const color = schemaColorMap.get(schema) || '#7f7f7f';
+        const y = HEADER_HEIGHT + 60 + index * 28;
+        return `
         <g transform="translate(20, ${y})">
           <rect width="16" height="16" rx="2" fill="${color}" stroke="rgba(0,0,0,0.2)" stroke-width="1"/>
           <text x="24" y="8" dominant-baseline="middle" font-family="sans-serif" font-size="13px" fill="#374151">${schema}</text>
         </g>
       `;
-    }).join('');
+      })
+      .join('');
 
     // Calculate legend height to fit all visible schemas (28px per schema + 60px for header + 20px padding)
-    const legendHeight = Math.min(visibleSchemas.length * 28 + 80, height - HEADER_HEIGHT - 40);
+    const legendHeight = Math.min(
+      visibleSchemas.length * 28 + 80,
+      height - HEADER_HEIGHT - 40
+    );
 
     const svgString = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${width}" height="${height}">
       <defs>
@@ -983,7 +1222,11 @@ function DataLineageVisualizer() {
 
       <!-- Header with Logo -->
       <g id="header">
-        ${logoBase64 ? `<image href="${logoBase64}" x="20" y="20" width="200" height="60" preserveAspectRatio="xMinYMin meet"/>` : ''}
+        ${
+          logoBase64
+            ? `<image href="${logoBase64}" x="20" y="20" width="200" height="60" preserveAspectRatio="xMinYMin meet"/>`
+            : ''
+        }
         <!-- Colorful accent bar -->
         <defs>
           <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -992,12 +1235,16 @@ function DataLineageVisualizer() {
             <stop offset="100%" style="stop-color:#fb923c;stop-opacity:1" />
           </linearGradient>
         </defs>
-        <rect x="0" y="${HEADER_HEIGHT - 10}" width="${width}" height="4" fill="url(#accentGradient)"/>
+        <rect x="0" y="${
+          HEADER_HEIGHT - 10
+        }" width="${width}" height="4" fill="url(#accentGradient)"/>
       </g>
 
       <!-- Schema Legend -->
       <g id="legend">
-        <text x="20" y="${HEADER_HEIGHT + 40}" font-family="sans-serif" font-size="16px" font-weight="bold" fill="#1f2937">Schemas</text>
+        <text x="20" y="${
+          HEADER_HEIGHT + 40
+        }" font-family="sans-serif" font-size="16px" font-weight="bold" fill="#1f2937">Schemas</text>
         ${legendItems}
       </g>
 
@@ -1026,7 +1273,11 @@ function DataLineageVisualizer() {
       <header className="flex-shrink-0 z-20">
         <div className="flex items-center justify-between px-4 py-2 bg-white shadow-sm">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Data Lineage Visualizer" className="h-10" />
+            <img
+              src="/logo.png"
+              alt="Data Lineage Visualizer"
+              className="h-10"
+            />
             {runMode === 'demo' && !isDemoBannerDismissed && (
               <span className="text-sm font-semibold text-amber-700 px-3 py-1 bg-amber-50 rounded-md border border-amber-300 flex items-center gap-2">
                 Demo Mode Active
@@ -1042,7 +1293,12 @@ function DataLineageVisualizer() {
             {isTraceFilterApplied && traceConfig && (
               <span
                 className="text-sm font-semibold text-blue-600 px-3 py-1 bg-blue-50 rounded-md border border-blue-200 cursor-help"
-                title={`Start: ${allData.find(n => n.id === traceConfig.startNodeId)?.name || traceConfig.startNodeId}\nUpstream: ${traceConfig.upstreamLevels} levels\nDownstream: ${traceConfig.downstreamLevels} levels`}
+                title={`Start: ${
+                  allData.find((n) => n.id === traceConfig.startNodeId)?.name ||
+                  traceConfig.startNodeId
+                }\nUpstream: ${
+                  traceConfig.upstreamLevels
+                } levels\nDownstream: ${traceConfig.downstreamLevels} levels`}
               >
                 Trace Mode
               </span>
@@ -1053,7 +1309,10 @@ function DataLineageVisualizer() {
         <div className="h-1 bg-gradient-to-r from-blue-500 via-teal-400 to-orange-400"></div>
       </header>
       <main className="flex-grow p-4 relative bg-gray-100 overflow-hidden">
-        <NotificationContainer activeToasts={activeToasts} onDismissToast={removeActiveToast} />
+        <NotificationContainer
+          activeToasts={activeToasts}
+          onDismissToast={removeActiveToast}
+        />
         <div className="w-full h-full bg-white rounded-lg shadow-md flex flex-col text-gray-800 transition-all duration-300">
           <Toolbar
             searchTerm={searchTerm}
@@ -1102,13 +1361,18 @@ function DataLineageVisualizer() {
             onClearNotificationHistory={clearNotificationHistory}
             isInTraceExitMode={isInTraceExitMode}
             closeDropdownsTrigger={closeDropdownsTrigger}
-            nodes={nodes.map(n => n.data).filter((data): data is DataNode => data != null)}
+            nodes={nodes
+              .map((n) => n.data)
+              .filter((data): data is DataNode => data != null)}
             isDemoMode={runMode === 'demo'}
           />
           {isTraceModeActive && traceConfig && (
             <InlineTraceControls
               startNodeId={traceConfig.startNodeId}
-              startNodeName={allData.find(n => n.id === traceConfig.startNodeId)?.name || ''}
+              startNodeName={
+                allData.find((n) => n.id === traceConfig.startNodeId)?.name ||
+                ''
+              }
               allData={allData}
               onApply={handleInlineTraceApply}
               onEnd={handleEndTracing}
@@ -1126,19 +1390,36 @@ function DataLineageVisualizer() {
           )}
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
-            <div className={`relative ${!isResizing ? 'transition-all duration-300' : ''}`} style={{ width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%' }} data-testid="lineage-graph">
+            <div
+              className={`relative ${
+                !isResizing ? 'transition-all duration-300' : ''
+              }`}
+              style={{
+                width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%',
+              }}
+              data-testid="lineage-graph"
+            >
               {/* Loading overlay when data is being fetched */}
               {isLoadingData && (
                 <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
                   <div className="text-center">
                     <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-600 mb-3"></div>
-                    <p className="text-gray-700 font-medium">Loading lineage data...</p>
-                    <p className="text-gray-500 text-sm mt-1">{allData.length > 0 ? `${allData.length} objects loaded` : 'Fetching from server'}</p>
+                    <p className="text-gray-700 font-medium">
+                      Loading lineage data...
+                    </p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {allData.length > 0
+                        ? `${allData.length} objects loaded`
+                        : 'Fetching from server'}
+                    </p>
                   </div>
                 </div>
               )}
               <ReactFlow
-                nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
                 nodeTypes={nodeTypes}
                 onPaneClick={handlePaneClick}
                 onNodeClick={handleNodeClick}
@@ -1151,11 +1432,13 @@ function DataLineageVisualizer() {
                 <Background color={'#a1a1aa'} gap={16} />
                 <Legend
                   isCollapsed={isLegendCollapsed}
-                  onToggle={() => setIsLegendCollapsed(p => !p)}
+                  onToggle={() => setIsLegendCollapsed((p) => !p)}
                   schemas={schemas}
                   schemaColorMap={schemaColorMap}
                   selectedSchemas={selectedSchemas}
-                  nodes={nodes.map(n => n.data).filter((data): data is DataNode => data != null)}
+                  nodes={nodes
+                    .map((n) => n.data)
+                    .filter((data): data is DataNode => data != null)}
                 />
               </ReactFlow>
             </div>
@@ -1166,11 +1449,16 @@ function DataLineageVisualizer() {
                 {/* Resize Handle */}
                 <div
                   onMouseDown={handleMouseDown}
-                  className={`w-1 bg-gray-300 hover:bg-blue-500 cursor-col-resize transition-colors ${isResizing ? 'bg-blue-500' : ''}`}
+                  className={`w-1 bg-gray-300 hover:bg-blue-500 cursor-col-resize transition-colors ${
+                    isResizing ? 'bg-blue-500' : ''
+                  }`}
                   style={{ userSelect: 'none' }}
                 />
                 {/* SQL Viewer Panel */}
-                <div style={{ width: `${sqlViewerWidth}%`, height: '100%' }} className="border-l border-gray-300">
+                <div
+                  style={{ width: `${sqlViewerWidth}%`, height: '100%' }}
+                  className="border-l border-gray-300"
+                >
                   <SqlViewer
                     isOpen={sqlViewerOpen}
                     selectedNode={selectedNodeForSql}
