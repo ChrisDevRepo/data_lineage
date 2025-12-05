@@ -66,60 +66,36 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
   }));
 
   // Create edges (v4.3.0: phantom edges are dotted and orange)
-  // v4.4.0: Detect bidirectional edges and show with arrows on both ends
-  // Performance: Pre-compute bidirectional edges to avoid O(n²) hasEdge checks
-  const bidirectionalEdges = new Set<string>();
-  const allEdges: Array<{ source: string; target: string }> = [];
-  
-  if (lineageGraph) {
-    // First pass: collect all edges and detect bidirectional pairs
-    lineageGraph.forEachEdge((edge, attrs, source, target) => {
-      if (visibleNodeIds.has(source) && visibleNodeIds.has(target)) {
-        allEdges.push({ source, target });
-        const edgeKey = `${source}-${target}`;
-        const reverseKey = `${target}-${source}`;
-        
-        // If reverse edge exists in our set, both are bidirectional
-        if (bidirectionalEdges.has(reverseKey)) {
-          bidirectionalEdges.add(edgeKey);
-        } else {
-          bidirectionalEdges.add(edgeKey);
-        }
-      }
-    });
-    
-    // Clean up: only keep edges that have both directions
-    const trueBidirectional = new Set<string>();
-    for (const edgeKey of bidirectionalEdges) {
-      const [s, t] = edgeKey.split('-');
-      const reverseKey = `${t}-${s}`;
-      if (bidirectionalEdges.has(reverseKey)) {
-        trueBidirectional.add(edgeKey);
-      }
+  // v4.4.0: Use pre-computed bidirectional_with from backend (DuckDB optimization)
+  // Build a lookup map for O(1) bidirectional checks instead of O(n) lineageGraph.hasEdge
+  const bidirectionalMap = new Map<string, Set<string>>();
+  data.forEach((node) => {
+    if (node.bidirectional_with && node.bidirectional_with.length > 0) {
+      bidirectionalMap.set(node.id, new Set(node.bidirectional_with));
     }
-    bidirectionalEdges.clear();
-    trueBidirectional.forEach(k => bidirectionalEdges.add(k));
-  }
+  });
 
   const edgesSet = new Map<string, Edge>();
   const processedBidirectional = new Set<string>(); // Track bidirectional pairs to avoid duplicates
 
-  // Second pass: create ReactFlow edges with bidirectional markers
-  for (const { source, target } of allEdges) {
-    // Skip if we already processed this as part of a bidirectional pair
-    const edgeKey = `${source}-${target}`;
-    const reverseKey = `${target}-${source}`;
-    if (processedBidirectional.has(reverseKey)) {
-      continue; // Skip this edge, already handled as bidirectional
-    }
+  if (lineageGraph) {
+    lineageGraph.forEachEdge((edge, attrs, source, target) => {
+      if (visibleNodeIds.has(source) && visibleNodeIds.has(target)) {
+        // Skip if we already processed this as part of a bidirectional pair
+        const reverseKey = `${target}-${source}`;
+        if (processedBidirectional.has(reverseKey)) {
+          return; // Skip this edge, already handled as bidirectional
+        }
 
-    // Check if either endpoint is a phantom (negative ID)
-    const sourceId = parseInt(source);
-    const targetId = parseInt(target);
-    const isPhantomEdge = sourceId < 0 || targetId < 0;
+        // Check if either endpoint is a phantom (negative ID)
+        const sourceId = parseInt(source);
+        const targetId = parseInt(target);
+        const isPhantomEdge = sourceId < 0 || targetId < 0;
 
-    // Check if this edge is bidirectional (O(1) lookup now!)
-    const hasReverseEdge = bidirectionalEdges.has(reverseKey);
+        // Check if this edge is bidirectional (O(1) lookup using pre-computed data!)
+        const hasReverseEdge =
+          bidirectionalMap.has(source) &&
+          bidirectionalMap.get(source)!.has(target);
 
         // Phantom edges: orange color with dashed line
         const edgeColor = isPhantomEdge ? '#ff9800' : '#9ca3af';
@@ -140,7 +116,7 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
             width: 20,
             height: 20,
           },
-          data: { isPhantom: isPhantomEdge, isBidirectional: hasReverseEdge }, // For test selectors
+          data: { isBidirectional: hasReverseEdge }, // For test selectors
         };
 
         // If bidirectional, add arrow at the start (softer/open style for backward flow) and label with ⇄ symbol
@@ -166,9 +142,11 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
           processedBidirectional.add(`${source}-${target}`); // Mark this pair as processed
         }
 
-    edgesSet.set(`e-${source}-${target}`, edgeConfig);
+        edgesSet.set(`e-${source}-${target}`, edgeConfig);
+      }
+    });
   }
-  
+
   const initialEdges: Edge[] = Array.from(edgesSet.values());
 
   // Apply Dagre layout

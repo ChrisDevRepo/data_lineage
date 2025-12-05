@@ -77,29 +77,7 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
         isDemoMode = false
     } = props;
 
-    // Detect phantom schemas (schemas that ONLY contain phantom objects, no regular objects)
-    const phantomSchemas = useMemo(() => {
-        const schemasWithPhantoms = new Set<string>();
-        const schemasWithRegular = new Set<string>();
-
-        nodes.forEach(node => {
-            if (node.is_phantom) {
-                schemasWithPhantoms.add(node.schema);
-            } else {
-                schemasWithRegular.add(node.schema);
-            }
-        });
-
-        // Only mark as phantom if schema has phantom objects but NO regular objects
-        const phantomOnlySchemas = new Set<string>();
-        schemasWithPhantoms.forEach(schema => {
-            if (!schemasWithRegular.has(schema)) {
-                phantomOnlySchemas.add(schema);
-            }
-        });
-
-        return phantomOnlySchemas;
-    }, [nodes]);
+    // Phantom schemas detection removed (feature deprecated)
 
     const [isSchemaFilterOpen, setIsSchemaFilterOpen] = useState(false);
     const [isTypeFilterOpen, setIsTypeFilterOpen] = useState(false);
