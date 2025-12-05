@@ -385,8 +385,6 @@ function DataLineageVisualizer() {
     // Smart prioritization: Show most important nodes first
     // Priority order: 1) Phantoms, 2) Stored Procedures, 3) Functions, 4) Tables/Views
     const prioritized = [...finalVisibleData].sort((a, b) => {
-      if (a.is_phantom && !b.is_phantom) return -1;
-      if (!a.is_phantom && b.is_phantom) return 1;
       if (
         a.object_type === 'Stored Procedure' &&
         b.object_type !== 'Stored Procedure'
