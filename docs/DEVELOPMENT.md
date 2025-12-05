@@ -114,6 +114,37 @@ Once the container is running:
 | **Health Check** | http://localhost:8000/health | Health endpoint |
 | **Frontend Dev** | http://localhost:3000 | Vite dev server |
 
+### Common Workflows
+
+#### Running the Application
+
+**Development Mode** (with hot reload):
+```bash
+./start-app.sh dev
+# Backend: uvicorn with --reload at http://localhost:8000
+# Frontend: Vite dev server with HMR at http://localhost:3000
+```
+
+**Production Mode** (optimized build):
+```bash
+./start-app.sh
+# Serves pre-built frontend from dist/ at http://localhost:8000
+# Backend: FastAPI in production mode
+```
+
+**Force Rebuild**:
+```bash
+./start-app.sh --rebuild
+# Forces fresh production build even if dist/ exists
+# Use after updating dependencies or making major changes
+```
+
+**Stopping the Application**:
+```bash
+./stop-app.sh
+# Stops all background processes (backend and frontend)
+```
+
 ---
 
 ## Configuration
