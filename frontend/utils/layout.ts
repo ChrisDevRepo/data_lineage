@@ -109,13 +109,13 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
           data: { isPhantom: isPhantomEdge, isBidirectional: hasReverseEdge }, // For test selectors
         };
 
-        // If bidirectional, add arrow at the start and label with ⇄ symbol
+        // If bidirectional, add arrow at the start (softer/open style for backward flow) and label with ⇄ symbol
         if (hasReverseEdge) {
           edgeConfig.markerStart = {
-            type: MarkerType.ArrowClosed,
+            type: MarkerType.Arrow, // Open arrow (not filled) for backward flow - softer visual
             color: edgeColor,
-            width: 20,
-            height: 20,
+            width: 16, // Slightly smaller
+            height: 16,
           };
           edgeConfig.label = '⇄'; // Bidirectional symbol
           edgeConfig.labelStyle = {
