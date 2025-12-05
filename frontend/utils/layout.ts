@@ -87,19 +87,14 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
           return; // Skip this edge, already handled as bidirectional
         }
 
-        // Check if either endpoint is a phantom (negative ID)
-        const sourceId = parseInt(source);
-        const targetId = parseInt(target);
-        const isPhantomEdge = sourceId < 0 || targetId < 0;
-
         // Check if this edge is bidirectional (O(1) lookup using pre-computed data!)
         const hasReverseEdge =
           bidirectionalMap.has(source) &&
           bidirectionalMap.get(source)!.has(target);
 
-        // Phantom edges: orange color with dashed line
-        const edgeColor = isPhantomEdge ? '#ff9800' : '#9ca3af';
-        const strokeDasharray = isPhantomEdge ? '5,5' : undefined;
+        // Standard edge styling
+        const edgeColor = '#9ca3af';
+        const strokeDasharray = undefined;
 
         const edgeConfig: Edge = {
           id: `e-${source}-${target}`,
