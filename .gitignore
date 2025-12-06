@@ -102,3 +102,6 @@ frontend/public/demo-data.json
 
 # Static build artifacts
 static/
+tests/data/
+test/
+tests/
