@@ -60,7 +60,13 @@ SQL_QUERIES = {
             s.name AS schema_name,
             o.name AS object_name,
             o.object_id,
-            o.type_desc AS object_type,
+            CASE
+                WHEN o.type = 'U' THEN 'Table'
+                WHEN o.type = 'V' THEN 'View'
+                WHEN o.type = 'P' THEN 'Stored Procedure'
+                WHEN o.type IN ('FN', 'IF', 'TF', 'FS', 'FT') THEN 'Function'
+                ELSE 'Other'
+            END AS object_type,
             o.create_date,
             o.modify_date
         FROM sys.objects o

@@ -98,8 +98,7 @@ function DataLineageVisualizer() {
             setAllData(cachedData);
             setIsLoadingData(false);
             logger.perf(
-              `Loaded from localStorage cache: ${cachedData.length} nodes in ${
-                Date.now() - startTime
+              `Loaded from localStorage cache: ${cachedData.length} nodes in ${Date.now() - startTime
               }ms`
             );
             return; // Skip API call in demo mode
@@ -128,8 +127,7 @@ function DataLineageVisualizer() {
         const parseStart = Date.now();
         const data = await response.json();
         logger.perf(
-          `JSON parse took ${Date.now() - parseStart}ms, data size: ${
-            data.length
+          `JSON parse took ${Date.now() - parseStart}ms, data size: ${data.length
           } objects`
         );
 
@@ -661,7 +659,7 @@ function DataLineageVisualizer() {
       // Extract all unique object types from new data
       const allObjectTypes = new Set(
         processedData
-          .map((node) => node.object_type || node.type)
+          .map((node) => node.object_type)
           .filter(Boolean)
       );
 
@@ -720,14 +718,14 @@ function DataLineageVisualizer() {
         // Otherwise just search by name (manual search)
         const foundNodeData = schema
           ? allData.find(
-              (d) =>
-                d.name &&
-                d.name.toLowerCase() === query.toLowerCase() &&
-                d.schema === schema
-            )
+            (d) =>
+              d.name &&
+              d.name.toLowerCase() === query.toLowerCase() &&
+              d.schema === schema
+          )
           : allData.find(
-              (d) => d.name && d.name.toLowerCase() === query.toLowerCase()
-            );
+            (d) => d.name && d.name.toLowerCase() === query.toLowerCase()
+          );
 
         if (!foundNodeData) {
           addNotification('No object found with that name.', 'error');
@@ -1167,17 +1165,16 @@ function DataLineageVisualizer() {
           style === 'rounded-full'
             ? nodeHeight / 2
             : style === 'rounded-md'
-            ? 6
-            : 0;
+              ? 6
+              : 0;
         const strokeDasharray = style === 'border-dashed' ? '5, 5' : 'none';
         const color = schemaColorMap.get(data.schema) || '#7f7f7f';
 
         return `
             <g transform="translate(${x}, ${y})">
                 <rect width="${nodeWidth}" height="${nodeHeight}" rx="${rx}" fill="${color}30" stroke="${color}" stroke-width="2" stroke-dasharray="${strokeDasharray}"/>
-                <text x="${nodeWidth / 2}" y="${
-          nodeHeight / 2
-        }" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14px" font-weight="bold" fill="#1f2937">
+                <text x="${nodeWidth / 2}" y="${nodeHeight / 2
+          }" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="14px" font-weight="bold" fill="#1f2937">
                     ${data.name}
                 </text>
             </g>
@@ -1220,11 +1217,10 @@ function DataLineageVisualizer() {
 
       <!-- Header with Logo -->
       <g id="header">
-        ${
-          logoBase64
-            ? `<image href="${logoBase64}" x="20" y="20" width="200" height="60" preserveAspectRatio="xMinYMin meet"/>`
-            : ''
-        }
+        ${logoBase64
+        ? `<image href="${logoBase64}" x="20" y="20" width="200" height="60" preserveAspectRatio="xMinYMin meet"/>`
+        : ''
+      }
         <!-- Colorful accent bar -->
         <defs>
           <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -1233,16 +1229,14 @@ function DataLineageVisualizer() {
             <stop offset="100%" style="stop-color:#fb923c;stop-opacity:1" />
           </linearGradient>
         </defs>
-        <rect x="0" y="${
-          HEADER_HEIGHT - 10
-        }" width="${width}" height="4" fill="url(#accentGradient)"/>
+        <rect x="0" y="${HEADER_HEIGHT - 10
+      }" width="${width}" height="4" fill="url(#accentGradient)"/>
       </g>
 
       <!-- Schema Legend -->
       <g id="legend">
-        <text x="20" y="${
-          HEADER_HEIGHT + 40
-        }" font-family="sans-serif" font-size="16px" font-weight="bold" fill="#1f2937">Schemas</text>
+        <text x="20" y="${HEADER_HEIGHT + 40
+      }" font-family="sans-serif" font-size="16px" font-weight="bold" fill="#1f2937">Schemas</text>
         ${legendItems}
       </g>
 
@@ -1291,12 +1285,10 @@ function DataLineageVisualizer() {
             {isTraceFilterApplied && traceConfig && (
               <span
                 className="text-sm font-semibold text-blue-600 px-3 py-1 bg-blue-50 rounded-md border border-blue-200 cursor-help"
-                title={`Start: ${
-                  allData.find((n) => n.id === traceConfig.startNodeId)?.name ||
+                title={`Start: ${allData.find((n) => n.id === traceConfig.startNodeId)?.name ||
                   traceConfig.startNodeId
-                }\nUpstream: ${
-                  traceConfig.upstreamLevels
-                } levels\nDownstream: ${traceConfig.downstreamLevels} levels`}
+                  }\nUpstream: ${traceConfig.upstreamLevels
+                  } levels\nDownstream: ${traceConfig.downstreamLevels} levels`}
               >
                 Trace Mode
               </span>
@@ -1359,9 +1351,6 @@ function DataLineageVisualizer() {
             onClearNotificationHistory={clearNotificationHistory}
             isInTraceExitMode={isInTraceExitMode}
             closeDropdownsTrigger={closeDropdownsTrigger}
-            nodes={nodes
-              .map((n) => n.data)
-              .filter((data): data is DataNode => data != null)}
             isDemoMode={runMode === 'demo'}
           />
           {isTraceModeActive && traceConfig && (
@@ -1389,9 +1378,8 @@ function DataLineageVisualizer() {
           <div className="relative flex-grow rounded-b-lg flex overflow-hidden">
             {/* Graph Container - Dynamic width when SQL viewer open, 100% when closed */}
             <div
-              className={`relative ${
-                !isResizing ? 'transition-all duration-300' : ''
-              }`}
+              className={`relative ${!isResizing ? 'transition-all duration-300' : ''
+                }`}
               style={{
                 width: sqlViewerOpen ? `${100 - sqlViewerWidth}%` : '100%',
               }}
@@ -1447,9 +1435,8 @@ function DataLineageVisualizer() {
                 {/* Resize Handle */}
                 <div
                   onMouseDown={handleMouseDown}
-                  className={`w-1 bg-gray-300 hover:bg-blue-500 cursor-col-resize transition-colors ${
-                    isResizing ? 'bg-blue-500' : ''
-                  }`}
+                  className={`w-1 bg-gray-300 hover:bg-blue-500 cursor-col-resize transition-colors ${isResizing ? 'bg-blue-500' : ''
+                    }`}
                   style={{ userSelect: 'none' }}
                 />
                 {/* SQL Viewer Panel */}

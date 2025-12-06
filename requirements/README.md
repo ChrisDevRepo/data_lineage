@@ -43,7 +43,6 @@ base.txt
 parser.txt
 ├── base.txt (inherited)
 ├── duckdb, pyarrow, pandas
-├── sqlglot
 └── click
 
 api.txt

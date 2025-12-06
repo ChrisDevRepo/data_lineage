@@ -226,7 +226,7 @@ with DuckDBWorkspace(workspace_path=workspace) as db:
 
 ## Future Enhancements (Post-Phase 3)
 
-- [ ] **Phase 5**: AI fallback framework for complex SPs
+- [ ] **Phase 5**: Advanced parsing framework for complex SPs
 - [ ] **Phase 6**: Output formatters (internal + frontend JSON)
 - [ ] **Phase 7**: Full incremental pipeline with Steps 2-7
 - [ ] **Phase 8**: Integration testing with real Synapse data

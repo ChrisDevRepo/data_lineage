@@ -54,7 +54,7 @@ class DuckDBWorkspace:
     DEFAULT_WORKSPACE_PATH = "lineage_workspace.duckdb"
 
     # Schema for lineage_metadata table (incremental load tracking)
-    # v0.10.0 Phase 4.4: JSON inputs/outputs columns REMOVED
+    # Schema for lineage_metadata table (incremental load tracking)
     # - All dependency data now in lineage_edges table (see SCHEMA_LINEAGE_EDGES below)
     # - Migration from JSON to relational edge table complete
     SCHEMA_LINEAGE_METADATA = """
@@ -63,13 +63,13 @@ class DuckDBWorkspace:
             last_parsed_modify_date TIMESTAMP,
             last_parsed_at TIMESTAMP,
             primary_source TEXT,
-            parse_success BOOLEAN,  -- v4.3.6: Replaced confidence with simple boolean
-            expected_tables INTEGER,  -- v4.3.6: Diagnostic count
-            found_tables INTEGER  -- v4.3.6: Diagnostic count
+            parse_success BOOLEAN,  -- Replaced confidence with simple boolean
+            expected_tables INTEGER,  -- Diagnostic count
+            found_tables INTEGER  -- Diagnostic count
         )
     """
 
-    # Schema for lineage_edges table (v0.10.0 - Phase 4.1)
+    # Schema for lineage_edges table
     # Relational edge table to replace JSON arrays in lineage_metadata
     # This enables faster queries and prepares for ReactFlow direct output
     SCHEMA_LINEAGE_EDGES = """
@@ -102,7 +102,7 @@ class DuckDBWorkspace:
     """
 
     # Schema for parser comparison logs (deprecated in v4.3.6)
-    # This table is no longer used since SQLGlot was removed
+    # This table is no longer used since the old parser was removed
     SCHEMA_PARSER_COMPARISON = """
         CREATE TABLE IF NOT EXISTS parser_comparison_log (
             object_id INTEGER,
@@ -175,7 +175,7 @@ class DuckDBWorkspace:
         # Create lineage_metadata table
         self.connection.execute(self.SCHEMA_LINEAGE_METADATA)
 
-                # Migration v4.3.6: Drop confidence columns (replaced with parse_success boolean)
+                # Migration: Drop confidence columns (replaced with parse_success boolean)
         try:
             # Check if lineage_metadata exists first
             tables = [row[0] for row in self.query("SHOW TABLES")]
@@ -193,36 +193,36 @@ class DuckDBWorkspace:
 
             # Drop confidence columns if they exist (v4.3.6)
             if 'confidence' in column_names:
-                logger.info("Schema update: dropping confidence column (v4.3.6)...")
+                logger.info("Schema update: dropping confidence column...")
                 self.connection.execute("""
                     ALTER TABLE lineage_metadata DROP COLUMN confidence
                 """)
                 logger.info("✓ Schema update complete: confidence column dropped")
 
             if 'confidence_breakdown' in column_names:
-                logger.info("Schema update: dropping confidence_breakdown column (v4.3.6)...")
+                logger.info("Schema update: dropping confidence_breakdown column...")
                 self.connection.execute("""
                     ALTER TABLE lineage_metadata DROP COLUMN confidence_breakdown
                 """)
                 logger.info("✓ Schema update complete: confidence_breakdown column dropped")
 
-            # Add new columns for v4.3.6
+            # Add new columns
             if 'parse_success' not in column_names:
-                logger.info("Schema update: adding parse_success column (v4.3.6)...")
+                logger.info("Schema update: adding parse_success column...")
                 self.connection.execute("""
                     ALTER TABLE lineage_metadata ADD COLUMN parse_success BOOLEAN DEFAULT TRUE
                 """)
                 logger.info("✓ Schema update complete: parse_success column added")
 
             if 'expected_tables' not in column_names:
-                logger.info("Schema update: adding expected_tables column (v4.3.6)...")
+                logger.info("Schema update: adding expected_tables column...")
                 self.connection.execute("""
                     ALTER TABLE lineage_metadata ADD COLUMN expected_tables INTEGER DEFAULT 0
                 """)
                 logger.info("✓ Schema update complete: expected_tables column added")
 
             if 'found_tables' not in column_names:
-                logger.info("Schema update: adding found_tables column (v4.3.6)...")
+                logger.info("Schema update: adding found_tables column...")
                 self.connection.execute("""
                     ALTER TABLE lineage_metadata ADD COLUMN found_tables INTEGER DEFAULT 0
                 """)
@@ -231,7 +231,7 @@ class DuckDBWorkspace:
         except Exception as e:
             logger.warning(f"Could not migrate lineage_metadata columns: {e}")
 
-        # Migration: Add parse failure fields if they don't exist (v2.1.0 / BUG-002)
+        # Migration: Add parse failure fields if they don't exist
         try:
             # Re-fetch columns to check for new fields
             columns = self.connection.execute("""
@@ -274,7 +274,7 @@ class DuckDBWorkspace:
         # Create lineage_results table
         self.connection.execute(self.SCHEMA_LINEAGE_RESULTS)
 
-        # Create lineage_edges table (v0.10.0 - Phase 4.1)
+        # Create lineage_edges table
         # Relational edge table for better performance
         self.connection.execute(self.SCHEMA_LINEAGE_EDGES)
 

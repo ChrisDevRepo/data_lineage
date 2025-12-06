@@ -7,9 +7,6 @@ Type-safe configuration management using Pydantic Settings.
 This replaces scattered os.getenv() calls with a single source of truth,
 providing type safety, validation, and better testability.
 
-Author: Vibecoding
-Version: 2.1.0 - Multi-dialect support added
-Date: 2025-11-11
 """
 
 from pathlib import Path
@@ -134,13 +131,13 @@ class Settings(BaseSettings):
         """Convert comma-separated allowed_origins to list (for FastAPI CORS)"""
         return [origin.strip() for origin in self.allowed_origins.split(",")]
 
-    # SQL Dialect Configuration (v2.1.0 - Multi-dialect support)
+    # SQL Dialect Configuration
     sql_dialect: str = Field(
         default="tsql",
         description="SQL dialect for parser and metadata extraction (tsql, postgres, snowflake, bigquery). Note: Fabric uses tsql dialect.",
     )
 
-    # Global Schema Exclusion (v4.3.0 - Universal filter)
+    # Global Schema Exclusion
     excluded_schemas: str = Field(
         default="sys,dummy,information_schema,tempdb,master,msdb,model",
         description="Comma-separated list of schemas to ALWAYS exclude from ALL processing (metadata, objects)",
