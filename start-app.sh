@@ -69,7 +69,7 @@ if ! $PYTHON_BIN -c "import fastapi" 2>/dev/null; then
 fi
 
 cd "$SCRIPT_DIR/api"
-nohup $PYTHON_BIN main.py > /tmp/backend.log 2>&1 &
+nohup env PYTHONPATH=$SCRIPT_DIR $PYTHON_BIN main.py > /tmp/backend.log 2>&1 &
 BACKEND_PID=$!
 echo "   ✅ Backend started (PID: $BACKEND_PID)"
 echo "   📋 Logs: tail -f /tmp/backend.log"
