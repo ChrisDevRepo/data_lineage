@@ -51,7 +51,6 @@ type ToolbarProps = {
   onClearNotificationHistory: () => void;
   isInTraceExitMode: boolean;
   closeDropdownsTrigger?: number; // Increment this to close all dropdowns from outside
-  nodes: DataNode[]; // Added to detect phantom schemas
   isDemoMode?: boolean; // Disable import in demo mode
 };
 
@@ -101,7 +100,6 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
     onClearNotificationHistory,
     isInTraceExitMode,
     closeDropdownsTrigger,
-    nodes,
     isDemoMode = false,
   } = props;
 
@@ -175,8 +173,8 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
   // Filter schemas based on search term
   const filteredSchemas = schemaSearchTerm.trim()
     ? schemas.filter((s) =>
-        s.toLowerCase().includes(schemaSearchTerm.toLowerCase())
-      )
+      s.toLowerCase().includes(schemaSearchTerm.toLowerCase())
+    )
     : schemas;
 
   return (
@@ -435,11 +433,10 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
                           }
                           setFocusSchemas(newFocus);
                         }}
-                        className={`p-1 rounded hover:bg-gray-100 transition-colors flex-shrink-0 ${
-                          focusSchemas.has(s)
-                            ? 'text-yellow-500'
-                            : 'text-gray-300'
-                        }`}
+                        className={`p-1 rounded hover:bg-gray-100 transition-colors flex-shrink-0 ${focusSchemas.has(s)
+                          ? 'text-yellow-500'
+                          : 'text-gray-300'
+                          }`}
                         title={
                           focusSchemas.has(s)
                             ? 'Remove from focus schemas'
@@ -495,9 +492,8 @@ export const Toolbar = React.memo((props: ToolbarProps) => {
             <Button
               onClick={() => setIsTypeFilterOpen((p) => !p)}
               variant="icon"
-              title={`Types (${selectedObjectTypes.size + selectedTypes.size}/${
-                objectTypes.length + dataModelTypes.length
-              })`}
+              title={`Types (${selectedObjectTypes.size + selectedTypes.size}/${objectTypes.length + dataModelTypes.length
+                })`}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

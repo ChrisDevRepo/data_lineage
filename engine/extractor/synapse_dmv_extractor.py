@@ -6,7 +6,7 @@ Synapse DMV Extractor - Production Tool
 Standalone utility to export Azure Synapse metadata (DMVs) to Parquet files.
 
 This script is designed for external users who need to generate Parquet snapshots
-of their Synapse metadata for use with the Vibecoding Lineage Parser v2.0.
+of their Synapse metadata for use with the Vibecoding Lineage Parser.
 
 Requirements:
     - Python >= 3.10

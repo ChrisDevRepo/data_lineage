@@ -3,7 +3,9 @@ Gap Detector - Identifies objects with missing dependencies
 
 This module identifies stored procedures, tables, and views that have no
 resolved dependencies in the lineage_metadata table. These "gaps" need to
-be filled by the SQLGlot parser or AI fallback.
+be filled by the standard parser.
+...
+    Primary use case: Identify stored procedures that need parsing
 
 Author: Vibecoding
 Version: 3.0.0
@@ -24,7 +26,7 @@ class GapDetector:
     2. Object has no entry in lineage_metadata (never parsed)
     3. OR object has entry but inputs=[] AND outputs=[] (no dependencies found)
 
-    Primary use case: Identify stored procedures that need SQLGlot parsing
+    Primary use case: Identify stored procedures that need regex parsing
     after DMV extraction fails to find dependencies.
     """
 
