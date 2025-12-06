@@ -13,15 +13,6 @@ can edit without Python knowledge.
 Version: 4.3.6 (Confidence Scoring Removed)
 Date: 2025-11-19
 
-Changelog:
-- v4.3.6 (2025-11-19): REMOVED confidence scoring (circular logic with regex-only)
-- v4.3.5 (2025-11-19): REMOVED SQLGlot, pure YAML regex extraction
-- v4.3.5 (2025-11-19): Business users can maintain patterns via YAML
-
-Rationale for removing confidence:
-With a single extraction method (regex), comparing regex results to regex results
-is circular logic. Confidence was always 100% unless catalog validation failed,
-which indicates incomplete metadata rather than parser quality.
 """
 
 from typing import List, Dict, Any, Set, Tuple, Optional
@@ -43,55 +34,7 @@ from engine.config import settings
 logger = logging.getLogger(__name__)
 
 
-class YAMLRuleEngineAdapter:
-    """
-    Adapter to make YAML rules compatible with RuleEngine interface.
 
-    Provides the same apply_all() method as Python RuleEngine,
-    but uses YAML rules underneath.
-
-    Version: 0.9.0
-    """
-
-    def __init__(self, rules: List):
-        """
-        Initialize adapter with YAML rules.
-
-        Args:
-            rules: List of Rule objects from YAML rule loader
-        """
-        self.rules = rules
-
-    def apply_all(self, sql: str, verbose: bool = False) -> str:
-        """
-        Apply all YAML rules to SQL (same interface as RuleEngine).
-
-        Args:
-            sql: SQL to clean
-            verbose: If True, log each rule application
-
-        Returns:
-            Cleaned SQL
-        """
-        result = sql
-
-        for rule in self.rules:
-            if not rule.enabled:
-                if verbose:
-                    logger.debug(f"Skipping disabled rule: {rule.name}")
-                continue
-
-            if verbose:
-                logger.debug(f"Applying YAML rule: {rule.name}")
-
-            try:
-                result = rule.apply(result, verbose=verbose)
-            except Exception as e:
-                logger.error(f"YAML rule '{rule.name}' failed: {e}")
-                # Continue with other rules (graceful degradation)
-                continue
-
-        return result.strip()
 
 
 class QualityAwareParser:
@@ -149,107 +92,73 @@ class QualityAwareParser:
         (r'\bPRINT\s+[^\n;]+', '-- PRINT removed'),
     ]
 
-    # Enhanced preprocessing patterns (2025-11-04)
-    # v4.1.0: DATAFLOW MODE - Remove administrative code, keep only DML operations
-    # Philosophy: Focus on data transformation (INSERT/UPDATE/DELETE/MERGE), not housekeeping
+    # Enhanced preprocessing patterns
+    # Remove administrative code, keep only DML operations
     ENHANCED_REMOVAL_PATTERNS = [
-        # DATAFLOW: Remove IF EXISTS checks (administrative, not data transformation)
-        # v4.1.3: NEW - Removes IF EXISTS(...) checks that reference tables
-        # Example: IF EXISTS (SELECT 1 FROM [dbo].[Table]) DELETE FROM [dbo].[Table];
-        # → DELETE FROM [dbo].[Table];  -- IF EXISTS removed
-        # These checks are administrative logic, not actual data lineage
-        # Pattern matches balanced parentheses to handle nested SELECT/COUNT/EXISTS
+        # Remove IF EXISTS checks reference tables
         (r'\bIF\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*',
          '-- IF EXISTS removed\n',
          re.IGNORECASE),
 
-        # DATAFLOW: Remove IF NOT EXISTS checks (same reasoning)
-        # Example: IF NOT EXISTS (SELECT 1 FROM [dbo].[Table]) INSERT INTO [dbo].[Table]...
-        # → INSERT INTO [dbo].[Table]...  -- IF NOT EXISTS removed
+        # Remove IF NOT EXISTS checks
         (r'\bIF\s+NOT\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*',
          '-- IF NOT EXISTS removed\n',
          re.IGNORECASE),
 
-        # DATAFLOW: Replace CATCH blocks with dummy (error handling not dataflow)
-        # v4.1.0: Changed from removing to replacing with SELECT 1 (keeps SQL valid)
-        # Example: BEGIN /* CATCH */ INSERT INTO ErrorLog ... END /* CATCH */
-        # → BEGIN /* CATCH */ SELECT 1 END /* CATCH */ (Regex can still extract)
+        # Replace CATCH blocks with SELECT 1
         (r'BEGIN\s+/\*\s*CATCH\s*\*/.*?END\s+/\*\s*CATCH\s*\*/',
          'BEGIN /* CATCH */\n  -- Error handling removed for dataflow clarity\n  SELECT 1;\nEND /* CATCH */',
          re.DOTALL),
 
-        # DATAFLOW: Replace content after ROLLBACK (failure paths not dataflow)
-        # v4.1.0: NEW - Removes rollback recovery code
-        # Example: ROLLBACK TRANSACTION; INSERT INTO ErrorLog ... → ROLLBACK TRANSACTION; SELECT 1;
+        # Replace content after ROLLBACK
         (r'ROLLBACK\s+TRANSACTION\s*;.*?(?=END|$)',
          'ROLLBACK TRANSACTION;\n  -- Rollback path removed for dataflow clarity\n  SELECT 1;\n',
          re.DOTALL),
 
-        # v4.3.3: SIMPLIFIED - Remove ALL DECLARE/SET @variable statements in one pass
-        # Eliminates conflict: Previous patterns 6-7 created literals, then patterns 8-10 removed them
-        # New: Single pattern removes all variable declarations/assignments directly
-        # Removes:
-        #   - DECLARE @var INT = (SELECT COUNT(*) FROM Table)  [with SELECT]
-        #   - DECLARE @var INT = 100  [without SELECT]
-        #   - SET @var = (SELECT MAX(id) FROM Table)  [with SELECT]
-        #   - SET @var = @var + 1  [without SELECT]
-        #   - SET NOCOUNT ON  [session options]
-        # Pattern matches entire statement from DECLARE/SET to semicolon or newline
-        # Benefits: No create-then-remove conflict, 57% faster (1 regex vs 6)
+        # Remove all variable declarations/assignments
         (r'\b(DECLARE|SET)\s+@\w+[^;]*;?', '', re.IGNORECASE | re.MULTILINE),
     ]
 
-    def __init__(self, workspace: DuckDBWorkspace, enable_sql_cleaning: bool = True):
+    def __init__(self, workspace: DuckDBWorkspace):
         """
         Initialize parser with DuckDB workspace.
 
         Args:
             workspace: DuckDB workspace for catalog access
-            enable_sql_cleaning: Enable SQL Cleaning Engine with YAML rules (default: True)
         """
         self.workspace = workspace
         self._object_catalog = None
         self.hints_parser = CommentHintsParser(workspace)
 
-        # SQL Cleaning Engine with YAML rules (v0.9.0)
-        self.enable_sql_cleaning = enable_sql_cleaning
-
         # Load excluded schemas from settings
         from engine.config.settings import settings
         self.excluded_schemas = settings.excluded_schema_set
 
-        # Load YAML rules for configured dialect (v4.3.5: cleaning + extraction)
+        # Load YAML rules for configured dialect (v4.3.5: extraction only)
         try:
             dialect = settings.dialect
             all_rules = load_rules(dialect, custom_dirs=None)
 
             if all_rules:
-                # Separate cleaning and extraction rules
-                self.cleaning_rules = [r for r in all_rules if r.rule_type == 'cleaning']
+                # Filter for extraction and cleaning rules
                 self.extraction_rules = [r for r in all_rules if r.rule_type == 'extraction']
+                self.cleaning_rules = [r for r in all_rules if r.rule_type == 'cleaning']
                 
-                # Create cleaning adapter if cleaning enabled
-                if self.enable_sql_cleaning and self.cleaning_rules:
-                    self.cleaning_engine = YAMLRuleEngineAdapter(self.cleaning_rules)
-                    logger.info(f"SQL Cleaning Engine loaded: {len(self.cleaning_rules)} cleaning rules for {dialect.value}")
-                else:
-                    self.cleaning_engine = None
-                
-                # Log extraction rules
-                if self.extraction_rules:
-                    logger.info(f"SQL Extraction Engine loaded: {len(self.extraction_rules)} extraction rules for {dialect.value}")
-                else:
-                    logger.warning(f"No extraction rules found for {dialect.value}")
-                    self.extraction_rules = []
+                # Log rule stats
+                logger.info(
+                    f"SQL Parsing Engine loaded: "
+                    f"{len(self.extraction_rules)} extraction rules, "
+                    f"{len(self.cleaning_rules)} cleaning rules for {dialect.value}"
+                )
             else:
                 logger.warning(f"No YAML rules found for {dialect.value}")
-                self.cleaning_engine = None
                 self.extraction_rules = []
+                self.cleaning_rules = []
 
         except Exception as e:
             logger.error(f"Failed to load YAML rules: {e}")
-            self.cleaning_engine = None
             self.extraction_rules = []
+            self.cleaning_rules = []
 
     def parse_object(self, object_id: int) -> Dict[str, Any]:
         """
@@ -281,6 +190,11 @@ class QualityAwareParser:
 
         # Fetch DDL
         ddl = self._fetch_ddl(object_id)
+
+        # DEBUG DIAGNOSTIC: Dump DDL for the hint test SP
+        if str(object_id) == '1607676775' or (ddl and 'usp_LineageTest_Hints' in ddl):
+            logger.debug(f"DIAGNOSTIC DUMP for {object_id}:\n{ddl!r}")
+
         if not ddl:
             return {
                 'object_id': object_id,
@@ -302,6 +216,9 @@ class QualityAwareParser:
             }
 
         try:
+            # Initialize obj_info to prevent UnboundLocalError
+            obj_info = None
+
             # STEP 1: Regex baseline (expected counts)
             regex_sources, regex_targets, regex_sp_calls, regex_function_calls = self._regex_scan(ddl)
             regex_sources_valid = self._validate_against_catalog(regex_sources)
@@ -310,7 +227,9 @@ class QualityAwareParser:
             regex_function_calls_valid = self._validate_function_calls(regex_function_calls)  # v4.3.0
 
             # STEP 2: Extract comment hints (v4.2.0)
+            logger.debug(f"Parsing hints for object {object_id}")
             hint_inputs, hint_outputs = self.hints_parser.extract_hints(ddl, validate=True)
+            logger.debug(f"Extracted hints for {object_id}: Inputs={hint_inputs}, Outputs={hint_outputs}")
 
             # UNION hints with parser results (no duplicates)
             parser_sources_with_hints = regex_sources_valid | hint_inputs
@@ -377,6 +296,10 @@ class QualityAwareParser:
             if parse_time > 1.0:
                 logger.warning(f"Slow parse for object_id {object_id}: {parse_time:.2f}s")
 
+            # Log summary for every object (requested by user)
+            obj_name = f"{obj_info['schema']}.{obj_info['name']}" if obj_info else f"ID:{object_id}"
+            logger.debug(f"Parsed {obj_name} ({object_id}): Success=True, Tables={found_tables}, Hints={has_hints}")
+
             return {
                 'object_id': object_id,
                 'inputs': input_ids,
@@ -440,8 +363,12 @@ class QualityAwareParser:
         sp_calls = set()
         function_calls = set()
 
-        # STEP 1: Identify non-persistent objects to exclude
-        non_persistent = self._identify_non_persistent_objects(ddl)
+        # STEP 0: Preprocess DDL (Clean comments, normalize, etc.)
+        # This applies YAML cleaning rules (like comment removal) to avoid false positives
+        cleaned_ddl = self._preprocess_ddl(ddl)
+
+        # STEP 1: Identify non-persistent objects to exclude (using CLEANED DDL)
+        non_persistent = self._identify_non_persistent_objects(cleaned_ddl)
         logger.debug(f"Found {len(non_persistent)} non-persistent objects: {non_persistent}")
 
         # STEP 2: Apply extraction rules from YAML
@@ -449,8 +376,8 @@ class QualityAwareParser:
             if not rule.enabled:
                 continue
 
-            # Extract objects using rule
-            extracted = rule.extract(ddl, verbose=False)
+            # Extract objects using rule (from CLEANED DDL)
+            extracted = rule.extract(cleaned_ddl, verbose=False)
 
             # Filter out non-persistent objects and excluded schemas
             # v4.3.7: Skip catalog validation if flag is set (for CTAS, SELECT INTO)
@@ -573,44 +500,31 @@ class QualityAwareParser:
         **Goal:** Extract only the core business logic (data movement statements)
         and remove T-SQL specific syntax that complicates pattern matching.
 
-        **Strategy (v4.3.5 - YAML Regex Extraction):**
-        1. Apply SQL Cleaning Engine rules (if enabled) for better regex matching
-           - Removes GO, DECLARE, SET, TRY/CATCH, RAISERROR, EXEC, transactions
-           - Extracts core DML from CREATE PROC wrapper
-           - 10 declarative rules with priority-based execution
-        2. **Fallback**: Legacy regex-based preprocessing (if cleaning disabled)
+        **Goal:** Extract only the core business logic (data movement statements)
+        and remove T-SQL specific syntax that complicates pattern matching.
 
-        **Original Strategy (2025-11-03):**
-        1. Normalize statement boundaries with semicolons (for clarity)
-        2. Fix DECLARE pattern to avoid greedy matching
-        3. Focus on TRY block (business logic), remove CATCH/EXEC/post-COMMIT noise
-
-        **Performance Optimization (v4.3.2):**
-        - Simplify SELECT clauses to SELECT * (object-level lineage only)
-        - Reduces parsing complexity without affecting table extraction
+        **Strategy:**
+        1. Apply SQL Cleaning Engine rules (if enabled)
+        2. Clean ANSI escape codes
+        3. Remove CREATE PROC headers
+        4. Normalize statement boundaries
+        5. Simplify SELECT clauses
 
         Args:
             ddl: Raw DDL from sys.sql_modules.definition
 
         Returns:
-            Cleaned DDL ready for parser consumption
-        """
-        # Step 0: Apply SQL Cleaning Engine with YAML rules (if enabled and available)
-        # This is a more sophisticated rule-based approach that improves regex extraction accuracy
-        # (Baseline 53.6% → Improved 80.8% based on 349 production SPs)
-        if self.enable_sql_cleaning and self.cleaning_engine is not None:
-            try:
-                cleaned = self.cleaning_engine.apply_all(ddl, verbose=False)
-                logger.debug(f"SQL Cleaning Engine applied: {len(ddl)} → {len(cleaned)} bytes")
-                # Apply SELECT simplification before returning
-                cleaned = self._simplify_select_clauses(cleaned)
-                return cleaned.strip()
-            except Exception as e:
-                logger.warning(f"SQL Cleaning Engine failed, falling back to legacy preprocessing: {e}")
-                # Fall through to legacy preprocessing
-
-        # Legacy preprocessing (used if cleaning engine disabled or fails)
+        Cleaned DDL ready for parser consumption
+    """
+        # Legacy preprocessing (always used now)
         cleaned = ddl
+
+        # Step 0: Apply YAML cleaning rules (High Priority)
+        # This enables declarative cleaning (e.g. comment removal)
+        if hasattr(self, 'cleaning_rules') and self.cleaning_rules:
+            for rule in self.cleaning_rules:
+                if rule.enabled:
+                    cleaned = rule.apply(cleaned, verbose=False)
 
         # Step 1: Remove ANSI escape codes (e.g., \x1b[32m for green text)
         # These appear in some DDL exports and break regex matching
@@ -764,110 +678,7 @@ class QualityAwareParser:
 
         return statements
 
-        # All table extraction now uses regex-based methods only.
-        sources = set()
-        targets = set()
-        select_into_targets = set()  # Track SELECT INTO temp tables separately
 
-        # STEP 1a: Extract SELECT INTO targets (temp tables only)
-        # Pattern: SELECT ... INTO #temp FROM ...
-        for select in parsed.find_all(exp.Select):
-            if select.args.get('into'):
-                # This is a SELECT INTO statement
-                into_node = select.args['into']
-
-                # Handle different node types for INTO clause
-                # SELECT INTO is a T-SQL extension
-                if isinstance(into_node, exp.Into):
-                    # Extract table from Into.this
-                    into_table = into_node.this
-                    if isinstance(into_table, exp.Table):
-                        name = self._get_table_name(into_table)
-                    else:
-                        name = None
-                elif isinstance(into_node, exp.Table):
-                    name = self._get_table_name(into_node)
-                elif isinstance(into_node, exp.Schema):
-                    # Schema wraps table (bracketed identifiers)
-                    if into_node.this and isinstance(into_node.this, exp.Table):
-                        name = self._get_table_name(into_node.this)
-                    else:
-                        name = None
-                else:
-                    name = None
-
-                # Track ALL SELECT INTO targets separately
-                # Key insight: SELECT INTO #temp FROM source_table
-                # - #temp is a target (will be filtered by _is_excluded later)
-                # - source_table is a source (should NOT be excluded)
-                if name:
-                    select_into_targets.add(name)
-                    # Also add to targets (temp tables will be filtered by _is_excluded later)
-                    targets.add(name)
-
-        # STEP 1b: Extract DML targets (INSERT, UPDATE, MERGE, DELETE)
-        for insert in parsed.find_all(exp.Insert):
-            name = self._extract_dml_target(insert.this)
-            if name:
-                targets.add(name)
-
-        for update in parsed.find_all(exp.Update):
-            name = self._extract_dml_target(update.this)
-            if name:
-                targets.add(name)
-
-        for merge in parsed.find_all(exp.Merge):
-            name = self._extract_dml_target(merge.this)
-            if name:
-                targets.add(name)
-
-        for delete in parsed.find_all(exp.Delete):
-            name = self._extract_dml_target(delete.this)
-            if name:
-                targets.add(name)
-
-        # STEP 1c: TRUNCATE extraction DISABLED in v4.1.0 (DATAFLOW MODE)
-        # TRUNCATE is DDL (housekeeping), not DML (data transformation)
-        # In dataflow mode, we only show INSERT/UPDATE/DELETE/MERGE operations
-        # Rationale: TRUNCATE clears data but doesn't transform it
-        # Previous behavior (v3.5.0-v4.0.x): TRUNCATE was captured as output
-        # New behavior (v4.1.0+): TRUNCATE is filtered out to reduce noise
-        #
-        # for truncate in parsed.find_all(exp.TruncateTable):
-        #     if truncate.this:
-        #         name = self._extract_dml_target(truncate.this)
-        #         if name:
-        #             targets.add(name)
-
-        # STEP 2: Extract sources (FROM, JOIN) - FIXED v4.1.2 (2025-11-04)
-        # Issue: find_all(exp.Table) was extracting ALL tables including DML targets
-        # Root cause: INSERT INTO target was being added to sources (false positive)
-        #
-        # T-SQL statement structure:
-        #   INSERT.this = target table
-        #   INSERT.expression = SELECT statement with sources
-        #
-        # Solution: Exclude DML targets from source extraction (per-statement)
-        # Note: Target exclusion happens globally after regex extraction
-        # are accumulated. This per-statement exclusion is a defensive measure.
-
-        for table in parsed.find_all(exp.Table):
-            name = self._get_table_name(table)
-            if name:
-                # Skip temp tables from SELECT INTO (internal dependencies)
-                if name in select_into_targets:
-                    continue
-
-                # v4.1.2 FIX: Skip DML targets (they're outputs, not inputs)
-                # This prevents INSERT INTO target from appearing in sources
-                if name in targets:
-                    continue
-
-                sources.add(name)
-
-        return sources, targets
-
-    # SQLGlot AST logic removed; regex-only parsing in use
 
     def _get_object_catalog(self) -> Set[str]:
         """Get set of valid table names from workspace."""
@@ -1229,56 +1040,6 @@ class QualityAwareParser:
             'total_parsed': total,
             'with_dependencies': with_deps,
             'success_rate': (with_deps / total * 100) if total > 0 else 0
-        }
-
-    # ============================================================================
-    # PUBLIC EVALUATION WRAPPERS (for sub_DL_OptimizeParsing subagent)
-    # ============================================================================
-    # These methods expose internal parsing logic for evaluation purposes.
-    # They do NOT affect production parsing behavior.
-
-    def extract_regex_dependencies(self, ddl: str) -> Dict[str, Any]:
-        """
-        Public wrapper for regex extraction (used by evaluation subagent).
-
-        Runs regex pattern matching to extract table dependencies.
-        This is the baseline method used for quality checking.
-
-        Args:
-            ddl: SQL DDL text
-
-        Returns:
-            {
-                'sources': Set[str],           # Raw schema.table names found
-                'targets': Set[str],           # Raw schema.table names found
-                'sources_validated': Set[str], # After catalog validation
-                'targets_validated': Set[str], # After catalog validation
-                'sources_count': int,
-                'targets_count': int
-            }
-        """
-        # Use existing internal regex scan
-        sources, targets, sp_calls, function_calls = self._regex_scan(ddl)
-
-        # Validate against catalog (same as production)
-        sources_validated = self._validate_against_catalog(sources)
-        targets_validated = self._validate_against_catalog(targets)
-        sp_calls_validated = self._validate_sp_calls(sp_calls)
-        function_calls_validated = self._validate_function_calls(function_calls)  # v4.3.0
-
-        return {
-            'sources': sources,
-            'targets': targets,
-            'sp_calls': sp_calls,  # v4.0.1: Added SP-to-SP lineage
-            'function_calls': function_calls,  # v4.3.0: Added function detection
-            'sources_validated': sources_validated,
-            'targets_validated': targets_validated,
-            'sp_calls_validated': sp_calls_validated,  # v4.0.1
-            'function_calls_validated': function_calls_validated,  # v4.3.0
-            'sources_count': len(sources_validated),
-            'targets_count': len(targets_validated),
-            'sp_calls_count': len(sp_calls_validated),  # v4.0.1
-            'function_calls_count': len(function_calls_validated)  # v4.3.0
         }
 
 
