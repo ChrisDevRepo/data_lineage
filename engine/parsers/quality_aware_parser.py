@@ -565,11 +565,16 @@ class QualityAwareParser:
         # Pattern explanation:
         # - \bSELECT\s+ - Match SELECT keyword
         # - (TOP\s+\d+\s+|DISTINCT\s+)? - Optional TOP or DISTINCT
-        # - .*? - Non-greedy match of column list
+        # - (?:(?!\bSELECT\b).)* - Match any char EXCEPT another SELECT keyword (prevents cross-statement matching)
         # - (?=\s+FROM\b) - Lookahead for FROM keyword
+        #
+        # v4.3.3 Bug fix: Added negative lookahead for SELECT keyword to prevent matching
+        # from one SELECT across INSERT INTO statements to another SELECT's FROM clause.
+        # Example bug: "DECLARE @x = (SELECT id FROM t1) ... INSERT INTO t2 SELECT col FROM t3"
+        # would match from first SELECT to last FROM, destroying the INSERT INTO.
 
         simplified = re.sub(
-            r'\bSELECT\s+(TOP\s+\d+\s+|DISTINCT\s+)?.*?(?=\s+FROM\b)',
+            r'\bSELECT\s+(TOP\s+\d+\s+|DISTINCT\s+)?(?:(?!\bSELECT\b).)*?(?=\s+FROM\b)',
             r'SELECT \g<1>*',
             sql,
             flags=re.IGNORECASE | re.DOTALL
