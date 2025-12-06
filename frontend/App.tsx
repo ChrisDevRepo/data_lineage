@@ -374,15 +374,40 @@ function DataLineageVisualizer() {
 
   // --- Performance: Node Limiting for Large Graphs ---
   // v4.3.0: Limit visible nodes to prevent browser crashes with 1,000+ nodes
-  const MAX_VISIBLE_NODES = 500;
+  // v4.3.4: Increased to 1000 to support larger datasets (user has ~1k nodes)
+  const MAX_VISIBLE_NODES = 1000;
   const limitedVisibleData = useMemo(() => {
     if (finalVisibleData.length <= MAX_VISIBLE_NODES) {
       return finalVisibleData;
     }
 
-    // Smart prioritization: Show most important nodes first
-    // Priority order: 1) Phantoms, 2) Stored Procedures, 3) Functions, 4) Tables/Views
-    const prioritized = [...finalVisibleData].sort((a, b) => {
+    // PRIORITY 1: Always include highlighted nodes and their direct neighbors
+    const mustInclude = new Set<string>();
+
+    highlightedNodes.forEach((nodeId) => {
+      mustInclude.add(nodeId);
+      // Add neighbors
+      if (lineageGraph.hasNode(nodeId)) {
+        const neighbors = lineageGraph.neighbors(nodeId);
+        neighbors.forEach((nId) => mustInclude.add(nId));
+      }
+    });
+
+    // Split nodes into must-include and others
+    const mustIncludeNodes: DataNode[] = [];
+    const otherNodes: DataNode[] = [];
+
+    finalVisibleData.forEach((node) => {
+      if (mustInclude.has(node.id)) {
+        mustIncludeNodes.push(node);
+      } else {
+        otherNodes.push(node);
+      }
+    });
+
+    // PRIORITY 2: Smart prioritization for remaining slots
+    // Priority order: 1) Stored Procedures, 2) Functions, 3) Tables/Views
+    const prioritized = otherNodes.sort((a, b) => {
       if (
         a.object_type === 'Stored Procedure' &&
         b.object_type !== 'Stored Procedure'
@@ -400,15 +425,17 @@ function DataLineageVisualizer() {
       return 0;
     });
 
-    const limited = prioritized.slice(0, MAX_VISIBLE_NODES);
-    const hiddenCount = finalVisibleData.length - MAX_VISIBLE_NODES;
+    // Combine: must-include first, then fill remaining slots
+    const remainingSlots = MAX_VISIBLE_NODES - mustIncludeNodes.length;
+    const limited = [...mustIncludeNodes, ...prioritized.slice(0, remainingSlots)];
+    const hiddenCount = finalVisibleData.length - limited.length;
 
     logger.perf(
-      `Performance limit: Showing ${MAX_VISIBLE_NODES} of ${finalVisibleData.length} nodes (${hiddenCount} hidden)`
+      `Performance limit: Showing ${limited.length} of ${finalVisibleData.length} nodes (${hiddenCount} hidden, ${mustIncludeNodes.length} priority)`
     );
 
     return limited;
-  }, [finalVisibleData]);
+  }, [finalVisibleData, highlightedNodes, lineageGraph]);
 
   // --- Memos for Derived State and Layouting ---
   const layoutedElements = useMemo(() => {
