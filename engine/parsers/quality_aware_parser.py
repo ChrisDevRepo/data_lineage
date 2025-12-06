@@ -10,9 +10,6 @@ Strategy:
 All extraction patterns are maintained in YAML files that business users
 can edit without Python knowledge.
 
-Version: 4.3.6 (Confidence Scoring Removed)
-Date: 2025-11-19
-
 """
 
 from typing import List, Dict, Any, Set, Tuple, Optional
@@ -50,74 +47,9 @@ class QualityAwareParser:
 
 
 
-    # Default configuration if file not found
-    DEFAULT_INCLUDE_SCHEMAS = [
-        'CONSUMPTION*', 'Consumption*',
-        'STAGING*', 'Staging*',
-        'TRANSFORMATION*', 'Transformation*',
-        'BB', 'B'
-    ]
 
-    DEFAULT_EXCLUDED_SCHEMAS = {'sys', 'dummy', 'information_schema', 'INFORMATION_SCHEMA', 'tempdb', 'master', 'msdb', 'model'}
 
-    DEFAULT_EXCLUDED_DBO_PATTERNS = [
-        'cte', 'cte_', 'cte1', 'cte2', 'cte3', 'CTE', 'CTE_',
-        'ParsedData', 'PartitionedCompany', 'PartitionedCompanyKoncern',
-        't', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm',
-        'n', 'o', 'p', 'q', 'r', 's', 'u', 'v', 'w', 'x', 'y', 'z',
-    ]
 
-    # T-SQL control flow patterns to remove during preprocessing
-    # These patterns confuse the SQL parser and are not relevant for lineage extraction
-    CONTROL_FLOW_PATTERNS = [
-        # IF statements with temp table drops (common pattern in Synapse SPs)
-        # Example: IF OBJECT_ID('tempdb..#temp') IS NOT NULL BEGIN DROP TABLE #temp; END
-        (r'\bIF\s+OBJECT_ID\s*\([^)]+\)\s+IS\s+NOT\s+NULL\s+BEGIN\s+DROP\s+TABLE\s+[^;]+;\s*END',
-         '-- IF removed'),
-        # Shorter form without BEGIN/END
-        (r'\bIF\s+OBJECT_ID\s*\([^)]+\)\s+IS\s+NOT\s+NULL\s+DROP\s+TABLE\s+[^;]+;?',
-         '-- IF removed'),
-
-        # BEGIN/END blocks - convert to comments so parser can still understand structure
-        # but won't choke on T-SQL specific syntax
-        (r'\bBEGIN\s+TRY\b', 'BEGIN /* TRY */'),
-        (r'\bEND\s+TRY\b', 'END /* TRY */'),
-        (r'\bBEGIN\s+CATCH\b', 'BEGIN /* CATCH */'),
-        (r'\bEND\s+CATCH\b', 'END /* CATCH */'),
-
-        # RAISERROR and PRINT - administrative code, not data lineage
-        # Example: RAISERROR('Error occurred', 16, 1)
-        (r'\bRAISERROR\s*\([^)]+\)', '-- RAISERROR removed'),
-        # Example: PRINT 'Processing customers...'
-        (r'\bPRINT\s+[^\n;]+', '-- PRINT removed'),
-    ]
-
-    # Enhanced preprocessing patterns
-    # Remove administrative code, keep only DML operations
-    ENHANCED_REMOVAL_PATTERNS = [
-        # Remove IF EXISTS checks reference tables
-        (r'\bIF\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*',
-         '-- IF EXISTS removed\n',
-         re.IGNORECASE),
-
-        # Remove IF NOT EXISTS checks
-        (r'\bIF\s+NOT\s+EXISTS\s*\((?:[^()]|\([^()]*\))*\)\s*',
-         '-- IF NOT EXISTS removed\n',
-         re.IGNORECASE),
-
-        # Replace CATCH blocks with SELECT 1
-        (r'BEGIN\s+/\*\s*CATCH\s*\*/.*?END\s+/\*\s*CATCH\s*\*/',
-         'BEGIN /* CATCH */\n  -- Error handling removed for dataflow clarity\n  SELECT 1;\nEND /* CATCH */',
-         re.DOTALL),
-
-        # Replace content after ROLLBACK
-        (r'ROLLBACK\s+TRANSACTION\s*;.*?(?=END|$)',
-         'ROLLBACK TRANSACTION;\n  -- Rollback path removed for dataflow clarity\n  SELECT 1;\n',
-         re.DOTALL),
-
-        # Remove all variable declarations/assignments
-        (r'\b(DECLARE|SET)\s+@\w+[^;]*;?', '', re.IGNORECASE | re.MULTILINE),
-    ]
 
     def __init__(self, workspace: DuckDBWorkspace):
         """
@@ -580,10 +512,7 @@ class QualityAwareParser:
             flags=re.IGNORECASE | re.MULTILINE
         )
 
-        # Step 4: Apply control flow removal
-        # Convert T-SQL specific BEGIN TRY/CATCH to comments so parser can still see structure
-        for pattern, replacement in self.CONTROL_FLOW_PATTERNS:
-            cleaned = re.sub(pattern, replacement, cleaned, flags=re.IGNORECASE | re.DOTALL)
+        # Step 4: [REMOVED] Control flow removal (Moved to YAML rules)
 
         # Step 5: Remove everything after COMMIT TRANSACTION
         # Post-commit code is usually logging, cleanup, administrative tasks
@@ -593,10 +522,7 @@ class QualityAwareParser:
             cleaned = cleaned[:commit_match.end()]
             logger.debug("Removed post-COMMIT code (logging/cleanup)")
 
-        # Step 6: Apply enhanced removal patterns
-        # Remove CATCH blocks, EXEC calls, variable declarations
-        for pattern, replacement, flags in self.ENHANCED_REMOVAL_PATTERNS:
-            cleaned = re.sub(pattern, replacement, cleaned, flags=flags)
+        # Step 6: [REMOVED] Enhanced removal patterns (Moved to YAML rules)
 
         logger.debug(f"Preprocessing complete: {len(ddl)} → {len(cleaned)} chars ({100 * (len(ddl) - len(cleaned)) / len(ddl):.1f}% reduction)")
 
@@ -656,27 +582,7 @@ class QualityAwareParser:
 
         return simplified
 
-    def _split_statements(self, sql: str) -> List[str]:
-        """Split SQL into statements on GO/semicolon."""
-        statements = []
 
-        # Split on GO
-        batches = re.split(r'\bGO\b', sql, flags=re.IGNORECASE)
-
-        for batch in batches:
-            batch = batch.strip()
-            if not batch:
-                continue
-
-            # Split on semicolons
-            parts = re.split(r';\s*(?=\S)', batch)
-
-            for part in parts:
-                part = part.strip()
-                if part and not part.startswith('--'):
-                    statements.append(part)
-
-        return statements
 
 
 
@@ -1014,32 +920,6 @@ class QualityAwareParser:
             logger.error(f"Failed to get object info for {object_id}: {e}")
             return None
 
-    def get_parse_statistics(self) -> Dict[str, Any]:
-        """
-        Get parser statistics.
-        
-        Note: Confidence scoring was removed in v4.3.6 due to circular logic.
-        """
-        query = """
-        SELECT
-            COUNT(*) as total,
-            SUM(CASE WHEN inputs IS NOT NULL OR outputs IS NOT NULL THEN 1 ELSE 0 END) as with_dependencies
-        FROM lineage_metadata
-        WHERE primary_source = 'parser'
-        """
 
-        results = self.workspace.query(query)
-        if not results:
-            return {}
-
-        row = results[0]
-        total = row[0]
-        with_deps = row[1]
-
-        return {
-            'total_parsed': total,
-            'with_dependencies': with_deps,
-            'success_rate': (with_deps / total * 100) if total > 0 else 0
-        }
 
 
