@@ -19,7 +19,7 @@
     },
     "HrEmployees": {
       "inputs_count": 1,
-      "outputs_count": 10,
+      "outputs_count": 11,
       "inputs": [
         "spLoadHrEmployees"
       ],
@@ -29,6 +29,7 @@
         "Employee_PM",
         "spLoadHrContractAttendance",
         "spLoadHrEmployeeHistory",
+        "spLoadHrEmployees",
         "spLoadPrimaReportingSiteEvents",
         "spLoadPrimaReportingSiteEventsWithAllocations",
         "spLoadTsRecords2yrs",
@@ -81,12 +82,13 @@
     },
     "SiteEventTemplates": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadSiteEventTemplates"
       ],
       "outputs": [
-        "spLoadPrimaReportingSiteEvents"
+        "spLoadPrimaReportingSiteEvents",
+        "spLoadSiteEventTemplates"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -129,9 +131,11 @@
       "is_critical": false
     },
     "spLoadAgreementTemplates": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "AgreementTemplates"
+      ],
       "outputs": [
         "AgreementTemplates"
       ],
@@ -141,12 +145,13 @@
     },
     "SiteAgreements": {
       "inputs_count": 1,
-      "outputs_count": 2,
+      "outputs_count": 3,
       "inputs": [
         "spLoadPrimaReportingSiteAgreements"
       ],
       "outputs": [
         "spLoadDimTemplateType",
+        "spLoadPrimaReportingSiteAgreements",
         "vw_SiteAgreement"
       ],
       "parse_success": true,
@@ -207,9 +212,11 @@
       "is_critical": false
     },
     "spLoadCohorts": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "Cohorts"
+      ],
       "outputs": [
         "Cohorts"
       ],
@@ -237,21 +244,21 @@
     },
     "spLoadCadenceExtractTaskCountry": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "CadenceExtract"
       ],
-      "outputs": [
-        "CadenceExtractTaskCountry"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadIpRedsReview": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "IpRedsReview"
+      ],
       "outputs": [
         "IpRedsReview"
       ],
@@ -275,21 +282,24 @@
     },
     "ProjectMilestones": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadProjectMilestones"
       ],
       "outputs": [
-        "spLoadPrimaReportingProjectMilestones"
+        "spLoadPrimaReportingProjectMilestones",
+        "spLoadProjectMilestones"
       ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadCoreHelpers": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "CoreHelpers"
+      ],
       "outputs": [
         "CoreHelpers"
       ],
@@ -337,10 +347,11 @@
       "is_critical": false
     },
     "spLoadSiteEvents_DurationByDayPlanned": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
-        "SiteEvents"
+        "SiteEvents",
+        "SiteEvents_DurationByDayPlanned"
       ],
       "outputs": [
         "SiteEvents_DurationByDayPlanned"
@@ -366,11 +377,14 @@
     },
     "GlobalContacts": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 6,
       "inputs": [
         "spLoadGlobalContacts"
       ],
       "outputs": [
+        "spLoadGlobalActionItems",
+        "spLoadGlobalContacts",
+        "spLoadIecSubmissions",
         "spLoadPrimaReportingSiteEvents",
         "spLoadPrimaReportingSubjectEvents",
         "spLoadProjectTeams"
@@ -380,18 +394,24 @@
       "is_critical": false
     },
     "HrTutorials": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadCtmMvrObjects": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 5,
-      "inputs": [],
+      "inputs": [
+        "CtmMvrStatistics"
+      ],
       "outputs": [
         "CtmMvrComments",
         "CtmMvrMaster",
@@ -419,11 +439,12 @@
     },
     "AgreementTemplates": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadAgreementTemplates"
       ],
       "outputs": [
+        "spLoadAgreementTemplates",
         "spLoadPrimaReportingAgreementTemplates"
       ],
       "parse_success": true,
@@ -431,10 +452,14 @@
       "is_critical": false
     },
     "FactAgingSAP": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadFactAgingSAP"
+      ],
+      "outputs": [
+        "spLoadFactAgingSAP"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -464,14 +489,12 @@
       "is_critical": false
     },
     "TRIAL_FinalCountryReallocateTS": {
-      "inputs_count": 5,
+      "inputs_count": 3,
       "outputs_count": 3,
       "inputs": [
         "TRIAL_spLoadFinalCountryReallocateTS_Case1",
         "TRIAL_spLoadFinalCountryReallocateTS_Case2",
-        "TRIAL_spLoadFinalCountryReallocateTS_Case3",
-        "TRIAL_spLoadFinalCountryReallocateTS_Case4",
-        "TRIAL_spLoadFinalCountryReallocateTS_NoCountry"
+        "TRIAL_spLoadFinalCountryReallocateTS_Case4"
       ],
       "outputs": [
         "TRIAL_spLoadCadenceCase0Data",
@@ -506,10 +529,14 @@
       "is_critical": false
     },
     "EnrollmentPlansHistory": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadEnrollmentPlansHistory"
+      ],
+      "outputs": [
+        "spLoadEnrollmentPlansHistory"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -553,9 +580,11 @@
       "is_critical": false
     },
     "spLoadCtmMvrPurposes": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "CtmMvrPurposes"
+      ],
       "outputs": [
         "CtmMvrPurposes"
       ],
@@ -565,20 +594,18 @@
     },
     "TRIAL_spLoadFinalCountryReallocateTS_NoCountry": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "TRIAL_NoCountryReallocateTS"
       ],
-      "outputs": [
-        "TRIAL_FinalCountryReallocateTS"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "GlobalCountries": {
       "inputs_count": 1,
-      "outputs_count": 20,
+      "outputs_count": 21,
       "inputs": [
         "spLoadGlobalCountries"
       ],
@@ -589,6 +616,7 @@
         "spLoadDimProjectRegion",
         "spLoadFactLaborCostForEarnedValue",
         "spLoadFactLaborCostForEarnedValue_1_OLD",
+        "spLoadGlobalCountries",
         "spLoadHrContractAttendance",
         "spLoadHrEmployeeHistory",
         "spLoadPrimaReportingAgreementTemplates",
@@ -610,11 +638,12 @@
     },
     "FactSite": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadFactSite"
       ],
       "outputs": [
+        "spLoadFactSite",
         "spLoadFactSiteDetailTables"
       ],
       "parse_success": true,
@@ -665,10 +694,15 @@
       "is_critical": false
     },
     "Cohorts": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 2,
+      "inputs": [
+        "spLoadCohorts"
+      ],
+      "outputs": [
+        "spLoadCohorts",
+        "spLoadSatelliteSiteObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -729,18 +763,24 @@
       "is_critical": false
     },
     "ProjectStatistics": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadProjectStatistics"
+      ],
+      "outputs": [
+        "spLoadProjectStatistics"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadEnrollmentPlans": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "EnrollmentPlans"
+      ],
       "outputs": [
         "EnrollmentPlans"
       ],
@@ -796,10 +836,9 @@
       "is_critical": false
     },
     "CadenceExtractTaskCountry": {
-      "inputs_count": 2,
+      "inputs_count": 1,
       "outputs_count": 1,
       "inputs": [
-        "spLoadCadenceExtractTaskCountry",
         "spLoadTaskAndFunctionData"
       ],
       "outputs": [
@@ -810,9 +849,11 @@
       "is_critical": false
     },
     "spLoadEnrollmentPlansHistory": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "EnrollmentPlansHistory"
+      ],
       "outputs": [
         "EnrollmentPlansHistory"
       ],
@@ -822,7 +863,7 @@
     },
     "spLoadFact_SAP_Sales_Details": {
       "inputs_count": 5,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "DimCustomers",
         "DimCustomersProjects",
@@ -830,18 +871,20 @@
         "DimProjects",
         "SAP_Sales_Details_Metrics"
       ],
-      "outputs": [
-        "Fact_SAP_Sales_Details"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "IntermediateEnrollmentByCountry": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingIntermediateEnrollmentByCountry"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingIntermediateEnrollmentByCountry"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -858,7 +901,7 @@
       "is_critical": false
     },
     "vw_ReportDataQuality": {
-      "inputs_count": 10,
+      "inputs_count": 11,
       "outputs_count": 0,
       "inputs": [
         "DimProjectRegion",
@@ -870,6 +913,7 @@
         "FactSite",
         "FactSiteAgreement",
         "lkp_MetricGlossary",
+        "vw_DimProjectCountry",
         "vw_DimSite"
       ],
       "outputs": [],
@@ -887,9 +931,11 @@
       "is_critical": false
     },
     "spLoadEnrollmentPlanSites": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "EnrollmentPlanSites"
+      ],
       "outputs": [
         "EnrollmentPlanSites"
       ],
@@ -898,11 +944,9 @@
       "is_critical": false
     },
     "Lookup_Invoice": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 2,
-      "inputs": [
-        "spLoadLookup_Invoice"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadInvoice",
         "spLoadLookup_Invoice"
@@ -937,10 +981,14 @@
       "is_critical": false
     },
     "PdDeviationAnalytics": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadProjectDeviationObjects"
+      ],
+      "outputs": [
+        "spLoadProjectDeviationObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -961,13 +1009,14 @@
     },
     "SiteActivationMilestones": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 4,
       "inputs": [
         "spLoadPrimaReportingSiteActivationMilestones"
       ],
       "outputs": [
         "spLoadPrimaReportingProjectMetricsByCountryHistory",
         "spLoadPrimaReportingProjectMetricsHistory",
+        "spLoadPrimaReportingSiteActivationMilestones",
         "vw_SiteActivationMilestone"
       ],
       "parse_success": true,
@@ -975,11 +1024,12 @@
       "is_critical": false
     },
     "spLoadSAPSalesRetainerDetailsMetrics": {
-      "inputs_count": 2,
+      "inputs_count": 3,
       "outputs_count": 1,
       "inputs": [
         "DataFilters",
-        "SAP_Sales_Details_Metrics"
+        "SAP_Sales_Details_Metrics",
+        "SAP_Sales_Retainer_Details_Metrics"
       ],
       "outputs": [
         "SAP_Sales_Retainer_Details_Metrics"
@@ -999,12 +1049,13 @@
     },
     "SAP_Sales_Retainer_Details_Metrics": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadSAPSalesRetainerDetailsMetrics"
       ],
       "outputs": [
-        "spLoadFactSAPSalesRetainerDetails"
+        "spLoadFactSAPSalesRetainerDetails",
+        "spLoadSAPSalesRetainerDetailsMetrics"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -1020,9 +1071,11 @@
       "is_critical": false
     },
     "spLoadExportLog": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "ExportLog"
+      ],
       "outputs": [
         "ExportLog"
       ],
@@ -1031,7 +1084,7 @@
       "is_critical": false
     },
     "spLoadFactGLCOGNOS": {
-      "inputs_count": 11,
+      "inputs_count": 12,
       "outputs_count": 1,
       "inputs": [
         "DimAccount",
@@ -1043,6 +1096,7 @@
         "DimDepartment",
         "DimMonthFinance",
         "DimPosition",
+        "FactGLCognos",
         "GLCognosData",
         "spLoadFactTables"
       ],
@@ -1055,11 +1109,12 @@
     },
     "PfmTsSubcategories": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 4,
       "inputs": [
         "spLoadPfmObjects"
       ],
       "outputs": [
+        "spLoadPfmObjects",
         "spLoadTsRecords2yrs",
         "vTimeSheetDurationPerEmployeeAll",
         "vTsFactHR"
@@ -1081,11 +1136,9 @@
       "is_critical": false
     },
     "TRIAL_CadenceExtractFunctionLocation": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "TRIAL_spLoadCadenceExtractFunctionLocation"
-      ],
+      "inputs": [],
       "outputs": [
         "TRIAL_spLoadTaskAndFunctionData"
       ],
@@ -1114,12 +1167,13 @@
     },
     "HrContracts": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 5,
       "inputs": [
         "spLoadHumanResourcesObjects"
       ],
       "outputs": [
         "spLoadHrEmployeeHistory",
+        "spLoadHumanResourcesObjects",
         "spLoadTsRecords2yrs",
         "vHrCRASupervisors",
         "vHrSupervisors"
@@ -1129,9 +1183,16 @@
       "is_critical": false
     },
     "spLoadFeasibilityObjects": {
-      "inputs_count": 0,
+      "inputs_count": 6,
       "outputs_count": 6,
-      "inputs": [],
+      "inputs": [
+        "CoreDataTypes",
+        "FeasibilityFormNames",
+        "FeasibilityQuestionsNew",
+        "FeasibilitySporEfqAnswers",
+        "ValidSpambotDispatches",
+        "ValidSpambotMaillists"
+      ],
       "outputs": [
         "CoreDataTypes",
         "FeasibilityFormNames",
@@ -1154,10 +1215,14 @@
       "is_critical": false
     },
     "GlobalLocations": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadGlobalCountries"
+      ],
+      "outputs": [
+        "spLoadGlobalCountries"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -1173,25 +1238,24 @@
     },
     "TRIAL_spLoadCadenceExtractFunctionLocation": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "CadenceExtract",
         "CadenceRates"
       ],
-      "outputs": [
-        "TRIAL_CadenceExtractFunctionLocation"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "PfmTsCategories": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 4,
       "inputs": [
         "spLoadPfmObjects"
       ],
       "outputs": [
+        "spLoadPfmObjects",
         "spLoadTsRecords2yrs",
         "vTimeSheetDurationPerEmployeeAll",
         "vTsFactHR"
@@ -1201,9 +1265,11 @@
       "is_critical": false
     },
     "spLoadGlobalAccounts": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "GlobalAccounts"
+      ],
       "outputs": [
         "GlobalAccounts"
       ],
@@ -1212,23 +1278,26 @@
       "is_critical": false
     },
     "HrScormSessions": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadMonthlyTaskTaskCountry": {
       "inputs_count": 2,
-      "outputs_count": 2,
+      "outputs_count": 1,
       "inputs": [
         "AggregatedCountryTotals",
         "CadenceCase0Data"
       ],
       "outputs": [
-        "AggregatedCountryTotals",
         "MonthlyTaskTaskCountry"
       ],
       "parse_success": true,
@@ -1270,9 +1339,12 @@
       "is_critical": false
     },
     "spLoadGlobalActionItems": {
-      "inputs_count": 0,
+      "inputs_count": 2,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "GlobalActionItems",
+        "GlobalContacts"
+      ],
       "outputs": [
         "GlobalActionItems"
       ],
@@ -1282,13 +1354,14 @@
     },
     "Regions": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 4,
       "inputs": [
         "spLoadRegions"
       ],
       "outputs": [
         "spLoadPrimaReportingProjectRegions",
         "spLoadPrimaReportingRegionEnrollmentPlans",
+        "spLoadRegions",
         "spLoadTsRecords2yrs"
       ],
       "parse_success": true,
@@ -1297,13 +1370,12 @@
     },
     "spLoadMonthlyTaskTaskCountryGlobalNoCountry": {
       "inputs_count": 2,
-      "outputs_count": 2,
+      "outputs_count": 1,
       "inputs": [
         "AggregatedCountryTotals",
         "CadenceCase0Data"
       ],
       "outputs": [
-        "AggregatedCountryTotals",
         "MonthlyTaskTaskCountryGlobalNoCountry"
       ],
       "parse_success": true,
@@ -1324,22 +1396,27 @@
       "is_critical": false
     },
     "GlobalCountryStates": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadGlobalCountryStates"
+      ],
+      "outputs": [
+        "spLoadGlobalCountryStates"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "RegionStatistics": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadPrimaReportingRegionStatistics"
       ],
       "outputs": [
-        "RegionStatistics_NSC"
+        "RegionStatistics_NSC",
+        "spLoadPrimaReportingRegionStatistics"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -1357,9 +1434,11 @@
       "is_critical": false
     },
     "spLoadGlobalContactAccounts": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "GlobalContactAccounts"
+      ],
       "outputs": [
         "GlobalContactAccounts"
       ],
@@ -1369,11 +1448,12 @@
     },
     "FactGLCognos": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 5,
       "inputs": [
         "spLoadFactGLCOGNOS"
       ],
       "outputs": [
+        "spLoadFactGLCOGNOS",
         "spLoadGLCognos_base",
         "vFactLaborCost",
         "v_TestCase_FactGLCognos",
@@ -1385,12 +1465,13 @@
     },
     "GlobalCountryRegions": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadGlobalCountries"
       ],
       "outputs": [
-        "spLoadDimProjectRegion"
+        "spLoadDimProjectRegion",
+        "spLoadGlobalCountries"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -1432,9 +1513,11 @@
       "is_critical": false
     },
     "spLoadGlobalContacts": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "GlobalContacts"
+      ],
       "outputs": [
         "GlobalContacts"
       ],
@@ -1444,14 +1527,12 @@
     },
     "spLoadDataFilters_JobPositions": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "DataFilters_JobPositions",
         "DataFilters_JobPositions"
       ],
-      "outputs": [
-        "DataFilters_JobPositions"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -1478,11 +1559,9 @@
       "is_critical": false
     },
     "TRIAL_TaskAndFunctionData": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 3,
-      "inputs": [
-        "TRIAL_spLoadTaskAndFunctionData"
-      ],
+      "inputs": [],
       "outputs": [
         "TRIAL_spLoadCountryReallocateTS",
         "TRIAL_spLoadNoCountryReallocateTS",
@@ -1508,13 +1587,12 @@
     },
     "TRIAL_spLoadMonthlyTaskTaskCountryGlobalNoCountry": {
       "inputs_count": 2,
-      "outputs_count": 2,
+      "outputs_count": 1,
       "inputs": [
         "TRIAL_AggregatedCountryTotals",
         "TRIAL_CadenceCase0Data"
       ],
       "outputs": [
-        "TRIAL_AggregatedCountryTotals",
         "TRIAL_MonthlyTaskTaskCountryGlobalNoCountry"
       ],
       "parse_success": true,
@@ -1522,9 +1600,11 @@
       "is_critical": false
     },
     "spLoadGlobalControlObjects": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "GlobalAccounts"
+      ],
       "outputs": [
         "GlobalControlTypes"
       ],
@@ -1562,20 +1642,25 @@
       "is_critical": false
     },
     "HrEmployeeLeaveStatistics": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadSAPSalesSummaryMetrics": {
-      "inputs_count": 3,
+      "inputs_count": 4,
       "outputs_count": 1,
       "inputs": [
         "SAP_Sales_Summary",
         "SAP_Sales_Summary_History",
+        "SAP_Sales_Summary_Metrics",
         "SAP_Tcurr"
       ],
       "outputs": [
@@ -1587,14 +1672,12 @@
     },
     "TRIAL_spLoadTaskAndFunctionData": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "TRIAL_CadenceExtractFunctionLocation",
         "TRIAL_CadenceExtractTaskCountry"
       ],
-      "outputs": [
-        "TRIAL_TaskAndFunctionData"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -1609,18 +1692,30 @@
       "is_critical": false
     },
     "HrQuizMaster": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadGlobalCountries": {
-      "inputs_count": 0,
+      "inputs_count": 7,
       "outputs_count": 7,
-      "inputs": [],
+      "inputs": [
+        "GlobalAddresses",
+        "GlobalCities",
+        "GlobalCountries",
+        "GlobalCountryRegions",
+        "GlobalCurrencies",
+        "GlobalCurrencyRates",
+        "GlobalLocations"
+      ],
       "outputs": [
         "GlobalAddresses",
         "GlobalCities",
@@ -1666,10 +1761,14 @@
       "is_critical": false
     },
     "FactSAPSalesSponsorRiskRetainerQuarterly": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadFactSAPSalesSponsorRiskRetainerQuarterly"
+      ],
+      "outputs": [
+        "spLoadFactSAPSalesSponsorRiskRetainerQuarterly"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -1684,9 +1783,11 @@
       "is_critical": false
     },
     "spLoadGlobalCountryStates": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "GlobalCountryStates"
+      ],
       "outputs": [
         "GlobalCountryStates"
       ],
@@ -1729,18 +1830,25 @@
       "is_critical": false
     },
     "PfmHourlyRatesComputed": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPfmObjects"
+      ],
+      "outputs": [
+        "spLoadPfmObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadGlobalSignObjects": {
-      "inputs_count": 0,
+      "inputs_count": 2,
       "outputs_count": 2,
-      "inputs": [],
+      "inputs": [
+        "GlobalSignTemplates",
+        "GlobalSignTracker"
+      ],
       "outputs": [
         "GlobalSignTemplates",
         "GlobalSignTracker"
@@ -1750,11 +1858,9 @@
       "is_critical": false
     },
     "Lookup_Common": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 4,
-      "inputs": [
-        "spLoadLookup_Common"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadEarnedValue",
         "spLoadHeadCount",
@@ -1767,11 +1873,13 @@
     },
     "FactLaborCostForEarnedValue": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 3,
       "inputs": [
         "spLoadFactLaborCostForEarnedValue_1_OLD"
       ],
       "outputs": [
+        "spLoadFactLaborCostForEarnedValue",
+        "spLoadFactLaborCostForEarnedValue_1_OLD",
         "v_TestCase_FactLaborCostForEarnedValue"
       ],
       "parse_success": true,
@@ -1779,17 +1887,22 @@
       "is_critical": false
     },
     "CtmMvrPurposes": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 2,
+      "inputs": [
+        "spLoadCtmMvrPurposes"
+      ],
+      "outputs": [
+        "spLoadCtmMvrPurposes",
+        "spLoadPrimaReportingSiteEvents"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadCadenceBudgetData": {
       "inputs_count": 10,
-      "outputs_count": 2,
+      "outputs_count": 1,
       "inputs": [
         "CadenceBudgetData",
         "CadenceExtract",
@@ -1803,8 +1916,7 @@
         "ReconciliationEV"
       ],
       "outputs": [
-        "CadenceBudgetData",
-        "DepartmenMapping"
+        "CadenceBudgetData"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -1822,11 +1934,9 @@
       "is_critical": false
     },
     "TRIAL_ReconciliationPopulation": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "TRIAL_spLoadReconciliation_Case4.5"
-      ],
+      "inputs": [],
       "outputs": [
         "TRIAL_spLoadReconciliation_Case5-6"
       ],
@@ -1909,12 +2019,13 @@
     },
     "HrManningTable": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 5,
       "inputs": [
         "spLoadHumanResourcesObjects"
       ],
       "outputs": [
         "spLoadHrEmployeeHistory",
+        "spLoadHumanResourcesObjects",
         "spLoadTsRecords2yrs",
         "vHrCRASupervisors",
         "vHrSupervisors"
@@ -1924,9 +2035,11 @@
       "is_critical": false
     },
     "spLoadHrEmployees": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "HrEmployees"
+      ],
       "outputs": [
         "HrEmployees"
       ],
@@ -1945,7 +2058,7 @@
     },
     "TRIAL_spLoadCadenceBudgetData": {
       "inputs_count": 9,
-      "outputs_count": 2,
+      "outputs_count": 1,
       "inputs": [
         "CadenceExtract",
         "DepartmenMapping",
@@ -1958,7 +2071,6 @@
         "TRIAL_ReconciliationEV"
       ],
       "outputs": [
-        "DepartmenMapping",
         "TRIAL_CadenceBudgetData"
       ],
       "parse_success": true,
@@ -1966,18 +2078,43 @@
       "is_critical": false
     },
     "HrTrainingTitles": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadHumanResourcesObjects": {
-      "inputs_count": 0,
+      "inputs_count": 20,
       "outputs_count": 20,
-      "inputs": [],
+      "inputs": [
+        "HrContracts",
+        "HrDepartments",
+        "HrEmployeeLeaveStatistics",
+        "HrEmployeeTransfers",
+        "HrEmployeeWorkdays",
+        "HrLeaveTracker",
+        "HrManagement",
+        "HrManningTable",
+        "HrOffices",
+        "HrPositions",
+        "HrQuizMaster",
+        "HrQuizSessions",
+        "HrResignations",
+        "HrScormSessions",
+        "HrTrainingEmployees",
+        "HrTrainingEmployeesTimesheet",
+        "HrTrainingMatrix",
+        "HrTrainingTitles",
+        "HrTrainings",
+        "HrTutorials"
+      ],
       "outputs": [
         "HrContracts",
         "HrDepartments",
@@ -2023,18 +2160,25 @@
       "is_critical": false
     },
     "HrTrainingEmployees": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadIecSubmissions": {
-      "inputs_count": 0,
+      "inputs_count": 2,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "GlobalContacts",
+        "IecSubmissions"
+      ],
       "outputs": [
         "IecSubmissions"
       ],
@@ -2043,10 +2187,14 @@
       "is_critical": false
     },
     "FactGLSAP": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadFactGLSAP"
+      ],
+      "outputs": [
+        "spLoadFactGLSAP"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -2121,12 +2269,9 @@
       "is_critical": false
     },
     "vw_FactProjectCountry_Timeline": {
-      "inputs_count": 2,
+      "inputs_count": 0,
       "outputs_count": 0,
-      "inputs": [
-        "vw_FactProjectCountry",
-        "vw_FactSiteIpRed"
-      ],
+      "inputs": [],
       "outputs": [],
       "parse_success": true,
       "parse_error": null,
@@ -2146,11 +2291,9 @@
       "is_critical": false
     },
     "DimProjects": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 6,
-      "inputs": [
-        "spLoadDimProjects"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadAggregatedTotalLin\u200besInvoiced",
         "spLoadArAnalyticsMetrics",
@@ -2199,22 +2342,24 @@
     },
     "RegionEnrollmentPlans": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadRegionEnrollmentPlans"
       ],
       "outputs": [
-        "spLoadPrimaReportingRegionEnrollmentPlans"
+        "spLoadPrimaReportingRegionEnrollmentPlans",
+        "spLoadRegionEnrollmentPlans"
       ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadListOfPsiServices": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
-        "CoreHelpers"
+        "CoreHelpers",
+        "ListOfPsiServices"
       ],
       "outputs": [
         "ListOfPsiServices"
@@ -2257,11 +2402,9 @@
       "is_critical": false
     },
     "DimCustomersProjects": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 6,
-      "inputs": [
-        "spLoadDimCustomersProjects"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadAggregatedTotalLin\u200besInvoiced",
         "spLoadArAnalyticsMetrics",
@@ -2284,10 +2427,11 @@
       "is_critical": false
     },
     "spLoadListOfPsiTherapeuticAreas": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
-        "CoreHelpers"
+        "CoreHelpers",
+        "ListOfPsiTherapeuticAreas"
       ],
       "outputs": [
         "ListOfPsiTherapeuticAreas"
@@ -2306,7 +2450,7 @@
       "is_critical": false
     },
     "spLoadFactLaborCostForEarnedValue": {
-      "inputs_count": 8,
+      "inputs_count": 9,
       "outputs_count": 0,
       "inputs": [
         "DimAccountDetailsCognos",
@@ -2314,6 +2458,7 @@
         "DimCountry",
         "DimDepartment",
         "FactGLCognos",
+        "FactLaborCostForEarnedValue",
         "Full_Departmental_Map",
         "GlobalCountries",
         "sp_LoadLFinanceHub"
@@ -2344,9 +2489,19 @@
       "is_critical": false
     },
     "spLoadPfmObjects": {
-      "inputs_count": 0,
+      "inputs_count": 9,
       "outputs_count": 9,
-      "inputs": [],
+      "inputs": [
+        "PfmCategories",
+        "PfmCountries",
+        "PfmHourlyRatesComputed",
+        "PfmJobs",
+        "PfmTsCategories",
+        "PfmTsMaster",
+        "PfmTsSubcategories",
+        "PfmTsTasks",
+        "PfmTsTracker"
+      ],
       "outputs": [
         "PfmCategories",
         "PfmCountries",
@@ -2385,11 +2540,12 @@
     },
     "PfmTsTasks": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 4,
       "inputs": [
         "spLoadPfmObjects"
       ],
       "outputs": [
+        "spLoadPfmObjects",
         "spLoadTsRecords2yrs",
         "vTimeSheetDurationPerEmployeeAll",
         "vTsFactHR"
@@ -2399,9 +2555,11 @@
       "is_critical": false
     },
     "spLoadPmKpiMaster": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "PmKpiMaster"
+      ],
       "outputs": [
         "PmKpiMaster"
       ],
@@ -2419,11 +2577,9 @@
       "is_critical": false
     },
     "QuarterRanges": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 5,
-      "inputs": [
-        "spLoadQuarterRanges"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadAggregatedTotalLin\u200besInvoiced",
         "spLoadArAnalyticsMetrics",
@@ -2446,15 +2602,14 @@
     },
     "spLoadTaskAndFunctionData": {
       "inputs_count": 3,
-      "outputs_count": 2,
+      "outputs_count": 1,
       "inputs": [
         "CadenceExtractFunctionLocation",
         "CadenceExtractTaskCountry",
         "TaskAndFunctionData"
       ],
       "outputs": [
-        "CadenceExtractTaskCountry",
-        "TaskAndFunctionData"
+        "CadenceExtractTaskCountry"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -2470,27 +2625,37 @@
       "is_critical": false
     },
     "HrManagement": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "ProjectSites": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadProjectSites"
+      ],
+      "outputs": [
+        "spLoadProjectSites"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadPmKpiResults": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "PmKpiResults"
+      ],
       "outputs": [
         "PmKpiResults"
       ],
@@ -2500,11 +2665,12 @@
     },
     "FeasibilityFormNames": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadFeasibilityObjects"
       ],
       "outputs": [
+        "spLoadFeasibilityObjects",
         "spLoadPrimaReportingFeasibilityQuestionsAndAnswers"
       ],
       "parse_success": true,
@@ -2513,13 +2679,14 @@
     },
     "SubmissionsAll": {
       "inputs_count": 1,
-      "outputs_count": 2,
+      "outputs_count": 3,
       "inputs": [
         "spLoadPrimaReportingSubmissionsAll"
       ],
       "outputs": [
         "spLoadPrimaReportingProjectMetricsByCountryHistory",
-        "spLoadPrimaReportingProjectMetricsHistory"
+        "spLoadPrimaReportingProjectMetricsHistory",
+        "spLoadPrimaReportingSubmissionsAll"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -2572,22 +2739,24 @@
     },
     "HrLeaveTracker": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadHumanResourcesObjects"
       ],
       "outputs": [
-        "spLoadHrContractAttendance"
+        "spLoadHrContractAttendance",
+        "spLoadHumanResourcesObjects"
       ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadPmKpiResultsHistory": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
-        "PmKpiResults"
+        "PmKpiResults",
+        "PmKpiResultsHistory"
       ],
       "outputs": [
         "PmKpiResultsHistory"
@@ -2598,7 +2767,7 @@
     },
     "SiteEvents": {
       "inputs_count": 1,
-      "outputs_count": 11,
+      "outputs_count": 12,
       "inputs": [
         "spLoadPrimaReportingSiteEvents"
       ],
@@ -2608,6 +2777,7 @@
         "spLoadPrimaReportingProjectMetricsByCountryHistory",
         "spLoadPrimaReportingProjectMetricsHistory",
         "spLoadPrimaReportingSiteCRAs",
+        "spLoadPrimaReportingSiteEvents",
         "spLoadPrimaReportingSiteEventsWithAllocations",
         "spLoadSiteEventPlanHistory",
         "spLoadSiteEvents_DurationByDay",
@@ -2621,11 +2791,12 @@
     },
     "IpRedsReview": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadIpRedsReview"
       ],
       "outputs": [
+        "spLoadIpRedsReview",
         "spLoadPrimaReportingIpRedsReview"
       ],
       "parse_success": true,
@@ -2676,31 +2847,41 @@
     },
     "spLoadLookup_Common": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "Lookup_Common",
         "Lookup_Common"
       ],
-      "outputs": [
-        "Lookup_Common"
-      ],
-      "parse_success": true,
-      "parse_error": null,
-      "is_critical": false
-    },
-    "SiteCRAs": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
       "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
+    "SiteCRAs": {
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingSiteCRAs"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingSiteCRAs"
+      ],
+      "parse_success": true,
+      "parse_error": null,
+      "is_critical": false
+    },
     "spLoadProjectDeviationObjects": {
-      "inputs_count": 0,
+      "inputs_count": 7,
       "outputs_count": 7,
-      "inputs": [],
+      "inputs": [
+        "CentralMonitoringIssues",
+        "CoreProjectHelpers",
+        "PdDeviationAnalytics",
+        "PdTracker",
+        "ProjectTeams",
+        "SiteIssues",
+        "SubjectSAEs"
+      ],
       "outputs": [
         "CentralMonitoringIssues",
         "CoreProjectHelpers",
@@ -2753,13 +2934,15 @@
     },
     "GLCognosData": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 3,
       "inputs": [
         "spLoadGLCognosData",
         "spLoadGLCognosData_Backup"
       ],
       "outputs": [
-        "spLoadFactGLCOGNOS"
+        "spLoadFactGLCOGNOS",
+        "spLoadGLCognosData",
+        "spLoadGLCognosData_Backup"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -2788,9 +2971,11 @@
       "is_critical": false
     },
     "spLoadProjectEvents": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "ProjectEvents"
+      ],
       "outputs": [
         "ProjectEvents"
       ],
@@ -2799,10 +2984,14 @@
       "is_critical": false
     },
     "FactCra": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadFactCRA"
+      ],
+      "outputs": [
+        "spLoadFactCRA"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -2840,7 +3029,7 @@
       "is_critical": false
     },
     "spLastRowCount": {
-      "inputs_count": 26,
+      "inputs_count": 27,
       "outputs_count": 0,
       "inputs": [
         "spLoadPrimaReportingFeasibilityQuestionsAndAnswers",
@@ -2853,6 +3042,7 @@
         "spLoadPrimaReportingProjectEvents",
         "spLoadPrimaReportingProjectMetricsByCountryHistory",
         "spLoadPrimaReportingProjectMetricsHistory",
+        "spLoadPrimaReportingProjectMilestones",
         "spLoadPrimaReportingProjectRegions",
         "spLoadPrimaReportingProjects",
         "spLoadPrimaReportingRaEcSubmissions",
@@ -2893,11 +3083,12 @@
     },
     "DimProject": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadDimProject"
       ],
       "outputs": [
+        "spLoadDimProject",
         "vw_DimProject"
       ],
       "parse_success": true,
@@ -2905,9 +3096,11 @@
       "is_critical": false
     },
     "spLoadProjectMilestones": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "ProjectMilestones"
+      ],
       "outputs": [
         "ProjectMilestones"
       ],
@@ -2917,11 +3110,12 @@
     },
     "GlobalAddresses": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadGlobalCountries"
       ],
       "outputs": [
+        "spLoadGlobalCountries",
         "spLoadHrEmployeeHistory"
       ],
       "parse_success": true,
@@ -2954,7 +3148,7 @@
     },
     "MonthlyAverageCurrencyExchangeRate": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 5,
       "inputs": [
         "spLoadMonthlyAverageCurrencyExchangeRate"
       ],
@@ -2962,6 +3156,7 @@
         "TRIAL_spLoadCadenceBudgetData",
         "spLoadCadenceBudgetData",
         "spLoadInvoice",
+        "spLoadMonthlyAverageCurrencyExchangeRate",
         "vw_EarnedValue_combined"
       ],
       "parse_success": true,
@@ -2970,11 +3165,12 @@
     },
     "CoreHelpers": {
       "inputs_count": 1,
-      "outputs_count": 15,
+      "outputs_count": 16,
       "inputs": [
         "spLoadCoreHelpers"
       ],
       "outputs": [
+        "spLoadCoreHelpers",
         "spLoadDimProject",
         "spLoadDimProjectRegion",
         "spLoadHrEmployeeHistory",
@@ -3056,9 +3252,11 @@
       "is_critical": false
     },
     "spLoadProjectRegions": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "ProjectRegions"
+      ],
       "outputs": [
         "ProjectRegions"
       ],
@@ -3067,25 +3265,29 @@
       "is_critical": false
     },
     "vw_FactProjectCountry": {
-      "inputs_count": 1,
-      "outputs_count": 3,
+      "inputs_count": 3,
+      "outputs_count": 1,
       "inputs": [
-        "Duration_Outlier"
+        "Duration_Outlier",
+        "vw_FactProjectCountryPlan_hist",
+        "vw_FactProjectCountry_hist"
       ],
       "outputs": [
-        "vw_FactProjectCountry_Timeline",
-        "vw_FactProject_Timeline",
-        "vw_FactSite_Timeline"
+        "vw_FactProject_Timeline"
       ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "ProjectMetricsByCountryHistory": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingProjectMetricsByCountryHistory"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingProjectMetricsByCountryHistory"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -3109,9 +3311,11 @@
       "is_critical": false
     },
     "spLoadProjects": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "Projects"
+      ],
       "outputs": [
         "Projects"
       ],
@@ -3120,10 +3324,14 @@
       "is_critical": false
     },
     "ProjectTsOverpayment": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadProjectTsOverpayment"
+      ],
+      "outputs": [
+        "spLoadProjectTsOverpayment"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -3165,12 +3373,13 @@
     },
     "PdTracker": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadProjectDeviationObjects"
       ],
       "outputs": [
-        "spLoadPrimaReportingProjectDeviations"
+        "spLoadPrimaReportingProjectDeviations",
+        "spLoadProjectDeviationObjects"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -3186,9 +3395,11 @@
       "is_critical": false
     },
     "spLoadProjectSites": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "ProjectSites"
+      ],
       "outputs": [
         "ProjectSites"
       ],
@@ -3198,11 +3409,12 @@
     },
     "FeasibilitySporEfqAnswers": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadFeasibilityObjects"
       ],
       "outputs": [
+        "spLoadFeasibilityObjects",
         "spLoadPrimaReportingFeasibilityQuestionsAndAnswers"
       ],
       "parse_success": true,
@@ -3245,9 +3457,11 @@
       "is_critical": false
     },
     "spLoadProjectStatistics": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "ProjectStatistics"
+      ],
       "outputs": [
         "ProjectStatistics"
       ],
@@ -3280,10 +3494,14 @@
       "is_critical": false
     },
     "EnrollmentPlans": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadEnrollmentPlans"
+      ],
+      "outputs": [
+        "spLoadEnrollmentPlans"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -3300,11 +3518,9 @@
       "is_critical": false
     },
     "TaskAndFunctionData": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 4,
-      "inputs": [
-        "spLoadTaskAndFunctionData"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadCountryReallocateTS",
         "spLoadNoCountryReallocateTS",
@@ -3343,7 +3559,7 @@
     },
     "Projects": {
       "inputs_count": 1,
-      "outputs_count": 19,
+      "outputs_count": 22,
       "inputs": [
         "spLoadPrimaReportingProjects"
       ],
@@ -3351,7 +3567,10 @@
         "Projects_NSC",
         "spLoadDimProject",
         "spLoadHrContractAttendance",
+        "spLoadPrimaReportingProjectMetricsByCountryHistory",
+        "spLoadPrimaReportingProjectMetricsHistory",
         "spLoadPrimaReportingProjectMilestones",
+        "spLoadPrimaReportingProjects",
         "spLoadPrimaReportingSiteCRAs",
         "spLoadSiteEventPlanHistory",
         "vTimeSheetDurationPerEmployeeAll",
@@ -3387,9 +3606,11 @@
       "is_critical": false
     },
     "spLoadProjectTsOverpayment": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "ProjectTsOverpayment"
+      ],
       "outputs": [
         "ProjectTsOverpayment"
       ],
@@ -3416,21 +3637,22 @@
       "is_critical": false
     },
     "HrTrainings": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "TRIAL_AggregatedCountryTotals": {
-      "inputs_count": 2,
+      "inputs_count": 0,
       "outputs_count": 2,
-      "inputs": [
-        "TRIAL_spLoadMonthlyTaskTaskCountry",
-        "TRIAL_spLoadMonthlyTaskTaskCountryGlobalNoCountry"
-      ],
+      "inputs": [],
       "outputs": [
         "TRIAL_spLoadMonthlyTaskTaskCountry",
         "TRIAL_spLoadMonthlyTaskTaskCountryGlobalNoCountry"
@@ -3441,13 +3663,14 @@
     },
     "CoreProjectHelpers": {
       "inputs_count": 1,
-      "outputs_count": 2,
+      "outputs_count": 3,
       "inputs": [
         "spLoadProjectDeviationObjects"
       ],
       "outputs": [
         "spLoadPrimaReportingSiteEvents",
-        "spLoadPrimaReportingSubjectEvents"
+        "spLoadPrimaReportingSubjectEvents",
+        "spLoadProjectDeviationObjects"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -3455,24 +3678,26 @@
     },
     "vw_FactSite_hist": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 2,
       "inputs": [
         "FactSite"
       ],
       "outputs": [
         "vw_DimSite",
-        "vw_FactProjectCountryActivationPlan_hist",
-        "vw_FactProjectCountryPlan_hist",
-        "vw_FactSite"
+        "vw_FactProjectCountryActivationPlan_hist"
       ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadProjectTsOverpaymentHistory": {
-      "inputs_count": 0,
+      "inputs_count": 3,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "EnrollmentPlanSites",
+        "ProjectTsOverpaymentHistory",
+        "Subjects"
+      ],
       "outputs": [
         "ProjectTsOverpaymentHistory"
       ],
@@ -3481,15 +3706,12 @@
       "is_critical": false
     },
     "vw_FactSite_Timeline": {
-      "inputs_count": 6,
+      "inputs_count": 3,
       "outputs_count": 0,
       "inputs": [
         "vw_DimProject",
-        "vw_DimSite",
-        "vw_FactProjectCountry",
         "vw_FactSite",
-        "vw_FactSiteAgreementTemplate",
-        "vw_FactSiteIpRed"
+        "vw_FactSiteAgreementTemplate"
       ],
       "outputs": [],
       "parse_success": true,
@@ -3519,18 +3741,24 @@
       "is_critical": false
     },
     "HrEmployeeWorkdays": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadRaEcSubmissions": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "RaEcSubmissions"
+      ],
       "outputs": [
         "RaEcSubmissions"
       ],
@@ -3552,21 +3780,24 @@
     },
     "ProjectEvents": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadProjectEvents"
       ],
       "outputs": [
-        "spLoadPrimaReportingProjectEvents"
+        "spLoadPrimaReportingProjectEvents",
+        "spLoadProjectEvents"
       ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadRegionEnrollmentPlans": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "RegionEnrollmentPlans"
+      ],
       "outputs": [
         "RegionEnrollmentPlans"
       ],
@@ -3612,11 +3843,9 @@
       "is_critical": false
     },
     "CountryReallocateTS": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 4,
-      "inputs": [
-        "spLoadCountryReallocateTS"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadFinalCountryReallocateTS_Case1",
         "spLoadFinalCountryReallocateTS_Case2",
@@ -3675,10 +3904,14 @@
       "is_critical": false
     },
     "FeasibilityQuestionsAndAnswers": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingFeasibilityQuestionsAndAnswers"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingFeasibilityQuestionsAndAnswers"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -3727,13 +3960,11 @@
     },
     "spLoadCountryReallocateTS": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "TaskAndFunctionData"
       ],
-      "outputs": [
-        "CountryReallocateTS"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -3765,18 +3996,24 @@
       "is_critical": false
     },
     "GlobalSignTemplates": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadGlobalSignObjects"
+      ],
+      "outputs": [
+        "spLoadGlobalSignObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadRegionStatistics": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "RegionStatistics"
+      ],
       "outputs": [
         "RegionStatistics"
       ],
@@ -3797,15 +4034,13 @@
       "is_critical": false
     },
     "vw_FactProject_Timeline": {
-      "inputs_count": 9,
+      "inputs_count": 7,
       "outputs_count": 0,
       "inputs": [
         "vw_DimProject",
         "vw_DimSite",
-        "vw_DimTemplateType",
         "vw_FactProject",
         "vw_FactProjectCountry",
-        "vw_FactProjectCountryAgreementTemplate",
         "vw_FactProjectCountrySubmission",
         "vw_FactSite",
         "vw_FactSiteIpRed"
@@ -3817,7 +4052,7 @@
     },
     "vw_DimDate": {
       "inputs_count": 1,
-      "outputs_count": 8,
+      "outputs_count": 7,
       "inputs": [
         "DimDate"
       ],
@@ -3826,7 +4061,6 @@
         "spLoadFactCountryEnterpriseMetrics_Current",
         "spLoadGLCognos_base",
         "spLoadHeadCount",
-        "vw_GLCognos_Subcontractor",
         "vw_Revenue",
         "vw_test",
         "vw_tmp_TestCase_Country"
@@ -3836,10 +4070,14 @@
       "is_critical": false
     },
     "SitePerformanceCtms": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingSitePerformanceCtms"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingSitePerformanceCtms"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -3858,13 +4096,12 @@
     },
     "TRIAL_spLoadMonthlyTaskTaskCountry": {
       "inputs_count": 2,
-      "outputs_count": 2,
+      "outputs_count": 1,
       "inputs": [
         "TRIAL_AggregatedCountryTotals",
         "TRIAL_CadenceCase0Data"
       ],
       "outputs": [
-        "TRIAL_AggregatedCountryTotals",
         "TRIAL_MonthlyTaskTaskCountry"
       ],
       "parse_success": true,
@@ -3873,13 +4110,11 @@
     },
     "TRIAL_spLoadReconciliation_Case4.5": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "TRIAL_TaskAndFunctionData"
       ],
-      "outputs": [
-        "TRIAL_ReconciliationPopulation"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -3966,18 +4201,24 @@
       "is_critical": false
     },
     "ProjectTsOverpaymentHistory": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadProjectTsOverpaymentHistory"
+      ],
+      "outputs": [
+        "spLoadProjectTsOverpaymentHistory"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadResourceAllocations": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "ResourceAllocations"
+      ],
       "outputs": [
         "ResourceAllocations"
       ],
@@ -3987,14 +4228,12 @@
     },
     "vw_FactProjectCountryAgreementTemplate": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "Duration_Outlier",
         "vw_FactProjectCountryAgreementTemplate_hist"
       ],
-      "outputs": [
-        "vw_FactProject_Timeline"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -4011,11 +4250,9 @@
       "is_critical": false
     },
     "ReconciliationCalc": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "spLoadReconciliation_Case5-6"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadReconciliation_Case5-6"
       ],
@@ -4025,12 +4262,13 @@
     },
     "SubjectEventTemplates": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadSubjectEventTemplates"
       ],
       "outputs": [
-        "spLoadPrimaReportingSubjectEvents"
+        "spLoadPrimaReportingSubjectEvents",
+        "spLoadSubjectEventTemplates"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -4058,13 +4296,12 @@
     },
     "TRIAL_spLoadReconciliation_Case5-6": {
       "inputs_count": 2,
-      "outputs_count": 2,
+      "outputs_count": 1,
       "inputs": [
         "TRIAL_ReconciliationCalc",
         "TRIAL_ReconciliationPopulation"
       ],
       "outputs": [
-        "TRIAL_ReconciliationCalc",
         "TRIAL_ReconciliationEV"
       ],
       "parse_success": true,
@@ -4086,9 +4323,10 @@
       "is_critical": false
     },
     "PrimaDataMart.GetDimSiteDimCraByDateAndSiteId.UserDefinedFunction__toy": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 0,
       "inputs": [
+        "DimCRA",
         "DimSite_DimCRA"
       ],
       "outputs": [],
@@ -4126,9 +4364,11 @@
       "is_critical": false
     },
     "spLoadSatelliteSiteObjects": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 2,
-      "inputs": [],
+      "inputs": [
+        "Cohorts"
+      ],
       "outputs": [
         "SatelliteSiteEvents",
         "SatelliteSiteTeams"
@@ -4138,11 +4378,10 @@
       "is_critical": false
     },
     "vw_FactProjectCountrySubmission": {
-      "inputs_count": 2,
+      "inputs_count": 1,
       "outputs_count": 1,
       "inputs": [
-        "Duration_Outlier",
-        "vw_FactProjectCountrySubmission_hist"
+        "Duration_Outlier"
       ],
       "outputs": [
         "vw_FactProject_Timeline"
@@ -4197,11 +4436,9 @@
       "is_critical": false
     },
     "NoCountryReallocateTS": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 4,
-      "inputs": [
-        "spLoadNoCountryReallocateTS"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadFinalCountryReallocateTS_Case1",
         "spLoadFinalCountryReallocateTS_Case2",
@@ -4213,9 +4450,10 @@
       "is_critical": false
     },
     "spLoadGLCognosData": {
-      "inputs_count": 2,
+      "inputs_count": 3,
       "outputs_count": 2,
       "inputs": [
+        "GLCognosData",
         "GLCognosData_HC100500",
         "v_CCR2PowerBI_facts"
       ],
@@ -4238,11 +4476,12 @@
     },
     "ValidSpambotMaillists": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadFeasibilityObjects"
       ],
       "outputs": [
+        "spLoadFeasibilityObjects",
         "spLoadPrimaReportingFeasibilityQuestionsAndAnswers"
       ],
       "parse_success": true,
@@ -4259,9 +4498,11 @@
       "is_critical": false
     },
     "spLoadSatelliteSmSaesObjects": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 3,
-      "inputs": [],
+      "inputs": [
+        "SmSaes"
+      ],
       "outputs": [
         "SmSaeQueries",
         "SmSaeTerms",
@@ -4281,11 +4522,10 @@
       "is_critical": false
     },
     "vw_FactSite": {
-      "inputs_count": 2,
+      "inputs_count": 1,
       "outputs_count": 3,
       "inputs": [
-        "Duration_Outlier",
-        "vw_FactSite_hist"
+        "Duration_Outlier"
       ],
       "outputs": [
         "vw_FactProject_Timeline",
@@ -4298,21 +4538,22 @@
     },
     "spLoadNoCountryReallocateTS": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "TaskAndFunctionData"
       ],
-      "outputs": [
-        "NoCountryReallocateTS"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadDimCRA": {
-      "inputs_count": 0,
+      "inputs_count": 2,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "DimCRA",
+        "spLoadPrimaDataMart"
+      ],
       "outputs": [
         "DimCRA"
       ],
@@ -4332,31 +4573,38 @@
       "is_critical": false
     },
     "PfmCategories": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPfmObjects"
+      ],
+      "outputs": [
+        "spLoadPfmObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "SiteSubmissions": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadSiteSubmissions"
       ],
       "outputs": [
-        "spLoadPrimaReportingSiteSubmissions"
+        "spLoadPrimaReportingSiteSubmissions",
+        "spLoadSiteSubmissions"
       ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadSiteActivationMilestones": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SiteActivationMilestones"
+      ],
       "outputs": [
         "SiteActivationMilestones"
       ],
@@ -4365,11 +4613,10 @@
       "is_critical": false
     },
     "vw_FactSiteAgreementTemplate": {
-      "inputs_count": 2,
+      "inputs_count": 1,
       "outputs_count": 1,
       "inputs": [
-        "Duration_Outlier",
-        "vw_FactSiteAgreementTemplate_hist"
+        "Duration_Outlier"
       ],
       "outputs": [
         "vw_FactSite_Timeline"
@@ -4388,11 +4635,13 @@
       "is_critical": false
     },
     "spLoadFactCountry": {
-      "inputs_count": 2,
+      "inputs_count": 4,
       "outputs_count": 1,
       "inputs": [
         "DimCRA",
-        "DimCountry"
+        "DimCountry",
+        "FactCountry",
+        "spLoadPrimaDataMart"
       ],
       "outputs": [
         "FactCountry"
@@ -4402,10 +4651,11 @@
       "is_critical": false
     },
     "spLoadDimProject": {
-      "inputs_count": 3,
+      "inputs_count": 4,
       "outputs_count": 1,
       "inputs": [
         "CoreHelpers",
+        "DimProject",
         "Projects",
         "lkp_Exclusion"
       ],
@@ -4429,9 +4679,11 @@
       "is_critical": false
     },
     "spLoadSiteAgreementsAndBudgets": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SiteAgreementsAndBudgets"
+      ],
       "outputs": [
         "SiteAgreementsAndBudgets"
       ],
@@ -4462,18 +4714,25 @@
       "is_critical": false
     },
     "GLCognosData_Test": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadGLCognosData_Test"
+      ],
+      "outputs": [
+        "spLoadGLCognosData_Test"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadDimSite": {
-      "inputs_count": 0,
+      "inputs_count": 2,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "DimSite",
+        "spLoadPrimaDataMart"
+      ],
       "outputs": [
         "DimSite"
       ],
@@ -4517,9 +4776,11 @@
       "is_critical": false
     },
     "spLoadSiteAllocations": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SiteAllocations"
+      ],
       "outputs": [
         "SiteAllocations"
       ],
@@ -4529,14 +4790,12 @@
     },
     "vw_FactSiteIpRed": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 1,
       "inputs": [
         "Duration_Outlier"
       ],
       "outputs": [
-        "vw_FactProjectCountry_Timeline",
-        "vw_FactProject_Timeline",
-        "vw_FactSite_Timeline"
+        "vw_FactProject_Timeline"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -4574,11 +4833,9 @@
       "is_critical": false
     },
     "HrContractAttendance": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 2,
-      "inputs": [
-        "spLoadHrContractAttendance"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadEmployeeContractUtilization",
         "spLoadEmployeeContractUtilization_Aggregations"
@@ -4588,11 +4845,13 @@
       "is_critical": false
     },
     "spLoadDimSite_DimCRA": {
-      "inputs_count": 2,
+      "inputs_count": 4,
       "outputs_count": 1,
       "inputs": [
         "DimCRA",
-        "DimSite"
+        "DimSite",
+        "DimSite_DimCRA",
+        "spLoadPrimaDataMart"
       ],
       "outputs": [
         "DimSite_DimCRA"
@@ -4622,9 +4881,11 @@
       "is_critical": false
     },
     "spLoadSiteEvents": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SiteEvents"
+      ],
       "outputs": [
         "SiteEvents"
       ],
@@ -4642,23 +4903,25 @@
       "is_critical": false
     },
     "IntermediateScreenOutReasonsCount": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingIntermediateScreenOutReasonsCount"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingIntermediateScreenOutReasonsCount"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "FinalCountryReallocateTS": {
-      "inputs_count": 5,
+      "inputs_count": 3,
       "outputs_count": 3,
       "inputs": [
         "spLoadFinalCountryReallocateTS_Case1",
         "spLoadFinalCountryReallocateTS_Case2",
-        "spLoadFinalCountryReallocateTS_Case3",
-        "spLoadFinalCountryReallocateTS_Case4",
-        "spLoadFinalCountryReallocateTS_NoCountry"
+        "spLoadFinalCountryReallocateTS_Case4"
       ],
       "outputs": [
         "spLoadCadenceCase0Data",
@@ -4670,10 +4933,12 @@
       "is_critical": false
     },
     "spLoadDimSite_DimCraKey_Junc": {
-      "inputs_count": 1,
+      "inputs_count": 3,
       "outputs_count": 1,
       "inputs": [
-        "DimSite_DimCRA"
+        "DimSite_DimCRA",
+        "DimSite_DimCraKey_Junc",
+        "spLoadPrimaDataMart"
       ],
       "outputs": [
         "DimSite_DimCraKey_Junc"
@@ -4709,10 +4974,14 @@
       "is_critical": false
     },
     "SiteEventsWithAllocations": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingSiteEventsWithAllocations"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingSiteEventsWithAllocations"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -4727,9 +4996,11 @@
       "is_critical": false
     },
     "spLoadSiteEventTemplates": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SiteEventTemplates"
+      ],
       "outputs": [
         "SiteEventTemplates"
       ],
@@ -4739,7 +5010,7 @@
     },
     "vw_DimSite": {
       "inputs_count": 5,
-      "outputs_count": 8,
+      "outputs_count": 5,
       "inputs": [
         "DimProjectRegion",
         "Projects",
@@ -4750,9 +5021,6 @@
       "outputs": [
         "vw_FactProjectCountryActivationPlan_hist",
         "vw_FactProject_Timeline",
-        "vw_FactSiteEventPlan_hist",
-        "vw_FactSite_Timeline",
-        "vw_ProjectRegion",
         "vw_ReportDataQuality",
         "vw_Site",
         "vw_SiteAgreement"
@@ -4788,11 +5056,9 @@
       "is_critical": false
     },
     "TRIAL_CadenceOutOfScopeRecords": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "TRIAL_spLoadCadenceOutOfScopeRecords"
-      ],
+      "inputs": [],
       "outputs": [
         "TRIAL_spLoadCadenceBudgetData"
       ],
@@ -4825,13 +5091,14 @@
     },
     "SAP_Sales_Summary": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 5,
       "inputs": [
         "spLoadSAPSalesSummary"
       ],
       "outputs": [
         "SAP_Sales_Summary_AverageDaysToPayPerQuarter_Metrics",
         "spLoadSAPSalesInterestSummaryMetrics",
+        "spLoadSAPSalesSummary",
         "spLoadSAPSalesSummaryMetrics",
         "spLoadSAP_Sales_Summary_AverageDaysToPayPerQuarterMetrics"
       ],
@@ -4840,9 +5107,11 @@
       "is_critical": false
     },
     "spLoadFactCRA": {
-      "inputs_count": 1,
+      "inputs_count": 3,
       "outputs_count": 1,
       "inputs": [
+        "FactCra",
+        "spLoadPrimaDataMart",
         "vTimeSheetDurationPerEmployee"
       ],
       "outputs": [
@@ -4882,9 +5151,11 @@
       "is_critical": false
     },
     "spLoadSitePerformance": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SitePerformance"
+      ],
       "outputs": [
         "SitePerformance"
       ],
@@ -4931,13 +5202,11 @@
     },
     "TRIAL_spLoadCadenceOutOfScopeRecords": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "CadenceExtract"
       ],
-      "outputs": [
-        "TRIAL_CadenceOutOfScopeRecords"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -4958,7 +5227,7 @@
       "is_critical": false
     },
     "spLoadFactSite": {
-      "inputs_count": 13,
+      "inputs_count": 15,
       "outputs_count": 1,
       "inputs": [
         "DimCountry",
@@ -4966,6 +5235,8 @@
         "DimProject",
         "DimSite",
         "DimSite_DimCRA",
+        "FactSite",
+        "spLoadPrimaDataMart",
         "vCtmMvrStatistics",
         "vRaECSubmission",
         "vSiteAgreements",
@@ -4994,9 +5265,11 @@
       "is_critical": false
     },
     "spLoadSites": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "Sites"
+      ],
       "outputs": [
         "Sites"
       ],
@@ -5005,23 +5278,25 @@
       "is_critical": false
     },
     "IntermediateSitesActivated": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingIntermediateSitesActivated"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingIntermediateSitesActivated"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadCadenceOutOfScopeRecords": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "CadenceExtract"
       ],
-      "outputs": [
-        "CadenceOutOfScopeRecords"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -5043,11 +5318,9 @@
       "is_critical": false
     },
     "TRIAL_CadenceExtractTaskCountry": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "TRIAL_spLoadCadenceExtractTaskCountry"
-      ],
+      "inputs": [],
       "outputs": [
         "TRIAL_spLoadTaskAndFunctionData"
       ],
@@ -5057,24 +5330,23 @@
     },
     "spLoadFinalCountryReallocateTS_Case3": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "CountryReallocateTS",
         "FinalCountryReallocateTS"
       ],
-      "outputs": [
-        "FinalCountryReallocateTS"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadFactSiteDetailTables": {
-      "inputs_count": 9,
+      "inputs_count": 10,
       "outputs_count": 7,
       "inputs": [
         "DimDate",
         "FactSite",
+        "spLoadPrimaDataMart",
         "vCtmMvrStatistics",
         "vRaECSubmission",
         "vSiteAgreements",
@@ -5106,9 +5378,11 @@
       "is_critical": false
     },
     "spLoadSiteStatisticsFull": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SiteStatisticsFull"
+      ],
       "outputs": [
         "SiteStatisticsFull"
       ],
@@ -5129,13 +5403,11 @@
     },
     "TRIAL_spLoadCadenceExtractTaskCountry": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "CadenceExtract"
       ],
-      "outputs": [
-        "TRIAL_CadenceExtractTaskCountry"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -5151,19 +5423,28 @@
     },
     "spLoadPrimaDataMart": {
       "inputs_count": 0,
-      "outputs_count": 0,
+      "outputs_count": 10,
       "inputs": [],
-      "outputs": [],
+      "outputs": [
+        "spLoadDimCRA",
+        "spLoadDimCountry",
+        "spLoadDimProject",
+        "spLoadDimSite",
+        "spLoadDimSite_DimCRA",
+        "spLoadDimSite_DimCraKey_Junc",
+        "spLoadFactCRA",
+        "spLoadFactCountry",
+        "spLoadFactSite",
+        "spLoadFactSiteDetailTables"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "Employee_Day_Hours": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "spLoadEmployeeContractUtilization_Aggregations"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadEmployeeContractUtilization_Aggregations"
       ],
@@ -5181,11 +5462,9 @@
       "is_critical": false
     },
     "TRIAL_ReconciliationCalc": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "TRIAL_spLoadReconciliation_Case5-6"
-      ],
+      "inputs": [],
       "outputs": [
         "TRIAL_spLoadReconciliation_Case5-6"
       ],
@@ -5194,9 +5473,11 @@
       "is_critical": false
     },
     "spLoadSiteSubmissions": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SiteSubmissions"
+      ],
       "outputs": [
         "SiteSubmissions"
       ],
@@ -5205,10 +5486,14 @@
       "is_critical": false
     },
     "DimSite_DimCraKey_Junc": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadDimSite_DimCraKey_Junc"
+      ],
+      "outputs": [
+        "spLoadDimSite_DimCraKey_Junc"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -5238,9 +5523,10 @@
       "is_critical": false
     },
     "spLoadSAPSalesSummary": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
+        "SAP_Sales_Summary",
         "SAP_Sales_Summary"
       ],
       "outputs": [
@@ -5252,13 +5538,11 @@
     },
     "vw_DimTemplateType": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "DimTemplateType"
       ],
-      "outputs": [
-        "vw_FactProject_Timeline"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -5284,10 +5568,14 @@
       "is_critical": false
     },
     "HrEmployeeTransfers": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -5315,9 +5603,11 @@
       "is_critical": false
     },
     "spLoadStudyArms": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "StudyArms"
+      ],
       "outputs": [
         "StudyArms"
       ],
@@ -5327,12 +5617,13 @@
     },
     "PfmTsMaster": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 5,
       "inputs": [
         "spLoadPfmObjects"
       ],
       "outputs": [
         "Timesheets_rolling_12weeks",
+        "spLoadPfmObjects",
         "spLoadTsRecords2yrs",
         "vTimeSheetDurationPerEmployeeAll",
         "vTsFactHR"
@@ -5393,9 +5684,11 @@
       "is_critical": false
     },
     "spLoadSubjectEvents": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SubjectEvents"
+      ],
       "outputs": [
         "SubjectEvents"
       ],
@@ -5482,9 +5775,11 @@
       "is_critical": false
     },
     "spLoadSubjectEventTemplates": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SubjectEventTemplates"
+      ],
       "outputs": [
         "SubjectEventTemplates"
       ],
@@ -5493,10 +5788,14 @@
       "is_critical": false
     },
     "SitePerformance": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingSitePerformance"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingSitePerformance"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -5550,9 +5849,11 @@
       "is_critical": false
     },
     "spLoadSubjects": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "Subjects"
+      ],
       "outputs": [
         "Subjects"
       ],
@@ -5593,13 +5894,11 @@
     },
     "spLoadFinalCountryReallocateTS_NoCountry": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "NoCountryReallocateTS"
       ],
-      "outputs": [
-        "FinalCountryReallocateTS"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -5614,18 +5913,24 @@
       "is_critical": false
     },
     "HrQuizSessions": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadSubjectStatistics": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "SubjectStatistics"
+      ],
       "outputs": [
         "SubjectStatistics"
       ],
@@ -5655,11 +5960,12 @@
     },
     "SAP_Sales_Details": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadSAPSalesDetails"
       ],
       "outputs": [
+        "spLoadSAPSalesDetails",
         "spLoadSAPSalesDetailsMetrics"
       ],
       "parse_success": true,
@@ -5699,16 +6005,20 @@
       "is_critical": false
     },
     "HrTrainingEmployeesTimesheet": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadTsRecords2yrs": {
-      "inputs_count": 16,
+      "inputs_count": 17,
       "outputs_count": 2,
       "inputs": [
         "CoreHelpers",
@@ -5726,7 +6036,8 @@
         "PfmTsTasks",
         "PfmTsTracker",
         "Regions",
-        "Sites"
+        "Sites",
+        "TsRecords2yrs"
       ],
       "outputs": [
         "TsRecordComments2yrs",
@@ -5738,12 +6049,13 @@
     },
     "DimSite_DimCRA": {
       "inputs_count": 1,
-      "outputs_count": 5,
+      "outputs_count": 6,
       "inputs": [
         "spLoadDimSite_DimCRA"
       ],
       "outputs": [
         "PrimaDataMart.GetDimSiteDimCraByDateAndSiteId.UserDefinedFunction__toy",
+        "spLoadDimSite_DimCRA",
         "spLoadDimSite_DimCraKey_Junc",
         "spLoadFactSite",
         "vSiteEnrollmentPlans",
@@ -5764,13 +6076,11 @@
     },
     "vw_FactProjectCountrySubmission_hist": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "FactRaEcSubmission"
       ],
-      "outputs": [
-        "vw_FactProjectCountrySubmission"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -5800,10 +6110,11 @@
       "is_critical": false
     },
     "ForecastModel_vEnrollmentMonthlyGI": {
-      "inputs_count": 4,
+      "inputs_count": 5,
       "outputs_count": 0,
       "inputs": [
         "CtmSiteEnrollmentForecast",
+        "ForecastModel_vDimSite",
         "GlobalAccounts",
         "GlobalCities",
         "GlobalCountries"
@@ -5829,22 +6140,25 @@
     },
     "vw_FactProjectCountry_hist": {
       "inputs_count": 1,
-      "outputs_count": 0,
+      "outputs_count": 1,
       "inputs": [
         "FactProjectRegion"
       ],
-      "outputs": [],
+      "outputs": [
+        "vw_FactProjectCountry"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "PfmJobs": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 4,
       "inputs": [
         "spLoadPfmObjects"
       ],
       "outputs": [
+        "spLoadPfmObjects",
         "spLoadTsRecords2yrs",
         "vTimeSheetDurationPerEmployeeAll",
         "vTsFactHR"
@@ -5863,9 +6177,11 @@
       "is_critical": false
     },
     "spLoadVendorAccounts": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "VendorAccounts"
+      ],
       "outputs": [
         "VendorAccounts"
       ],
@@ -5875,12 +6191,13 @@
     },
     "GlobalCities": {
       "inputs_count": 1,
-      "outputs_count": 2,
+      "outputs_count": 3,
       "inputs": [
         "spLoadGlobalCountries"
       ],
       "outputs": [
         "ForecastModel_vEnrollmentMonthlyGI",
+        "spLoadGlobalCountries",
         "usp_GET_ACCOUNT_RELATIONSHIPS"
       ],
       "parse_success": true,
@@ -5907,13 +6224,14 @@
     },
     "RaEcSubmissions": {
       "inputs_count": 1,
-      "outputs_count": 5,
+      "outputs_count": 6,
       "inputs": [
         "spLoadPrimaReportingRaEcSubmissions"
       ],
       "outputs": [
         "spLoadPrimaReportingProjectMetricsByCountryHistory",
         "spLoadPrimaReportingProjectMetricsHistory",
+        "spLoadPrimaReportingRaEcSubmissions",
         "spLoadPrimaReportingSiteCRAs",
         "spLoadPrimaReportingSubmissionsAll",
         "vw_DimProjectRegion"
@@ -5942,13 +6260,11 @@
     },
     "vw_FactSiteAgreementTemplate_hist": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "FactSiteAgreement"
       ],
-      "outputs": [
-        "vw_FactSiteAgreementTemplate"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -6080,9 +6396,10 @@
       "is_critical": false
     },
     "spLoadSAPSalesSummaryHistory": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
+        "SAP_Sales_Summary_History",
         "SAP_Sales_Summary_History"
       ],
       "outputs": [
@@ -6110,10 +6427,14 @@
       "is_critical": false
     },
     "FactCountry": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadFactCountry"
+      ],
+      "outputs": [
+        "spLoadFactCountry"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -6219,12 +6540,13 @@
     },
     "HrDepartments": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 4,
       "inputs": [
         "spLoadHumanResourcesObjects"
       ],
       "outputs": [
         "spLoadHrEmployeeHistory",
+        "spLoadHumanResourcesObjects",
         "spLoadTsRecords2yrs",
         "vFull_Departmental_Map_ActivePrima"
       ],
@@ -6328,10 +6650,14 @@
       "is_critical": false
     },
     "ListOfPsiServices": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadListOfPsiServices"
+      ],
+      "outputs": [
+        "spLoadListOfPsiServices"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -6357,31 +6683,40 @@
       "is_critical": false
     },
     "HrTrainingMatrix": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "GlobalActionItems": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadGlobalActionItems"
+      ],
+      "outputs": [
+        "spLoadGlobalActionItems"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadFactSAPSalesRetainerDetails": {
-      "inputs_count": 5,
+      "inputs_count": 6,
       "outputs_count": 1,
       "inputs": [
         "DimCustomers",
         "DimCustomersProjects",
         "DimDate",
         "DimProjects",
+        "FactSAPSalesRetainerDetails",
         "SAP_Sales_Retainer_Details_Metrics"
       ],
       "outputs": [
@@ -6392,10 +6727,14 @@
       "is_critical": false
     },
     "SmSaes": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadSatelliteSmSaesObjects"
+      ],
+      "outputs": [
+        "spLoadSatelliteSmSaesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -6416,20 +6755,22 @@
       "is_critical": false
     },
     "ProjectMetricsHistory": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingProjectMetricsHistory"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingProjectMetricsHistory"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "CadenceBudgetData_Post": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 4,
-      "inputs": [
-        "spLoadCadenceBudgetData_Post"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadCadenceBudget_Aggregations",
         "spLoadEarnedValue",
@@ -6450,13 +6791,14 @@
       "is_critical": false
     },
     "vw_FactProjectCountryPlan_hist": {
-      "inputs_count": 2,
-      "outputs_count": 0,
+      "inputs_count": 1,
+      "outputs_count": 1,
       "inputs": [
-        "FactProjectMilestone",
-        "vw_FactSite_hist"
+        "FactProjectMilestone"
       ],
-      "outputs": [],
+      "outputs": [
+        "vw_FactProjectCountry"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -6471,11 +6813,9 @@
       "is_critical": false
     },
     "EmployeeContractUtilization": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 2,
-      "inputs": [
-        "spLoadEmployeeContractUtilization"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadCadenceBudget_LaborCost_PrimaContractUtilization_Junc",
         "spLoadEmployeeContractUtilization_Post"
@@ -6521,15 +6861,13 @@
     },
     "spLoadCadenceBudgetData_Post": {
       "inputs_count": 3,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "CadenceBudgetData",
         "CadenceBudget_LaborCost_PrimaContractUtilization_Junc",
         "spLoadProductivityMetrics_Post"
       ],
-      "outputs": [
-        "CadenceBudgetData_Post"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -6544,11 +6882,9 @@
       "is_critical": false
     },
     "Fact_SAP_Sales_Details": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 4,
-      "inputs": [
-        "spLoadFact_SAP_Sales_Details"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadAggregatedTotalLin\u200besInvoiced",
         "spLoadArAnalyticsMetrics",
@@ -6607,12 +6943,16 @@
     },
     "ForecastModel_vDimSite": {
       "inputs_count": 2,
-      "outputs_count": 0,
+      "outputs_count": 3,
       "inputs": [
         "Sites",
         "Sites"
       ],
-      "outputs": [],
+      "outputs": [
+        "ForecastModel_vEnrollmentMonthlyGI",
+        "ForecastModel_vFactSiteEnrollDaily",
+        "ForecastModel_vFactSubjectLifeCycle"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -6636,11 +6976,9 @@
       "is_critical": false
     },
     "FactSAPSalesInterestSummary": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "spLoadFactSAPSalesInterestSummary"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadFactSAPSalesSponsorRiskInterestQuarterly"
       ],
@@ -6650,12 +6988,14 @@
     },
     "vw_DimProjectCountry": {
       "inputs_count": 2,
-      "outputs_count": 0,
+      "outputs_count": 1,
       "inputs": [
         "DimProjectRegion",
         "vw_FactProjectCountryActivationPlan_hist"
       ],
-      "outputs": [],
+      "outputs": [
+        "vw_ReportDataQuality"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -6710,15 +7050,14 @@
     },
     "ForecastModel_vDimDate": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 3,
       "inputs": [
         "DimDate"
       ],
       "outputs": [
         "ForecastModel_vFactSiteEnrollWeekly",
         "ForecastModel_vFeatSiteProjectDaily",
-        "ForecastModel_vTrain_SiteWeek_Next14",
-        "ForecastModel_vTrain_SiteWeek_Next7"
+        "ForecastModel_vTrain_SiteWeek_Next14"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -6726,12 +7065,14 @@
     },
     "GlobalAccounts": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 5,
       "inputs": [
         "spLoadGlobalAccounts"
       ],
       "outputs": [
         "ForecastModel_vEnrollmentMonthlyGI",
+        "spLoadGlobalAccounts",
+        "spLoadGlobalControlObjects",
         "usp_GET_ACCOUNT_RELATIONSHIPS",
         "vGlobalAccounts"
       ],
@@ -6750,11 +7091,12 @@
     },
     "FactSAPSalesRetainerDetails": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadFactSAPSalesRetainerDetails"
       ],
       "outputs": [
+        "spLoadFactSAPSalesRetainerDetails",
         "spLoadFactSAPSalesSponsorRiskRetainerQuarterly"
       ],
       "parse_success": true,
@@ -6820,9 +7162,11 @@
       "is_critical": false
     },
     "spLoadRegions": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "Regions"
+      ],
       "outputs": [
         "Regions"
       ],
@@ -6970,9 +7314,12 @@
       "is_critical": false
     },
     "spLoadDimCountry": {
-      "inputs_count": 0,
+      "inputs_count": 2,
       "outputs_count": 1,
-      "inputs": [],
+      "inputs": [
+        "DimCountry",
+        "spLoadPrimaDataMart"
+      ],
       "outputs": [
         "DimCountry"
       ],
@@ -6981,10 +7328,14 @@
       "is_critical": false
     },
     "GlobalContactAccounts": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadGlobalContactAccounts"
+      ],
+      "outputs": [
+        "spLoadGlobalContactAccounts"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -7008,9 +7359,10 @@
       "is_critical": false
     },
     "spLoadSAPSalesInterestSummaryMetrics": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
+        "SAP_Sales_Interest_Summary_Metrics",
         "SAP_Sales_Summary"
       ],
       "outputs": [
@@ -7048,9 +7400,10 @@
       "is_critical": false
     },
     "ForecastModel_vFactSubjectLifeCycle": {
-      "inputs_count": 2,
+      "inputs_count": 3,
       "outputs_count": 0,
       "inputs": [
+        "ForecastModel_vDimSite",
         "SubjectStatistics",
         "Subjects"
       ],
@@ -7084,11 +7437,12 @@
     },
     "ValidSpambotDispatches": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadFeasibilityObjects"
       ],
       "outputs": [
+        "spLoadFeasibilityObjects",
         "spLoadPrimaReportingFeasibilityQuestionsAndAnswers"
       ],
       "parse_success": true,
@@ -7113,9 +7467,10 @@
       "is_critical": false
     },
     "spLoadvCCR2PowerBIfacts": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
+        "v_CCR2PowerBI_facts",
         "v_CCR2PowerBI_facts"
       ],
       "outputs": [
@@ -7171,23 +7526,28 @@
       "is_critical": false
     },
     "ForecastModel_vFactSiteEnrollDaily": {
-      "inputs_count": 0,
-      "outputs_count": 3,
-      "inputs": [],
+      "inputs_count": 1,
+      "outputs_count": 2,
+      "inputs": [
+        "ForecastModel_vDimSite"
+      ],
       "outputs": [
         "ForecastModel_vFeatSiteProjectDaily",
-        "ForecastModel_vTrain_SiteWeek_Next14",
-        "ForecastModel_vTrain_SiteWeek_Next7"
+        "ForecastModel_vTrain_SiteWeek_Next14"
       ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "GlobalSignTracker": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadGlobalSignObjects"
+      ],
+      "outputs": [
+        "spLoadGlobalSignObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -7230,15 +7590,13 @@
     },
     "spLoadFactSAPSalesInterestSummary": {
       "inputs_count": 3,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "DimCustomers",
         "DimDate",
         "SAP_Sales_Interest_Summary_Metrics"
       ],
-      "outputs": [
-        "FactSAPSalesInterestSummary"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -7290,10 +7648,14 @@
       "is_critical": false
     },
     "FactSAPSalesSponsorRiskSnapshot": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadFactSAPSalesSponsorRiskSnapshot"
+      ],
+      "outputs": [
+        "spLoadFactSAPSalesSponsorRiskSnapshot"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -7406,7 +7768,7 @@
       "is_critical": false
     },
     "spLoadFactLaborCostForEarnedValue_1_OLD": {
-      "inputs_count": 7,
+      "inputs_count": 8,
       "outputs_count": 1,
       "inputs": [
         "DimAccountDetailsCognos",
@@ -7414,6 +7776,7 @@
         "DimCountry",
         "DimDepartment",
         "FactGLCognos",
+        "FactLaborCostForEarnedValue",
         "Full_Departmental_Map",
         "GlobalCountries"
       ],
@@ -7459,12 +7822,9 @@
       "is_critical": false
     },
     "ForecastModel_vTrain_SiteWeek_Next7": {
-      "inputs_count": 2,
+      "inputs_count": 0,
       "outputs_count": 0,
-      "inputs": [
-        "ForecastModel_vDimDate",
-        "ForecastModel_vFactSiteEnrollDaily"
-      ],
+      "inputs": [],
       "outputs": [],
       "parse_success": true,
       "parse_error": null,
@@ -7483,12 +7843,13 @@
     },
     "StudyArms": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadStudyArms"
       ],
       "outputs": [
-        "spLoadPrimaReportingSubjectEvents"
+        "spLoadPrimaReportingSubjectEvents",
+        "spLoadStudyArms"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -7540,9 +7901,10 @@
       "is_critical": false
     },
     "spLoadArAnalyticsDetailMetrics": {
-      "inputs_count": 4,
+      "inputs_count": 5,
       "outputs_count": 1,
       "inputs": [
+        "ArAnalyticsDetailMetrics",
         "ArAnalyticsMetrics",
         "DimDate",
         "Fact_SAP_Sales_Summary",
@@ -7645,11 +8007,12 @@
     },
     "GlobalCurrencyRates": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadGlobalCountries"
       ],
       "outputs": [
+        "spLoadGlobalCountries",
         "spLoadMonthlyAverageCurrencyExchangeRate"
       ],
       "parse_success": true,
@@ -7675,11 +8038,12 @@
       "is_critical": false
     },
     "vw_GLCognos_OPEX2": {
-      "inputs_count": 2,
+      "inputs_count": 3,
       "outputs_count": 2,
       "inputs": [
         "DataFilters_VAT",
-        "GLCognos_base"
+        "GLCognos_base",
+        "vw_GLCognos_Subcontractor"
       ],
       "outputs": [
         "spLoadCosts",
@@ -7734,12 +8098,13 @@
     },
     "PfmTsTracker": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 5,
       "inputs": [
         "spLoadPfmObjects"
       ],
       "outputs": [
         "Timesheets_rolling_12weeks",
+        "spLoadPfmObjects",
         "spLoadTsRecords2yrs",
         "vTimeSheetDurationPerEmployeeAll",
         "vTsFactHR"
@@ -7930,7 +8295,7 @@
     },
     "Subjects": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 6,
       "inputs": [
         "spLoadSubjects"
       ],
@@ -7938,6 +8303,8 @@
         "ForecastModel_vFactSubjectLifeCycle",
         "ForecastModel_vSubjectData",
         "spLoadPrimaReportingSubjectEvents",
+        "spLoadProjectTsOverpaymentHistory",
+        "spLoadSubjects",
         "spTableCount"
       ],
       "parse_success": true,
@@ -8029,12 +8396,14 @@
     },
     "ExportLog": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 3,
       "inputs": [
         "spLoadExportLog"
       ],
       "outputs": [
-        "spLoadPrimaReportingPrimaLastRefresh"
+        "spLoadExportLog",
+        "spLoadPrimaReportingPrimaLastRefresh",
+        "spLoadProjectNameHistory"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -8092,20 +8461,24 @@
     },
     "spLoadProjectNameHistory": {
       "inputs_count": 0,
-      "outputs_count": 0,
+      "outputs_count": 1,
       "inputs": [],
-      "outputs": [],
+      "outputs": [
+        "spLastRowCount"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "DimCRA": {
       "inputs_count": 1,
-      "outputs_count": 5,
+      "outputs_count": 7,
       "inputs": [
         "spLoadDimCRA"
       ],
       "outputs": [
+        "PrimaDataMart.GetDimSiteDimCraByDateAndSiteId.UserDefinedFunction__toy",
+        "spLoadDimCRA",
         "spLoadDimSite_DimCRA",
         "spLoadFactCountry",
         "spLoadPrimaReportingSiteCRAs",
@@ -8152,11 +8525,12 @@
       "is_critical": false
     },
     "spLoadPrimaReportingFeasibilityQuestionsAndAnswers": {
-      "inputs_count": 6,
+      "inputs_count": 7,
       "outputs_count": 2,
       "inputs": [
         "CoreDataTypes",
         "FeasibilityFormNames",
+        "FeasibilityQuestionsAndAnswers",
         "FeasibilityQuestionsNew",
         "FeasibilitySporEfqAnswers",
         "ValidSpambotDispatches",
@@ -8181,11 +8555,12 @@
     },
     "FeasibilityQuestionsNew": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadFeasibilityObjects"
       ],
       "outputs": [
+        "spLoadFeasibilityObjects",
         "spLoadPrimaReportingFeasibilityQuestionsAndAnswers"
       ],
       "parse_success": true,
@@ -8227,12 +8602,14 @@
     },
     "ProjectRegions": {
       "inputs_count": 1,
-      "outputs_count": 2,
+      "outputs_count": 4,
       "inputs": [
         "spLoadPrimaReportingProjectRegions"
       ],
       "outputs": [
         "spLoadPrimaReportingIntermediateEnrollmentByCountry",
+        "spLoadPrimaReportingProjectMetricsByCountryHistory",
+        "spLoadPrimaReportingProjectRegions",
         "spLoadPrimaReportingSiteActivationMilestones"
       ],
       "parse_success": true,
@@ -8269,18 +8646,23 @@
       "is_critical": false
     },
     "PmKpiMaster": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPmKpiMaster"
+      ],
+      "outputs": [
+        "spLoadPmKpiMaster"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadArAnalyticsMetricsQuarterlyGlobal": {
-      "inputs_count": 6,
+      "inputs_count": 7,
       "outputs_count": 1,
       "inputs": [
+        "ArAnalyticsMetricsQuarterlyGlobal",
         "COGNOS_PowerBIFacts",
         "DataFilters",
         "DimDate",
@@ -8310,13 +8692,15 @@
     },
     "DateRangeMonthClose_Config": {
       "inputs_count": 1,
-      "outputs_count": 2,
+      "outputs_count": 4,
       "inputs": [
         "spLoadDateRangeMonthClose_Config"
       ],
       "outputs": [
+        "spLoadCadenceBudget_LaborCost_PrimaContractUtilization_Junc",
         "spLoadDateRange",
-        "spLoadDateRangeMonthClose_Config"
+        "spLoadDateRangeMonthClose_Config",
+        "spLoadFactLaborCostForEarnedValue_Post"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -8347,11 +8731,12 @@
     },
     "SAP_Sales_Details_History": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadSAPSalesDetailsHistory"
       ],
       "outputs": [
+        "spLoadSAPSalesDetailsHistory",
         "spLoadSAPSalesDetailsMetrics"
       ],
       "parse_success": true,
@@ -8359,19 +8744,27 @@
       "is_critical": false
     },
     "SiteIssues": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadProjectDeviationObjects"
+      ],
+      "outputs": [
+        "spLoadProjectDeviationObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "GlobalCurrencies": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadGlobalCountries"
+      ],
+      "outputs": [
+        "spLoadGlobalCountries"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -8411,9 +8804,10 @@
       "is_critical": false
     },
     "spLoadPrimaReportingIpRedsReview": {
-      "inputs_count": 2,
+      "inputs_count": 3,
       "outputs_count": 2,
       "inputs": [
+        "IpRedsReview",
         "IpRedsReview",
         "Sites"
       ],
@@ -8444,23 +8838,25 @@
     },
     "SubjectStatistics": {
       "inputs_count": 1,
-      "outputs_count": 2,
+      "outputs_count": 3,
       "inputs": [
         "spLoadSubjectStatistics"
       ],
       "outputs": [
         "ForecastModel_vFactSubjectLifeCycle",
-        "ForecastModel_vSubjectData"
+        "ForecastModel_vSubjectData",
+        "spLoadSubjectStatistics"
       ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadPrimaReportingPrimaLastRefresh": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 2,
       "inputs": [
-        "ExportLog"
+        "ExportLog",
+        "PrimaLastRefresh"
       ],
       "outputs": [
         "PrimaLastRefresh",
@@ -8491,27 +8887,36 @@
       "is_critical": false
     },
     "ArAnalyticsMetricsQuarterlyGlobal": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadArAnalyticsMetricsQuarterlyGlobal"
+      ],
+      "outputs": [
+        "spLoadArAnalyticsMetricsQuarterlyGlobal"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "PmKpiResultsHistory": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPmKpiResultsHistory"
+      ],
+      "outputs": [
+        "spLoadPmKpiResultsHistory"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadSAPSalesDetails": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
+        "SAP_Sales_Details",
         "SAP_Sales_Details"
       ],
       "outputs": [
@@ -8552,9 +8957,10 @@
       "is_critical": false
     },
     "spLoadPrimaReportingProjectEvents": {
-      "inputs_count": 2,
+      "inputs_count": 3,
       "outputs_count": 2,
       "inputs": [
+        "ProjectEvents",
         "ProjectEvents",
         "Projects"
       ],
@@ -8585,9 +8991,10 @@
       "is_critical": false
     },
     "spLoadSAPSalesDetailsHistory": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
+        "SAP_Sales_Details_History",
         "SAP_Sales_Details_History"
       ],
       "outputs": [
@@ -8631,10 +9038,14 @@
       "is_critical": false
     },
     "TsRecords2yrs": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadTsRecords2yrs"
+      ],
+      "outputs": [
+        "spLoadTsRecords2yrs"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -8666,9 +9077,10 @@
       "is_critical": false
     },
     "spLoadGLCognosData_Test": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
+        "GLCognosData_Test",
         "v_CCR2PowerBI_facts"
       ],
       "outputs": [
@@ -8718,12 +9130,13 @@
     },
     "SAP_Sales_Summary_History": {
       "inputs_count": 1,
-      "outputs_count": 3,
+      "outputs_count": 4,
       "inputs": [
         "spLoadSAPSalesSummaryHistory"
       ],
       "outputs": [
         "SAP_Sales_Summary_AverageDaysToPayPerQuarter_Metrics",
+        "spLoadSAPSalesSummaryHistory",
         "spLoadSAPSalesSummaryMetrics",
         "spLoadSAP_Sales_Summary_AverageDaysToPayPerQuarterMetrics"
       ],
@@ -8741,9 +9154,11 @@
       "is_critical": false
     },
     "spLoadPrimaReportingProjectMetricsHistory": {
-      "inputs_count": 6,
+      "inputs_count": 8,
       "outputs_count": 2,
       "inputs": [
+        "ProjectMetricsHistory",
+        "Projects",
         "RaEcSubmissions",
         "SiteActivationMilestones",
         "SiteEvents",
@@ -8760,17 +9175,21 @@
       "is_critical": false
     },
     "SitePerformancebyAccount": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPrimaReportingSitePerformanceByAccount"
+      ],
+      "outputs": [
+        "spLoadPrimaReportingSitePerformanceByAccount"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "vw_DimDepartment": {
       "inputs_count": 1,
-      "outputs_count": 7,
+      "outputs_count": 6,
       "inputs": [
         "DimDepartment"
       ],
@@ -8779,7 +9198,6 @@
         "spLoadFactEnterpriseMetrics_Current",
         "spLoadGLCognos_base",
         "spLoadHeadCount",
-        "vw_EarnedValue_combined",
         "vw_GLCognos_Department",
         "vw_test"
       ],
@@ -8825,7 +9243,7 @@
     },
     "spLoadPrimaReportingProjectMilestones": {
       "inputs_count": 6,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "CoreHelpers",
         "GlobalCountries",
@@ -8835,7 +9253,8 @@
         "Projects"
       ],
       "outputs": [
-        "ProjectMilestones"
+        "ProjectMilestones",
+        "spLastRowCount"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -8887,13 +9306,11 @@
     },
     "spLoadDimCustomers": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "SAP_Sales_Details_Metrics"
       ],
-      "outputs": [
-        "DimCustomers"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -8924,11 +9341,9 @@
       "is_critical": false
     },
     "CadenceExtractFunctionLocation": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "spLoadCadenceExtractFunctionLocation"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadTaskAndFunctionData"
       ],
@@ -8937,11 +9352,12 @@
       "is_critical": false
     },
     "spLoadFactSAPSalesSponsorRiskRetainerQuarterly": {
-      "inputs_count": 3,
+      "inputs_count": 4,
       "outputs_count": 1,
       "inputs": [
         "DimDate",
         "FactSAPSalesRetainerDetails",
+        "FactSAPSalesSponsorRiskRetainerQuarterly",
         "QuarterRanges"
       ],
       "outputs": [
@@ -8953,12 +9369,13 @@
     },
     "HrPositions": {
       "inputs_count": 1,
-      "outputs_count": 2,
+      "outputs_count": 3,
       "inputs": [
         "spLoadHumanResourcesObjects"
       ],
       "outputs": [
         "spLoadHrEmployeeHistory",
+        "spLoadHumanResourcesObjects",
         "spLoadTsRecords2yrs"
       ],
       "parse_success": true,
@@ -8967,13 +9384,11 @@
     },
     "spLoadDimProjects": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "SAP_Sales_Summary_Metrics"
       ],
-      "outputs": [
-        "DimProjects"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -9003,11 +9418,12 @@
     },
     "PmKpiResults": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadPmKpiResults"
       ],
       "outputs": [
+        "spLoadPmKpiResults",
         "spLoadPmKpiResultsHistory"
       ],
       "parse_success": true,
@@ -9025,15 +9441,13 @@
     },
     "spLoadDimCustomersProjects": {
       "inputs_count": 3,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "DimCustomers",
         "DimProjects",
         "SAP_Sales_Summary_Metrics"
       ],
-      "outputs": [
-        "DimCustomersProjects"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -9078,13 +9492,12 @@
     },
     "spLoadReconciliation_Case5-6": {
       "inputs_count": 2,
-      "outputs_count": 2,
+      "outputs_count": 1,
       "inputs": [
         "ReconciliationCalc",
         "ReconciliationPopulation"
       ],
       "outputs": [
-        "ReconciliationCalc",
         "ReconciliationEV"
       ],
       "parse_success": true,
@@ -9170,11 +9583,9 @@
       "is_critical": false
     },
     "Fact_SAP_Sales_Summary": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 4,
-      "inputs": [
-        "spLoadFact_SAP_Sales_Summary"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadArAnalyticsDetailMetrics",
         "spLoadArAnalyticsMetrics",
@@ -9291,52 +9702,44 @@
     },
     "spLoadLookup_Invoice": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "Lookup_Invoice",
         "Lookup_Invoice"
       ],
-      "outputs": [
-        "Lookup_Invoice"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadQuarterRanges": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "DimDate",
         "Fact_SAP_Sales_Summary"
       ],
-      "outputs": [
-        "QuarterRanges"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "TRIAL_spLoadFinalCountryReallocateTS_Case3": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "TRIAL_CountryReallocateTS",
         "TRIAL_FinalCountryReallocateTS"
       ],
-      "outputs": [
-        "TRIAL_FinalCountryReallocateTS"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "TRIAL_CountryReallocateTS": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 4,
-      "inputs": [
-        "TRIAL_spLoadCountryReallocateTS"
-      ],
+      "inputs": [],
       "outputs": [
         "TRIAL_spLoadFinalCountryReallocateTS_Case1",
         "TRIAL_spLoadFinalCountryReallocateTS_Case2",
@@ -9348,12 +9751,13 @@
       "is_critical": false
     },
     "spLoadSAPSalesDetailsMetrics": {
-      "inputs_count": 5,
+      "inputs_count": 6,
       "outputs_count": 1,
       "inputs": [
         "DataFilters",
         "SAP_Sales_Details",
         "SAP_Sales_Details_History",
+        "SAP_Sales_Details_Metrics",
         "SAP_Sales_Summary_Metrics",
         "SAP_Tcurr"
       ],
@@ -9366,13 +9770,11 @@
     },
     "TRIAL_spLoadCountryReallocateTS": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "TRIAL_TaskAndFunctionData"
       ],
-      "outputs": [
-        "TRIAL_CountryReallocateTS"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -9388,12 +9790,13 @@
     },
     "SiteAgreementsAndBudgets": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadSiteAgreementsAndBudgets"
       ],
       "outputs": [
-        "spLoadPrimaReportingSiteAgreements"
+        "spLoadPrimaReportingSiteAgreements",
+        "spLoadSiteAgreementsAndBudgets"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -9410,7 +9813,7 @@
     },
     "vTsFactHR": {
       "inputs_count": 10,
-      "outputs_count": 2,
+      "outputs_count": 3,
       "inputs": [
         "DimDate",
         "GlobalCountries",
@@ -9425,7 +9828,8 @@
       ],
       "outputs": [
         "vTsParetoCountry",
-        "vTsTaskProjCountryStats"
+        "vTsTaskProjCountryStats",
+        "vTsWeeklyEmployeeHR"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -9491,15 +9895,13 @@
     },
     "spLoadEmployeeContractUtilization": {
       "inputs_count": 3,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "HrContractAttendance",
         "TsDurationForAllEmployees",
         "spLoadProductivityMetrics_Post"
       ],
-      "outputs": [
-        "EmployeeContractUtilization"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -9528,42 +9930,47 @@
     },
     "spLoadFactSAPSalesSponsorRiskInterestQuarterly": {
       "inputs_count": 3,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "DimDate",
         "FactSAPSalesInterestSummary",
         "QuarterRanges"
       ],
-      "outputs": [
-        "FactSAPSalesSponsorRiskInterestQuarterly"
-      ],
-      "parse_success": true,
-      "parse_error": null,
-      "is_critical": false
-    },
-    "ArAnalyticsDetailMetrics": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
       "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
+    "ArAnalyticsDetailMetrics": {
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadArAnalyticsDetailMetrics"
+      ],
+      "outputs": [
+        "spLoadArAnalyticsDetailMetrics"
+      ],
+      "parse_success": true,
+      "parse_error": null,
+      "is_critical": false
+    },
     "vTsWeeklyEmployeeHR": {
-      "inputs_count": 0,
+      "inputs_count": 1,
       "outputs_count": 0,
-      "inputs": [],
+      "inputs": [
+        "vTsFactHR"
+      ],
       "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadFactLaborCostForEarnedValue_Post": {
-      "inputs_count": 3,
+      "inputs_count": 4,
       "outputs_count": 1,
       "inputs": [
         "CadenceBudget_LaborCost_PrimaContractUtilization_Junc",
+        "DateRangeMonthClose_Config",
         "DimDate",
         "spLoadProductivityMetrics_Post"
       ],
@@ -9575,11 +9982,9 @@
       "is_critical": false
     },
     "EmployeeContractUtilization_Post": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "spLoadEmployeeContractUtilization_Post"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadEmployeeContractUtilization_Aggregations"
       ],
@@ -9597,12 +10002,13 @@
       "is_critical": false
     },
     "spLoadFactSAPSalesSponsorRiskSnapshot": {
-      "inputs_count": 4,
+      "inputs_count": 5,
       "outputs_count": 1,
       "inputs": [
         "DataFilters",
         "DimCustomersProjects",
         "DimDate",
+        "FactSAPSalesSponsorRiskSnapshot",
         "Fact_SAP_Sales_Details"
       ],
       "outputs": [
@@ -9613,10 +10019,14 @@
       "is_critical": false
     },
     "SubjectSAEs": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadProjectDeviationObjects"
+      ],
+      "outputs": [
+        "spLoadProjectDeviationObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -9642,11 +10052,10 @@
       "is_critical": false
     },
     "vw_FactSiteEventPlan_hist": {
-      "inputs_count": 2,
+      "inputs_count": 1,
       "outputs_count": 0,
       "inputs": [
-        "SiteEventPlanHistory",
-        "vw_DimSite"
+        "SiteEventPlanHistory"
       ],
       "outputs": [],
       "parse_success": true,
@@ -9668,10 +10077,11 @@
       "is_critical": false
     },
     "spLoadCadenceBudget_LaborCost_PrimaContractUtilization_Junc": {
-      "inputs_count": 4,
+      "inputs_count": 5,
       "outputs_count": 1,
       "inputs": [
         "CadenceBudgetData",
+        "DateRangeMonthClose_Config",
         "DimDate",
         "EmployeeContractUtilization",
         "spLoadProductivityMetrics_Post"
@@ -9693,10 +10103,14 @@
       "is_critical": false
     },
     "CentralMonitoringIssues": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadProjectDeviationObjects"
+      ],
+      "outputs": [
+        "spLoadProjectDeviationObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -9712,7 +10126,7 @@
     },
     "spLoadEmployeeContractUtilization_Post": {
       "inputs_count": 5,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "CadenceBudget_LaborCost_PrimaContractUtilization_Junc",
         "DimDate",
@@ -9720,9 +10134,7 @@
         "spLoadProductivityMetrics_Post",
         "vFull_Departmental_Map_ActivePrima"
       ],
-      "outputs": [
-        "EmployeeContractUtilization_Post"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -9783,19 +10195,24 @@
       "is_critical": false
     },
     "SiteEvents_DurationByDayPlanned": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadSiteEvents_DurationByDayPlanned"
+      ],
+      "outputs": [
+        "spLoadSiteEvents_DurationByDayPlanned"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadMonthlyAverageCurrencyExchangeRate": {
-      "inputs_count": 1,
+      "inputs_count": 2,
       "outputs_count": 1,
       "inputs": [
-        "GlobalCurrencyRates"
+        "GlobalCurrencyRates",
+        "MonthlyAverageCurrencyExchangeRate"
       ],
       "outputs": [
         "MonthlyAverageCurrencyExchangeRate"
@@ -9949,11 +10366,12 @@
       "is_critical": false
     },
     "spLoadFactAgingSAP": {
-      "inputs_count": 4,
+      "inputs_count": 5,
       "outputs_count": 1,
       "inputs": [
         "DimCompany",
         "DimDateFinance",
+        "FactAgingSAP",
         "ZFIV_DWH_AGING",
         "spLoadFactTables"
       ],
@@ -9974,7 +10392,7 @@
       "is_critical": false
     },
     "spLoadFactGLSAP": {
-      "inputs_count": 7,
+      "inputs_count": 8,
       "outputs_count": 1,
       "inputs": [
         "DimAccountDetailsSAP",
@@ -9982,6 +10400,7 @@
         "DimCurrency",
         "DimDepartment",
         "DimMonthFinance",
+        "FactGLSAP",
         "SAP_PowerBI_FACT",
         "spLoadFactTables"
       ],
@@ -10006,11 +10425,9 @@
       "is_critical": false
     },
     "TRIAL_NoCountryReallocateTS": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 4,
-      "inputs": [
-        "TRIAL_spLoadNoCountryReallocateTS"
-      ],
+      "inputs": [],
       "outputs": [
         "TRIAL_spLoadFinalCountryReallocateTS_Case1",
         "TRIAL_spLoadFinalCountryReallocateTS_Case2",
@@ -10031,11 +10448,12 @@
       "is_critical": false
     },
     "spLoadSiteEvents_DurationByDay": {
-      "inputs_count": 2,
+      "inputs_count": 3,
       "outputs_count": 1,
       "inputs": [
         "SiteEvents",
-        "SiteEvents"
+        "SiteEvents",
+        "SiteEvents_DurationByDay"
       ],
       "outputs": [
         "SiteEvents_DurationByDay"
@@ -10045,11 +10463,9 @@
       "is_critical": false
     },
     "DimCustomers": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 7,
-      "inputs": [
-        "spLoadDimCustomers"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadAggregatedTotalLin\u200besInvoiced",
         "spLoadArAnalyticsMetrics",
@@ -10088,13 +10504,11 @@
     },
     "TRIAL_spLoadNoCountryReallocateTS": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "TRIAL_TaskAndFunctionData"
       ],
-      "outputs": [
-        "TRIAL_NoCountryReallocateTS"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -10111,7 +10525,7 @@
       "is_critical": false
     },
     "spLoadPrimaReportingSubjectEvents": {
-      "inputs_count": 11,
+      "inputs_count": 12,
       "outputs_count": 2,
       "inputs": [
         "CoreHelpers",
@@ -10123,6 +10537,7 @@
         "Sites",
         "StudyArms",
         "SubjectEventTemplates",
+        "SubjectEvents",
         "SubjectEvents",
         "Subjects"
       ],
@@ -10151,12 +10566,14 @@
     },
     "SiteAllocations": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 3,
       "inputs": [
         "spLoadSiteAllocations"
       ],
       "outputs": [
-        "spLoadPrimaReportingSubjectEvents"
+        "spLoadPrimaReportingSiteEventsWithAllocations",
+        "spLoadPrimaReportingSubjectEvents",
+        "spLoadSiteAllocations"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -10205,7 +10622,7 @@
       "is_critical": false
     },
     "vw_ProjectRegion": {
-      "inputs_count": 10,
+      "inputs_count": 9,
       "outputs_count": 1,
       "inputs": [
         "DimProjectRegion",
@@ -10216,8 +10633,7 @@
         "ProjectEvents",
         "ProjectMilestones",
         "Projects",
-        "lkp_Exclusion",
-        "vw_DimSite"
+        "lkp_Exclusion"
       ],
       "outputs": [
         "spLoadProjectRegion"
@@ -10291,21 +10707,22 @@
       "is_critical": false
     },
     "SiteEvents_DurationByDay": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadSiteEvents_DurationByDay"
+      ],
+      "outputs": [
+        "spLoadSiteEvents_DurationByDay"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "AggregatedCountryTotals": {
-      "inputs_count": 2,
+      "inputs_count": 0,
       "outputs_count": 2,
-      "inputs": [
-        "spLoadMonthlyTaskTaskCountry",
-        "spLoadMonthlyTaskTaskCountryGlobalNoCountry"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadMonthlyTaskTaskCountry",
         "spLoadMonthlyTaskTaskCountryGlobalNoCountry"
@@ -10324,11 +10741,9 @@
       "is_critical": false
     },
     "CadenceOutOfScopeRecords": {
-      "inputs_count": 1,
+      "inputs_count": 0,
       "outputs_count": 1,
-      "inputs": [
-        "spLoadCadenceOutOfScopeRecords"
-      ],
+      "inputs": [],
       "outputs": [
         "spLoadCadenceBudgetData"
       ],
@@ -10338,11 +10753,12 @@
     },
     "CoreDataTypes": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadFeasibilityObjects"
       ],
       "outputs": [
+        "spLoadFeasibilityObjects",
         "spLoadPrimaReportingFeasibilityQuestionsAndAnswers"
       ],
       "parse_success": true,
@@ -10431,9 +10847,10 @@
       "is_critical": false
     },
     "spLoadGLCognosData_Backup": {
-      "inputs_count": 2,
+      "inputs_count": 3,
       "outputs_count": 2,
       "inputs": [
+        "GLCognosData",
         "GLCognosData_HC100500",
         "v_CCR2PowerBI_facts"
       ],
@@ -10474,16 +10891,16 @@
       "is_critical": false
     },
     "vw_GLCognos_Subcontractor": {
-      "inputs_count": 4,
-      "outputs_count": 2,
+      "inputs_count": 3,
+      "outputs_count": 3,
       "inputs": [
         "DataFilters_VAT",
         "GLCognos_base",
-        "Subcontractor",
-        "vw_DimDate"
+        "Subcontractor"
       ],
       "outputs": [
         "spLoadCosts",
+        "vw_GLCognos_OPEX2",
         "vw_tmp_TestCase_Country"
       ],
       "parse_success": true,
@@ -10492,11 +10909,12 @@
     },
     "DimSite": {
       "inputs_count": 1,
-      "outputs_count": 11,
+      "outputs_count": 12,
       "inputs": [
         "spLoadDimSite"
       ],
       "outputs": [
+        "spLoadDimSite",
         "spLoadDimSite_DimCRA",
         "spLoadFactSite",
         "vCtmMvrStatistics",
@@ -10545,12 +10963,9 @@
       "is_critical": false
     },
     "DepartmenMapping": {
-      "inputs_count": 2,
+      "inputs_count": 0,
       "outputs_count": 2,
-      "inputs": [
-        "TRIAL_spLoadCadenceBudgetData",
-        "spLoadCadenceBudgetData"
-      ],
+      "inputs": [],
       "outputs": [
         "TRIAL_spLoadCadenceBudgetData",
         "spLoadCadenceBudgetData"
@@ -10706,12 +11121,13 @@
     },
     "SubjectEvents": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadSubjectEvents"
       ],
       "outputs": [
-        "spLoadPrimaReportingSubjectEvents"
+        "spLoadPrimaReportingSubjectEvents",
+        "spLoadSubjectEvents"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -10754,10 +11170,14 @@
       "is_critical": false
     },
     "ResourceAllocations": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadResourceAllocations"
+      ],
+      "outputs": [
+        "spLoadResourceAllocations"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -10812,17 +11232,21 @@
       "is_critical": false
     },
     "SiteStatisticsFull": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadSiteStatisticsFull"
+      ],
+      "outputs": [
+        "spLoadSiteStatisticsFull"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "SAP_Sales_Summary_Metrics": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 5,
       "inputs": [
         "spLoadSAPSalesSummaryMetrics"
       ],
@@ -10830,7 +11254,8 @@
         "spLoadDimCustomersProjects",
         "spLoadDimProjects",
         "spLoadFact_SAP_Sales_Summary",
-        "spLoadSAPSalesDetailsMetrics"
+        "spLoadSAPSalesDetailsMetrics",
+        "spLoadSAPSalesSummaryMetrics"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -10847,7 +11272,7 @@
     },
     "spLoadEmployeeContractUtilization_Aggregations": {
       "inputs_count": 17,
-      "outputs_count": 2,
+      "outputs_count": 1,
       "inputs": [
         "AverageContractFTE_Monthly",
         "AverageContractFTE_Monthly_RankDetail",
@@ -10868,7 +11293,6 @@
         "vFull_Departmental_Map_ActivePrima"
       ],
       "outputs": [
-        "Employee_Day_Hours",
         "spLoadEmployeeContractUtilization_Aggregations"
       ],
       "parse_success": true,
@@ -10895,7 +11319,7 @@
     },
     "SAP_Sales_Details_Metrics": {
       "inputs_count": 1,
-      "outputs_count": 4,
+      "outputs_count": 5,
       "inputs": [
         "spLoadSAPSalesDetailsMetrics"
       ],
@@ -10903,6 +11327,7 @@
         "spLoadDimCustomers",
         "spLoadFact_SAP_Sales_Details",
         "spLoadInvoice",
+        "spLoadSAPSalesDetailsMetrics",
         "spLoadSAPSalesRetainerDetailsMetrics"
       ],
       "parse_success": true,
@@ -10942,12 +11367,13 @@
     },
     "SAP_Sales_Interest_Summary_Metrics": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadSAPSalesInterestSummaryMetrics"
       ],
       "outputs": [
-        "spLoadFactSAPSalesInterestSummary"
+        "spLoadFactSAPSalesInterestSummary",
+        "spLoadSAPSalesInterestSummaryMetrics"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -10963,10 +11389,14 @@
       "is_critical": false
     },
     "ListOfPsiTherapeuticAreas": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadListOfPsiTherapeuticAreas"
+      ],
+      "outputs": [
+        "spLoadListOfPsiTherapeuticAreas"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -11013,21 +11443,26 @@
       "is_critical": false
     },
     "PfmCountries": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadPfmObjects"
+      ],
+      "outputs": [
+        "spLoadPfmObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "IecSubmissions": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadIecSubmissions"
       ],
       "outputs": [
+        "spLoadIecSubmissions",
         "spLoadPrimaReportingSiteSubmissions"
       ],
       "parse_success": true,
@@ -11036,7 +11471,7 @@
     },
     "spLoadHrContractAttendance": {
       "inputs_count": 11,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "DimDate",
         "GlobalCountries",
@@ -11050,9 +11485,7 @@
         "Sites",
         "spLoadProductivityMetrics_Post"
       ],
-      "outputs": [
-        "HrContractAttendance"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -11068,14 +11501,12 @@
     },
     "spLoadCadenceExtractFunctionLocation": {
       "inputs_count": 2,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "CadenceExtract",
         "CadenceRates"
       ],
-      "outputs": [
-        "CadenceExtractFunctionLocation"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -11095,11 +11526,12 @@
     },
     "CtmMvrStatistics": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadCtmMvrObjects"
       ],
       "outputs": [
+        "spLoadCtmMvrObjects",
         "spLoadPrimaReportingSiteEvents"
       ],
       "parse_success": true,
@@ -11150,12 +11582,14 @@
     },
     "EnrollmentPlanSites": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 3,
       "inputs": [
         "spLoadEnrollmentPlanSites"
       ],
       "outputs": [
-        "spLoadEnrollmentPlanSitesHistory"
+        "spLoadEnrollmentPlanSites",
+        "spLoadEnrollmentPlanSitesHistory",
+        "spLoadProjectTsOverpaymentHistory"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -11163,12 +11597,13 @@
     },
     "ProjectDeviations": {
       "inputs_count": 1,
-      "outputs_count": 1,
+      "outputs_count": 2,
       "inputs": [
         "spLoadPrimaReportingProjectDeviations"
       ],
       "outputs": [
-        "ProjectDeviations_NSC"
+        "ProjectDeviations_NSC",
+        "spLoadPrimaReportingProjectDeviations"
       ],
       "parse_success": true,
       "parse_error": null,
@@ -11260,17 +11695,21 @@
       "is_critical": false
     },
     "HrResignations": {
-      "inputs_count": 0,
-      "outputs_count": 0,
-      "inputs": [],
-      "outputs": [],
+      "inputs_count": 1,
+      "outputs_count": 1,
+      "inputs": [
+        "spLoadHumanResourcesObjects"
+      ],
+      "outputs": [
+        "spLoadHumanResourcesObjects"
+      ],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
     },
     "spLoadFact_SAP_Sales_Summary": {
       "inputs_count": 5,
-      "outputs_count": 1,
+      "outputs_count": 0,
       "inputs": [
         "DimCustomers",
         "DimCustomersProjects",
@@ -11278,9 +11717,7 @@
         "DimProjects",
         "SAP_Sales_Summary_Metrics"
       ],
-      "outputs": [
-        "Fact_SAP_Sales_Summary"
-      ],
+      "outputs": [],
       "parse_success": true,
       "parse_error": null,
       "is_critical": false
@@ -11327,14 +11764,13 @@
       "is_critical": false
     },
     "vw_EarnedValue_combined": {
-      "inputs_count": 5,
+      "inputs_count": 4,
       "outputs_count": 1,
       "inputs": [
         "EarnedValue",
         "EarnedValue_NonCadence",
         "Lookup_Common",
-        "MonthlyAverageCurrencyExchangeRate",
-        "vw_DimDepartment"
+        "MonthlyAverageCurrencyExchangeRate"
       ],
       "outputs": [
         "spLoadEarnedValue_calc"
