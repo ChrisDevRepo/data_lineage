@@ -99,3 +99,6 @@ debug-browser.mjs
 
 # Demo data cache
 frontend/public/demo-data.json
+
+# Static build artifacts
+static/
