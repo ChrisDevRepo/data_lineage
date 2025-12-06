@@ -264,14 +264,27 @@ def main():
     parser.add_argument('--username', help='Username')
     parser.add_argument('--password', help='Password')
     parser.add_argument('--output', default='snapshot', help='Output directory')
-    parser.add_argument('--env-file', default='.env', help='Path to .env file')
+    parser.add_argument('--env-file', help='Path to .env file')
     parser.add_argument('--trust-cert', action='store_true', help='Trust server certificate (for local dev)')
 
     args = parser.parse_args()
 
     # Load .env
-    if DOTENV_AVAILABLE and Path(args.env_file).exists():
-        load_dotenv(args.env_file)
+    if DOTENV_AVAILABLE:
+        if args.env_file:
+            if Path(args.env_file).exists():
+                load_dotenv(args.env_file)
+            else:
+                print(f"[WARNING] Specified env file not found: {args.env_file}")
+        else:
+            # Try to load from current directory or parent directories (standard behavior)
+            load_dotenv()
+            
+            # Also try looking in the script's directory if different from cwd
+            script_dir = Path(__file__).resolve().parent
+            script_env = script_dir / '.env'
+            if script_env.exists() and script_dir != Path.cwd():
+                load_dotenv(script_env)
 
     # Generic MSSQL variables
     server = args.server or os.getenv('MSSQL_SERVER') or os.getenv('DB_SERVER')
