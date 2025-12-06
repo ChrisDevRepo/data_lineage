@@ -481,10 +481,6 @@ class DatabaseRefreshService:
                         'object_type': 'View',  # Friendly name (not 'V' code)
                         'modify_date': view['modify_date'] or datetime.now()
                     })
-                    definitions_data.append({
-                        'object_id': obj_id,
-                        'definition': view['source_code']
-                    })
                 except Exception as e:
                     logger.warning(f"Failed to process view {view.get('schema_name', '?')}.{view.get('view_name', '?')}: {e}")
                     continue
@@ -507,15 +503,56 @@ class DatabaseRefreshService:
                         'object_type': object_type,
                         'modify_date': func['modify_date'] or datetime.now()
                     })
-                    definitions_data.append({
-                        'object_id': obj_id,
-                        'definition': func['source_code']
-                    })
                 except Exception as e:
                     logger.warning(f"Failed to process function {func.get('schema_name', '?')}.{func.get('function_name', '?')}: {e}")
                     continue
 
-            # Fetch dependencies
+            # 4. Fetch definitions
+            logger.info("Fetching object definitions...")
+            definitions_data_from_connector = connector.list_definitions() if hasattr(connector, 'list_definitions') else []
+            
+            # Construct definitions dataframe from source code in objects if needed
+            definitions_list = []
+            if not definitions_data_from_connector:
+                for metadata in procedures_list:
+                    try:
+                        procedure = connector.get_procedure_source(metadata.object_id)
+                        if procedure.source_code:
+                            obj_id = int(metadata.object_id) if metadata.object_id.isdigit() else hash(metadata.full_name)
+                            definitions_list.append({
+                                'object_id': obj_id,
+                                'definition': procedure.source_code
+                            })
+                    except Exception as e:
+                        logger.warning(f"Failed to get source for procedure {metadata.full_name} for definitions: {e}")
+                
+                for view in views_list:
+                    if 'source_code' in view and view['source_code']:
+                        obj_id = int(view['object_id']) if view['object_id'].isdigit() else hash(f"{view['schema_name']}.{view['view_name']}")
+                        definitions_list.append({
+                            'object_id': obj_id,
+                            'definition': view['source_code']
+                        })
+
+                for func in functions_list:
+                    if 'source_code' in func and func['source_code']:
+                        obj_id = int(func['object_id']) if func['object_id'].isdigit() else hash(f"{func['schema_name']}.{func['function_name']}")
+                        definitions_list.append({
+                            'object_id': obj_id,
+                            'definition': func['source_code']
+                        })
+            else:
+                 definitions_list = definitions_data_from_connector
+
+            # 5. Fetch table columns (New in 4.5.3)
+            logger.info("Fetching table columns...")
+            columns_list = connector.list_table_columns() if hasattr(connector, 'list_table_columns') else []
+            
+            # 6. Fetch query logs (New in 4.5.3)
+            logger.info("Fetching query logs...")
+            query_logs_list = connector.extract_query_logs() if hasattr(connector, 'extract_query_logs') else []
+
+            # 7. Fetch dependencies
             logger.info("Fetching object dependencies...")
             try:
                 dependencies_list = connector.list_dependencies()
@@ -570,8 +607,11 @@ class DatabaseRefreshService:
 
             return {
                 'objects': pd.DataFrame(objects_data) if objects_data else pd.DataFrame(),
-                'definitions': pd.DataFrame(definitions_data) if definitions_data else pd.DataFrame(),
-                'dependencies': dependencies_df,
+                'definitions': pd.DataFrame(definitions_list) if definitions_list else pd.DataFrame(),
+                'dependencies': pd.DataFrame(dependencies_data) if dependencies_data else pd.DataFrame(columns=['referencing_object_id', 'referenced_object_id', 'referenced_schema_name', 'referenced_entity_name']),
+                'table_columns': pd.DataFrame(columns_list) if columns_list else pd.DataFrame(),
+                'query_logs': pd.DataFrame(query_logs_list) if query_logs_list else pd.DataFrame(),
+                'refresh_timestamp': datetime.utcnow(),
                 'new_count': len(objects_data),  # All are "new" in direct DB connection
                 'updated_count': 0,
                 'unchanged_count': 0
@@ -626,6 +666,20 @@ class DatabaseRefreshService:
                 procedures['dependencies'] = pd.DataFrame(columns=['referencing_object_id', 'referenced_object_id', 'referenced_schema_name', 'referenced_entity_name'])
             procedures['dependencies'].to_parquet(dependencies_path, index=False)
             logger.debug(f"Saved {dependencies_path} ({len(procedures['dependencies'])} rows - dependencies extracted during parsing)")
+
+            logger.debug(f"Saved {dependencies_path} ({len(procedures['dependencies'])} rows - dependencies extracted during parsing)")
+
+            # Save table_columns.parquet (optional)
+            if 'table_columns' in procedures and not procedures['table_columns'].empty:
+                columns_path = job_dir / "table_columns.parquet"
+                procedures['table_columns'].to_parquet(columns_path, index=False)
+                logger.debug(f"Saved {columns_path} ({len(procedures['table_columns'])} rows)")
+
+            # Save query_logs.parquet (optional)
+            if 'query_logs' in procedures and not procedures['query_logs'].empty:
+                logs_path = job_dir / "query_logs.parquet"
+                procedures['query_logs'].to_parquet(logs_path, index=False)
+                logger.debug(f"Saved {logs_path} ({len(procedures['query_logs'])} rows)")
 
             logger.info(f"✅ Saved Parquet files to {job_dir}/")
 
