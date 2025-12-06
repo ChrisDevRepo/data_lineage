@@ -164,7 +164,6 @@ queries:
       definition_hash: BINARY
 
   # Extract object dependencies and lineage
-  # NOTE: Uses same query as Parquet extraction (synapse_dmv_extractor.py)
   list_dependencies:
     description: "Get all object dependencies (which objects reference which)"
     sql: |
