@@ -7,16 +7,15 @@ export type DataNode = {
   data_model_type?: 'Dimension' | 'Fact' | 'Lookup' | 'Other';
   inputs: string[];
   outputs: string[];
-  ddl_text?: string | null;  // SQL definition for Views and Stored Procedures (v3.0 SQL Viewer feature)
-  node_symbol?: 'circle' | 'diamond' | 'square' | 'question_mark';  // v4.3.0 Phantom Objects
-  is_phantom?: boolean;  // v4.3.0 Phantom Objects
-  phantom_reason?: string;  // v4.3.0 Phantom Objects
+  bidirectional_with?: string[]; // v4.4.0: Pre-computed bidirectional pairs from DuckDB
+  ddl_text?: string | null; // SQL definition for Views and Stored Procedures (v3.0 SQL Viewer feature)
+  node_symbol?: 'circle' | 'diamond' | 'square' | 'question_mark';
   // Note: confidence scoring removed in v4.3.6 (was circular logic with regex-only parsing)
 };
 
 export type TraceConfig = {
   startNodeId: string | null;
-  endNodeId?: string | null;  // Optional: if provided, trace path between start and end
+  endNodeId?: string | null; // Optional: if provided, trace path between start and end
   upstreamLevels: number;
   downstreamLevels: number;
   includedSchemas: Set<string>;
