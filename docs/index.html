@@ -21,8 +21,6 @@
         }
         .hero-pattern {
             background-color: #ffffff;
-            background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
-            background-size: 24px 24px;
         }
     </style>
 </head>
@@ -36,7 +34,6 @@
                 <div class="flex-shrink-0 flex items-center gap-3">
                     <!-- Corrected path to logo -->
                     <img class="h-10 w-auto" src="images/logo.png" alt="Data Lineage Visualizer Logo">
-                    <span class="font-bold text-xl tracking-tight text-slate-900 hidden sm:block">Data Lineage Visualizer</span>
                 </div>
                 
                 <!-- Links -->
@@ -53,45 +50,35 @@
     </nav>
 
     <!-- HERO SECTION -->
-    <section class="pt-32 pb-20 hero-pattern border-b border-slate-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <section class="pt-32 pb-20 hero-pattern">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold uppercase tracking-wide mb-6">
                 v1.0.0 Proof of Concept
             </div>
-            <h1 class="text-4xl md:text-6xl font-extrabold text-slate-900 tracking-tight mb-6">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight mb-6">
                 Visualize Your <span class="gradient-text">SQL Dependencies</span>
             </h1>
-            <p class="mt-4 text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-                An interactive graph visualization tool for <strong>Microsoft SQL Server</strong>, <strong>Azure Synapse</strong>, and <strong>Fabric</strong>. 
-                Automatically extract and analyze lineage from stored procedures without writing a single line of Python.
+            <p class="mt-4 text-lg text-slate-600 max-w-2xl mx-auto">
+                Interactive graph visualization for the <strong>Microsoft SQL family</strong>.
             </p>
-            
-            <div class="mt-10 flex flex-col sm:flex-row justify-center gap-4">
+
+            <div class="mt-8 flex flex-col sm:flex-row justify-center gap-4">
                 <a href="https://datalineage.chwagner.eu/" target="_blank"
-                   class="inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                   class="inline-flex items-center justify-center px-6 py-3 text-base font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 transition shadow-lg">
                     <i class="fa-solid fa-rocket mr-2"></i> Try Live Demo
                 </a>
                 <a href="https://hub.docker.com/r/chwagneraltyca/data-lineage-visualizer" target="_blank"
-                   class="inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                    <i class="fa-brands fa-docker mr-2"></i> Run Locally (Docker)
+                   class="inline-flex items-center justify-center px-6 py-3 text-base font-medium rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition shadow-lg">
+                    <i class="fa-brands fa-docker mr-2"></i> Run Locally
                 </a>
                 <a href="https://github.com/chrisdevrepo/data_lineage" target="_blank"
-                   class="inline-flex items-center justify-center px-8 py-3 text-base font-medium rounded-lg text-white bg-slate-900 hover:bg-slate-800 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+                   class="inline-flex items-center justify-center px-6 py-3 text-base font-medium rounded-lg text-white bg-slate-900 hover:bg-slate-800 transition shadow-lg">
                     <i class="fa-brands fa-github mr-2"></i> View on GitHub
                 </a>
             </div>
 
-            <!-- Quick Docker Command -->
-            <div class="mt-6 max-w-3xl mx-auto">
-                <div class="bg-slate-900 rounded-lg p-4 text-left">
-                    <p class="text-xs text-slate-400 mb-2">One-click local deployment:</p>
-                    <code class="text-sm text-green-400 font-mono">docker run -d -p 8000:8000 -v data-lineage-config:/app/config --name data-lineage chwagneraltyca/data-lineage-visualizer:latest</code>
-                </div>
-            </div>
-
             <!-- Main Screenshot -->
-            <div class="mt-16 relative max-w-5xl mx-auto rounded-xl overflow-hidden shadow-2xl border border-slate-200">
-                <!-- Corrected path to main GUI screenshot -->
+            <div class="mt-12 relative max-w-5xl mx-auto rounded-xl overflow-hidden shadow-2xl border border-slate-200">
                 <img src="images/data-lineage-gui.png" alt="Data Lineage Interface" class="w-full h-auto">
             </div>
         </div>
@@ -137,72 +124,64 @@
     </section>
 
     <!-- DEMO / VIDEO SECTION -->
-    <section id="demo" class="py-20 bg-slate-900 text-white">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 class="text-3xl font-bold mb-8">See It In Action</h2>
-            <div class="relative pb-[56.25%] h-0 rounded-xl overflow-hidden shadow-2xl border border-slate-700 bg-slate-800">
-                <!-- YouTube Embed -->
-                <iframe
-                    class="absolute top-0 left-0 w-full h-full"
-                    src="https://www.youtube.com/embed/uZAk9PqHwJc"
-                    title="Data Lineage Visualizer Demo"
-                    frameborder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen>
-                </iframe>
-            </div>
-            <p class="mt-6 text-slate-400">
-                Full walkthrough of trace mode, schema filtering, and interactive features.
+    <section id="demo" class="py-20 bg-slate-50">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-3xl font-bold text-slate-900 mb-8">See It In Action</h2>
+            <a href="https://www.youtube.com/watch?v=uZAk9PqHwJc" target="_blank" class="block relative rounded-xl overflow-hidden shadow-2xl border border-slate-200 hover:shadow-3xl transition group">
+                <img src="images/datalineage-youtube.png" alt="Data Lineage Demo Video" class="w-full h-auto group-hover:opacity-90 transition">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center group-hover:scale-110 transition shadow-2xl">
+                        <i class="fa-solid fa-play text-white text-2xl ml-1"></i>
+                    </div>
+                </div>
+            </a>
+            <p class="mt-6 text-slate-600">
+                Click to watch: Full walkthrough of trace mode, schema filtering, and interactive features
             </p>
         </div>
     </section>
 
     <!-- DISCLAIMER SECTION -->
-    <section class="py-20 bg-amber-50 border-y border-amber-200">
+    <section class="py-16 bg-slate-50 border-y border-slate-200">
         <div class="max-w-4xl mx-auto px-6">
-            <div class="flex items-start gap-4 mb-6">
-                <div class="flex-shrink-0">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-3xl"></i>
+            <div class="bg-white rounded-lg border border-slate-200 p-8">
+                <div class="flex items-start gap-3 mb-4">
+                    <i class="fa-solid fa-info-circle text-blue-600 text-xl mt-0.5"></i>
+                    <h3 class="text-lg font-semibold text-slate-900">Important Information</h3>
                 </div>
-                <div>
-                    <h3 class="text-2xl font-bold text-slate-900 mb-3">Important Disclaimer</h3>
-                    <div class="text-sm text-slate-800 leading-relaxed space-y-3">
-                        <p class="font-semibold text-base">
-                            ⚠️ This software is provided <strong>"AS IS"</strong>, without warranty of any kind, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and noninfringement.
-                        </p>
-                        <p>
-                            <strong>Proof of Concept Status:</strong> Developed and tested with Azure Synapse Analytics and Azure SQL Database. Not recommended for mission-critical production lineage without thorough testing in your environment.
-                        </p>
-                        <p>
-                            <strong>No Liability:</strong> In no event shall the author be liable for any claim, damages, or other liability arising from the use of this software.
-                        </p>
-                        <p>
-                            <strong>Limited Scope:</strong> Supports Microsoft SQL Server family only (SQL Server, Azure SQL, Synapse, Fabric). Use at your own risk.
-                        </p>
-                        <p class="text-xs text-slate-600 mt-4 pt-3 border-t border-amber-200">
-                            Licensed under MIT License. See <a href="https://github.com/chrisdevrepo/data_lineage/blob/main/LICENSE" target="_blank" class="underline hover:text-blue-600">LICENSE</a> for full terms.
-                        </p>
-                    </div>
+                <div class="text-sm text-slate-700 leading-relaxed space-y-2 pl-8">
+                    <p>
+                        This software is provided "AS IS", without warranty of any kind. Developed and tested with Azure Synapse Analytics and Azure SQL Database. Not recommended for mission-critical production use without thorough testing.
+                    </p>
+                    <p>
+                        Licensed under <a href="https://github.com/chrisdevrepo/data_lineage/blob/main/LICENSE" target="_blank" class="text-blue-600 hover:underline">MIT License</a>. Use at your own risk.
+                    </p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- ABOUT AUTHOR -->
-    <section id="about" class="py-16 bg-gradient-to-br from-slate-50 to-blue-50">
-        <div class="max-w-4xl mx-auto px-6 text-center">
-            <h3 class="text-2xl font-bold text-slate-900 mb-3">About the Author</h3>
-            <h4 class="text-xl font-semibold text-blue-600 mb-3">Christian Wagner</h4>
-            <p class="text-sm text-slate-700 mb-4 max-w-2xl mx-auto leading-relaxed">
-                Data Architect & Engineer specializing in Azure data platforms and migrations.
-                Built this tool to solve lineage visibility challenges in complex SQL environments.
-            </p>
-            <div class="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                <a href="https://at.linkedin.com/in/christian-wagner-11aa8614b" target="_blank"
-                   class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
-                    <i class="fa-brands fa-linkedin text-xl"></i> Connect on LinkedIn
-                </a>
-                <p class="text-xs text-slate-500">Open to discussing data architecture, Azure migrations, and SQL lineage projects</p>
+    <section id="about" class="py-16 bg-white">
+        <div class="max-w-4xl mx-auto px-6">
+            <div class="bg-slate-50 rounded-lg border border-slate-200 p-8">
+                <div class="flex items-start justify-between gap-6">
+                    <div>
+                        <p class="text-sm text-slate-600 mb-2">Built by</p>
+                        <h3 class="text-xl font-semibold text-slate-900 mb-3">Christian Wagner</h3>
+                        <p class="text-sm text-slate-700 leading-relaxed mb-4">
+                            Data Architect & Engineer specializing in Azure data platforms and migrations.
+                            Built this tool to solve lineage visibility challenges in complex SQL environments.
+                        </p>
+                        <p class="text-xs text-slate-500">
+                            Open to discussing data architecture, Azure migrations, and SQL lineage projects
+                        </p>
+                    </div>
+                    <a href="https://at.linkedin.com/in/christian-wagner-11aa8614b" target="_blank"
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition whitespace-nowrap">
+                        <i class="fa-brands fa-linkedin text-sm"></i> LinkedIn
+                    </a>
+                </div>
             </div>
         </div>
     </section>
