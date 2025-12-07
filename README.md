@@ -70,11 +70,7 @@ pip install -r requirements.txt
 **Setup Guides:**
 - **[QUICKSTART.md](QUICKSTART.md)** - Detailed installation and setup
 - **[.devcontainer/README.md](.devcontainer/README.md)** - VSCode development environment
-
-**Deployment Options:**
 - **[.docker/README.md](.docker/README.md)** - Local production deployment (Docker)
-- **[.azure-deploy/README.md](.azure-deploy/README.md)** - Azure Container Apps deployment (Cloud)
-- **[.devcontainer/README.md](.devcontainer/README.md)** - Development environment (VSCode)
 
 ---
 
