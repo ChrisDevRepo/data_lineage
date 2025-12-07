@@ -17,9 +17,6 @@ Thumbs.db
 .claude/
 CLAUDE.md
 
-# Security incident reports (internal only - do not commit)
-SECURITY_INCIDENT_REPORT.md
-
 # Internal documentation (not for external repo)
 internal/
 
@@ -63,6 +60,9 @@ ENV/
 *.duckdb
 *.duckdb.wal
 lineage_workspace.*
+
+# Metadata cache (contains database object names)
+metadata_cache.json
 
 # Parquet snapshots (may contain sensitive data)
 parquet_snapshots/*.parquet
