@@ -19,9 +19,6 @@ Format:
   }
 }
 
-Author: Vibecoding
-Version: 3.0.0
-Date: 2025-10-26
 """
 
 import json
@@ -119,7 +116,7 @@ class InternalFormatter:
 
     def _fetch_dependencies(self) -> Dict[int, Dict[str, Any]]:
         """
-        Fetch dependencies from edge table (v0.10.0 Phase 4.4).
+        Fetch dependencies from edge table.
 
         Uses lineage_edges table for inputs/outputs, lineage_metadata for provenance.
         JSON column fallback removed - edge table is required.
@@ -182,7 +179,7 @@ class InternalFormatter:
             if source_id in deps:
                 deps[source_id]["outputs"] = outputs_list
 
-        # Detect bidirectional pairs using DuckDB (v4.4.0 - performance optimization)
+        # Detect bidirectional pairs using DuckDB
         # This replaces frontend's O(n²) JavaScript detection with O(n) SQL query
         bidirectional_query = """
         SELECT DISTINCT
@@ -273,7 +270,7 @@ class InternalFormatter:
                 ],  # Use actual outputs from lineage_metadata
                 "bidirectional_with": dep_meta.get(
                     "bidirectional_with", []
-                ),  # v4.4.0: Pre-computed in DuckDB
+                ),  # Pre-computed in DuckDB
                 "provenance": {
                     "primary_source": dep_meta["primary_source"],
                     "parse_success": dep_meta.get("parse_success", True),  # v4.3.6

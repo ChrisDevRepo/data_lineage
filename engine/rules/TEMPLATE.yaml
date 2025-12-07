@@ -38,7 +38,7 @@ replacement: ''  # What to replace with (empty string to remove)
 #   created: "2025-MM-DD"
 #   tested_with: "X stored procedures"
 #   affects_lineage: false
-#   impact: "Fixes SQLGlot error: ..."
+#   impact: "Fixes parser error: ..."
 
 # ==============================================================================
 # Field Reference (Quick)

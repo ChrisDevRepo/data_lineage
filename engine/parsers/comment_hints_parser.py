@@ -2,7 +2,7 @@
 Comment Hints Parser
 
 Extracts table dependency hints from specially formatted SQL comments.
-Handles edge cases that regex/SQLGlot can't parse (dynamic SQL, complex CATCH blocks, etc.)
+Handles edge cases that regex/parser can't parse (dynamic SQL, complex CATCH blocks, etc.)
 
 Syntax:
     -- @LINEAGE_INPUTS: schema.table1, schema.table2
