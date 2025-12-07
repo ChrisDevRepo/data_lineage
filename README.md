@@ -48,6 +48,18 @@ Analyze dependencies between tables, views, and stored procedures with an intera
 
 ## Quick Start
 
+### Option 1: Docker (Recommended - One Command)
+
+[![Docker Image](https://img.shields.io/docker/v/chwagneraltyca/data-lineage-visualizer?label=docker)](https://hub.docker.com/r/chwagneraltyca/data-lineage-visualizer)
+
+```bash
+docker run -d -p 8000:8000 -v data-lineage-config:/app/config --name data-lineage chwagneraltyca/data-lineage-visualizer:latest
+```
+
+**Access:** http://localhost:8000
+
+### Option 2: Local Installation
+
 ```bash
 # Install and run (Production mode - optimized for performance)
 git clone https://github.com/your-org/data_lineage.git
@@ -70,7 +82,7 @@ pip install -r requirements.txt
 **Setup Guides:**
 - **[QUICKSTART.md](QUICKSTART.md)** - Detailed installation and setup
 - **[.devcontainer/README.md](.devcontainer/README.md)** - VSCode development environment
-- **[.docker/README.md](.docker/README.md)** - Local production deployment (Docker)
+- **[.docker/README.md](.docker/README.md)** - Docker deployment guide
 
 ---
 
@@ -251,5 +263,5 @@ Community contributions are welcome! See [DEVELOPMENT.md](docs/DEVELOPMENT.md) f
 
 **Built with:** FastAPI • React • DuckDB • React Flow • Graphology
 **Status:** Proof of Concept - Production tested with Azure Synapse/SQL
-**Author:** Christian Wagner
+**Author:** Christian Wagner [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat&logo=linkedin)](https://at.linkedin.com/in/christian-wagner-11aa8614b)
 **License:** MIT
