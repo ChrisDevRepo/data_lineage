@@ -15,6 +15,9 @@ api/data/
 *.duckdb.wal
 lineage_workspace.*
 
+# Metadata cache (contains database object names)
+metadata_cache.json
+
 # Parquet snapshots (company data)
 parquet_snapshots/
 *.parquet
