@@ -29,13 +29,11 @@ frontend_lineage.json
 latest_frontend_lineage.json
 **/lineage_output/*.json
 
-# Environment files (credentials)
+# Environment files (credentials) - but allow .env.example template
 .env
 .env.local
 .env.*.local
-.env.development.local
-.env.production.local
-.env.test.local
+!.env.example
 
 # Logs (may contain sensitive information)
 logs/
