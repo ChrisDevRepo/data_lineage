@@ -1,18 +1,13 @@
-version: '3.8'
-
 services:
-  datalineage:
-    image: datalineage:1.0.1
-    build:
-      context: ..
-      dockerfile: .docker/Dockerfile
-    container_name: datalineage
+  data-lineage-visualizer:
+    image: chwagneraltyca/data-lineage-visualizer:1.0.1
+    container_name: data-lineage-visualizer
     ports:
       - "8000:8000"
     volumes:
       # Single external volume for all runtime data and config
       # Option 1: Named volume (recommended for persistence)
-      - datalineage-config:/app/config
+      - data-lineage-config:/app/config
 
       # Option 2: Bind mount for easy host access (uncomment to use)
       # - ./config-data:/app/config
@@ -30,5 +25,5 @@ services:
       start_period: 40s
 
 volumes:
-  datalineage-config:
+  data-lineage-config:
     driver: local
