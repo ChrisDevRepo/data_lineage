@@ -6,9 +6,11 @@ Thumbs.db
 !.github/     # EXCEPTION: GitHub workflows should be tracked
 !.devcontainer/  # EXCEPTION: Dev container config should be tracked
 !.docker/     # EXCEPTION: Production Docker deployment should be tracked
-!.azure-deploy/  # EXCEPTION: Azure deployment should be tracked
 !.editorconfig   # EXCEPTION: Editor config should be tracked
 !.env.example    # EXCEPTION: Environment template should be tracked
+
+# Azure deployment (testing - not ready for publish)
+.azure-deploy/
 
 # Claude Code workspace (internal development only)
 .claude/
