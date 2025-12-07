@@ -66,13 +66,20 @@ parquet_snapshots/*.parquet
 # Temp folder (uploaded parquet files and development artifacts)
 temp/
 
-# Lineage output (generated files should not be tracked)
+# Lineage output (generated files should not be tracked - MAY CONTAIN SENSITIVE DATA)
 lineage_output/*.json
 api/lineage_output/
+engine/lineage_output/
+lineage.json
+lineage_summary.json
+frontend_lineage.json
+latest_frontend_lineage.json
 
-# API persistent data
+# API persistent data (MAY CONTAIN SENSITIVE COMPANY DATA)
 api/data/
 data/
+data/*.json
+data/*.parquet
 
 # Log files (should never be committed)
 logs/
