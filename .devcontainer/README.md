@@ -39,20 +39,7 @@ VSCode development environment with Python, Node.js, and SQL Server tooling.
 
 ## Configuration
 
-### Environment Variables
-
-Configured in [devcontainer.json:17-21](devcontainer.json#L17-L21):
-
-```json
-{
-  "LOG_LEVEL": "INFO",
-  "RUN_MODE": "debug",
-  "SQL_DIALECT": "tsql",
-  "EXCLUDED_SCHEMAS": "sys,dummy,information_schema,tempdb,master,msdb,model"
-}
-```
-
-Runtime `.env` file auto-created from `.env.example` by [post-create.sh](post-create.sh)
+Environment variables are auto-configured on first run. Edit `.env` in workspace root to customize.
 
 ---
 
