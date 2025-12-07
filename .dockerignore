@@ -29,11 +29,10 @@ frontend_lineage.json
 latest_frontend_lineage.json
 **/lineage_output/*.json
 
-# Environment files (credentials) - but allow .env.example template
+# Environment files (credentials)
 .env
 .env.local
 .env.*.local
-!.env.example
 
 # Logs (may contain sensitive information)
 logs/
@@ -119,6 +118,7 @@ Thumbs.db
 .*
 !.dockerignore
 !.docker/
+!.env.example
 
 # Demo data (not for production image)
 frontend/public/demo-data.json
