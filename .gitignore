@@ -5,6 +5,8 @@ Thumbs.db
 !.git*        # EXCEPTION: Git files should be tracked
 !.github/     # EXCEPTION: GitHub workflows should be tracked
 !.devcontainer/  # EXCEPTION: Dev container config should be tracked
+!.docker/     # EXCEPTION: Production Docker deployment should be tracked
+!.azure-deploy/  # EXCEPTION: Azure deployment should be tracked
 !.editorconfig   # EXCEPTION: Editor config should be tracked
 !.env.example    # EXCEPTION: Environment template should be tracked
 
@@ -73,9 +75,6 @@ data/
 # Log files (should never be committed)
 logs/
 *.log
-
-# Azure deployment logs (temporary debugging)
-.azure-deploy/
 
 # Database files
 *.db
