@@ -28,8 +28,8 @@ Performance:
     - Speed: ~350 SPs in <30 seconds
 
 Deprecated Parsers:
-    - sqlglot_parser: Removed in v4.3.5 (SQLGlot deprecated)
-    - enhanced_sqlglot_parser: Removed in v4.3.5 (SQLGlot deprecated)
+    - standard_parser: Removed in v4.3.5 (Deprecated)
+    - enhanced_parser: Removed in v4.3.5 (Deprecated)
     - dual_parser: Moved to deprecated/ (replaced by quality_aware_parser)
     - ai_disambiguator: Removed in v4.0.0 (focusing on slim architecture)
     - sql_cleaning_rules: Removed in v0.9.0 (migrated to YAML)

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2025-12-06
+### Fixed
+- **Critical Parser Bug**: Fixed SELECT simplification regex destroying INSERT INTO statements
+  - Added negative lookahead `(?:(?!\bSELECT\b).)*?` to prevent cross-statement matching
+  - Issue: Pattern matched from `DECLARE`'s `SELECT` to `INSERT`'s `FROM`, removing `INSERT INTO` entirely
+  - Result: INSERT INTO targets now correctly extracted (e.g., `TRIAL_CountryReallocateTS` now appears as output)
+  - Impact: +2 stored procedures now have correctly detected outputs (339 vs 337 baseline)
+
+### Changed
+- Increased `MAX_VISIBLE_NODES` from 500 to 1000 to support larger datasets (~1k nodes)
+- Enhanced node limiting logic to always include highlighted nodes and their direct neighbors
+  - Ensures edges are visible when clicking on nodes, even in large graphs
+
+### Added
+- Input/output counts in node tooltips for better visibility (📊 Inputs: X | Outputs: Y)
+- Counts displayed prominently at top of tooltip for quick reference
+- Helps identify connections even when edges aren't rendered due to node limits
+
+## [1.0.1] - 2025-12-06
+### Changed
+- Refactored incremental refresh logic to correctly detect and process only modified objects.
+- Removed legacy fallback mechanism in parser setup; now strictly relies on YAML cleaning rules.
+
 ## [1.0.0] - 2025-01-23
 
 ### Added

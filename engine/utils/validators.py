@@ -24,12 +24,6 @@ def sanitize_identifier(name: str) -> str:
 
     Raises:
         ValueError: If identifier contains suspicious characters
-
-    Example:
-        >>> sanitize_identifier("dbo.Customer")
-        'dbo.Customer'
-        >>> sanitize_identifier("schema'; DROP TABLE--")
-        ValueError: Invalid identifier format
     """
     if not name:
         raise ValueError("Identifier cannot be empty")
@@ -60,14 +54,6 @@ def validate_object_id(obj_id: Union[int, str]) -> int:
 
     Raises:
         ValueError: If object_id is invalid
-
-    Example:
-        >>> validate_object_id(123)
-        123
-        >>> validate_object_id("123")
-        123
-        >>> validate_object_id(-1)
-        ValueError: Invalid object_id: -1
     """
     try:
         obj_id_int = int(obj_id)

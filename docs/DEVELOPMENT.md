@@ -147,6 +147,60 @@ Once the container is running:
 
 ---
 
+### Offline Extraction Tool
+
+**Location:** `util/universal_sql_extractor.py`
+
+This standalone script allows you to extract metadata from a SQL Server database without running the full application. It is ideal for working with isolated networks or creating backups.
+
+**Features:**
+*   Single-file utility (portable)
+*   Extracts Objects, Dependencies, Definitions, and Table Columns
+*   Outputs Parquet files compatible with the application's `/api/upload-parquet` endpoint
+
+**Usage:**
+
+1.  **Direct Execution (Arguments):**
+    ```bash
+    python util/universal_sql_extractor.py \
+        --server "localhost" \
+        --database "DataLineageDB" \
+        --username "sa" \
+        --password "yourPassword" \
+        --output "my_snapshot" \
+        --trust-cert
+    ```
+
+2.  **Environment Variables:**
+    The tool can read `.env` files. It supports:
+    *   `MSSQL_SERVER` or `DB_SERVER`
+    *   `MSSQL_DATABASE` or `DB_NAME`
+    *   `MSSQL_USERNAME` or `DB_USER`
+    *   `MSSQL_PASSWORD` or `DB_PASSWORD`
+    *   `DB_CONNECTION_STRING`
+
+    ```bash
+    # Will look for .env in current directory
+    python util/universal_sql_extractor.py --output "my_snapshot"
+    ```
+
+    ```bash
+    # Specify a custom env file
+    python util/universal_sql_extractor.py --env-file .env.prod --output "prod_snapshot"
+    ```
+
+**Importing Data:**
+After extraction, you can import the generated Parquet files into the application via the API:
+```bash
+curl -X POST "http://localhost:8000/api/upload-parquet" \
+  -F "files=@my_snapshot/objects.parquet" \
+  -F "files=@my_snapshot/dependencies.parquet" \
+  -F "files=@my_snapshot/definitions.parquet" \
+  -F "files=@my_snapshot/table_columns.parquet"
+```
+
+---
+
 ## Configuration
 
 ### DMV Queries (Database Direct Import)
@@ -204,6 +258,37 @@ This YAML file contains 5 metadata extraction queries used for database direct i
    ```
 
 **Important:** Query result columns must match the DMV interface specification. See [DATA_SPECIFICATIONS.md](DATA_SPECIFICATIONS.md#interface-1-dmv-database-metadata-queries) for required column names and types.
+
+---
+
+### Data Model Configuration
+
+**Location:** `engine/connectors/queries/tsql/data_model_types.yaml`
+
+This configuration defines the rules for classifying objects as **Dimensions** or **Facts** in the frontend visualization.
+
+#### Configuration Format
+
+The file uses regular expressions to match object names to data model types:
+
+```yaml
+types:
+  - name: Dimension
+    patterns:
+      - "^Dim"      # Matches Start with Dim (e.g., DimCustomer)
+      - "^vw_Dim"   # Matches View Dimension convention
+  - name: Fact
+    patterns:
+      - "^Fact"     # Matches Fact tables
+      - "^vw_Fact"
+```
+
+**To modify:**
+1. Edit `engine/connectors/queries/tsql/data_model_types.yaml`
+2. Add or modify patterns list for `Dimension` or `Fact` types
+3. Restart application (no rebuild required, but frontend reload needed)
+
+Objects that do not match any pattern will be classified as "Other".
 
 ---
 
@@ -345,35 +430,25 @@ For detailed information on specific features, see:
 
 ### Hardcoded SQL Options
 
-Some SQL options and configurations are hardcoded in the application for performance and compatibility. If you need to modify these, you'll need to edit the source code.
+Some SQL options and configurations are hardcoded in the application for performance and compatibility.
 
 #### Object Type Mappings
 
-**Location:** `engine/dialects/tsql.py`
+**Location:** `engine/connectors/queries/tsql/metadata.yaml`
 
-```python
-# Maps SQL Server sys.objects.type to friendly names
-OBJECT_TYPE_MAPPING = {
-    'P': 'Stored Procedure',
-    'V': 'View',
-    'U': 'Table',
-    'FN': 'Function',  # Scalar function
-    'IF': 'Function',  # Inline table-valued function
-    'TF': 'Function',  # Table-valued function
-}
-```
+Object type mappings (e.g. mapping `P` to `Stored Procedure` or `TF` to `Table-Valued Function`) are largely handled directly within the SQL queries defined in `metadata.yaml`.
 
 **To modify:**
-1. Edit `engine/dialects/tsql.py`
-2. Update `OBJECT_TYPE_MAPPING` dictionary
-3. Restart application
+1. Edit `engine/connectors/queries/tsql/metadata.yaml`
+2. Update the `CASE` statements or `type` selection logic in the queries.
+3. Restart application.
 
 #### Excluded System Schemas
 
-**Location:** `engine/core/settings.py`
+**Location:** `engine/config/constants.py`
 
 ```python
-# Default system schemas to exclude
+# Default schemas to exclude from ALL processing
 DEFAULT_EXCLUDED_SCHEMAS = [
     'sys',
     'information_schema',
@@ -381,37 +456,27 @@ DEFAULT_EXCLUDED_SCHEMAS = [
     'master',
     'msdb',
     'model',
+    # ...
 ]
 ```
 
 **To modify:**
 - **Recommended:** Use `EXCLUDED_SCHEMAS` environment variable in `.env`
-- **Alternative:** Edit `engine/core/settings.py` for permanent changes
+- **Alternative:** Edit `engine/config/constants.py` for permanent changes
 
 #### SQL Dialect Registration
 
-**Location:** `engine/dialects/registry.py`
-
-```python
-DIALECT_REGISTRY = {
-    'tsql': TSQLDialect,
-    # Add new dialects here:
-    # 'postgresql': PostgreSQLDialect,
-    # 'mysql': MySQLDialect,
-}
-```
+**Locations:**
+- `engine/config/dialect_config.py` (Enum definition)
+- `engine/connectors/factory.py` (Connector registry)
 
 **To add a new SQL dialect:**
-1. Implement dialect class in `engine/dialects/<dialect>.py`
-   - Extend `BaseDialect`
-   - Implement `objects_query` and `definitions_query` properties
-2. Create YAML rules in `engine/rules/<dialect>/`
-3. Register in `engine/dialects/registry.py`
-4. Update `SQL_DIALECT` options in documentation
+1. Add enum member to `SQLDialect` in `engine/config/dialect_config.py`
+2. Implement dialect connector in `engine/connectors/<dialect>_connector.py`
+   - Extend `DatabaseConnector`
+3. Register connector class in `CONNECTOR_REGISTRY` in `engine/connectors/factory.py`
+4. Create YAML rules in `engine/rules/<dialect>/`
 
-**See also:** [ARCHITECTURE.md - Adding Support for New SQL Dialects](ARCHITECTURE.md#adding-support-for-new-sql-dialects)
-
----
 
 ## Troubleshooting
 

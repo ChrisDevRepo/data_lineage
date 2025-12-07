@@ -25,6 +25,9 @@ Date: 2025-10-27 (SQL Viewer feature added)
 
 import json
 import logging
+import os
+import re
+import yaml
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -48,6 +51,30 @@ class FrontendFormatter:
         """
         self.workspace = workspace
         self.object_id_to_node_id: Dict[int, str] = {}
+        self.data_model_rules = self._load_data_model_rules()
+
+    def _load_data_model_rules(self) -> List[Dict[str, Any]]:
+        """Load data model classification rules from YAML."""
+        try:
+            dialect = os.getenv("SQL_DIALECT", "tsql")
+            # Path relative to repo root (assuming cwd is repo root)
+            rule_file = Path(f"engine/connectors/queries/{dialect}/data_model_types.yaml")
+            
+            if not rule_file.exists():
+                # Try relative to this file
+                rule_file = Path(__file__).parent.parent / "connectors" / "queries" / dialect / "data_model_types.yaml"
+            
+            if rule_file.exists():
+                with open(rule_file, "r") as f:
+                    config = yaml.safe_load(f)
+                    logger.debug(f"Loaded data model rules from {rule_file}")
+                    return config.get("types", [])
+            
+            logger.warning(f"Data model rules file not found at {rule_file}, using defaults")
+            return []
+        except Exception as e:
+            logger.warning(f"Failed to load data model rules: {e}")
+            return []
 
     def generate(
         self,
@@ -234,7 +261,7 @@ class FrontendFormatter:
 
     def _classify_data_model_type(self, object_name: str, object_type: str) -> str:
         """
-        Classify data model type based on naming conventions.
+        Classify data model type based on naming conventions defined in YAML.
 
         Args:
             object_name: Object name (e.g., "DimCustomers", "FactOrders")
@@ -247,34 +274,22 @@ class FrontendFormatter:
         if object_type not in ["Table", "View"]:
             return "Other"
 
-        # Normalize name for matching (check patterns)
-        name_lower = object_name.lower()
+        # Check against loaded rules
+        for rule in self.data_model_rules:
+            model_type = rule.get("name")
+            patterns = rule.get("patterns", [])
+            
+            for pattern in patterns:
+                # Compile regex (case-insensitive) based on YAML pattern
+                # If pattern starts with ^, it's a regex. otherwise treat as prefix?
+                # The restored YAML has "^Dim", so they are regexes.
+                try:
+                    if re.search(pattern, object_name, re.IGNORECASE):
+                        return model_type
+                except re.error:
+                    continue  # consistent with "just skip invalid regex"
 
-        # Check for dimension patterns:
-        # - Tables: Dim*, DIM*
-        # - Views: vw_Dim*, v_Dim*, vwDim*, vDim*
-        if (
-            object_name.startswith("Dim")
-            or name_lower.startswith("vw_dim")
-            or name_lower.startswith("v_dim")
-            or name_lower.startswith("vwdim")
-            or name_lower.startswith("vdim")
-        ):
-            return "Dimension"
-
-        # Check for fact patterns:
-        # - Tables: Fact*, FACT*
-        # - Views: vw_Fact*, v_Fact*, vwFact*, vFact*
-        if (
-            object_name.startswith("Fact")
-            or name_lower.startswith("vw_fact")
-            or name_lower.startswith("v_fact")
-            or name_lower.startswith("vwfact")
-            or name_lower.startswith("vfact")
-        ):
-            return "Fact"
-
-        # Default to Other for staging tables, junction tables, etc.
+        # Default to Other
         return "Other"
 
     def _format_sp_description(

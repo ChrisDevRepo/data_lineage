@@ -60,10 +60,15 @@ export const CustomNode = React.memo(({ data }: NodeProps<CustomNodeData>) => {
     borderColor: data.isTraceStartNode ? '#3b82f6' : schemaColor,
   };
 
-  // Only show confidence/parsing method for Stored Procedures
-  let nodeTitle = `Object: ${data.schema}.${data.name}\nObject Type: ${
-    data.object_type
-  }\nData Model Type: ${data.data_model_type || 'N/A'}`;
+  // Add input/output counts at the top for better visibility
+  const inputCount = data.inputs?.length || 0;
+  const outputCount = data.outputs?.length || 0;
+
+  // Build tooltip with counts prominently displayed
+  let nodeTitle = `${data.schema}.${data.name}\n`;
+  nodeTitle += `📊 Inputs: ${inputCount} | Outputs: ${outputCount}\n`;
+  nodeTitle += `\nObject Type: ${data.object_type}`;
+  nodeTitle += `\nData Model Type: ${data.data_model_type || 'N/A'}`;
 
   if (data.isTraceStartNode) {
     nodeTitle += `\n\n🎯 TRACE START NODE`;

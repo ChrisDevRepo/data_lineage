@@ -419,7 +419,7 @@ class LineageProcessor:
         tables = db.query("SHOW TABLES")
         table_names = [row[0] for row in tables]
 
-        # Build reverse lookup map using edge table (v0.10.0 Phase 4.4 - JSON columns removed)
+        # Build reverse lookup map using edge table
         # Direct SQL queries on lineage_edges - indexed and fast
         reverse_inputs = {}
         reverse_outputs = {}
@@ -450,7 +450,7 @@ class LineageProcessor:
             reverse_outputs = {row[0]: row[1] for row in reverse_outputs_query}
         else:
             logger.error("lineage_edges table not found - cannot build graph relationships")
-            raise RuntimeError("Edge table is required for graph building (JSON columns removed in Phase 4.4)")
+            raise RuntimeError("Edge table is required for graph building")
 
         # Update Tables/Views with reverse dependencies
         for table_id, readers in reverse_inputs.items():

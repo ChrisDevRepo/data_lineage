@@ -99,3 +99,14 @@ debug-browser.mjs
 
 # Demo data cache
 frontend/public/demo-data.json
+
+# Static build artifacts
+static/
+tests/data/
+test/
+tests/
+data_verify/
+
+# Util scripts to keep local but not remote
+util/baseline_manager.py
+util/regenerate_outputs.py

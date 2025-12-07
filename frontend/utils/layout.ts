@@ -65,7 +65,7 @@ export const getDagreLayoutedElements = (props: LayoutProps) => {
     height: 48,
   }));
 
-  // Create edges (v4.3.0: phantom edges are dotted and orange)
+  // Create edges
   // v4.4.0: Use pre-computed bidirectional_with from backend (DuckDB optimization)
   // Build a lookup map for O(1) bidirectional checks instead of O(n) lineageGraph.hasEdge
   const bidirectionalMap = new Map<string, Set<string>>();

@@ -243,7 +243,7 @@ The following patterns are NOT supported in Phase 4:
 DECLARE @sql NVARCHAR(MAX) = 'SELECT * FROM ' + @tableName
 EXEC(@sql)
 ```
-**Solution:** Will be handled by AI fallback (Phase 5)
+**Solution:** Will be handled by future enhancements (Phase 5)
 
 #### 2. Temp Tables
 ```sql
@@ -282,7 +282,7 @@ SELECT * FROM INFORMATION_SCHEMA.TABLES
 -- OPENQUERY, OPENDATASOURCE, etc.
 SELECT * FROM OPENQUERY(LinkedServer, 'SELECT * FROM RemoteTable')
 ```
-**Solution:** Will be handled by AI fallback (Phase 5)
+**Solution:** Will be handled by future enhancements (Phase 5)
 
 ---
 
@@ -486,7 +486,7 @@ END
 ## Future Enhancements
 
 ### Phase 5 Integration
-- Objects with `confidence=0.0` will be passed to AI fallback
+- Objects with `confidence=0.0` will be passed to manual review
 - AI will handle dynamic SQL and complex patterns
 
 ### Potential Improvements
@@ -514,7 +514,7 @@ END
 **Symptom:** `parse_error` returned for syntactically correct SQL
 **Cause:** Regex limitations or unsupported SQL pattern
 **Solution:**
-    - These will be handled by AI fallback (Phase 5)
+    - These will be handled by future enhancements (Phase 5)
     - Review error message to identify unsupported pattern
     - Report new patterns to Vibecoding team
 
@@ -524,7 +524,7 @@ END
 **Solution:**
 - Review parse errors in lineage_metadata
 - Identify common error patterns
-- Consider AI fallback for remaining gaps
+- Consider advanced parsing for remaining gaps
 
 ---
 

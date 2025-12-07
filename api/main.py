@@ -400,7 +400,8 @@ async def get_metadata(user: Optional[Dict[str, Any]] = Depends(verify_azure_aut
                 "upload_timestamp": upload_timestamp,
                 "upload_timestamp_human": datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S"),
                 "node_count": node_count,
-                "file_size_kb": round(file_size_kb, 2)
+                "file_size_kb": round(file_size_kb, 2),
+                "incremental_available": True
             },
             status_code=200
         )
