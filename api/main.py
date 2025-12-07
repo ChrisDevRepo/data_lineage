@@ -57,8 +57,9 @@ from logging.handlers import TimedRotatingFileHandler
 
 # Configure logging with automatic rotation (v0.10.0)
 # Use TimedRotatingFileHandler instead of manual cleanup
-log_dir = Path("logs")
-log_dir.mkdir(exist_ok=True)
+# Check for /app/config (Docker) or fall back to local logs/
+log_dir = Path("/app/config/logs") if Path("/app/config").exists() else Path("logs")
+log_dir.mkdir(parents=True, exist_ok=True)
 
 # Create rotating file handler
 file_handler = TimedRotatingFileHandler(

@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  datalineage:
+    image: datalineage:1.0.1
+    build:
+      context: ..
+      dockerfile: .docker/Dockerfile
+    container_name: datalineage
+    ports:
+      - "8000:8000"
+    volumes:
+      # Single external volume for all runtime data and config
+      # Option 1: Named volume (recommended for persistence)
+      - datalineage-config:/app/config
+
+      # Option 2: Bind mount for easy host access (uncomment to use)
+      # - ./config-data:/app/config
+    environment:
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
+      - LOG_LEVEL=INFO
+      - RUN_MODE=production
+      - SQL_DIALECT=tsql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  datalineage-config:
+    driver: local

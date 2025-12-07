@@ -24,14 +24,21 @@ class PathSettings(BaseSettings):
     """
 
     workspace_file: Path = Field(
-        default=Path("lineage_workspace.duckdb"),
+        default=Path("/app/config/data/lineage_workspace.duckdb")
+                if Path("/app/config").exists()
+                else Path("lineage_workspace.duckdb"),
         description="DuckDB workspace database file",
     )
     output_dir: Path = Field(
-        default=Path("lineage_output"), description="Output directory for JSON files"
+        default=Path("/app/config/data")
+                if Path("/app/config").exists()
+                else Path("lineage_output"),
+        description="Output directory for JSON files"
     )
     parquet_dir: Path = Field(
-        default=Path("parquet_snapshots"),
+        default=Path("/app/config/data/parquet_snapshots")
+                if Path("/app/config").exists()
+                else Path("parquet_snapshots"),
         description="Default directory for Parquet snapshots",
     )
 
@@ -168,7 +175,9 @@ class Settings(BaseSettings):
         }
 
     model_config = SettingsConfigDict(
-        env_file=Path(__file__).parent.parent.parent / ".env",
+        env_file=Path("/app/config/.env")
+                if Path("/app/config/.env").exists()
+                else Path(__file__).parent.parent.parent / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",  # Ignore extra env vars not defined here

@@ -1,10 +1,10 @@
 {
   "name": "data-object-lineage",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
-  "description": "Interactive data lineage visualizer for Azure Synapse",
-  "author": "Vibecoding",
+  "description": "Interactive data lineage visualizer for Microsoft SQL Server family (SQL Server, Azure SQL, Synapse, Fabric)",
+  "author": "Christian Wagner",
   "license": "MIT",
   "scripts": {
     "dev": "vite --host",

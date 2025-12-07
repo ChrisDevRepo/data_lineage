@@ -114,7 +114,14 @@ class DatabaseConnector(ABC):
 
     def _load_queries(self) -> Dict[str, Any]:
         """Load SQL queries from YAML configuration file."""
-        query_file = Path(__file__).parent / "queries" / self.dialect / "metadata.yaml"
+        # Try external config volume first (Docker), fall back to image defaults
+        query_file = Path(f"/app/config/queries/{self.dialect}/metadata.yaml")
+        if not query_file.exists():
+            # Fallback to image defaults
+            query_file = Path(__file__).parent / "queries" / self.dialect / "metadata.yaml"
+            logger.info(f"Using built-in query templates (external config not found): {query_file}")
+        else:
+            logger.info(f"Using external config query templates: {query_file}")
 
         if not query_file.exists():
             raise ConfigurationError(
