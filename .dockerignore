@@ -31,8 +31,11 @@ latest_frontend_lineage.json
 
 # Environment files (credentials)
 .env
-.env.*
-!.env.example
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.test.local
 
 # Logs (may contain sensitive information)
 logs/
