@@ -6,6 +6,7 @@ Thumbs.db
 !.github/     # EXCEPTION: GitHub workflows should be tracked
 !.devcontainer/  # EXCEPTION: Dev container config should be tracked
 !.docker/     # EXCEPTION: Production Docker deployment should be tracked
+!.dockerignore # EXCEPTION: Docker ignore file should be tracked
 !.editorconfig   # EXCEPTION: Editor config should be tracked
 !.env.example    # EXCEPTION: Environment template should be tracked
 
@@ -15,6 +16,9 @@ Thumbs.db
 # Claude Code workspace (internal development only)
 .claude/
 CLAUDE.md
+
+# Security incident reports (internal only - do not commit)
+SECURITY_INCIDENT_REPORT.md
 
 # Internal documentation (not for external repo)
 internal/
