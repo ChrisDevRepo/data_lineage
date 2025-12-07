@@ -60,8 +60,9 @@ COPY engine/rules/defaults/*.yaml /app/engine/rules/defaults/
 COPY engine/rules/tsql/*.yaml /app/engine/rules/tsql/
 COPY engine/connectors/queries/tsql/*.yaml /app/engine/connectors/queries/tsql/
 
-# Copy .env.example for template
-COPY .env.example /app/.env.example
+# Copy .env.example for template (optional - excluded by .dockerignore for security)
+# Users should provide .env via volume mount or environment variables
+# COPY .env.example /app/.env.example
 
 # ==============================================================================
 # Runtime Configuration
