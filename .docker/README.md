@@ -8,12 +8,6 @@ Production-ready Docker image for local deployment.
 
 ## Quick Start
 
-**Build frontend first:**
-```bash
-cd frontend && npm install && npm run build && cd ..
-```
-
-**Run with docker-compose:**
 ```bash
 cd .docker && docker-compose up -d
 ```
