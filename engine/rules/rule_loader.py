@@ -373,12 +373,20 @@ class RuleLoader:
             custom_dirs: Additional custom rule directories
         """
         if rules_dir is None:
-            rules_dir = Path(__file__).parent
+            # Try external config volume first (Docker), fall back to image defaults
+            config_rules = Path("/app/config/rules")
+            # Check if directory exists AND has YAML files
+            if config_rules.exists() and list(config_rules.rglob("*.yaml")):
+                rules_dir = config_rules
+                logger.info(f"Using external config rules: {config_rules}")
+            else:
+                rules_dir = Path(__file__).parent  # Fallback to /app/engine/rules
+                logger.info(f"Using built-in default rules (external config not found): {rules_dir}")
 
         self.rules_dir = rules_dir
         self.custom_dirs = custom_dirs or []
 
-        logger.info(f"RuleLoader initialized with rules_dir: {rules_dir}")
+        logger.debug(f"RuleLoader initialized with rules_dir: {rules_dir}")
         if self.custom_dirs:
             logger.info(f"Custom rule directories: {self.custom_dirs}")
 

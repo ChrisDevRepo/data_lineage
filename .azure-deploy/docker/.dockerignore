@@ -1,0 +1,57 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Documentation
+*.md
+docs/
+
+# Node modules (frontend is already built)
+frontend/node_modules/
+frontend/src/
+frontend/public/
+frontend/*.json
+frontend/*.ts
+frontend/*.config.*
+
+# Azure deployment files
+azure-deploy/
+*.zip
+
+# Data files (should be in volumes)
+data/
+*.duckdb
+*.parquet
+
+# OS
+.DS_Store
+Thumbs.db
