@@ -1,0 +1,124 @@
+# Hidden directories and OS files
+.DS_Store
+Thumbs.db
+.*
+!.git*        # EXCEPTION: Git files should be tracked
+!.github/     # EXCEPTION: GitHub workflows should be tracked
+!.devcontainer/  # EXCEPTION: Dev container config should be tracked
+!.docker/     # EXCEPTION: Production Docker deployment should be tracked
+!.dockerignore # EXCEPTION: Docker ignore file should be tracked
+!.editorconfig   # EXCEPTION: Editor config should be tracked
+!.env.example    # EXCEPTION: Environment template should be tracked
+
+# Azure deployment (testing - not ready for publish)
+.azure-deploy/
+
+# Claude Code workspace (internal development only)
+.claude/
+CLAUDE.md
+
+# Internal documentation (not for external repo)
+internal/
+
+# Internal evaluation and baselines (development testing only)
+evaluation/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment variables (NEVER commit credentials!)
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# EXCEPTION: These should be committed (not in gitignore):
+# .env.template        - Template with documentation
+# .env.development     - Frontend development config (no secrets)
+# .env.production      - Frontend production config (no secrets)
+
+# DuckDB workspace files
+*.duckdb
+*.duckdb.wal
+lineage_workspace.*
+
+# Metadata cache (contains database object names)
+metadata_cache.json
+
+# Parquet snapshots (may contain sensitive data)
+parquet_snapshots/*.parquet
+
+# Temp folder (uploaded parquet files and development artifacts)
+temp/
+
+# Lineage output (generated files should not be tracked - MAY CONTAIN SENSITIVE DATA)
+lineage_output/*.json
+api/lineage_output/
+engine/lineage_output/
+lineage.json
+lineage_summary.json
+frontend_lineage.json
+latest_frontend_lineage.json
+
+# API persistent data (MAY CONTAIN SENSITIVE COMPANY DATA)
+api/data/
+data/
+data/*.json
+data/*.parquet
+
+# Log files (should never be committed)
+logs/
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# Node modules (regenerate with npm install)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.build/
+
+# Test results and temporary test files
+test-results/
+uploads/
+
+# Debug and development scripts
+debug-browser.mjs
+
+# Demo data cache
+frontend/public/demo-data.json
+
+# Static build artifacts
+static/
+tests/data/
+test/
+tests/
+data_verify/
+
+# Util scripts to keep local but not remote
+util/baseline_manager.py
+util/regenerate_outputs.py

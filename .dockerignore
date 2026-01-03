@@ -1,0 +1,125 @@
+# ==============================================================================
+# Docker Build Ignore File - Security-First Configuration
+# ==============================================================================
+# This file prevents sensitive data from being copied into Docker images
+# CRITICAL: Never include runtime data or company-specific information
+# ==============================================================================
+
+# SENSITIVE DATA - NEVER INCLUDE IN DOCKER IMAGE
+# ------------------------------------------------------------------------------
+# Persistent data files (may contain company/client data)
+data/
+engine/lineage_output/
+api/data/
+*.duckdb
+*.duckdb.wal
+lineage_workspace.*
+
+# Metadata cache (contains database object names)
+metadata_cache.json
+
+# Parquet snapshots (company data)
+parquet_snapshots/
+*.parquet
+
+# JSON output files (company data leakage risk)
+lineage.json
+lineage_summary.json
+frontend_lineage.json
+latest_frontend_lineage.json
+**/lineage_output/*.json
+
+# Environment files (credentials)
+.env
+.env.local
+.env.*.local
+
+# Logs (may contain sensitive information)
+logs/
+*.log
+
+# Temp and uploads (user data)
+temp/
+uploads/
+
+# DEVELOPMENT FILES
+# ------------------------------------------------------------------------------
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Testing
+test-results/
+tests/data/
+test/
+tests/
+data_verify/
+evaluation/
+
+# Documentation (not needed in runtime)
+docs/
+*.md
+!README.md
+internal/
+.claude/
+CLAUDE.md
+
+# Node modules (not needed - frontend pre-built)
+node_modules/
+frontend/node_modules/
+
+# Frontend source (only include dist/)
+frontend/src/
+frontend/public/
+frontend/tsconfig.json
+frontend/vite.config.ts
+frontend/index.html
+frontend/tailwind.config.js
+frontend/postcss.config.js
+frontend/package.json
+frontend/package-lock.json
+
+# Build artifacts source
+frontend/.vite/
+static/
+
+# Debug scripts
+debug-browser.mjs
+util/baseline_manager.py
+util/regenerate_outputs.py
+
+# Azure deployment configs (not for public Docker)
+.azure-deploy/
+.devcontainer/
+
+# OS files
+.DS_Store
+Thumbs.db
+.*
+!.dockerignore
+!.docker/
+!.env.example
+
+# Demo data (not for production image)
+frontend/public/demo-data.json
+frontend/dist/demo-data.json

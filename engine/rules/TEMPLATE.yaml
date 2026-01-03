@@ -1,0 +1,63 @@
+# ==============================================================================
+# YAML Rule Template - Copy this file to get started
+# ==============================================================================
+# Full documentation: See YAML_STRUCTURE.md for complete field reference
+# ==============================================================================
+
+# IMPORTANT: Execution order is controlled by the "priority" field below,
+#            NOT by the filename. Filename numbers are just for organization.
+#
+# RECOMMENDED NAMING: Match filename number to priority value for clarity:
+#   - 10_your_rule.yaml → priority: 10
+#   - 50_your_rule.yaml → priority: 50
+
+# -----------------------------------------------------------------------------
+# Required Fields
+# -----------------------------------------------------------------------------
+name: your_rule_name
+description: Brief explanation of what this rule does and why
+dialect: tsql  # tsql | postgres | snowflake | bigquery | oracle | redshift | generic
+enabled: true
+priority: 50   # THIS controls when rule runs (NOT filename!)
+pattern: 'YOUR_REGEX_PATTERN_HERE'
+replacement: ''  # What to replace with (empty string to remove)
+
+# -----------------------------------------------------------------------------
+# Optional: Enable debug logging (Only when troubleshooting)
+# -----------------------------------------------------------------------------
+# debug:
+#   log_matches: false
+#   log_replacements: false
+#   show_context_lines: 0
+
+# -----------------------------------------------------------------------------
+# Optional: Add metadata (Documentation only - not used by engine)
+# -----------------------------------------------------------------------------
+# metadata:
+#   author: your_name
+#   created: "2025-MM-DD"
+#   tested_with: "X stored procedures"
+#   affects_lineage: false
+#   impact: "Fixes parser error: ..."
+
+# ==============================================================================
+# Field Reference (Quick)
+# ==============================================================================
+#
+# REQUIRED:
+# - name: Unique identifier
+# - description: What this rule does
+# - dialect: Which database this applies to
+# - enabled: true/false
+# - pattern: Regex pattern to match
+# - replacement: What to replace matches with
+#
+# OPTIONAL:
+# - priority: Execution order (default: 50)
+# - category: For organization (default: 'general')
+# - test_cases: Validation tests
+# - debug: Logging configuration
+# - metadata: Documentation only
+#
+# For complete details, see: YAML_STRUCTURE.md
+# ==============================================================================

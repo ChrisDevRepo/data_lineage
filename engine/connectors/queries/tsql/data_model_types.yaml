@@ -1,0 +1,15 @@
+types:
+  - name: Dimension
+    patterns:
+      - "^Dim"
+      - "^vw_Dim"
+      - "^v_Dim"
+      - "^vwDim"
+      - "^vDim"
+  - name: Fact
+    patterns:
+      - "^Fact"
+      - "^vw_Fact"
+      - "^v_Fact"
+      - "^vwFact"
+      - "^vFact"

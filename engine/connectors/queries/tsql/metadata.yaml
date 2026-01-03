@@ -1,0 +1,204 @@
+# ==============================================================================
+# T-SQL Database Metadata Extraction Queries
+# ==============================================================================
+# Database: SQL Server / Azure SQL / Azure Synapse Analytics / Microsoft Fabric DWH
+# Dialect: tsql
+# Version: 1.0
+#
+# Compatibility:
+#   - ✅ SQL Server 2016+
+#   - ✅ Azure Synapse Analytics (Dedicated/Serverless SQL Pools)
+#   - ✅ Microsoft Fabric Data Warehouse
+#
+# Note: These queries only access system catalog views (sys.procedures,
+#       sys.sql_modules) and do not join with user tables, so they work
+#       in Fabric DWH despite distributed processing mode limitations.
+# ==============================================================================
+
+dialect: tsql
+version: "1.0"
+
+# Queries for extracting stored procedure metadata from system tables
+queries:
+  # List all stored procedures with metadata
+  list_stored_procedures:
+    description: "Get list of all user stored procedures with metadata"
+    sql: |
+      SELECT
+        OBJECT_SCHEMA_NAME(p.object_id) as schema_name,
+        p.name as procedure_name,
+        p.object_id as object_id,
+        p.create_date,
+        p.modify_date,
+        CAST(HASHBYTES('SHA2_256', m.definition) AS VARBINARY(32)) as definition_hash
+      FROM sys.procedures p
+      INNER JOIN sys.sql_modules m ON p.object_id = m.object_id
+      WHERE OBJECT_SCHEMA_NAME(p.object_id) NOT IN (
+        'sys', 'information_schema', 'tempdb', 'master', 'msdb', 'model'
+      )
+      ORDER BY schema_name, procedure_name
+
+    columns:
+      schema_name: STRING
+      procedure_name: STRING
+      object_id: INTEGER
+      create_date: TIMESTAMP
+      modify_date: TIMESTAMP
+      definition_hash: BINARY
+
+  # Get source code for a specific stored procedure
+  get_procedure_source:
+    description: "Get full SQL source code for a stored procedure by object_id"
+    sql: |
+      SELECT
+        OBJECT_SCHEMA_NAME(m.object_id) as schema_name,
+        p.name as procedure_name,
+        m.definition as source_code,
+        p.modify_date
+      FROM sys.sql_modules m
+      INNER JOIN sys.procedures p ON m.object_id = p.object_id
+      WHERE m.object_id = ?
+
+    parameters:
+      - name: object_id
+        type: integer
+        required: true
+
+    columns:
+      schema_name: STRING
+      procedure_name: STRING
+      source_code: TEXT
+      modify_date: TIMESTAMP
+
+  # List all user tables with metadata
+  list_tables:
+    description: "Get list of all user tables with column information"
+    sql: |
+      SELECT
+        OBJECT_SCHEMA_NAME(t.object_id) as schema_name,
+        t.name as table_name,
+        t.object_id as object_id,
+        t.create_date,
+        t.modify_date,
+        COUNT(DISTINCT c.column_id) as column_count,
+        STRING_AGG(CONCAT(c.name, ':', TYPE_NAME(c.user_type_id)), ', ') as columns
+      FROM sys.tables t
+      LEFT JOIN sys.columns c ON t.object_id = c.object_id
+      WHERE OBJECT_SCHEMA_NAME(t.object_id) NOT IN (
+        'sys', 'information_schema', 'tempdb', 'master', 'msdb', 'model'
+      )
+      GROUP BY OBJECT_SCHEMA_NAME(t.object_id), t.name, t.object_id, t.create_date, t.modify_date
+      ORDER BY schema_name, table_name
+
+    columns:
+      schema_name: STRING
+      table_name: STRING
+      object_id: INTEGER
+      create_date: TIMESTAMP
+      modify_date: TIMESTAMP
+      column_count: INTEGER
+      columns: TEXT
+
+  # List all user views with metadata
+  list_views:
+    description: "Get list of all user views with DDL"
+    sql: |
+      SELECT
+        OBJECT_SCHEMA_NAME(v.object_id) as schema_name,
+        v.name as view_name,
+        v.object_id as object_id,
+        v.create_date,
+        v.modify_date,
+        m.definition as source_code,
+        CAST(HASHBYTES('SHA2_256', m.definition) AS VARBINARY(32)) as definition_hash
+      FROM sys.views v
+      INNER JOIN sys.sql_modules m ON v.object_id = m.object_id
+      WHERE OBJECT_SCHEMA_NAME(v.object_id) NOT IN (
+        'sys', 'information_schema', 'tempdb', 'master', 'msdb', 'model'
+      )
+      ORDER BY schema_name, view_name
+
+    columns:
+      schema_name: STRING
+      view_name: STRING
+      object_id: INTEGER
+      create_date: TIMESTAMP
+      modify_date: TIMESTAMP
+      source_code: TEXT
+      definition_hash: BINARY
+
+  # List all user functions (scalar, table-valued, inline)
+  list_functions:
+    description: "Get list of all user-defined functions (scalar, table-valued, inline)"
+    sql: |
+      SELECT
+        OBJECT_SCHEMA_NAME(o.object_id) as schema_name,
+        o.name as function_name,
+        o.object_id as object_id,
+        o.create_date,
+        o.modify_date,
+        CASE
+          WHEN o.type = 'FN' THEN 'Scalar Function'
+          WHEN o.type = 'TF' THEN 'Table-Valued Function'
+          WHEN o.type = 'IF' THEN 'Inline Table-Valued Function'
+          ELSE o.type
+        END as function_type,
+        m.definition as source_code,
+        CAST(HASHBYTES('SHA2_256', m.definition) AS VARBINARY(32)) as definition_hash
+      FROM sys.objects o
+      INNER JOIN sys.sql_modules m ON o.object_id = m.object_id
+      WHERE o.type IN ('FN', 'TF', 'IF')
+        AND OBJECT_SCHEMA_NAME(o.object_id) NOT IN (
+          'sys', 'information_schema', 'tempdb', 'master', 'msdb', 'model'
+        )
+      ORDER BY schema_name, function_name
+
+    columns:
+      schema_name: STRING
+      function_name: STRING
+      object_id: INTEGER
+      create_date: TIMESTAMP
+      modify_date: TIMESTAMP
+      function_type: STRING
+      source_code: TEXT
+      definition_hash: BINARY
+
+  # Extract object dependencies and lineage
+  list_dependencies:
+    description: "Get all object dependencies (which objects reference which)"
+    sql: |
+      SELECT
+        d.referencing_id,
+        d.referenced_id,
+        OBJECT_SCHEMA_NAME(d.referencing_id) as referencing_schema,
+        OBJECT_NAME(d.referencing_id) as referencing_object,
+        d.referenced_schema_name as referenced_schema,
+        d.referenced_entity_name as referenced_object,
+        o1.type_desc AS referencing_type,
+        o2.type_desc AS referenced_type
+      FROM sys.sql_expression_dependencies d
+      JOIN sys.objects o1 ON d.referencing_id = o1.object_id
+      LEFT JOIN sys.objects o2 ON d.referenced_id = o2.object_id
+      WHERE d.referencing_id IS NOT NULL
+        AND o1.is_ms_shipped = 0
+        AND OBJECT_SCHEMA_NAME(d.referencing_id) NOT IN (
+          'sys', 'information_schema', 'tempdb', 'master', 'msdb', 'model'
+        )
+      ORDER BY d.referencing_id, d.referenced_id
+
+    columns:
+      referencing_id: INTEGER
+      referenced_id: INTEGER
+      referencing_schema: STRING
+      referencing_object: STRING
+      referenced_schema: STRING
+      referenced_object: STRING
+      referencing_type: STRING
+      referenced_type: STRING
+
+# Incremental refresh support
+incremental:
+  enabled: true
+  hash_column: definition_hash
+  modified_column: modify_date
+  description: "Use definition_hash to detect changed procedures, modify_date for ordering"

@@ -1,0 +1,39 @@
+# ==============================================================================
+# T-SQL Specific Source Extraction (APPLY patterns)
+# ==============================================================================
+# Extracts table-valued function calls using T-SQL APPLY operators.
+# CROSS APPLY and OUTER APPLY are T-SQL specific.
+#
+# Priority: 7 (Run after ANSI patterns)
+# Category: extraction
+# ==============================================================================
+
+name: extract_sources_tsql_apply
+description: |
+  Extract source references from T-SQL APPLY patterns.
+  CROSS APPLY and OUTER APPLY are unique to T-SQL dialect.
+
+dialect: tsql
+category: extraction
+enabled: true
+priority: 7
+
+rule_type: extraction
+extraction_target: source
+
+pattern_type: regex
+
+# Pattern captures: (keyword, identifier)
+# Group 2 = table-valued function or subquery name
+pattern: (?i)\b(CROSS\s+APPLY|OUTER\s+APPLY)\b\s+([^\s,;()]+)
+
+debug:
+  log_matches: true
+  log_replacements: false
+  show_context_lines: 2
+
+metadata:
+  author: vibecoding
+  created: "2025-11-19"
+  affects_lineage: true
+  impact: "Extracts T-SQL APPLY operator source references."

@@ -1,0 +1,533 @@
+# Development Guide
+
+**Complete development setup, configuration, and customization guide**
+
+---
+
+## Table of Contents
+
+- [Setup](#setup)
+  - [VS Code Dev Container (Recommended)](#vs-code-dev-container-recommended)
+  - [Development Tools](#development-tools)
+  - [Common Workflows](#common-workflows)
+- [Configuration](#configuration)
+  - [DMV Queries (Database Direct Import)](#dmv-queries-database-direct-import)
+  - [YAML Rule Configuration](#yaml-rule-configuration)
+  - [Developer Panel](#developer-panel)
+  - [Hardcoded SQL Options](#hardcoded-sql-options)
+
+---
+
+## Setup
+
+### VS Code Dev Container (Recommended)
+
+**⏱️ Time to Start:** 10-15 minutes (includes Docker build)
+
+The fastest way to get started! Uses VS Code Dev Containers for a fully configured, reproducible development environment.
+
+#### Prerequisites
+
+- Docker Desktop installed
+- VS Code installed with "Dev Containers" extension (`ms-vscode-remote.remote-containers`)
+
+#### Getting Started
+
+1. **Clone the repository:**
+   ```bash
+   git clone <your-repo-url>
+   cd data_lineage
+   ```
+
+2. **Open in VS Code:**
+   ```bash
+   code .
+   ```
+
+3. **Reopen in Container:**
+   - Press `F1` (or `Ctrl+Shift+P` / `Cmd+Shift+P`)
+   - Type and select: `Dev Containers: Reopen in Container`
+   - Wait for container to build (first time only: 10-15 minutes)
+
+4. **Everything is ready!**
+   - Python environment with all dependencies
+   - Frontend dependencies installed
+   - VS Code extensions pre-installed
+   - Debugging configured
+   - Tasks ready to use
+
+---
+
+### Development Tools
+
+**Python Environment:**
+- Python 3.11
+- All project dependencies (FastAPI, DuckDB, pandas, etc.)
+- Development tools: black, isort, pylint
+- Debugging support with debugpy
+
+**Frontend Environment:**
+- Node.js 20 LTS
+- npm/pnpm/yarn
+- React development dependencies
+- Tailwind CSS tooling
+
+**Database Drivers:**
+- Microsoft ODBC Driver 18 for SQL Server
+- Support for Azure Synapse, Azure SQL, SQL Server, and Fabric
+
+**VS Code Extensions:**
+- Python: Pylance, Black formatter, isort, debugpy
+- JavaScript/React: ESLint, Prettier, React snippets, Tailwind IntelliSense
+- API Testing: REST Client, Thunder Client
+- Docker, Git, YAML, Markdown support
+
+#### Pre-configured Tasks
+
+Access via `Ctrl+Shift+P` → `Tasks: Run Task`
+
+- **Start Backend (FastAPI)** - Launch backend server with hot reload
+- **Start Frontend (React)** - Launch Vite dev server
+- **Start Full Stack** - Launch both backend and frontend
+- **Build Frontend** - Build production frontend bundle
+- **Format Python Code** - Run Black formatter
+- **Sort Python Imports** - Run isort
+- **Clean Build Artifacts** - Remove build files and caches
+
+#### Debugging Configurations
+
+Access via `F5` or Debug panel
+
+- **Python: FastAPI Backend** - Debug FastAPI with breakpoints
+- **Python: Current File** - Debug currently open Python file
+- **Python: Parser Script** - Debug parser validation script
+- **Attach to FastAPI (Remote)** - Attach to running FastAPI instance
+
+#### Accessing Services
+
+Once the container is running:
+
+| Service | URL | Description |
+|---------|-----|-------------|
+| **Backend API** | http://localhost:8000 | FastAPI application |
+| **API Docs** | http://localhost:8000/docs | Swagger UI |
+| **Health Check** | http://localhost:8000/health | Health endpoint |
+| **Frontend Dev** | http://localhost:3000 | Vite dev server |
+
+### Common Workflows
+
+#### Running the Application
+
+**Development Mode** (with hot reload):
+```bash
+./start-app.sh dev
+# Backend: uvicorn with --reload at http://localhost:8000
+# Frontend: Vite dev server with HMR at http://localhost:3000
+```
+
+**Production Mode** (optimized build):
+```bash
+./start-app.sh
+# Serves pre-built frontend from dist/ at http://localhost:8000
+# Backend: FastAPI in production mode
+```
+
+**Force Rebuild**:
+```bash
+./start-app.sh --rebuild
+# Forces fresh production build even if dist/ exists
+# Use after updating dependencies or making major changes
+```
+
+**Stopping the Application**:
+```bash
+./stop-app.sh
+# Stops all background processes (backend and frontend)
+```
+
+---
+
+### Offline Extraction Tool
+
+**Location:** `util/universal_sql_extractor.py`
+
+This standalone script allows you to extract metadata from a SQL Server database without running the full application. It is ideal for working with isolated networks or creating backups.
+
+**Features:**
+*   Single-file utility (portable)
+*   Extracts Objects, Dependencies, Definitions, and Table Columns
+*   Outputs Parquet files compatible with the application's `/api/upload-parquet` endpoint
+
+**Usage:**
+
+1.  **Direct Execution (Arguments):**
+    ```bash
+    python util/universal_sql_extractor.py \
+        --server "localhost" \
+        --database "DataLineageDB" \
+        --username "sa" \
+        --password "yourPassword" \
+        --output "my_snapshot" \
+        --trust-cert
+    ```
+
+2.  **Environment Variables:**
+    The tool can read `.env` files. It supports:
+    *   `MSSQL_SERVER` or `DB_SERVER`
+    *   `MSSQL_DATABASE` or `DB_NAME`
+    *   `MSSQL_USERNAME` or `DB_USER`
+    *   `MSSQL_PASSWORD` or `DB_PASSWORD`
+    *   `DB_CONNECTION_STRING`
+
+    ```bash
+    # Will look for .env in current directory
+    python util/universal_sql_extractor.py --output "my_snapshot"
+    ```
+
+    ```bash
+    # Specify a custom env file
+    python util/universal_sql_extractor.py --env-file .env.prod --output "prod_snapshot"
+    ```
+
+**Importing Data:**
+After extraction, you can import the generated Parquet files into the application via the API:
+```bash
+curl -X POST "http://localhost:8000/api/upload-parquet" \
+  -F "files=@my_snapshot/objects.parquet" \
+  -F "files=@my_snapshot/dependencies.parquet" \
+  -F "files=@my_snapshot/definitions.parquet" \
+  -F "files=@my_snapshot/table_columns.parquet"
+```
+
+---
+
+## Configuration
+
+### DMV Queries (Database Direct Import)
+
+**Location:** `engine/connectors/queries/tsql/metadata.yaml`
+
+**This is the ONLY file used at runtime.** The connector loads all SQL queries from this YAML file, allowing customization without code changes.
+
+This YAML file contains 5 metadata extraction queries used for database direct import:
+
+1. `list_stored_procedures` - Get all procedures with metadata
+2. `list_tables` - Get all tables with column info
+3. `list_views` - Get all views with DDL
+4. `list_functions` - Get all functions (scalar, table-valued)
+5. `list_dependencies` - Get object dependencies
+
+#### Updating DMV Queries
+
+**When to update:**
+- Custom object types not covered by default queries
+- Performance optimization for large databases
+- Database-specific metadata requirements
+
+**How to update:**
+
+1. **Open the metadata file:**
+   ```bash
+   code engine/connectors/queries/tsql/metadata.yaml
+   ```
+
+2. **Edit the query:**
+   ```yaml
+   list_stored_procedures: |
+     SELECT
+         p.object_id,
+         SCHEMA_NAME(p.schema_id) AS schema_name,
+         p.name AS object_name,
+         'PROCEDURE' AS object_type,
+         m.definition AS sql_code
+     FROM sys.procedures p
+     LEFT JOIN sys.sql_modules m ON p.object_id = m.object_id
+     WHERE p.is_ms_shipped = 0
+       AND SCHEMA_NAME(p.schema_id) NOT IN ('sys', 'INFORMATION_SCHEMA')
+     -- Add your custom filters here
+   ```
+
+3. **Test the query:**
+   - Run directly in SQL Server Management Studio or Azure Data Studio
+   - Verify column names match expected schema (see [DATA_SPECIFICATIONS.md](DATA_SPECIFICATIONS.md#interface-1-dmv-database-metadata-queries))
+
+4. **Restart application:**
+   ```bash
+   ./stop-app.sh
+   ./start-app.sh
+   ```
+
+**Important:** Query result columns must match the DMV interface specification. See [DATA_SPECIFICATIONS.md](DATA_SPECIFICATIONS.md#interface-1-dmv-database-metadata-queries) for required column names and types.
+
+---
+
+### Data Model Configuration
+
+**Location:** `engine/connectors/queries/tsql/data_model_types.yaml`
+
+This configuration defines the rules for classifying objects as **Dimensions** or **Facts** in the frontend visualization.
+
+#### Configuration Format
+
+The file uses regular expressions to match object names to data model types:
+
+```yaml
+types:
+  - name: Dimension
+    patterns:
+      - "^Dim"      # Matches Start with Dim (e.g., DimCustomer)
+      - "^vw_Dim"   # Matches View Dimension convention
+  - name: Fact
+    patterns:
+      - "^Fact"     # Matches Fact tables
+      - "^vw_Fact"
+```
+
+**To modify:**
+1. Edit `engine/connectors/queries/tsql/data_model_types.yaml`
+2. Add or modify patterns list for `Dimension` or `Fact` types
+3. Restart application (no rebuild required, but frontend reload needed)
+
+Objects that do not match any pattern will be classified as "Other".
+
+---
+
+### YAML Rule Configuration
+
+**Location:** `engine/rules/`
+
+YAML rules define SQL cleaning and extraction patterns. Rules are organized by dialect with defaults for all dialects.
+
+#### Folder Structure
+
+```
+engine/rules/
+├── defaults/                      # ANSI-compliant rules (all dialects)
+│   ├── 05_extract_sources_ansi.yaml
+│   ├── 06_extract_targets_ansi.yaml
+│   └── 10_comment_removal.yaml
+│
+├── tsql/                          # T-SQL specific rules
+│   ├── 07_extract_sources_tsql_apply.yaml
+│   ├── 08_extract_sp_calls_tsql.yaml
+│   └── 10_extract_targets_tsql.yaml
+│
+├── TEMPLATE.yaml                  # Template for creating new rules
+├── YAML_STRUCTURE.md              # Complete schema reference
+└── rule_loader.py                 # Validation and loading logic
+```
+
+#### Creating Custom Rules
+
+**Step 1: Copy template**
+```bash
+cp engine/rules/TEMPLATE.yaml engine/rules/tsql/99_my_custom_rule.yaml
+```
+
+**Step 2: Edit YAML file**
+```yaml
+name: extract_my_pattern
+description: Extract my custom SQL pattern
+dialect: tsql
+enabled: true
+priority: 85
+category: extraction
+rule_type: extraction
+extraction_target: source
+pattern: '\bMY_KEYWORD\s+([^\s,;()]+)'
+replacement: ''
+```
+
+**Step 3: Restart and verify**
+```bash
+./stop-app.sh
+./start-app.sh
+```
+
+**Step 4: Check in Developer Panel**
+- Help (?) → "For Developers" → "Open Developer Panel"
+- Navigate to "YAML Rules" tab
+- Verify your rule appears and is enabled
+
+#### Rule Priority Guidelines
+
+| Priority | Category | Purpose | Examples |
+|----------|----------|---------|----------|
+| **1** | Preprocessing | Remove syntax that breaks regex | Comment removal |
+| **5-6** | ANSI Extraction | Common SQL patterns | FROM, JOIN (5), INSERT, UPDATE (6) |
+| **7-8** | Dialect-Specific | T-SQL specific patterns | APPLY (7), EXEC/SP calls (8) |
+| **10+** | Custom Rules | User-defined patterns | Custom extraction |
+
+#### Resetting YAML Rules
+
+**Reset from Developer Panel**
+1. Open Developer Panel: Help (?) → "For Developers"
+2. Navigate to "YAML Rules" tab
+3. Click "Reset Rules to Defaults this restores the rules from the `engine/rules/defaults/` folder"
+4. Confirm reset
+
+---
+
+### Developer Panel
+
+**Access:** Help (?) → "For Developers" → "Open Developer Panel"
+
+The Developer Panel provides debugging and management tools for development and troubleshooting.
+
+![Developer Panel - YAML Rules](images/developer-panel-yaml-rules.png)
+
+#### Tabs
+
+**1. Logs Tab**
+- **Purpose:** Real-time log viewer with color-coding
+- **Features:**
+  - Last 500 log entries
+  - Color-coded by level (DEBUG, INFO, WARNING, ERROR)
+  - Auto-scroll to latest
+  - Filter by level
+- **Use case:** Debug parser failures, monitor diagnostics
+
+**2. YAML Rules Tab**
+- **Purpose:** Browse and inspect all loaded rules
+- **Features:**
+  - View all loaded rules (defaults + dialect-specific)
+  - Rule details (priority, pattern, category)
+  - Enable/disable toggle
+  - Reset to defaults button
+- **Use case:** Verify custom rules loaded, inspect extraction patterns
+
+**3. Parser Diagnostics Tab**
+- **Purpose:** View per-object parsing details
+- **Features:**
+  - Parse success/failure counts
+  - Diagnostic counts (expected vs found tables)
+  - Regex extraction details
+- **Use case:** Troubleshoot low parse success rates
+
+#### Enabling Developer Mode
+
+**Permanent (via .env):**
+```bash
+# Edit .env file
+LOG_LEVEL=DEBUG
+RUN_MODE=debug
+```
+
+**Temporary (for current session):**
+1. Open Developer Panel
+2. Toggle "Debug Mode" switch
+3. Logs will show DEBUG level messages
+
+#### Cross-References
+
+For detailed information on specific features, see:
+- **YAML Rules:** [YAML Rule Configuration](#yaml-rule-configuration) above
+- **DMV Queries:** [DMV Queries](#dmv-queries-database-direct-import) above
+- **Parquet Schemas:** [DATA_SPECIFICATIONS.md](DATA_SPECIFICATIONS.md#parquet-file-specifications)
+- **Parser Architecture:** [ARCHITECTURE.md](ARCHITECTURE.md#parser-architecture)
+
+---
+
+### Hardcoded SQL Options
+
+Some SQL options and configurations are hardcoded in the application for performance and compatibility.
+
+#### Object Type Mappings
+
+**Location:** `engine/connectors/queries/tsql/metadata.yaml`
+
+Object type mappings (e.g. mapping `P` to `Stored Procedure` or `TF` to `Table-Valued Function`) are largely handled directly within the SQL queries defined in `metadata.yaml`.
+
+**To modify:**
+1. Edit `engine/connectors/queries/tsql/metadata.yaml`
+2. Update the `CASE` statements or `type` selection logic in the queries.
+3. Restart application.
+
+#### Excluded System Schemas
+
+**Location:** `engine/config/constants.py`
+
+```python
+# Default schemas to exclude from ALL processing
+DEFAULT_EXCLUDED_SCHEMAS = [
+    'sys',
+    'information_schema',
+    'tempdb',
+    'master',
+    'msdb',
+    'model',
+    # ...
+]
+```
+
+**To modify:**
+- **Recommended:** Use `EXCLUDED_SCHEMAS` environment variable in `.env`
+- **Alternative:** Edit `engine/config/constants.py` for permanent changes
+
+#### SQL Dialect Registration
+
+**Locations:**
+- `engine/config/dialect_config.py` (Enum definition)
+- `engine/connectors/factory.py` (Connector registry)
+
+**To add a new SQL dialect:**
+1. Add enum member to `SQLDialect` in `engine/config/dialect_config.py`
+2. Implement dialect connector in `engine/connectors/<dialect>_connector.py`
+   - Extend `DatabaseConnector`
+3. Register connector class in `CONNECTOR_REGISTRY` in `engine/connectors/factory.py`
+4. Create YAML rules in `engine/rules/<dialect>/`
+
+
+## Troubleshooting
+
+### Python Dependencies Not Found
+
+**Issue:** `ModuleNotFoundError` when running code
+
+**Solution:**
+```bash
+# Activate virtual environment
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+
+# Reinstall dependencies
+pip install -r requirements.txt
+```
+
+### Frontend Dependencies Not Found
+
+**Issue:** `npm` errors or missing packages
+
+**Solution:**
+```bash
+cd frontend
+npm install
+```
+## References
+
+- **Main Documentation:** [README.md](../README.md)
+- **Quick Start Guide:** [QUICKSTART.md](../QUICKSTART.md)
+- **Architecture Overview:** [ARCHITECTURE.md](ARCHITECTURE.md)
+- **Configuration Reference:** [CONFIGURATION.md](CONFIGURATION.md)
+- **Data Specifications:** [DATA_SPECIFICATIONS.md](DATA_SPECIFICATIONS.md)
+
+---
+
+## Contributing
+
+When contributing, ensure:
+1. Dev container builds successfully
+2. Code is formatted: Black + isort (auto on save)
+3. Environment variables documented in `.env.example`
+4. DMV query changes documented in this file
+5. YAML rule changes include examples
+
+---
+
+## License
+
+This project is licensed under the MIT License - see [LICENSE](../LICENSE) file for details.
+
+---
+
+**Last Updated:** 2025-01-30

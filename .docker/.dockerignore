@@ -1,0 +1,77 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs and data (should be in external volume)
+logs/
+*.log
+data/
+*.duckdb
+*.parquet
+uploads/
+
+# Documentation (except README)
+docs/
+*.md
+!README.md
+
+# Frontend source (only include dist/)
+frontend/node_modules/
+frontend/src/
+frontend/public/
+frontend/*.json
+frontend/*.ts
+frontend/*.config.*
+frontend/.env*
+
+# Development containers
+.devcontainer/
+
+# Docker folder itself (avoid recursion)
+.docker/
+
+# Azure deployment (not needed in local Docker image)
+.azure-deploy/
+
+# Deployment files
+*.zip
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary and internal files
+temp/
+util/
+internal/
+node_modules/
+lineage_output/
+test/
+tests/
