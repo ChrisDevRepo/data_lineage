@@ -5,7 +5,9 @@
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-green.svg)
 ![Node](https://img.shields.io/badge/node-20+-green.svg)
-![Status](https://img.shields.io/badge/status-proof%20of%20concept-yellow.svg)
+![Status](https://img.shields.io/badge/status-archived-red.svg)
+
+> **🗄️ This project is archived.** The actively maintained successor is **[Data Lineage Viz](https://chrisdevrepo.github.io/vscode_data_lineage/)** — a VS Code extension with direct database import, `.dacpac` support, richer graph analysis, and no server required.
 
 **Interactive data lineage visualization for Microsoft SQL Server family databases**
 
@@ -17,7 +19,7 @@ Analyze dependencies between tables, views, and stored procedures with an intera
 
 [![Data Lineage Visualizer Demo](docs/images/datalineage-youtube.png)](https://www.youtube.com/watch?v=uZAk9PqHwJc)
 
-**[▶️ Watch Video Demo](https://www.youtube.com/watch?v=uZAk9PqHwJc)** • [Quick Start](#quick-start) • [Features](#features) • [Documentation](#documentation) • [Live Demo](https://datalineage.chwagner.eu/) • [Disclaimers](#disclaimers)
+**[▶️ Watch Video Demo](https://www.youtube.com/watch?v=uZAk9PqHwJc)** • [Quick Start](#quick-start) • [Features](#features) • [Documentation](#documentation) • [Disclaimers](#disclaimers)
 
 </div>
 
@@ -28,8 +30,6 @@ Analyze dependencies between tables, views, and stored procedures with an intera
 
 ### Interactive Graph Visualization
 ![Data Lineage GUI](docs/images/data-lineage-gui.png)
-
-**[Check out Live Demo](https://datalineage.chwagner.eu/)**
 
 </div>
 
@@ -48,9 +48,7 @@ Analyze dependencies between tables, views, and stored procedures with an intera
 
 ## Quick Start
 
-### Option 1: Docker (Recommended - One Command)
-
-[![Docker Image](https://img.shields.io/docker/v/chwagneraltyca/data-lineage-visualizer?label=docker)](https://hub.docker.com/r/chwagneraltyca/data-lineage-visualizer)
+### Option 1: Docker (One Command)
 
 ```bash
 docker run -d -p 8000:8000 -v data-lineage-config:/app/config --name data-lineage chwagneraltyca/data-lineage-visualizer:latest
@@ -247,7 +245,6 @@ Community contributions are welcome! See [DEVELOPMENT.md](docs/DEVELOPMENT.md) f
 
 ## Support
 
-- **Demo:** Try the live demo at [https://datalineage.chwagner.eu/](https://datalineage.chwagner.eu/)
 - **Documentation:** [docs/](docs/) - Comprehensive guides and specifications
 - **Quick Help:** [QUICKSTART.md](QUICKSTART.md) - 5-minute deployment guide
 
